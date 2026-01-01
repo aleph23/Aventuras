@@ -36,10 +36,11 @@ export class OpenRouterProvider implements AIProvider {
       model: request.model,
       messagesCount: request.messages.length,
       temperature: request.temperature,
+      topP: request.topP,
       maxTokens: request.maxTokens,
     });
 
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.8,
@@ -47,6 +48,11 @@ export class OpenRouterProvider implements AIProvider {
       stop: request.stopSequences,
       ...request.extraBody, // Spread provider-specific options (e.g., reasoning)
     };
+
+    // Add top_p only if specified (some providers don't support it)
+    if (request.topP !== undefined) {
+      requestBody.top_p = request.topP;
+    }
 
     log('Sending request to OpenRouter...');
 
@@ -179,12 +185,13 @@ export class OpenRouterProvider implements AIProvider {
       model: request.model,
       messagesCount: request.messages.length,
       temperature: request.temperature,
+      topP: request.topP,
       maxTokens: request.maxTokens,
     });
 
     log('Sending streaming request to OpenRouter...');
 
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.8,
@@ -193,6 +200,11 @@ export class OpenRouterProvider implements AIProvider {
       stream: true,
       ...request.extraBody, // Spread provider-specific options (e.g., reasoning)
     };
+
+    // Add top_p only if specified (some providers don't support it)
+    if (request.topP !== undefined) {
+      requestBody.top_p = request.topP;
+    }
 
     const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',

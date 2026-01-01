@@ -57,6 +57,7 @@ export interface GenerationRequest {
   messages: Message[];
   model: string;
   temperature?: number;
+  topP?: number;
   maxTokens?: number;
   stopSequences?: string[];
   extraBody?: Record<string, unknown>; // For provider-specific options like reasoning

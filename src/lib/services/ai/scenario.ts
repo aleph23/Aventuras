@@ -25,6 +25,7 @@ export interface ProcessSettings {
   model?: string;
   systemPrompt?: string;
   temperature?: number;
+  topP?: number;
   maxTokens?: number;
 }
 
@@ -143,34 +144,38 @@ Respond with valid JSON:
 export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
   return {
     settingExpansion: {
-      model: 'x-ai/grok-4-fast', // Fast model for world elaboration
+      model: 'xiaomi/mimo-v2-flash:free', // mimo-v2-flash with reasoning for world elaboration
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.8,
-      maxTokens: 2000,
+      topP: 0.95,
+      maxTokens: 8192,
     },
     protagonistGeneration: {
-      model: SCENARIO_MODEL,
+      model: 'xiaomi/mimo-v2-flash:free', // mimo-v2-flash with reasoning for protagonist generation
       systemPrompt: DEFAULT_PROMPTS.protagonistGeneration,
-      temperature: 0.85,
-      maxTokens: 800,
+      temperature: 0.8,
+      topP: 0.95,
+      maxTokens: 8192,
     },
     characterElaboration: {
       model: 'xiaomi/mimo-v2-flash:free', // mimo-v2-flash with reasoning for character elaboration
       systemPrompt: DEFAULT_PROMPTS.characterElaboration,
       temperature: 0.8,
-      maxTokens: 800,
+      topP: 0.95,
+      maxTokens: 8192,
     },
     supportingCharacters: {
-      model: SCENARIO_MODEL,
+      model: SCENARIO_MODEL, // deepseek for supporting characters
       systemPrompt: DEFAULT_PROMPTS.supportingCharacters,
-      temperature: 0.85,
-      maxTokens: 1200,
+      temperature: 0.3,
+      maxTokens: 8192,
     },
     openingGeneration: {
       model: 'z-ai/glm-4.7', // GLM-4.7 with z-ai provider for opening generation
       systemPrompt: DEFAULT_PROMPTS.openingGeneration,
-      temperature: 0.85,
-      maxTokens: 2000,
+      temperature: 0.8,
+      topP: 0.95,
+      maxTokens: 8192,
     },
   };
 }
@@ -347,15 +352,18 @@ Expand this into a rich, detailed world suitable for interactive storytelling.${
       }
     ];
 
-    const model = overrides?.model || 'x-ai/grok-4-fast';
+    const model = overrides?.model || 'xiaomi/mimo-v2-flash:free';
+    const isMimo = model.includes('mimo');
 
     const response = await provider.generateResponse({
       messages,
       model,
       temperature: overrides?.temperature ?? 0.8,
-      maxTokens: overrides?.maxTokens ?? 2000,
+      topP: overrides?.topP ?? (isMimo ? 0.95 : undefined),
+      maxTokens: overrides?.maxTokens ?? 8192,
       extraBody: {
         provider: SCENARIO_PROVIDER,
+        ...(isMimo && { reasoning: { max_tokens: 8000 } }),
       },
     });
 
@@ -448,10 +456,11 @@ Expand and enrich these details while staying true to what I've provided.`
       messages,
       model,
       temperature: overrides?.temperature ?? 0.8,
-      maxTokens: overrides?.maxTokens ?? 800,
+      topP: overrides?.topP ?? (isMimo ? 0.95 : undefined),
+      maxTokens: overrides?.maxTokens ?? 8192,
       extraBody: {
         provider: SCENARIO_PROVIDER,
-        ...(isMimo && { reasoning: { max_tokens: 5000 } }),
+        ...(isMimo && { reasoning: { max_tokens: 8000 } }),
       },
     });
 
@@ -535,12 +544,20 @@ Generate a compelling protagonist who would fit naturally into this world.`
       }
     ];
 
+    // Use MiMo with reasoning for protagonist generation
+    const model = overrides?.model || 'xiaomi/mimo-v2-flash:free';
+    const isMimo = model.includes('mimo');
+
     const response = await provider.generateResponse({
       messages,
-      model: overrides?.model || SCENARIO_MODEL,
-      temperature: overrides?.temperature ?? 0.85,
-      maxTokens: overrides?.maxTokens ?? 800,
-      extraBody: { provider: SCENARIO_PROVIDER },
+      model,
+      temperature: overrides?.temperature ?? 0.8,
+      topP: overrides?.topP ?? (isMimo ? 0.95 : undefined),
+      maxTokens: overrides?.maxTokens ?? 8192,
+      extraBody: {
+        provider: SCENARIO_PROVIDER,
+        ...(isMimo && { reasoning: { max_tokens: 8000 } }),
+      },
     });
 
     log('Protagonist response received', { length: response.content.length });
@@ -608,11 +625,12 @@ Generate ${count} interesting supporting characters who would create compelling 
       }
     ];
 
+    // Deepseek with lower temperature for consistency
     const response = await provider.generateResponse({
       messages,
       model: overrides?.model || SCENARIO_MODEL,
-      temperature: overrides?.temperature ?? 0.85,
-      maxTokens: overrides?.maxTokens ?? 1200,
+      temperature: overrides?.temperature ?? 0.3,
+      maxTokens: overrides?.maxTokens ?? 8192,
       extraBody: { provider: SCENARIO_PROVIDER },
     });
 
@@ -756,12 +774,14 @@ Describe the environment and situation. Do NOT write anything ${userName} does, 
     // Use z-ai provider for GLM models
     const model = overrides?.model || 'z-ai/glm-4.7';
     const isZAI = model.startsWith('z-ai/');
+    const isGLM = model.includes('glm');
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.85,
-      maxTokens: overrides?.maxTokens ?? 2000,
+      temperature: overrides?.temperature ?? 0.8,
+      topP: overrides?.topP ?? (isGLM ? 0.95 : undefined),
+      maxTokens: overrides?.maxTokens ?? 8192,
       extraBody: {
         provider: isZAI ? { order: ['z-ai'], require_parameters: true } : SCENARIO_PROVIDER,
         reasoning: { max_tokens: 8000 },
@@ -881,12 +901,14 @@ Describe the environment and situation only. Do NOT write anything ${userName} d
     // Use z-ai provider for GLM models
     const model = overrides?.model || 'z-ai/glm-4.7';
     const isZAI = model.startsWith('z-ai/');
+    const isGLM = model.includes('glm');
 
     for await (const chunk of provider.streamResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.85,
-      maxTokens: overrides?.maxTokens ?? 1000,
+      temperature: overrides?.temperature ?? 0.8,
+      topP: overrides?.topP ?? (isGLM ? 0.95 : undefined),
+      maxTokens: overrides?.maxTokens ?? 8192,
       extraBody: isZAI ? { provider: { order: ['z-ai'], require_parameters: true } } : undefined,
     })) {
       yield chunk;
