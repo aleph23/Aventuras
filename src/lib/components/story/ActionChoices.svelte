@@ -44,26 +44,26 @@
     <span class="text-sm">Generating options...</span>
   </div>
 {:else if ui.actionChoices.length > 0}
-  <div class="mt-4 space-y-2">
+  <div class="mt-3 sm:mt-4 space-y-2">
     <div class="flex items-center gap-2 text-surface-500 text-xs uppercase tracking-wide mb-2">
       <span>What do you do?</span>
-      <span class="text-surface-600">(Press 1-{ui.actionChoices.length} to quick select)</span>
+      <span class="text-surface-600 hidden sm:inline">(Press 1-{ui.actionChoices.length} to quick select)</span>
     </div>
 
     {#each ui.actionChoices as choice, index}
       {@const Icon = typeIcons[choice.type]}
       <button
-        class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg
+        class="w-full text-left flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3 rounded-lg
                bg-surface-800/50 border-l-4 {typeStyles[choice.type]}
-               hover:bg-surface-700/50 transition-all duration-150 group"
+               hover:bg-surface-700/50 active:bg-surface-700 transition-all duration-150 group min-h-[52px]"
         onclick={() => handleChoiceClick(choice)}
       >
         <span class="flex items-center justify-center w-6 h-6 rounded bg-surface-700 text-surface-400
-                     group-hover:bg-surface-600 group-hover:text-surface-200 text-sm font-mono">
+                     group-hover:bg-surface-600 group-hover:text-surface-200 text-sm font-mono flex-shrink-0">
           {index + 1}
         </span>
         <Icon class="h-4 w-4 text-surface-500 group-hover:text-surface-300 shrink-0" />
-        <span class="text-surface-200 group-hover:text-surface-100">
+        <span class="text-surface-200 group-hover:text-surface-100 text-sm sm:text-base">
           {choice.text}
         </span>
       </button>

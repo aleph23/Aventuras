@@ -170,65 +170,68 @@
   }
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onclick={() => ui.closeSettings()}>
+<div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onclick={() => ui.closeSettings()}>
   <div
-    class="card w-full max-w-2xl max-h-[80vh] overflow-hidden"
+    class="card w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[80vh] overflow-hidden rounded-b-none sm:rounded-b-xl flex flex-col"
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
-    <div class="flex items-center justify-between border-b border-surface-700 pb-4">
-      <h2 class="text-xl font-semibold text-surface-100">Settings</h2>
-      <button class="btn-ghost rounded-lg p-2" onclick={() => ui.closeSettings()}>
+    <div class="flex items-center justify-between border-b border-surface-700 pb-3 sm:pb-4 flex-shrink-0">
+      <h2 class="text-lg sm:text-xl font-semibold text-surface-100">Settings</h2>
+      <button class="btn-ghost rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" onclick={() => ui.closeSettings()}>
         <X class="h-5 w-5" />
       </button>
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 border-b border-surface-700 py-2">
+    <div class="flex gap-1 border-b border-surface-700 py-2 overflow-x-auto scrollbar-hide flex-shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
       <button
-        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
         class:bg-surface-700={activeTab === 'api'}
         class:text-surface-100={activeTab === 'api'}
         class:text-surface-400={activeTab !== 'api'}
         onclick={() => activeTab = 'api'}
       >
         <Key class="h-4 w-4" />
-        API
+        <span>API</span>
       </button>
       <button
-        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
         class:bg-surface-700={activeTab === 'generation'}
         class:text-surface-100={activeTab === 'generation'}
         class:text-surface-400={activeTab !== 'generation'}
         onclick={() => activeTab = 'generation'}
       >
         <Cpu class="h-4 w-4" />
-        Generation
+        <span class="hidden xs:inline">Generation</span>
+        <span class="xs:hidden">Gen</span>
       </button>
       <button
-        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
         class:bg-surface-700={activeTab === 'ui'}
         class:text-surface-100={activeTab === 'ui'}
         class:text-surface-400={activeTab !== 'ui'}
         onclick={() => activeTab = 'ui'}
       >
         <Palette class="h-4 w-4" />
-        Interface
+        <span class="hidden xs:inline">Interface</span>
+        <span class="xs:hidden">UI</span>
       </button>
       <button
-        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
         class:bg-surface-700={activeTab === 'advanced'}
         class:text-surface-100={activeTab === 'advanced'}
         class:text-surface-400={activeTab !== 'advanced'}
         onclick={() => activeTab = 'advanced'}
       >
         <Settings2 class="h-4 w-4" />
-        Advanced
+        <span class="hidden xs:inline">Advanced</span>
+        <span class="xs:hidden">Adv</span>
       </button>
     </div>
 
     <!-- Content -->
-    <div class="max-h-96 overflow-y-auto py-4">
+    <div class="flex-1 overflow-y-auto py-4 min-h-0">
       {#if activeTab === 'api'}
         <div class="space-y-4">
           <div>

@@ -751,7 +751,7 @@
           bind:value={inputValue}
           onkeydown={handleKeydown}
           placeholder="Describe what happens next in the story..."
-          class="input min-h-[60px] resize-none pr-12"
+          class="input min-h-[56px] sm:min-h-[60px] resize-none text-base"
           rows="2"
           disabled={ui.isGenerating}
         ></textarea>
@@ -759,7 +759,7 @@
       <button
         onclick={handleSubmit}
         disabled={!inputValue.trim() || ui.isGenerating}
-        class="btn btn-primary self-end px-4 py-3"
+        class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
         title="Continue story"
       >
         <Feather class="h-5 w-5" />
@@ -767,51 +767,51 @@
     </div>
   {:else}
     <!-- Adventure Mode: Action type buttons -->
-    <div class="flex gap-2">
+    <div class="action-type-buttons flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
       <button
-        class="btn flex items-center gap-1.5 text-sm"
+        class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
         class:btn-primary={actionType === 'do'}
         class:btn-secondary={actionType !== 'do'}
         onclick={() => actionType = 'do'}
       >
         <Wand2 class="h-4 w-4" />
-        Do
+        <span class="hidden xs:inline">Do</span>
       </button>
       <button
-        class="btn flex items-center gap-1.5 text-sm"
+        class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
         class:btn-primary={actionType === 'say'}
         class:btn-secondary={actionType !== 'say'}
         onclick={() => actionType = 'say'}
       >
         <MessageSquare class="h-4 w-4" />
-        Say
+        <span class="hidden xs:inline">Say</span>
       </button>
       <button
-        class="btn flex items-center gap-1.5 text-sm"
+        class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
         class:btn-primary={actionType === 'think'}
         class:btn-secondary={actionType !== 'think'}
         onclick={() => actionType = 'think'}
       >
         <Brain class="h-4 w-4" />
-        Think
+        <span class="hidden xs:inline">Think</span>
       </button>
       <button
-        class="btn flex items-center gap-1.5 text-sm"
+        class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
         class:btn-primary={actionType === 'story'}
         class:btn-secondary={actionType !== 'story'}
         onclick={() => actionType = 'story'}
       >
         <Sparkles class="h-4 w-4" />
-        Story
+        <span class="hidden xs:inline">Story</span>
       </button>
       <button
-        class="btn flex items-center gap-1.5 text-sm"
+        class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
         class:btn-primary={actionType === 'free'}
         class:btn-secondary={actionType !== 'free'}
         onclick={() => actionType = 'free'}
       >
         <PenLine class="h-4 w-4" />
-        Free
+        <span class="hidden xs:inline">Free</span>
       </button>
     </div>
 
@@ -822,7 +822,7 @@
           bind:value={inputValue}
           onkeydown={handleKeydown}
           placeholder={actionType === 'story' ? 'Describe what happens...' : actionType === 'free' ? 'Write anything...' : 'What do you do?'}
-          class="input min-h-[60px] resize-none pr-12"
+          class="input min-h-[56px] sm:min-h-[60px] resize-none text-base"
           rows="2"
           disabled={ui.isGenerating}
         ></textarea>
@@ -830,7 +830,7 @@
       <button
         onclick={handleSubmit}
         disabled={!inputValue.trim() || ui.isGenerating}
-        class="btn btn-primary self-end px-4 py-3"
+        class="btn btn-primary self-end px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
       >
         <Send class="h-5 w-5" />
       </button>

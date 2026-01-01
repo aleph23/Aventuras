@@ -125,7 +125,7 @@
   }
 </script>
 
-<div class="group rounded-lg border-l-4 p-4 {styles[entry.type]} relative">
+<div class="group rounded-lg border-l-4 p-3 sm:p-4 {styles[entry.type]} relative">
   <div class="flex items-start gap-3">
     <div class="mt-0.5 rounded-full bg-surface-700 p-1.5">
       <Icon class="h-4 w-4 text-surface-400" />
@@ -140,26 +140,26 @@
           <textarea
             bind:value={editContent}
             onkeydown={handleKeydown}
-            class="input min-h-[100px] w-full resize-y text-sm"
+            class="input min-h-[100px] w-full resize-y text-base"
             rows="4"
           ></textarea>
           <div class="flex gap-2">
             <button
               onclick={saveEdit}
-              class="btn btn-primary flex items-center gap-1 text-xs"
+              class="btn btn-primary flex items-center gap-1.5 text-sm min-h-[40px] px-3"
             >
-              <Check class="h-3 w-3" />
+              <Check class="h-4 w-4" />
               Save
             </button>
             <button
               onclick={cancelEdit}
-              class="btn btn-secondary flex items-center gap-1 text-xs"
+              class="btn btn-secondary flex items-center gap-1.5 text-sm min-h-[40px] px-3"
             >
-              <X class="h-3 w-3" />
+              <X class="h-4 w-4" />
               Cancel
             </button>
           </div>
-          <p class="text-xs text-surface-500">Ctrl+Enter to save, Esc to cancel</p>
+          <p class="text-xs text-surface-500 hidden sm:block">Ctrl+Enter to save, Esc to cancel</p>
         </div>
       {:else if isDeleting}
         <div class="space-y-2">
@@ -167,16 +167,16 @@
           <div class="flex gap-2">
             <button
               onclick={confirmDelete}
-              class="btn flex items-center gap-1 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30"
+              class="btn flex items-center gap-1.5 text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 min-h-[40px] px-3"
             >
-              <Trash2 class="h-3 w-3" />
+              <Trash2 class="h-4 w-4" />
               Delete
             </button>
             <button
               onclick={() => isDeleting = false}
-              class="btn btn-secondary flex items-center gap-1 text-xs"
+              class="btn btn-secondary flex items-center gap-1.5 text-sm min-h-[40px] px-3"
             >
-              <X class="h-3 w-3" />
+              <X class="h-4 w-4" />
               Cancel
             </button>
           </div>
@@ -203,22 +203,22 @@
       {/if}
     </div>
 
-    <!-- Edit/Delete buttons (shown on hover) -->
+    <!-- Edit/Delete buttons (always visible on mobile, hover on desktop) -->
     {#if !isEditing && !isDeleting && entry.type !== 'system'}
-      <div class="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div class="absolute right-2 top-2 flex gap-1 sm:opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onclick={startEdit}
-          class="rounded p-1.5 text-surface-400 hover:bg-surface-600 hover:text-surface-200"
+          class="rounded p-2 sm:p-1.5 text-surface-400 hover:bg-surface-600 hover:text-surface-200 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
           title="Edit entry"
         >
-          <Pencil class="h-3.5 w-3.5" />
+          <Pencil class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
         <button
           onclick={() => isDeleting = true}
-          class="rounded p-1.5 text-surface-400 hover:bg-red-500/20 hover:text-red-400"
+          class="rounded p-2 sm:p-1.5 text-surface-400 hover:bg-red-500/20 hover:text-red-400 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
           title="Delete entry"
         >
-          <Trash2 class="h-3.5 w-3.5" />
+          <Trash2 class="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
       </div>
     {/if}

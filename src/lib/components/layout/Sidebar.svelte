@@ -21,14 +21,14 @@
 </script>
 
 <aside
-  class="sidebar flex h-full w-72 flex-col border-r border-surface-700"
+  class="sidebar flex h-full w-[calc(100vw-3rem)] max-w-72 flex-col border-r border-surface-700 sm:w-72"
   use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 50 }}
 >
   <!-- Tab navigation -->
   <div class="flex border-b border-surface-700">
     {#each tabs as tab}
       <button
-        class="flex flex-1 items-center justify-center gap-1.5 py-3 text-sm transition-colors"
+        class="flex flex-1 items-center justify-center gap-1.5 py-3 sm:py-3 min-h-[48px] text-sm transition-colors"
         class:text-accent-400={ui.sidebarTab === tab.id}
         class:text-surface-400={ui.sidebarTab !== tab.id}
         class:border-b-2={ui.sidebarTab === tab.id}
@@ -37,7 +37,7 @@
         onclick={() => ui.setSidebarTab(tab.id)}
         title={tab.label}
       >
-        <svelte:component this={tab.icon} class="h-4 w-4" />
+        <svelte:component this={tab.icon} class="h-5 w-5 sm:h-4 sm:w-4" />
       </button>
     {/each}
   </div>

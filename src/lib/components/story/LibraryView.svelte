@@ -124,35 +124,36 @@
   }
 </script>
 
-<div class="h-full overflow-y-auto p-6">
+<div class="h-full overflow-y-auto p-4 sm:p-6">
   <div class="mx-auto max-w-4xl">
     <!-- Header -->
-    <div class="mb-8 flex items-center justify-between">
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-surface-100">Story Library</h1>
-        <p class="text-surface-400">Your adventures await</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-surface-100">Story Library</h1>
+        <p class="text-sm sm:text-base text-surface-400">Your adventures await</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button
-          class="btn btn-secondary flex items-center gap-2"
+          class="btn btn-secondary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
           onclick={importStory}
         >
-          <Upload class="h-5 w-5" />
-          Import
+          <Upload class="h-4 w-4 sm:h-5 sm:w-5" />
+          <span class="hidden xs:inline">Import</span>
         </button>
         <button
-          class="btn btn-secondary flex items-center gap-2"
+          class="btn btn-secondary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
           onclick={() => showNewStoryModal = true}
         >
-          <Plus class="h-5 w-5" />
-          Quick Start
+          <Plus class="h-4 w-4 sm:h-5 sm:w-5" />
+          <span class="hidden xs:inline">Quick Start</span>
         </button>
         <button
-          class="btn btn-primary flex items-center gap-2"
+          class="btn btn-primary flex items-center gap-1.5 sm:gap-2 min-h-[44px] px-3 sm:px-4 text-sm"
           onclick={() => showSetupWizard = true}
         >
-          <Sparkles class="h-5 w-5" />
-          Create Story
+          <Sparkles class="h-4 w-4 sm:h-5 sm:w-5" />
+          <span class="xs:hidden">New</span>
+          <span class="hidden xs:inline">Create Story</span>
         </button>
       </div>
     </div>
@@ -166,20 +167,20 @@
 
     <!-- Stories grid -->
     {#if story.allStories.length === 0}
-      <div class="flex flex-col items-center justify-center py-20 text-center">
-        <BookOpen class="mb-4 h-16 w-16 text-surface-600" />
-        <h2 class="text-xl font-semibold text-surface-300">No stories yet</h2>
-        <p class="mt-2 text-surface-500">Create your first adventure to get started</p>
-        <div class="mt-6 flex gap-3">
+      <div class="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
+        <BookOpen class="mb-4 h-12 w-12 sm:h-16 sm:w-16 text-surface-600" />
+        <h2 class="text-lg sm:text-xl font-semibold text-surface-300">No stories yet</h2>
+        <p class="mt-2 text-sm sm:text-base text-surface-500">Create your first adventure to get started</p>
+        <div class="mt-6 flex flex-col xs:flex-row gap-3 w-full xs:w-auto">
           <button
-            class="btn btn-secondary flex items-center gap-2"
+            class="btn btn-secondary flex items-center justify-center gap-2 min-h-[48px] w-full xs:w-auto"
             onclick={() => showNewStoryModal = true}
           >
             <Plus class="h-5 w-5" />
             Quick Start
           </button>
           <button
-            class="btn btn-primary flex items-center gap-2"
+            class="btn btn-primary flex items-center justify-center gap-2 min-h-[48px] w-full xs:w-auto"
             onclick={() => showSetupWizard = true}
           >
             <Sparkles class="h-5 w-5" />
@@ -188,18 +189,18 @@
         </div>
       </div>
     {:else}
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
         {#each story.allStories as s (s.id)}
           <div
             role="button"
             tabindex="0"
             onclick={() => openStory(s.id)}
             onkeydown={(e) => e.key === 'Enter' && openStory(s.id)}
-            class="card group cursor-pointer text-left transition-colors hover:border-accent-500/50 hover:bg-surface-700/50"
+            class="card group cursor-pointer text-left transition-colors hover:border-accent-500/50 hover:bg-surface-700/50 active:bg-surface-700 min-h-[80px]"
           >
             <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <h3 class="font-semibold text-surface-100 group-hover:text-accent-400">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-surface-100 group-hover:text-accent-400 truncate">
                   {s.title}
                 </h3>
                 {#if s.genre}
@@ -210,7 +211,7 @@
               </div>
               <button
                 onclick={(e) => deleteStory(s.id, e)}
-                class="rounded p-1 text-surface-500 opacity-0 transition-opacity hover:bg-red-500/20 hover:text-red-400 group-hover:opacity-100"
+                class="rounded p-2 text-surface-500 sm:opacity-0 transition-opacity hover:bg-red-500/20 hover:text-red-400 group-hover:opacity-100 min-h-[40px] min-w-[40px] flex items-center justify-center -mr-1 -mt-1"
                 title="Delete story"
               >
                 <Trash2 class="h-4 w-4" />
@@ -235,27 +236,27 @@
 <!-- New Story Modal -->
 {#if showNewStoryModal}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
     role="dialog"
     aria-modal="true"
   >
-    <div class="card w-full max-w-2xl max-h-[80vh] overflow-hidden">
+    <div class="card w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden rounded-b-none sm:rounded-b-xl">
       {#if step === 'template'}
         <!-- Template Selection Step -->
-        <div class="flex items-center justify-between border-b border-surface-700 pb-4">
+        <div class="flex items-center justify-between border-b border-surface-700 pb-4 p-4 sm:p-4 -mx-4 -mt-4 sm:mx-0 sm:mt-0">
           <div>
-            <h2 class="text-xl font-semibold text-surface-100">Choose Your Adventure</h2>
-            <p class="text-sm text-surface-400">Select a genre template to get started</p>
+            <h2 class="text-lg sm:text-xl font-semibold text-surface-100">Choose Your Adventure</h2>
+            <p class="text-xs sm:text-sm text-surface-400">Select a genre template to get started</p>
           </div>
           <button
-            class="btn-ghost rounded-lg p-2 text-surface-400 hover:text-surface-100"
+            class="btn-ghost rounded-lg p-2 text-surface-400 hover:text-surface-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
             onclick={closeModal}
           >
             ✕
           </button>
         </div>
 
-        <div class="grid gap-3 py-4 sm:grid-cols-2 max-h-96 overflow-y-auto">
+        <div class="grid gap-2 sm:gap-3 py-4 grid-cols-1 xs:grid-cols-2 max-h-[60vh] sm:max-h-96 overflow-y-auto">
           {#each BUILTIN_TEMPLATES as template}
             {@const Icon = templateIcons[template.id] ?? Sparkles}
             <button

@@ -24,12 +24,12 @@
   <!-- Story entries container -->
   <div
     bind:this={storyContainer}
-    class="flex-1 overflow-y-auto px-6 py-4"
+    class="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4"
   >
-    <div class="mx-auto max-w-3xl space-y-4">
+    <div class="mx-auto max-w-3xl space-y-3 sm:space-y-4">
       {#if story.entries.length === 0 && !ui.isStreaming}
-        <div class="flex flex-col items-center justify-center py-20 text-center">
-          <p class="text-lg text-surface-400">Your adventure begins here...</p>
+        <div class="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-2">
+          <p class="text-base sm:text-lg text-surface-400">Your adventure begins here...</p>
           <p class="mt-2 text-sm text-surface-500">
             Type an action below to start your story
           </p>
@@ -53,7 +53,7 @@
   </div>
 
   <!-- Action input area -->
-  <div class="border-t border-surface-700 bg-surface-800 p-4">
+  <div class="border-t border-surface-700 bg-surface-800 p-3 sm:p-4 pb-safe">
     <div class="mx-auto max-w-3xl">
       <ActionInput />
     </div>
