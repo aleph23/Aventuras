@@ -663,13 +663,15 @@ Generate ${count} interesting supporting characters who would create compelling 
    */
   async generateOpening(
     wizardData: WizardData,
-    overrides?: ProcessSettings
+    overrides?: ProcessSettings,
+    lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[]
   ): Promise<GeneratedOpening> {
     log('generateOpening called', {
       settingName: wizardData.expandedSetting?.name,
       protagonist: wizardData.protagonist?.name,
       mode: wizardData.mode,
       hasOverrides: !!overrides,
+      lorebookEntries: lorebookEntries?.length ?? 0,
     });
 
     const provider = this.getProvider();
@@ -744,6 +746,36 @@ Respond with valid JSON:
 }`;
     }
 
+    // Build lorebook context if entries are provided - include ALL entries with full descriptions
+    let lorebookContext = '';
+    if (lorebookEntries && lorebookEntries.length > 0) {
+      const entriesByType: Record<string, { name: string; description: string; hiddenInfo?: string }[]> = {};
+      for (const entry of lorebookEntries) {
+        if (!entriesByType[entry.type]) {
+          entriesByType[entry.type] = [];
+        }
+        entriesByType[entry.type].push({
+          name: entry.name,
+          description: entry.description,
+          hiddenInfo: entry.hiddenInfo,
+        });
+      }
+
+      lorebookContext = '\n\n## LOREBOOK (Established Canon)\nThe opening scene MUST be consistent with this established lore:\n';
+      for (const [type, entries] of Object.entries(entriesByType)) {
+        if (entries.length > 0) {
+          lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
+          for (const entry of entries) {
+            lorebookContext += `- **${entry.name}**: ${entry.description}`;
+            if (entry.hiddenInfo) {
+              lorebookContext += ` [Hidden lore: ${entry.hiddenInfo}]`;
+            }
+            lorebookContext += '\n';
+          }
+        }
+      }
+    }
+
     const messages: Message[] = [
       {
         role: 'system',
@@ -766,7 +798,7 @@ ${protagonist?.description || ''}
 ${characters && characters.length > 0 ? `NPCs WHO MAY APPEAR:
 ${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}
 ` : ''}
-
+${lorebookContext}
 Describe the environment and situation. Do NOT write anything ${userName} does, says, thinks, or perceives. End with a moment that invites action.`
       }
     ];
@@ -991,7 +1023,7 @@ Describe the environment and situation only. Do NOT write anything ${userName} d
       : 'Use past tense.';
 
     if (mode === 'creative-writing') {
-      return `You are a skilled fiction writer co-authoring a ${genreLabel} story with ${userName}'s player. You control all NPCs, environments, and plot progression. You are the narrator—never ${userName}'s character.
+      return `You are a skilled fiction writer co-authoring a ${genreLabel} story with ${userName}'s player. You control all NPCs, environments, and plot progression. You are the narrator -never ${userName}'s character.
 
 <setting>
 ${setting?.name || 'A unique world'}
@@ -1001,9 +1033,9 @@ ${setting?.description || ''}
 <critical_constraints>
 # HARD RULES (Absolute Priority)
 1. **NEVER write dialogue, actions, decisions, or internal thoughts for ${userName}**
-2. **You control NPCs, environment, and plot—never ${userName}'s character**
-3. **End with a natural opening for ${userName} to act or respond—NOT a direct question**
-4. **Continue directly from the previous beat—no recaps, no scene-setting preamble**
+2. **You control NPCs, environment, and plot -never ${userName}'s character**
+3. **End with a natural opening for ${userName} to act or respond -NOT a direct question**
+4. **Continue directly from the previous beat -no recaps, no scene-setting preamble**
 </critical_constraints>
 
 <prose_architecture>
@@ -1031,7 +1063,7 @@ ${setting?.themes?.map(t => `- ${t}`).join('\n') || '- Adventure and discovery'}
 </themes>
 
 <ending_instruction>
-End each response with ${userName} in a moment of potential action—an NPC waiting for response, a door that could be opened, a sound that demands investigation. Create a **pregnant pause** that naturally invites ${userName}'s next move without explicitly asking what they do.
+End each response with ${userName} in a moment of potential action -an NPC waiting for response, a door that could be opened, a sound that demands investigation. Create a **pregnant pause** that naturally invites ${userName}'s next move without explicitly asking what they do.
 </ending_instruction>
 
 <forbidden_patterns>
@@ -1043,7 +1075,7 @@ End each response with ${userName} in a moment of potential action—an NPC wait
 - Breaking the narrative voice or referencing being an AI
 </forbidden_patterns>`;
     } else {
-      return `You are the narrator of an interactive ${genreLabel} adventure with ${userName}. You control all NPCs, environments, and plot progression. You are the narrator—never ${userName}'s character.
+      return `You are the narrator of an interactive ${genreLabel} adventure with ${userName}. You control all NPCs, environments, and plot progression. You are the narrator -never ${userName}'s character.
 
 <setting>
 ${setting?.name || 'A world of adventure'}
@@ -1053,21 +1085,21 @@ ${setting?.description || ''}
 <critical_constraints>
 # HARD RULES (Absolute Priority)
 1. **NEVER write dialogue, actions, decisions, or internal thoughts for ${userName}**
-2. **You control NPCs, environment, and plot—never ${userName}'s character**
-3. **End with a natural opening for ${userName} to act—NOT a direct question like "What do you do?"**
-4. **Continue directly from the previous beat—no recaps**
+2. **You control NPCs, environment, and plot -never ${userName}'s character**
+3. **End with a natural opening for ${userName} to act -NOT a direct question like "What do you do?"**
+4. **Continue directly from the previous beat -no recaps**
 </critical_constraints>
 
 <prose_architecture>
 ## Sensory Grounding
-Anchor every scene in concrete physical detail—sights, sounds, textures, smells.
+Anchor every scene in concrete physical detail -sights, sounds, textures, smells.
 - Avoid abstract emotion words without physical correlatives
 - Not "felt nervous" → show the symptom: fidgeting hands, dry throat
 
 ## Dialogue
 NPCs should feel like real people with their own agendas.
 - Characters deflect, interrupt, talk past each other
-- Power dynamics shift spatially—who claims space, who shrinks
+- Power dynamics shift spatially -who claims space, who shrinks
 
 ## Style
 - ${povInstruction}
@@ -1083,13 +1115,13 @@ ${setting?.themes?.map(t => `- ${t}`).join('\n') || '- Adventure and discovery'}
 
 <narrative_principles>
 - Respond to ${userName}'s actions naturally and logically within the world
-- Honor ${userName}'s agency—describe results of their choices, don't override them
+- Honor ${userName}'s agency -describe results of their choices, don't override them
 - Introduce interesting characters, challenges, and opportunities organically
 - Maintain strict consistency with established world details
 </narrative_principles>
 
 <ending_instruction>
-End each response with ${userName} in a moment of potential action—an NPC waiting, a sound in the darkness, an object within reach. The ending should be a **pregnant pause** that naturally invites ${userName}'s next move. Never end with "What do you do?" or similar direct questions.
+End each response with ${userName} in a moment of potential action -an NPC waiting, a sound in the darkness, an object within reach. The ending should be a **pregnant pause** that naturally invites ${userName}'s next move. Never end with "What do you do?" or similar direct questions.
 </ending_instruction>
 
 <forbidden_patterns>

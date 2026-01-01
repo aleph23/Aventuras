@@ -346,8 +346,23 @@
       title: storyTitle,
     };
 
+    // Prepare lorebook entries for opening generation context
+    // Include ALL entries with full descriptions to avoid hallucinating contradictory details
+    const lorebookContext = importedEntries.length > 0
+      ? importedEntries.map(e => ({
+          name: e.name,
+          type: e.type,
+          description: e.description,
+          hiddenInfo: undefined,
+        }))
+      : undefined;
+
     try {
-      generatedOpening = await scenarioService.generateOpening(wizardData, settings.wizardSettings.openingGeneration);
+      generatedOpening = await scenarioService.generateOpening(
+        wizardData,
+        settings.wizardSettings.openingGeneration,
+        lorebookContext
+      );
     } catch (error) {
       console.error('Failed to generate opening:', error);
       openingError = error instanceof Error ? error.message : 'Failed to generate opening';
@@ -600,7 +615,7 @@
         <div class="space-y-4">
           <p class="text-surface-400">
             Import an existing lorebook to populate your world with characters, locations, and lore.
-            This step is optional — you can skip it and add content later.
+            This step is optional - you can skip it and add content later.
           </p>
 
           {#if !importedLorebook || isClassifying}

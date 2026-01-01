@@ -512,7 +512,7 @@ If no entries are relevant, return: []`;
           block += ` (${char.metadata.relationship})`;
         }
         if (char.description) {
-          block += ` — ${char.description}`;
+          block += ` - ${char.description}`;
         }
         if (char.metadata?.traits && char.metadata.traits.length > 0) {
           block += ` [${char.metadata.traits.join(', ')}]`;

@@ -92,7 +92,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
         { name: 'Standard Sidearm', description: 'A reliable energy pistol, standard issue for spacers' },
         { name: 'Credit Chip', description: 'Digital currency storage', quantity: 500 },
       ],
-      openingScene: 'The airlock hisses open, and you step onto Nexus Station\'s main concourse. Holographic advertisements flicker in a dozen languages—some human, some decidedly not. The station\'s artificial gravity feels slightly off, a common quirk of older installations. Your ship, the *Vagrant Star*, sits in docking bay 47, her hull still bearing scorch marks from your last job. The message that brought you here promised lucrative work, but the sender remained anonymous. Through the crowd, you spot the designated meeting point: a grimy bar called "The Event Horizon."',
+      openingScene: 'The airlock hisses open, and you step onto Nexus Station\'s main concourse. Holographic advertisements flicker in a dozen languages -some human, some decidedly not. The station\'s artificial gravity feels slightly off, a common quirk of older installations. Your ship, the *Vagrant Star*, sits in docking bay 47, her hull still bearing scorch marks from your last job. The message that brought you here promised lucrative work, but the sender remained anonymous. Through the crowd, you spot the designated meeting point: a grimy bar called "The Event Horizon."',
     },
   },
   {
@@ -123,7 +123,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
 - Include sensory details that might be clues
 - NPCs should be consistent but may lie or omit
 - Never solve the mystery for the player
-- Maintain fair play—all clues should be available`,
+- Maintain fair play -all clues should be available`,
     initialState: {
       protagonist: {
         name: 'The Detective',
@@ -139,7 +139,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
         { name: 'Magnifying Glass', description: 'A quality lens for examining fine details' },
         { name: 'Business Cards', description: 'Your professional credentials', quantity: 10 },
       ],
-      openingScene: 'The grandfather clock in the corner reads 11:47 PM—presumably the time it stopped when knocked over during the struggle. You duck under the yellow tape and survey the scene. Edmund Blackwood, textile magnate and philanthropist, lies face-down on the Persian rug, a letter opener protruding from his back. The French windows are ajar, curtains stirring in the night breeze. A half-empty glass of brandy sits on the desk beside scattered papers. The household staff waits in the parlor, and Officer Chen hands you a preliminary report. "No forced entry," she notes. "Someone he knew."',
+      openingScene: 'The grandfather clock in the corner reads 11:47 PM -presumably the time it stopped when knocked over during the struggle. You duck under the yellow tape and survey the scene. Edmund Blackwood, textile magnate and philanthropist, lies face-down on the Persian rug, a letter opener protruding from his back. The French windows are ajar, curtains stirring in the night breeze. A half-empty glass of brandy sits on the desk beside scattered papers. The household staff waits in the parlor, and Officer Chen hands you a preliminary report. "No forced entry," she notes. "Someone he knew."',
     },
   },
   {
@@ -160,7 +160,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
 ## Narrative Style:
 - Build tension slowly, then release in bursts
 - Use sensory details to create unease
-- Leave things to imagination—suggestion over explicit
+- Leave things to imagination -suggestion over explicit
 - Create a sense of isolation and vulnerability
 - Subvert expectations to maintain fear
 
@@ -179,13 +179,13 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
       },
       startingLocation: {
         name: 'The Old House',
-        description: 'A decrepit Victorian mansion on the outskirts of town, long abandoned—until tonight.',
+        description: 'A decrepit Victorian mansion on the outskirts of town, long abandoned -until tonight.',
       },
       initialItems: [
         { name: 'Flashlight', description: 'A reliable flashlight with fading batteries' },
         { name: 'Cell Phone', description: 'No signal, but the screen provides some light' },
       ],
-      openingScene: 'The front door slams shut behind you. You spin around, pulling at the handle, but it won\'t budge. Through the grimy windows, your car sits in the overgrown driveway, impossibly far away. The dare was simple—spend one hour in the Ashford House. Your friends are probably laughing right now. But the laughter you heard just before the door closed... that didn\'t come from outside. Dust motes drift through your flashlight beam as you scan the entry hall. A grand staircase leads up into darkness. Doors lead left and right. Somewhere above, a floorboard creaks.',
+      openingScene: 'The front door slams shut behind you. You spin around, pulling at the handle, but it won\'t budge. Through the grimy windows, your car sits in the overgrown driveway, impossibly far away. The dare was simple -spend one hour in the Ashford House. Your friends are probably laughing right now. But the laughter you heard just before the door closed... that didn\'t come from outside. Dust motes drift through your flashlight beam as you scan the entry hall. A grand staircase leads up into darkness. Doors lead left and right. Somewhere above, a floorboard creaks.',
     },
   },
   {
@@ -231,7 +231,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
         { name: 'Moving Boxes', description: 'Cardboard boxes containing your belongings and memories', quantity: 12 },
         { name: 'Favorite Mug', description: 'A chipped ceramic mug that\'s been with you through everything' },
       ],
-      openingScene: 'Sunlight streams through the bare windows of your new apartment, catching the dust you\'ve stirred up while unpacking. The space is small—a studio with a kitchenette—but it\'s yours. Outside, you can hear the unfamiliar sounds of your new neighborhood: a dog barking, someone practicing piano badly, the rumble of traffic. Your phone buzzes with a text from your mother asking if you\'ve eaten. You haven\'t. There\'s a café on the corner you noticed while moving in, and your stomach reminds you that coffee and human contact might both be good ideas. First day in a new city. Everything feels possible.',
+      openingScene: 'Sunlight streams through the bare windows of your new apartment, catching the dust you\'ve stirred up while unpacking. The space is small -a studio with a kitchenette -but it\'s yours. Outside, you can hear the unfamiliar sounds of your new neighborhood: a dog barking, someone practicing piano badly, the rumble of traffic. Your phone buzzes with a text from your mother asking if you\'ve eaten. You haven\'t. There\'s a café on the corner you noticed while moving in, and your stomach reminds you that coffee and human contact might both be good ideas. First day in a new city. Everything feels possible.',
     },
   },
   {
@@ -250,7 +250,7 @@ export const BUILTIN_TEMPLATES: Omit<Template, 'createdAt'>[] = [
 - Create interesting characters and situations
 - Maintain consistency with established world details`,
     initialState: {
-      openingScene: 'A blank page awaits your story. Where would you like to begin? Describe the world, your character, or simply start with an action—the narrative will follow your lead.',
+      openingScene: 'A blank page awaits your story. Where would you like to begin? Describe the world, your character, or simply start with an action -the narrative will follow your lead.',
     },
   },
 ];

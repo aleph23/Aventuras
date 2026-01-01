@@ -3,7 +3,7 @@
  * Per design doc section 2.1: Event-Driven Architecture
  *
  * Modules subscribe to events they care about, do their work, and emit new events.
- * Modules don't call each other directly—they communicate through events and shared state.
+ * Modules don't call each other directly - they communicate through events and shared state.
  */
 
 const DEBUG = true;

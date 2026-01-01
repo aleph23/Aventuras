@@ -830,7 +830,7 @@ Do NOT use "you" to refer to the player character.
         for (const char of activeChars) {
           contextBlock += `\n• ${char.name}`;
           if (char.relationship) contextBlock += ` (${char.relationship})`;
-          if (char.description) contextBlock += ` — ${char.description}`;
+          if (char.description) contextBlock += ` - ${char.description}`;
           if (char.traits && char.traits.length > 0) {
             contextBlock += ` [${char.traits.join(', ')}]`;
           }
