@@ -344,7 +344,8 @@ export class LoreManagementService {
   }
 
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.loreManagement?.model ?? 'deepseek/deepseek-v3.2';
+    // Use minimax-m2.1 as default - good for agentic tool calling with reasoning
+    return this.settingsOverride?.model ?? settings.systemServicesSettings.loreManagement?.model ?? 'minimax/minimax-m2.1';
   }
 
   private get temperature(): number {
@@ -398,6 +399,16 @@ export class LoreManagementService {
           maxTokens: 2048,
           tools: LORE_MANAGEMENT_TOOLS,
           tool_choice: 'auto',
+          extraBody: {
+            // Enable reasoning for better decision-making
+            reasoning: {
+              effort: 'medium',
+            },
+            // Use Minimax provider for best tool calling support
+            provider: {
+              only: ['Minimax'],
+            },
+          },
         });
 
         log('Agent response', {
@@ -405,7 +416,13 @@ export class LoreManagementService {
           hasToolCalls: !!response.tool_calls,
           toolCallCount: response.tool_calls?.length ?? 0,
           finishReason: response.finish_reason,
+          hasReasoning: !!response.reasoning,
         });
+
+        // Log reasoning if present (useful for debugging agent decisions)
+        if (response.reasoning) {
+          log('Agent reasoning:', response.reasoning.substring(0, 500));
+        }
 
         // If no tool calls and finish reason is stop, agent is done thinking
         if (!response.tool_calls || response.tool_calls.length === 0) {
@@ -415,11 +432,12 @@ export class LoreManagementService {
           break;
         }
 
-        // Add assistant response to messages
+        // Add assistant response to messages, including reasoning for context continuity
         messages.push({
           role: 'assistant',
           content: response.content,
           tool_calls: response.tool_calls,
+          reasoning: response.reasoning ?? null, // Pass reasoning back to maintain context
         });
 
         // Execute each tool call
@@ -774,7 +792,7 @@ export interface LoreManagementSettings {
 
 export function getDefaultLoreManagementSettings(): LoreManagementSettings {
   return {
-    model: 'deepseek/deepseek-v3.2',
+    model: 'minimax/minimax-m2.1', // Good for agentic tool calling with reasoning
     temperature: 0.3,
     maxIterations: 20,
     systemPrompt: DEFAULT_LORE_MANAGEMENT_PROMPT,

@@ -147,11 +147,17 @@ export class OpenRouterProvider implements AIProvider {
       hasToolCalls: !!message?.tool_calls,
       toolCallCount: message?.tool_calls?.length ?? 0,
       contentLength: message?.content?.length ?? 0,
+      hasReasoning: !!message?.reasoning,
+      reasoningLength: message?.reasoning?.length ?? 0,
     });
 
     // Extract reasoning if present (for models with extended thinking)
+    // OpenRouter returns reasoning in the message object per the API spec
     let reasoning: string | undefined;
-    if (data.reasoning) {
+    if (message?.reasoning) {
+      reasoning = message.reasoning;
+    } else if (data.reasoning) {
+      // Fallback to top-level reasoning if present
       reasoning = data.reasoning;
     }
 

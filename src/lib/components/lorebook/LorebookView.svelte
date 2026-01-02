@@ -8,7 +8,10 @@
   import LorebookEntryForm from './LorebookEntryForm.svelte';
   import LorebookImportModal from './LorebookImportModal.svelte';
   import LorebookExportModal from './LorebookExportModal.svelte';
-  import { BookOpen, Plus, ArrowLeft } from 'lucide-svelte';
+  import { BookOpen, Plus, ArrowLeft, Loader2, Bot } from 'lucide-svelte';
+
+  // Lore management active state
+  const isLoreManagementActive = $derived(ui.loreManagementActive);
 
   // Track if we're in "new entry" mode
   let creatingNew = $state(false);
@@ -51,6 +54,9 @@
   });
 
   function handleNewEntry() {
+    // Block during lore management
+    if (isLoreManagementActive) return;
+
     creatingNew = true;
     ui.selectLorebookEntry(null);
     ui.setLorebookEditMode(true);
@@ -84,9 +90,29 @@
   }
 </script>
 
-<div class="flex h-full bg-surface-900">
-  <!-- List panel -->
-  {#if showList}
+<div class="flex flex-col h-full bg-surface-900">
+  <!-- Lore Management Active Banner -->
+  {#if isLoreManagementActive}
+    <div class="flex items-center gap-3 px-4 py-3 bg-accent-500/20 border-b border-accent-500/30">
+      <div class="flex items-center gap-2 text-accent-400">
+        <Bot class="h-5 w-5" />
+        <Loader2 class="h-4 w-4 animate-spin" />
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-accent-300">AI Lore Management Active</div>
+        <div class="text-xs text-accent-400/80 truncate">
+          {ui.loreManagementProgress || 'Reviewing story content...'}
+          {#if ui.loreManagementChanges > 0}
+            <span class="ml-2">({ui.loreManagementChanges} changes)</span>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <div class="flex flex-1 min-h-0">
+    <!-- List panel -->
+    {#if showList}
     <div
       class="flex flex-col border-r border-surface-700
         {isMobile ? 'w-full' : 'w-72 lg:w-80 flex-shrink-0'}"
@@ -141,6 +167,7 @@
       {/if}
     </div>
   {/if}
+  </div>
 </div>
 
 <!-- Import Modal -->

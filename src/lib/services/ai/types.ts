@@ -8,6 +8,8 @@ export interface ToolCallMessage {
   role: 'assistant';
   content: string | null;
   tool_calls: ToolCall[];
+  // Reasoning/thinking output if model supports it (e.g., minimax-m2.1)
+  reasoning?: string | null;
 }
 
 export interface ToolResultMessage {

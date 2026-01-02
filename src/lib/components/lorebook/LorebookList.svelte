@@ -22,6 +22,9 @@
     { value: 'updated', label: 'Recently Updated' },
   ];
 
+  // Lore management active state - disable editing actions
+  const isLoreManagementActive = $derived(ui.loreManagementActive);
+
   // Filtered and sorted entries
   const filteredEntries = $derived.by(() => {
     let result = [...story.lorebookEntries]; // Create a copy to avoid mutating original
@@ -185,6 +188,8 @@
     <button
       class="btn-primary flex-1 flex items-center justify-center gap-2 py-2"
       onclick={onNewEntry}
+      disabled={isLoreManagementActive}
+      title={isLoreManagementActive ? 'Editing disabled during lore management' : undefined}
     >
       <Plus class="h-4 w-4" />
       <span class="hidden xs:inline">New Entry</span>
@@ -192,7 +197,8 @@
     <button
       class="btn-ghost flex items-center justify-center gap-2 px-3 py-2 border border-surface-600 rounded-lg"
       onclick={() => ui.openLorebookImport()}
-      title="Import"
+      disabled={isLoreManagementActive}
+      title={isLoreManagementActive ? 'Import disabled during lore management' : 'Import'}
     >
       <Upload class="h-4 w-4" />
     </button>

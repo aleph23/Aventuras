@@ -336,7 +336,7 @@ Use your tools to review the story and make necessary changes. When finished, ca
 
 export function getDefaultLoreManagementSettings(): LoreManagementSettings {
   return {
-    model: 'deepseek/deepseek-v3.2',
+    model: 'minimax/minimax-m2.1', // Good for agentic tool calling with reasoning
     temperature: 0.3,
     maxIterations: 20,
     systemPrompt: DEFAULT_LORE_MANAGEMENT_PROMPT,

@@ -60,6 +60,12 @@ class UIStore {
   // Mobile: track if we're viewing detail (for stacked navigation)
   lorebookShowDetail = $state(false);
 
+  // Lore management mode state
+  // When active, the AI is reviewing/updating the lorebook - user editing is locked
+  loreManagementActive = $state(false);
+  loreManagementProgress = $state('');
+  loreManagementChanges = $state<number>(0);
+
   // Lorebook activation tracking for stickiness
   // Maps entry ID -> last activation position (story entry index)
   private activationData = $state<Record<string, number>>({});
@@ -299,6 +305,29 @@ class UIStore {
     this.lorebookShowDetail = false;
     this.selectedLorebookEntryId = null;
     this.lorebookEditMode = false;
+  }
+
+  // Lore management mode methods
+  startLoreManagement() {
+    this.loreManagementActive = true;
+    this.loreManagementProgress = 'Analyzing story content...';
+    this.loreManagementChanges = 0;
+    // Close any open modals/edit modes since user can't edit during lore management
+    this.lorebookEditMode = false;
+    this.lorebookImportModalOpen = false;
+    this.lorebookExportModalOpen = false;
+  }
+
+  updateLoreManagementProgress(message: string, changesCount?: number) {
+    this.loreManagementProgress = message;
+    if (changesCount !== undefined) {
+      this.loreManagementChanges = changesCount;
+    }
+  }
+
+  finishLoreManagement() {
+    this.loreManagementActive = false;
+    this.loreManagementProgress = '';
   }
 
   // Reset lorebook manager state (when leaving panel or switching stories)

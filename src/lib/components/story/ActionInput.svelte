@@ -222,6 +222,92 @@
 
     await story.addChapter(chapter);
     log('Chapter created', { number: chapterNumber, title: chapter.title });
+
+    // Trigger lore management after chapter creation
+    runLoreManagement().catch(err => {
+      console.error('[ActionInput] Lore management failed:', err);
+      ui.finishLoreManagement();
+    });
+  }
+
+  /**
+   * Run lore management to review and update lorebook entries.
+   * Triggered after chapter creation per design doc section 3.4.
+   */
+  async function runLoreManagement() {
+    if (!story.currentStory) return;
+
+    log('Starting lore management...');
+    ui.startLoreManagement();
+
+    try {
+      const result = await aiService.runLoreManagement(
+        story.currentStory.id,
+        [...story.lorebookEntries], // Clone to avoid mutation issues
+        story.entries.slice(-100), // Recent messages
+        story.chapters,
+        {
+          onCreateEntry: async (entry) => {
+            await story.addLorebookEntry({
+              name: entry.name,
+              type: entry.type,
+              description: entry.description,
+              hiddenInfo: entry.hiddenInfo,
+              aliases: entry.aliases,
+              state: entry.state,
+              adventureState: entry.adventureState,
+              creativeState: entry.creativeState,
+              injection: entry.injection,
+              firstMentioned: entry.firstMentioned,
+              lastMentioned: entry.lastMentioned,
+              mentionCount: entry.mentionCount,
+              createdBy: entry.createdBy,
+            });
+            ui.updateLoreManagementProgress('Creating entries...', result?.changes.length ?? 0);
+          },
+          onUpdateEntry: async (id, updates) => {
+            await story.updateLorebookEntry(id, updates);
+            ui.updateLoreManagementProgress('Updating entries...', result?.changes.length ?? 0);
+          },
+          onDeleteEntry: async (id) => {
+            await story.deleteLorebookEntry(id);
+            ui.updateLoreManagementProgress('Cleaning up entries...', result?.changes.length ?? 0);
+          },
+          onMergeEntries: async (entryIds, mergedEntry) => {
+            // Delete old entries and create merged one
+            await story.deleteLorebookEntries(entryIds);
+            await story.addLorebookEntry({
+              name: mergedEntry.name,
+              type: mergedEntry.type,
+              description: mergedEntry.description,
+              hiddenInfo: mergedEntry.hiddenInfo,
+              aliases: mergedEntry.aliases,
+              state: mergedEntry.state,
+              adventureState: mergedEntry.adventureState,
+              creativeState: mergedEntry.creativeState,
+              injection: mergedEntry.injection,
+              firstMentioned: mergedEntry.firstMentioned,
+              lastMentioned: mergedEntry.lastMentioned,
+              mentionCount: mergedEntry.mentionCount,
+              createdBy: mergedEntry.createdBy,
+            });
+            ui.updateLoreManagementProgress('Merging entries...', result?.changes.length ?? 0);
+          },
+        }
+      );
+
+      log('Lore management complete', {
+        changesCount: result.changes.length,
+        summary: result.summary,
+      });
+
+      ui.updateLoreManagementProgress(`Complete: ${result.summary}`, result.changes.length);
+    } finally {
+      // Give user a moment to see the completion message
+      setTimeout(() => {
+        ui.finishLoreManagement();
+      }, 2000);
+    }
   }
 
   // Get protagonist name for third person POV

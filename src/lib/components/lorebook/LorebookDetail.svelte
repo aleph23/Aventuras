@@ -42,6 +42,9 @@
   const Icon = $derived(typeIcons[entry.type] || BookOpen);
   const colorClass = $derived(typeColors[entry.type] || 'text-surface-400 bg-surface-700');
 
+  // Lore management active state - disable editing actions
+  const isLoreManagementActive = $derived(ui.loreManagementActive);
+
   async function handleSave(updatedEntry: Entry) {
     if (entry.id) {
       // Update existing
@@ -109,15 +112,16 @@
         <button
           class="btn-ghost p-2 rounded-lg"
           onclick={() => ui.setLorebookEditMode(true)}
-          title="Edit"
+          disabled={isLoreManagementActive}
+          title={isLoreManagementActive ? 'Editing disabled during lore management' : 'Edit'}
         >
           <Pencil class="h-4 w-4" />
         </button>
         <button
           class="btn-ghost p-2 rounded-lg text-red-400 hover:text-red-300"
           onclick={handleDelete}
-          disabled={deleting}
-          title="Delete"
+          disabled={deleting || isLoreManagementActive}
+          title={isLoreManagementActive ? 'Deletion disabled during lore management' : 'Delete'}
         >
           <Trash2 class="h-4 w-4" />
         </button>
