@@ -118,6 +118,9 @@ class UIStore {
   // Retry callback - set by ActionInput
   private retryCallback: (() => Promise<void>) | null = null;
 
+  // Retry last message callback - set by ActionInput for edit-and-retry feature
+  private retryLastMessageCallback: (() => Promise<void>) | null = null;
+
   setActivePanel(panel: ActivePanel) {
     this.activePanel = panel;
   }
@@ -258,6 +261,22 @@ class UIStore {
     });
   }
 
+  /**
+   * Update the user action content in the retry backup.
+   * Used when editing the last user message to retry with new content.
+   */
+  updateRetryBackupContent(newContent: string) {
+    if (this.retryBackup) {
+      this.retryBackup = {
+        ...this.retryBackup,
+        userActionContent: newContent,
+      };
+      console.log('[UI] Retry backup content updated', {
+        newContent: newContent.substring(0, 50),
+      });
+    }
+  }
+
   // Action choices methods
   setActionChoices(choices: ActionChoice[], storyId?: string) {
     this.actionChoices = choices;
@@ -371,6 +390,21 @@ class UIStore {
       console.log('[UI] retryCallback completed');
     } else {
       console.log('[UI] No retry callback registered!');
+    }
+  }
+
+  // Retry last message callback management (for edit-and-retry feature)
+  setRetryLastMessageCallback(callback: (() => Promise<void>) | null) {
+    this.retryLastMessageCallback = callback;
+  }
+
+  async triggerRetryLastMessage() {
+    console.log('[UI] triggerRetryLastMessage called', { hasCallback: !!this.retryLastMessageCallback });
+    if (this.retryLastMessageCallback) {
+      await this.retryLastMessageCallback();
+      console.log('[UI] retryLastMessageCallback completed');
+    } else {
+      console.log('[UI] No retry last message callback registered!');
     }
   }
 

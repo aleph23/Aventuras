@@ -100,10 +100,39 @@
   }
 
   async function saveEdit() {
-    if (editContent.trim() && editContent !== entry.content) {
-      await story.updateEntry(entry.id, editContent.trim());
+    const newContent = editContent.trim();
+    if (!newContent || newContent === entry.content) {
+      isEditing = false;
+      return;
     }
-    isEditing = false;
+
+    // Check if this is the last user_action entry
+    const isLastUserAction = entry.type === 'user_action' && isLastUserActionEntry();
+
+    if (isLastUserAction && ui.retryBackup && story.currentStory && ui.retryBackup.storyId === story.currentStory.id) {
+      // Update the backup with the new content and trigger retry
+      console.log('[StoryEntry] Editing last user action, triggering retry with new content');
+      ui.updateRetryBackupContent(newContent);
+      isEditing = false;
+      await ui.triggerRetryLastMessage();
+    } else {
+      // Normal edit - just update the entry
+      await story.updateEntry(entry.id, newContent);
+      isEditing = false;
+    }
+  }
+
+  /**
+   * Check if this entry is the last user_action in the story.
+   */
+  function isLastUserActionEntry(): boolean {
+    // Find all user_action entries
+    const userActions = story.entries.filter(e => e.type === 'user_action');
+    if (userActions.length === 0) return false;
+
+    // Check if this entry is the last one
+    const lastUserAction = userActions[userActions.length - 1];
+    return lastUserAction.id === entry.id;
   }
 
   function cancelEdit() {
