@@ -68,7 +68,7 @@
    */
   async function refreshSuggestions() {
     if (!isCreativeMode || story.entries.length === 0) {
-      ui.clearSuggestions();
+      ui.clearSuggestions(story.currentStory?.id);
       return;
     }
 
@@ -91,7 +91,7 @@
       emitSuggestionsReady(result.suggestions.map(s => ({ text: s.text, type: s.type })));
     } catch (error) {
       log('Failed to generate suggestions:', error);
-      ui.clearSuggestions();
+      ui.clearSuggestions(story.currentStory?.id);
     } finally {
       ui.setSuggestionsLoading(false);
     }
@@ -169,7 +169,7 @@
       log('Action choices generated:', result.choices.length, 'with', activeLorebookEntries.length, 'active lorebook entries');
     } catch (error) {
       log('Failed to generate action choices:', error);
-      ui.clearActionChoices();
+      ui.clearActionChoices(story.currentStory?.id);
     } finally {
       ui.setActionChoicesLoading(false);
     }
@@ -395,7 +395,7 @@
 
     ui.setGenerating(true);
     ui.clearGenerationError(); // Clear any previous error
-    ui.clearActionChoices(); // Clear previous action choices
+    ui.clearActionChoices(story.currentStory?.id); // Clear previous action choices
 
     try {
       // Build world state for AI context (including chapters for summarization)
@@ -768,7 +768,7 @@
     ui.resetScrollBreak();
 
     // Clear suggestions immediately when user sends a message
-    ui.clearSuggestions();
+    ui.clearSuggestions(story.currentStory?.id);
 
     // Build action content:
     // - Creative writing mode: use raw input as direction
@@ -897,8 +897,8 @@
     ui.clearGenerationError();
 
     // Clear suggestions and action choices
-    ui.clearSuggestions();
-    ui.clearActionChoices();
+    ui.clearSuggestions(story.currentStory?.id);
+    ui.clearActionChoices(story.currentStory?.id);
 
     // Restore activation data from backup to preserve lorebook stickiness state
     // This ensures entries that were "sticky" before the user action remain sticky

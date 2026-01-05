@@ -285,12 +285,16 @@ class UIStore {
   }
 
   // Action choices methods
+  private getActionChoicesKey(storyId: string): string {
+    return `action_choices:${storyId}`;
+  }
+
   setActionChoices(choices: ActionChoice[], storyId?: string) {
     this.actionChoices = choices;
     // Persist to database if we have a story ID
     if (storyId && choices.length > 0) {
       const data: PersistedActionChoices = { storyId, choices };
-      database.setSetting('action_choices', JSON.stringify(data)).catch(err => {
+      database.setSetting(this.getActionChoicesKey(storyId), JSON.stringify(data)).catch(err => {
         console.warn('[UI] Failed to persist action choices:', err);
       });
     }
@@ -300,12 +304,18 @@ class UIStore {
     this.actionChoicesLoading = loading;
   }
 
-  clearActionChoices() {
+  clearActionChoices(storyId?: string) {
     this.actionChoices = [];
     // Clear persisted choices
-    database.setSetting('action_choices', '').catch(err => {
-      console.warn('[UI] Failed to clear persisted action choices:', err);
-    });
+    if (storyId) {
+      database.setSetting(this.getActionChoicesKey(storyId), '').catch(err => {
+        console.warn('[UI] Failed to clear persisted action choices:', err);
+      });
+    } else {
+      database.setSetting('action_choices', '').catch(err => {
+        console.warn('[UI] Failed to clear persisted action choices:', err);
+      });
+    }
   }
 
   /**
@@ -316,13 +326,26 @@ class UIStore {
     try {
       // Reset in-memory choices when switching stories
       this.actionChoices = [];
-      const data = await database.getSetting('action_choices');
+      const data = await database.getSetting(this.getActionChoicesKey(storyId));
       if (data) {
         const parsed: PersistedActionChoices = JSON.parse(data);
         // Only restore if it's for the same story
         if (parsed.storyId === storyId && parsed.choices.length > 0) {
           this.actionChoices = parsed.choices;
           console.log('[UI] Restored action choices for story:', storyId);
+          return;
+        }
+      }
+
+      const legacyData = await database.getSetting('action_choices');
+      if (legacyData) {
+        const parsed: PersistedActionChoices = JSON.parse(legacyData);
+        if (parsed.storyId === storyId && parsed.choices.length > 0) {
+          this.actionChoices = parsed.choices;
+          database.setSetting(this.getActionChoicesKey(storyId), legacyData).catch(err => {
+            console.warn('[UI] Failed to migrate legacy action choices:', err);
+          });
+          console.log('[UI] Restored legacy action choices for story:', storyId);
         }
       }
     } catch (err) {
@@ -330,13 +353,19 @@ class UIStore {
     }
   }
 
-  setPendingActionChoice(text: string) {
+  setPendingActionChoice(text: string, storyId?: string) {
     this.pendingActionChoice = text;
     this.actionChoices = [];
     // Clear persisted choices when one is selected
-    database.setSetting('action_choices', '').catch(err => {
-      console.warn('[UI] Failed to clear persisted action choices:', err);
-    });
+    if (storyId) {
+      database.setSetting(this.getActionChoicesKey(storyId), '').catch(err => {
+        console.warn('[UI] Failed to clear persisted action choices:', err);
+      });
+    } else {
+      database.setSetting('action_choices', '').catch(err => {
+        console.warn('[UI] Failed to clear persisted action choices:', err);
+      });
+    }
   }
 
   clearPendingActionChoice() {
@@ -344,12 +373,16 @@ class UIStore {
   }
 
   // Suggestions methods (creative writing mode)
+  private getSuggestionsKey(storyId: string): string {
+    return `story_suggestions:${storyId}`;
+  }
+
   setSuggestions(suggestions: StorySuggestion[], storyId?: string) {
     this.suggestions = suggestions;
     // Persist to database if we have a story ID
     if (storyId && suggestions.length > 0) {
       const data: PersistedSuggestions = { storyId, suggestions };
-      database.setSetting('story_suggestions', JSON.stringify(data)).catch(err => {
+      database.setSetting(this.getSuggestionsKey(storyId), JSON.stringify(data)).catch(err => {
         console.warn('[UI] Failed to persist suggestions:', err);
       });
     }
@@ -359,12 +392,18 @@ class UIStore {
     this.suggestionsLoading = loading;
   }
 
-  clearSuggestions() {
+  clearSuggestions(storyId?: string) {
     this.suggestions = [];
     // Clear persisted suggestions
-    database.setSetting('story_suggestions', '').catch(err => {
-      console.warn('[UI] Failed to clear persisted suggestions:', err);
-    });
+    if (storyId) {
+      database.setSetting(this.getSuggestionsKey(storyId), '').catch(err => {
+        console.warn('[UI] Failed to clear persisted suggestions:', err);
+      });
+    } else {
+      database.setSetting('story_suggestions', '').catch(err => {
+        console.warn('[UI] Failed to clear persisted suggestions:', err);
+      });
+    }
   }
 
   /**
@@ -373,13 +412,28 @@ class UIStore {
    */
   async loadSuggestions(storyId: string) {
     try {
-      const data = await database.getSetting('story_suggestions');
+      // Reset in-memory suggestions when switching stories
+      this.suggestions = [];
+      const data = await database.getSetting(this.getSuggestionsKey(storyId));
       if (data) {
         const parsed: PersistedSuggestions = JSON.parse(data);
         // Only restore if it's for the same story
         if (parsed.storyId === storyId && parsed.suggestions.length > 0) {
           this.suggestions = parsed.suggestions;
           console.log('[UI] Restored suggestions for story:', storyId);
+          return;
+        }
+      }
+
+      const legacyData = await database.getSetting('story_suggestions');
+      if (legacyData) {
+        const parsed: PersistedSuggestions = JSON.parse(legacyData);
+        if (parsed.storyId === storyId && parsed.suggestions.length > 0) {
+          this.suggestions = parsed.suggestions;
+          database.setSetting(this.getSuggestionsKey(storyId), legacyData).catch(err => {
+            console.warn('[UI] Failed to migrate legacy suggestions:', err);
+          });
+          console.log('[UI] Restored legacy suggestions for story:', storyId);
         }
       }
     } catch (err) {

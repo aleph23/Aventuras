@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { story } from '$lib/stores/story.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { Sword, MessageCircle, Search, MapPin, Loader2 } from 'lucide-svelte';
   import type { ActionChoice } from '$lib/services/ai/actionChoices';
@@ -21,7 +22,7 @@
 
   function handleChoiceClick(choice: ActionChoice) {
     // Set the pending action choice - ActionInput will pick this up and submit
-    ui.setPendingActionChoice(choice.text);
+    ui.setPendingActionChoice(choice.text, story.currentStory?.id);
   }
 
   // Key bindings for quick selection (1-4)
