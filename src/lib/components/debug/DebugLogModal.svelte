@@ -74,7 +74,7 @@
 
 {#if ui.debugModalOpen}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     onclick={() => ui.closeDebugModal()}
     onkeydown={(e) => e.key === 'Escape' && ui.closeDebugModal()}
     role="dialog"
@@ -82,7 +82,7 @@
     tabindex="-1"
   >
     <div
-      class="card w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+      class="card w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
       role="document"
