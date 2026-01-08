@@ -60,4 +60,5 @@ pub struct QrCodeData {
     pub ip: String,
     pub port: u16,
     pub token: String,
+    pub version: String, // App version for compatibility check
 }

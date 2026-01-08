@@ -3,6 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { syncService } from '$lib/services/sync';
   import { exportService } from '$lib/services/export';
+  import { getVersion } from '@tauri-apps/api/app';
   import {
     X,
     QrCode,
@@ -42,6 +43,12 @@
   let showReceivedConflict = $state(false);
   let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
+  // State for version mismatch warning
+  let remoteVersion = $state<string | null>(null);
+  let localVersion = $state<string | null>(null);
+  let showVersionWarning = $state(false);
+  let pendingConnection = $state<SyncConnectionData | null>(null);
+
   // QR Scanner
   let scanner: Html5Qrcode | null = null;
   let scannerElementId = 'qr-reader';
@@ -69,6 +76,10 @@
     receivedStoryJson = null;
     receivedStoryPreview = null;
     showReceivedConflict = false;
+    remoteVersion = null;
+    localVersion = null;
+    showVersionWarning = false;
+    pendingConnection = null;
     stopPolling();
   }
 
@@ -261,7 +272,46 @@
     }
 
     try {
-      connection = syncService.parseQrCode(data);
+      const parsed = syncService.parseQrCode(data);
+      const appVersion = await getVersion();
+
+      // Check for version mismatch or unknown remote version
+      if (!parsed.version || parsed.version !== appVersion) {
+        pendingConnection = parsed;
+        remoteVersion = parsed.version ?? null;
+        localVersion = appVersion;
+        showVersionWarning = true;
+        return;
+      }
+
+      // No mismatch, proceed normally
+      await proceedWithConnection(parsed);
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Connection failed';
+      ui.setSyncMode('select');
+    }
+  }
+
+  function cancelVersionMismatch() {
+    showVersionWarning = false;
+    pendingConnection = null;
+    remoteVersion = null;
+    localVersion = null;
+    ui.setSyncMode('select');
+  }
+
+  async function proceedWithVersionMismatch() {
+    if (!pendingConnection) return;
+    showVersionWarning = false;
+    remoteVersion = null;
+    localVersion = null;
+    await proceedWithConnection(pendingConnection);
+    pendingConnection = null;
+  }
+
+  async function proceedWithConnection(conn: SyncConnectionData) {
+    try {
+      connection = conn;
       ui.setSyncMode('connected');
 
       // Fetch available stories from remote
@@ -528,17 +578,49 @@
             </div>
           {/if}
         {:else if ui.syncMode === 'scan'}
-          <!-- QR Scanner -->
-          <div class="text-center">
-            <div
-              id={scannerElementId}
-              class="mx-auto mb-4 rounded-lg overflow-hidden"
-              style="width: 300px; height: 300px;"
-            ></div>
-            <p class="text-surface-400 text-sm">
-              Point your camera at the QR code
-            </p>
-          </div>
+          <!-- Version Mismatch Warning -->
+          {#if showVersionWarning}
+            <div class="text-center py-4">
+              <div
+                class="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-500/20 flex items-center justify-center"
+              >
+                <AlertTriangle class="h-8 w-8 text-amber-400" />
+              </div>
+              <h3 class="text-lg font-semibold text-surface-100 mb-2">
+                Version Mismatch
+              </h3>
+              <p class="text-surface-400 mb-2">
+                The remote device is running a different version of Aventura.
+              </p>
+              <div class="text-sm text-surface-500 mb-4">
+                <p>Local: v{localVersion}</p>
+                <p>Remote: {remoteVersion ? `v${remoteVersion}` : 'unknown'}</p>
+              </div>
+              <p class="text-surface-400 text-sm mb-4">
+                Syncing between different versions may cause issues. Continue anyway?
+              </p>
+              <div class="flex justify-center gap-3">
+                <button class="btn btn-secondary" onclick={cancelVersionMismatch}>
+                  Cancel
+                </button>
+                <button class="btn btn-primary" onclick={proceedWithVersionMismatch}>
+                  Continue Anyway
+                </button>
+              </div>
+            </div>
+          {:else}
+            <!-- QR Scanner -->
+            <div class="text-center">
+              <div
+                id={scannerElementId}
+                class="mx-auto mb-4 rounded-lg overflow-hidden"
+                style="width: 300px; height: 300px;"
+              ></div>
+              <p class="text-surface-400 text-sm">
+                Point your camera at the QR code
+              </p>
+            </div>
+          {/if}
         {:else if ui.syncMode === 'connected'}
           <!-- Story Selection -->
           {#if loading}

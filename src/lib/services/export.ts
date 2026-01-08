@@ -1,7 +1,7 @@
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { database } from './database';
-import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Entry } from '$lib/types';
+import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Entry, PersistentStyleReviewState } from '$lib/types';
 
 export interface AventuraExport {
   version: string;
@@ -13,10 +13,11 @@ export interface AventuraExport {
   items: Item[];
   storyBeats: StoryBeat[];
   lorebookEntries?: Entry[]; // Added in v1.1.0
+  styleReviewState?: PersistentStyleReviewState | null; // Added in v1.2.0
 }
 
 class ExportService {
-  private readonly VERSION = '1.1.0';
+  private readonly VERSION = '1.2.0';
 
   // Export to Aventura format (.avt - JSON)
   async exportToAventura(
@@ -38,6 +39,7 @@ class ExportService {
       items,
       storyBeats,
       lorebookEntries,
+      styleReviewState: story.styleReviewState,
     };
 
     const filePath = await save({
@@ -226,7 +228,7 @@ class ExportService {
         settings: data.story.settings,
         memoryConfig: data.story.memoryConfig || null,
         retryState: null, // Clear retry state on import
-        styleReviewState: null, // Clear style review state on import
+        styleReviewState: data.styleReviewState ?? null, // Restore style review state from export (v1.2.0+)
       };
 
       await database.createStory(importedStory);

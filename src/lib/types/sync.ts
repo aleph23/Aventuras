@@ -30,6 +30,7 @@ export interface SyncConnectionData {
   ip: string;
   port: number;
   token: string;
+  version?: string; // App version for compatibility check (optional for backwards compat)
 }
 
 /**

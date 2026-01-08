@@ -73,8 +73,21 @@ class DatabaseService {
     const db = await this.getDb();
     const now = Date.now();
     await db.execute(
-      `INSERT INTO stories (id, title, description, genre, template_id, mode, created_at, updated_at, settings, memory_config)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO stories (
+        id,
+        title,
+        description,
+        genre,
+        template_id,
+        mode,
+        created_at,
+        updated_at,
+        settings,
+        memory_config,
+        retry_state,
+        style_review_state
+      )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         story.id,
         story.title,
@@ -86,6 +99,8 @@ class DatabaseService {
         now,
         story.settings ? JSON.stringify(story.settings) : null,
         story.memoryConfig ? JSON.stringify(story.memoryConfig) : null,
+        story.retryState ? JSON.stringify(story.retryState) : null,
+        story.styleReviewState ? JSON.stringify(story.styleReviewState) : null,
       ]
     );
     return { ...story, createdAt: now, updatedAt: now };

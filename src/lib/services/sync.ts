@@ -117,7 +117,7 @@ class SyncService {
       ]);
 
     const exportData: AventuraExport = {
-      version: '1.1.0',
+      version: '1.2.0',
       exportedAt: Date.now(),
       story: storyData,
       entries,
@@ -126,6 +126,7 @@ class SyncService {
       items,
       storyBeats,
       lorebookEntries,
+      styleReviewState: storyData.styleReviewState,
     };
 
     return JSON.stringify(exportData);
@@ -163,6 +164,7 @@ class SyncService {
         ip: parsed.ip,
         port: parsed.port,
         token: parsed.token,
+        version: parsed.version, // May be undefined for older QR codes
       };
     } catch {
       throw new Error('Invalid QR code data');

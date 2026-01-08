@@ -3,7 +3,7 @@ use image::Luma;
 use qrcode::QrCode;
 use std::io::Cursor;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -85,6 +85,7 @@ fn parse_story_preview(json: &str) -> Result<SyncStoryPreview, String> {
 /// Start the sync server with available stories
 #[tauri::command]
 pub async fn start_sync_server(
+    app: AppHandle,
     state: State<'_, SyncState>,
     stories_json: Option<Vec<String>>,
 ) -> Result<SyncServerInfo, String> {
@@ -130,6 +131,7 @@ pub async fn start_sync_server(
         ip: ip.clone(),
         port,
         token: token.clone(),
+        version: app.package_info().version.to_string(),
     };
     let qr_json = serde_json::to_string(&qr_data).map_err(|e| format!("Failed to serialize QR data: {}", e))?;
     let qr_code_base64 = generate_qr_code(&qr_json)?;
