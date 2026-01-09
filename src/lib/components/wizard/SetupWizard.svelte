@@ -625,7 +625,8 @@
             result.entries,
             (current, total) => {
               classificationProgress = { current, total };
-            }
+            },
+            selectedMode
           );
           importedEntries = classifiedEntries;
         } catch (classifyError) {

@@ -6,6 +6,7 @@ import {
   getDefaultAdvancedSettingsForProvider,
 } from '$lib/services/ai/scenario';
 import { OPENROUTER_API_URL } from '$lib/services/ai/openrouter';
+import { promptService, type PromptSettings, getDefaultPromptSettings } from '$lib/services/prompts';
 import type { ReasoningEffort } from '$lib/types';
 
 // Provider preset types
@@ -943,6 +944,9 @@ class SettingsStore {
   // Update settings
   updateSettings = $state<UpdateSettings>(getDefaultUpdateSettings());
 
+  // Prompt settings (centralized macro-based prompts)
+  promptSettings = $state<PromptSettings>(getDefaultPromptSettings());
+
   initialized = $state(false);
 
   async init() {
@@ -1198,6 +1202,83 @@ class SettingsStore {
         // Migrate null profileIds to default OpenRouter profile
         await this.migrateNullProfileIds();
       }
+
+      // Load prompt settings and initialize the prompt service
+      const promptSettingsJson = await database.getSetting('prompt_settings');
+      if (promptSettingsJson) {
+        try {
+          const loaded = JSON.parse(promptSettingsJson);
+          const defaults = getDefaultPromptSettings();
+          this.promptSettings = {
+            customMacros: loaded.customMacros ?? defaults.customMacros,
+            macroOverrides: loaded.macroOverrides ?? defaults.macroOverrides,
+            templateOverrides: loaded.templateOverrides ?? defaults.templateOverrides,
+            legacyMigrationComplete: loaded.legacyMigrationComplete ?? false,
+          };
+        } catch {
+          this.promptSettings = getDefaultPromptSettings();
+        }
+      }
+
+      // Migrate legacy prompt overrides into centralized prompt settings
+      // Only run this migration once - check the flag to prevent re-migration
+      if (!this.promptSettings.legacyMigrationComplete) {
+        const defaultStorySettings = getDefaultStoryGenerationSettings();
+        const defaultWizardSettings = getDefaultAdvancedSettings();
+        const defaultSystemServices = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
+        const overrideIds = new Set(this.promptSettings.templateOverrides.map(o => o.templateId));
+
+        const addOverride = (templateId: string, content?: string | null, defaultContent?: string | null) => {
+          if (!content) return;
+          if (overrideIds.has(templateId)) return;
+          if (defaultContent !== undefined && content === defaultContent) return;
+          this.promptSettings.templateOverrides.push({ templateId, content });
+          overrideIds.add(templateId);
+        };
+
+        // Story generation prompts
+        addOverride('adventure', this.storyGenerationSettings.adventurePrompt, defaultStorySettings.adventurePrompt);
+        addOverride('creative-writing', this.storyGenerationSettings.creativeWritingPrompt, defaultStorySettings.creativeWritingPrompt);
+
+        // System services prompts
+        addOverride('classifier', this.systemServicesSettings.classifier.systemPrompt, defaultSystemServices.classifier.systemPrompt);
+        addOverride('suggestions', this.systemServicesSettings.suggestions.systemPrompt, defaultSystemServices.suggestions.systemPrompt);
+        addOverride('style-reviewer', this.systemServicesSettings.styleReviewer.systemPrompt, defaultSystemServices.styleReviewer.systemPrompt);
+        addOverride('lore-management', this.systemServicesSettings.loreManagement.systemPrompt, defaultSystemServices.loreManagement.systemPrompt);
+        addOverride('agentic-retrieval', this.systemServicesSettings.agenticRetrieval.systemPrompt, defaultSystemServices.agenticRetrieval.systemPrompt);
+        addOverride('timeline-fill', this.systemServicesSettings.timelineFill?.systemPrompt, defaultSystemServices.timelineFill?.systemPrompt);
+        addOverride('timeline-fill-answer', this.systemServicesSettings.timelineFill?.queryAnswerPrompt, defaultSystemServices.timelineFill?.queryAnswerPrompt);
+        addOverride('lorebook-classifier', this.systemServicesSettings.lorebookClassifier.systemPrompt, defaultSystemServices.lorebookClassifier.systemPrompt);
+        addOverride('chapter-analysis', this.systemServicesSettings.memory.chapterAnalysisPrompt, defaultSystemServices.memory.chapterAnalysisPrompt);
+        addOverride('chapter-summarization', this.systemServicesSettings.memory.chapterSummarizationPrompt, defaultSystemServices.memory.chapterSummarizationPrompt);
+        addOverride('retrieval-decision', this.systemServicesSettings.memory.retrievalDecisionPrompt, defaultSystemServices.memory.retrievalDecisionPrompt);
+
+        // Wizard prompts
+        addOverride('setting-expansion', this.wizardSettings.settingExpansion.systemPrompt, defaultWizardSettings.settingExpansion.systemPrompt);
+        addOverride('protagonist-generation', this.wizardSettings.protagonistGeneration.systemPrompt, defaultWizardSettings.protagonistGeneration.systemPrompt);
+        addOverride('character-elaboration', this.wizardSettings.characterElaboration.systemPrompt, defaultWizardSettings.characterElaboration.systemPrompt);
+        addOverride('supporting-characters', this.wizardSettings.supportingCharacters.systemPrompt, defaultWizardSettings.supportingCharacters.systemPrompt);
+
+        if (this.wizardSettings.openingGeneration.systemPrompt) {
+          const converted = this.wizardSettings.openingGeneration.systemPrompt
+            .replace(/\{userName\}/g, '{{protagonistName}}')
+            .replace(/\{genreLabel\}/g, '{{genreLabel}}')
+            .replace(/\{mode\}/g, '{{mode}}')
+            .replace(/\{tense\}/g, '{{tenseInstruction}}')
+            .replace(/\{tone\}/g, '{{tone}}');
+          addOverride('opening-generation-adventure', converted, '');
+          addOverride('opening-generation-creative', converted, '');
+        }
+
+        // Mark migration as complete so it doesn't run again
+        this.promptSettings.legacyMigrationComplete = true;
+
+        // Always save after migration to persist the legacyMigrationComplete flag
+        await database.setSetting('prompt_settings', JSON.stringify(this.promptSettings));
+      }
+
+      // Initialize the centralized prompt service with loaded settings
+      promptService.init(this.promptSettings);
 
       this.initialized = true;
     } catch (error) {
@@ -1875,6 +1956,41 @@ class SettingsStore {
     await this.saveUpdateSettings();
   }
 
+  // Prompt settings methods
+  async savePromptSettings() {
+    await database.setSetting('prompt_settings', JSON.stringify(this.promptSettings));
+    // Re-initialize the prompt service with updated settings
+    promptService.init(this.promptSettings);
+  }
+
+  async resetPromptSettings() {
+    this.promptSettings = getDefaultPromptSettings();
+    await this.savePromptSettings();
+  }
+
+  /**
+   * Update a template override in prompt settings
+   */
+  async setTemplateOverride(templateId: string, content: string) {
+    const existingIndex = this.promptSettings.templateOverrides.findIndex(o => o.templateId === templateId);
+    if (existingIndex >= 0) {
+      this.promptSettings.templateOverrides[existingIndex].content = content;
+    } else {
+      this.promptSettings.templateOverrides.push({ templateId, content });
+    }
+    await this.savePromptSettings();
+  }
+
+  /**
+   * Remove a template override (reset to default)
+   */
+  async removeTemplateOverride(templateId: string) {
+    this.promptSettings.templateOverrides = this.promptSettings.templateOverrides.filter(
+      o => o.templateId !== templateId
+    );
+    await this.savePromptSettings();
+  }
+
   /**
    * Reset ALL settings to their default values based on the current provider preset.
    * This preserves the API key and URL but resets everything else.
@@ -1940,6 +2056,9 @@ class SettingsStore {
     // Reset update settings
     this.updateSettings = getDefaultUpdateSettings();
 
+    // Reset prompt settings
+    this.promptSettings = getDefaultPromptSettings();
+
     // Save all to database
     await database.setSetting('default_model', this.apiSettings.defaultModel);
     await database.setSetting('temperature', this.apiSettings.temperature.toString());
@@ -1959,6 +2078,7 @@ class SettingsStore {
     await this.saveStoryGenerationSettings();
     await this.saveSystemServicesSettings();
     await this.saveUpdateSettings();
+    await this.savePromptSettings();
 
     // Apply theme and font size
     this.applyTheme(this.uiSettings.theme);

@@ -25,6 +25,7 @@ import type {
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import type { ReasoningEffort } from '$lib/types';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -412,15 +413,15 @@ export class LoreManagementService {
     return this.settingsOverride?.maxIterations ?? settings.systemServicesSettings.loreManagement?.maxIterations ?? 50;
   }
 
-  private get systemPrompt(): string {
-    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.loreManagement?.systemPrompt ?? DEFAULT_LORE_MANAGEMENT_PROMPT;
-  }
-
   /**
    * Run a lore management session.
    * This is an agentic loop that reviews and updates entries.
+   * @param context - The tool execution context with entries and chapters
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
-  async runSession(context: ToolExecutionContext): Promise<LoreManagementResult> {
+  async runSession(context: ToolExecutionContext, mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<LoreManagementResult> {
     this.changes = [];
     const sessionId = crypto.randomUUID();
 
@@ -443,11 +444,11 @@ export class LoreManagementService {
     });
 
     // Build initial prompt with context
-    const initialPrompt = this.buildInitialPrompt(sanitizedContext);
+    const initialPrompt = this.buildInitialPrompt(sanitizedContext, mode, pov, tense);
 
     // Initialize conversation with system message and context
     const messages: AgenticMessage[] = [
-      { role: 'system', content: this.systemPrompt },
+      { role: 'system', content: promptService.renderPrompt('lore-management', this.getPromptContext(mode, pov, tense)) },
       { role: 'user', content: initialPrompt },
     ];
 
@@ -595,7 +596,9 @@ export class LoreManagementService {
     };
   }
 
-  private buildInitialPrompt(context: ToolExecutionContext): string {
+  private buildInitialPrompt(context: ToolExecutionContext, mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): string {
+    const promptContext = this.getPromptContext(mode, pov, tense);
+
     // Build entry summary
     const entrySummary = context.entries.length > 0
       ? context.entries.map(e => `- ${e.name} (${e.type}): ${e.description}`).join('\n')
@@ -615,17 +618,20 @@ export class LoreManagementService {
       ? context.chapters.map(c => `Chapter ${c.number}: ${c.summary}`).join('\n')
       : 'No chapters yet.';
 
-    return `# Current Lorebook Entries
-${entrySummary}
-${recentStorySection}# Chapter Summaries
-${chapterSummary}
+    return promptService.renderUserPrompt('lore-management', promptContext, {
+      entrySummary,
+      recentStorySection,
+      chapterSummary,
+    });
+  }
 
-Please review the story content and identify:
-1. Important elements that should have entries but don't
-2. Entries that need updating based on story events
-3. Redundant or duplicate entries that should be merged
-
-Use the available tools to make necessary changes, then call finish_lore_management when done.`;
+  private getPromptContext(mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): PromptContext {
+    return {
+      mode,
+      pov: pov ?? (mode === 'creative-writing' ? 'third' : 'second'),
+      tense: tense ?? (mode === 'creative-writing' ? 'past' : 'present'),
+      protagonistName: 'the protagonist',
+    };
   }
 
   private async executeTool(toolCall: ToolCall, context: ToolExecutionContext): Promise<string> {

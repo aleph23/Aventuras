@@ -1,6 +1,7 @@
 import { settings } from '$lib/stores/settings.svelte';
 import { OpenAIProvider as OpenAIProvider } from './openrouter';
 import { BUILTIN_TEMPLATES } from '$lib/services/templates';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 import { ClassifierService, type ClassificationResult, type ClassificationContext, type ClassificationChatEntry } from './classifier';
 import { MemoryService, type ChapterAnalysis, type ChapterSummary, type RetrievalDecision, DEFAULT_MEMORY_CONFIG } from './memory';
 import { SuggestionsService, type StorySuggestion, type SuggestionsResult } from './suggestions';
@@ -104,6 +105,8 @@ class AIService {
       ? 'third'
       : (pov === 'third' ? 'third' : 'second');
     const tense = story?.settings?.tense ?? (mode === 'creative-writing' ? 'past' : 'present');
+    const protagonist = worldState.characters.find(c => c.relationship === 'self');
+    const protagonistName = protagonist?.name || 'the protagonist';
     const systemPrompt = this.buildSystemPrompt(worldState, story?.templateId, undefined, mode, undefined, systemPromptOverride, promptPov, tense, story?.timeTracker);
     log('System prompt built, length:', systemPrompt.length, 'mode:', mode, 'pov:', promptPov, 'tense:', tense);
 
@@ -113,7 +116,7 @@ class AIService {
     ];
 
     // Add priming user message to establish narrator role
-    const primingMessage = this.buildPrimingMessage(mode, promptPov, tense);
+    const primingMessage = this.buildPrimingMessage(mode, promptPov, tense, protagonistName);
     messages.push({ role: 'user', content: primingMessage });
 
     // Add recent entries as conversation history
@@ -224,6 +227,8 @@ class AIService {
       ? 'third'
       : (pov === 'third' ? 'third' : 'second');
     const tense = story?.settings?.tense ?? (mode === 'creative-writing' ? 'past' : 'present');
+    const protagonist = worldState.characters.find(c => c.relationship === 'self');
+    const protagonistName = protagonist?.name || 'the protagonist';
     let systemPrompt = this.buildSystemPrompt(
       worldState,
       story?.templateId,
@@ -265,7 +270,7 @@ class AIService {
     ];
 
     // Add priming user message to establish narrator role
-    const primingMessage = this.buildPrimingMessage(mode, promptPov, tense);
+    const primingMessage = this.buildPrimingMessage(mode, promptPov, tense, protagonistName);
     messages.push({ role: 'user', content: primingMessage });
 
     // Add ALL visible entries as conversation history
@@ -381,12 +386,16 @@ class AIService {
   /**
    * Generate story direction suggestions for creative writing mode.
    * Per design doc section 4.2: Suggestions System
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async generateSuggestions(
     entries: StoryEntry[],
     activeThreads: StoryBeat[],
     genre?: string | null,
-    lorebookEntries?: Entry[]
+    lorebookEntries?: Entry[],
+    pov?: POV,
+    tense?: Tense
   ): Promise<SuggestionsResult> {
     log('generateSuggestions called', {
       entriesCount: entries.length,
@@ -397,7 +406,7 @@ class AIService {
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.actionChoices.profileId);
     const suggestions = new SuggestionsService(provider);
-    return await suggestions.generateSuggestions(entries, activeThreads, genre, lorebookEntries);
+    return await suggestions.generateSuggestions(entries, activeThreads, genre, lorebookEntries, pov, tense);
   }
 
   /**
@@ -426,47 +435,65 @@ class AIService {
   /**
    * Analyze narration entries for style issues (overused phrases, etc.).
    * Runs in background every N messages to provide writing guidance.
+   * @param entries - Story entries to analyze
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
-  async analyzeStyle(entries: StoryEntry[]): Promise<StyleReviewResult> {
-    log('analyzeStyle called', { entriesCount: entries.length });
+  async analyzeStyle(entries: StoryEntry[], mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<StyleReviewResult> {
+    log('analyzeStyle called', { entriesCount: entries.length, mode });
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.styleReviewer.profileId);
     const styleReviewer = new StyleReviewerService(provider);
-    return await styleReviewer.analyzeStyle(entries);
+    return await styleReviewer.analyzeStyle(entries, mode, pov, tense);
   }
 
   /**
    * Analyze if a new chapter should be created based on token count.
    * Per design doc section 3.1.2: Auto-Summarization
+   * @param entries - Story entries to analyze
+   * @param lastChapterEndIndex - Index of the last chapter end
+   * @param config - Memory configuration
+   * @param tokensOutsideBuffer - Token count outside the buffer
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async analyzeForChapter(
     entries: StoryEntry[],
     lastChapterEndIndex: number,
     config: MemoryConfig,
-    tokensOutsideBuffer: number
+    tokensOutsideBuffer: number,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<ChapterAnalysis> {
     log('analyzeForChapter called', {
       entriesCount: entries.length,
       lastChapterEndIndex,
       tokensOutsideBuffer,
+      mode,
     });
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
-    return await memory.analyzeForChapter(entries, lastChapterEndIndex, config, tokensOutsideBuffer);
+    return await memory.analyzeForChapter(entries, lastChapterEndIndex, config, tokensOutsideBuffer, mode, pov, tense);
   }
 
   /**
    * Generate a summary and metadata for a chapter.
    * @param entries - The entries to summarize
    * @param previousChapters - Previous chapter summaries for context (optional)
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
-  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[]): Promise<ChapterSummary> {
-    log('summarizeChapter called', { entriesCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0 });
+  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[], mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<ChapterSummary> {
+    log('summarizeChapter called', { entriesCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0, mode });
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
-    return await memory.summarizeChapter(entries, previousChapters);
+    return await memory.summarizeChapter(entries, previousChapters, mode, pov, tense);
   }
 
   /**
@@ -474,38 +501,55 @@ class AIService {
    * @param chapter - The chapter to resummarize
    * @param entries - The entries in this chapter
    * @param allChapters - All chapters in the story
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async resummarizeChapter(
     chapter: Chapter,
     entries: StoryEntry[],
-    allChapters: Chapter[]
+    allChapters: Chapter[],
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<ChapterSummary> {
-    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number });
+    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number, mode });
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
-    return await memory.resummarizeChapter(chapter, entries, allChapters);
+    return await memory.resummarizeChapter(chapter, entries, allChapters, mode, pov, tense);
   }
 
   /**
    * Decide which chapters are relevant for the current context.
    * Per design doc section 3.1.3: Retrieval Flow
+   * @param userInput - User's current input/action
+   * @param recentEntries - Recent story entries for context
+   * @param chapters - All chapters in the story
+   * @param config - Memory configuration
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async decideRetrieval(
     userInput: string,
     recentEntries: StoryEntry[],
     chapters: Chapter[],
-    config: MemoryConfig
+    config: MemoryConfig,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<RetrievalDecision> {
     log('decideRetrieval called', {
       userInputLength: userInput.length,
       recentEntriesCount: recentEntries.length,
       chaptersCount: chapters.length,
+      mode,
     });
 
     const provider = this.getProviderForProfile(settings.systemServicesSettings.memory.profileId);
     const memory = new MemoryService(provider);
-    return await memory.decideRetrieval(userInput, recentEntries, chapters, config);
+    return await memory.decideRetrieval(userInput, recentEntries, chapters, config, mode, pov, tense);
   }
 
   /**
@@ -623,6 +667,8 @@ class AIService {
    * Run a lore management session.
    * Per design doc section 3.4: Lore Management Mode
    * This is an on-demand agentic system that reviews and updates lorebook entries.
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async runLoreManagement(
     storyId: string,
@@ -635,7 +681,10 @@ class AIService {
       onDeleteEntry: (id: string) => Promise<void>;
       onMergeEntries: (entryIds: string[], mergedEntry: Entry) => Promise<void>;
       onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>;
-    }
+    },
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<LoreManagementResult> {
     log('runLoreManagement called', {
       storyId,
@@ -653,13 +702,15 @@ class AIService {
       recentMessages,
       chapters,
       ...callbacks,
-    });
+    }, mode, pov, tense);
   }
 
   /**
    * Run agentic retrieval to gather context for the current situation.
    * Per design doc section 3.1.4: Agentic Retrieval (Optional)
    * Used for long stories or complex queries where static retrieval is insufficient.
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async runAgenticRetrieval(
     userInput: string,
@@ -668,7 +719,10 @@ class AIService {
     entries: Entry[],
     onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>,
     onQueryChapters?: (startChapter: number, endChapter: number, question: string) => Promise<string>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<AgenticRetrievalResult> {
     log('runAgenticRetrieval called', {
       userInputLength: userInput.length,
@@ -684,7 +738,10 @@ class AIService {
       { userInput, recentEntries, chapters, entries },
       onQueryChapter,
       onQueryChapters,
-      signal
+      signal,
+      mode,
+      pov,
+      tense
     );
   }
 
@@ -720,13 +777,18 @@ class AIService {
    * 1. Analyzes the current scene and generates targeted queries
    * 2. Executes those queries against chapter content in parallel
    * 3. Returns results for injection into the narrator's prompt
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async runTimelineFill(
     userInput: string,
     visibleEntries: StoryEntry[],
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<TimelineFillResult> {
     log('runTimelineFill called', {
       userInputLength: userInput.length,
@@ -743,7 +805,10 @@ class AIService {
       visibleEntries,
       chapters,
       allEntries,
-      signal
+      signal,
+      mode,
+      pov,
+      tense
     );
   }
 
@@ -755,7 +820,8 @@ class AIService {
     question: string,
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure'
   ): Promise<string> {
     const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
     const timelineFill = new TimelineFillService(provider);
@@ -764,7 +830,8 @@ class AIService {
       [chapterNumber],
       chapters,
       allEntries,
-      signal
+      signal,
+      mode
     );
   }
 
@@ -777,7 +844,8 @@ class AIService {
     question: string,
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure'
   ): Promise<string> {
     const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
     const timelineFill = new TimelineFillService(provider);
@@ -787,7 +855,8 @@ class AIService {
       endChapter,
       chapters,
       allEntries,
-      signal
+      signal,
+      mode
     );
   }
 
@@ -898,58 +967,25 @@ class AIService {
   /**
    * Build a priming user message to establish the narrator role.
    * This helps models that expect user-first conversation format.
+   *
+   * Uses the centralized prompt system for macro-based resolution.
    */
   private buildPrimingMessage(
     mode: 'adventure' | 'creative-writing',
     pov?: 'first' | 'second' | 'third',
-    tense: 'past' | 'present' = 'present'
+    tense: 'past' | 'present' = 'present',
+    protagonistName: string = 'the protagonist'
   ): string {
-    const tenseInstruction = tense === 'past' ? 'past tense' : 'present tense';
+    // Build context for the prompt service
+    const context: PromptContext = {
+      mode,
+      pov: pov ?? 'second',
+      tense,
+      protagonistName,
+    };
 
-    let povInstruction: string;
-    if (pov === 'first') {
-      povInstruction = 'first person (I/me/my)';
-    } else if (pov === 'third') {
-      povInstruction = 'third person (they/the character name)';
-    } else {
-      povInstruction = 'second person (you/your)';
-    }
-
-    if (mode === 'creative-writing') {
-      return `You are a skilled fiction writer. Write in ${tenseInstruction}, ${povInstruction}.
-
-Your role:
-- Write prose based on my directions
-- Bring scenes to life with vivid detail
-- Write for any character I direct you to, including dialogue, actions, and thoughts
-- Maintain consistent characterization throughout
-
-I am the author directing the story. Write what I ask for.`;
-    } else {
-      // Adventure mode - POV-aware priming message
-      if (pov === 'third') {
-        return `You are the narrator of this interactive adventure. Write in ${tenseInstruction}, ${povInstruction}.
-
-Your role:
-- Describe the protagonist's experiences and the world around them
-- Control all NPCs and the environment
-- NEVER write the protagonist's dialogue, decisions, or inner thoughts - I decide those
-- When I say "I do X", describe the results in third person (e.g., "I open the door" → "The protagonist pushes open the heavy door..." or use their name)
-
-I am the player controlling the protagonist. You narrate what happens. Begin when I take my first action.`;
-      } else {
-        // First/second person: User says "I do X", AI responds with "You do X"
-        return `You are the narrator of this interactive adventure. Write in ${tenseInstruction}, ${povInstruction}.
-
-Your role:
-- Describe what I see, hear, and experience as I explore
-- Control all NPCs and the environment
-- NEVER write my dialogue, decisions, or inner thoughts
-- When I say "I do X", describe the results using "you" (e.g., "I open the door" → "You push open the heavy door...")
-
-I am the player. You narrate the world around me. Begin when I take my first action.`;
-      }
-    }
+    // Use the centralized prompt service for priming message
+    return promptService.getPrimingMessage(context);
   }
 
   private buildSystemPrompt(
@@ -963,70 +999,50 @@ I am the player. You narrate the world around me. Begin when I take my first act
     tense: 'past' | 'present' = 'present',
     timeTracker?: TimeTracker | null
   ): string {
-    // Use custom system prompt if provided (from wizard-generated stories)
-    let basePrompt = '';
-
-    if (systemPromptOverride) {
-      basePrompt = systemPromptOverride;
-    } else if (templateId && mode === 'adventure') {
-      // Get template-specific system prompt if available
-      const template = BUILTIN_TEMPLATES.find(t => t.id === templateId);
-      if (template?.systemPrompt) {
-        basePrompt = template.systemPrompt;
-      }
-    }
-
     const protagonist = worldState.characters.find(c => c.relationship === 'self');
     const protagonistName = protagonist?.name || 'the protagonist';
 
-    // If no template prompt, use mode-appropriate default prompt from settings
+    // Build prompt context for macro expansion
+    const promptContext: PromptContext = {
+      mode,
+      pov: pov ?? 'second',
+      tense,
+      protagonistName,
+      currentLocation: worldState.currentLocation?.name,
+      storyTime: formatStoryTime(timeTracker),
+    };
+
+    // Determine the base prompt source
+    let basePrompt = '';
+    let useLegacyInjection = false;
+
+    if (systemPromptOverride) {
+      // User/wizard-provided override - check if it has macros
+      basePrompt = systemPromptOverride;
+      useLegacyInjection = !this.promptHasMacros(basePrompt);
+    } else if (templateId && mode === 'adventure') {
+      // Template-specific system prompt
+      const template = BUILTIN_TEMPLATES.find(t => t.id === templateId);
+      if (template?.systemPrompt) {
+        basePrompt = template.systemPrompt;
+        useLegacyInjection = !this.promptHasMacros(basePrompt);
+      }
+    }
+
+    // If no override/template, use the centralized prompt service
     if (!basePrompt) {
-      if (mode === 'creative-writing') {
-        basePrompt = settings.storyGenerationSettings.creativeWritingPrompt;
-      } else {
-        basePrompt = settings.storyGenerationSettings.adventurePrompt;
-      }
-    }
-
-    const protagonistToken = '{{protagonistName}}';
-    if (!basePrompt.includes(protagonistToken) && !basePrompt.includes(protagonistName)) {
-      const matchingNames = worldState.characters
-        .map(character => character.name)
-        .filter(name => name && basePrompt.includes(name));
-      if (matchingNames.length === 1) {
-        basePrompt = basePrompt.replaceAll(matchingNames[0], protagonistName);
-      }
-    }
-
-    if (basePrompt.includes(protagonistToken)) {
-      basePrompt = basePrompt.replaceAll(protagonistToken, protagonistName);
-    }
-
-    // Add POV and tense instructions
-    const tenseInstruction = tense === 'past' ? 'PAST TENSE' : 'PRESENT TENSE';
-
-    if (mode === 'creative-writing') {
-      // Creative writing mode: third person by default
-      basePrompt += `\n\n<style_instruction>
-Write in ${tenseInstruction}, THIRD PERSON.
-Refer to the protagonist as "${protagonistName}" or "they/them".
-Example: "${protagonistName} ${tense === 'past' ? 'stepped' : 'steps'} forward..." or "They ${tense === 'past' ? 'examined' : 'examine'} the door..."
-</style_instruction>`;
-    } else if (pov === 'third') {
-      // Adventure mode: third person
-      basePrompt += `\n\n<style_instruction>
-Write in ${tenseInstruction}, THIRD PERSON.
-Refer to the protagonist as "${protagonistName}" or "they/them".
-Example: "${protagonistName} ${tense === 'past' ? 'stepped' : 'steps'} forward..." or "They ${tense === 'past' ? 'examined' : 'examine'} the door..."
-Do NOT use "you" to refer to the protagonist.
-</style_instruction>`;
+      // Get prompt from centralized service (macros are expanded automatically)
+      const templateId = mode === 'creative-writing' ? 'creative-writing' : 'adventure';
+      basePrompt = promptService.getPrompt(templateId, promptContext);
+      useLegacyInjection = false; // Macros handled by promptService
     } else {
-      // Adventure mode: second person (default)
-      basePrompt += `\n\n<style_instruction>
-Write in ${tenseInstruction}, SECOND PERSON.
-Use "you/your" for the protagonist.
-Example: "You ${tense === 'past' ? 'stepped' : 'step'} forward..." or "You ${tense === 'past' ? 'examined' : 'examine'} the door..."
-</style_instruction>`;
+      // Expand any macros in the override/template prompt
+      basePrompt = promptService.expandMacros(basePrompt, promptContext);
+    }
+
+    // Legacy injection: add style and response instructions if not present
+    if (useLegacyInjection) {
+      basePrompt = this.injectLegacyInstructions(basePrompt, mode, pov, tense, protagonistName);
     }
 
     // Build world state context block
@@ -1117,13 +1133,56 @@ Example: "You ${tense === 'past' ? 'stepped' : 'step'} forward..." or "You ${ten
       basePrompt += '\n───────────────────────────────────────';
     }
 
-    // Final instruction - reinforcing the core rules (mode-specific)
+    return basePrompt;
+  }
+
+  /**
+   * Check if a prompt contains macro syntax (for determining legacy vs new mode)
+   */
+  private promptHasMacros(prompt: string): boolean {
+    return prompt.includes('{{styleInstruction}}') ||
+           prompt.includes('{{responseInstruction}}') ||
+           prompt.includes('{{primingMessage}}');
+  }
+
+  /**
+   * Inject legacy style and response instructions for prompts without macros
+   * (backward compatibility for systemPromptOverride and template prompts)
+   */
+  private injectLegacyInstructions(
+    basePrompt: string,
+    mode: 'adventure' | 'creative-writing',
+    pov: 'first' | 'second' | 'third' | undefined,
+    tense: 'past' | 'present',
+    protagonistName: string
+  ): string {
+    const tenseInstruction = tense === 'past' ? 'PAST TENSE' : 'PRESENT TENSE';
     const tenseRule = tense === 'past' ? 'Use PAST TENSE consistently.' : 'Use PRESENT TENSE consistently.';
 
+    // Add style instruction
     if (mode === 'creative-writing') {
-      const protagonist = worldState.characters.find(c => c.relationship === 'self');
-      const protagonistName = protagonist?.name || 'the protagonist';
+      basePrompt += `\n\n<style_instruction>
+Write in ${tenseInstruction}, THIRD PERSON.
+Refer to the protagonist as "${protagonistName}" or "they/them".
+Example: "${protagonistName} ${tense === 'past' ? 'stepped' : 'steps'} forward..." or "They ${tense === 'past' ? 'examined' : 'examine'} the door..."
+</style_instruction>`;
+    } else if (pov === 'third') {
+      basePrompt += `\n\n<style_instruction>
+Write in ${tenseInstruction}, THIRD PERSON.
+Refer to the protagonist as "${protagonistName}" or "they/them".
+Example: "${protagonistName} ${tense === 'past' ? 'stepped' : 'steps'} forward..." or "They ${tense === 'past' ? 'examined' : 'examine'} the door..."
+Do NOT use "you" to refer to the protagonist.
+</style_instruction>`;
+    } else {
+      basePrompt += `\n\n<style_instruction>
+Write in ${tenseInstruction}, SECOND PERSON.
+Use "you/your" for the protagonist.
+Example: "You ${tense === 'past' ? 'stepped' : 'step'} forward..." or "You ${tense === 'past' ? 'examined' : 'examine'} the door..."
+</style_instruction>`;
+    }
 
+    // Add response instruction
+    if (mode === 'creative-writing') {
       basePrompt += `\n\n<response_instruction>
 Write prose based on the author's direction:
 1. Bring the scene to life with sensory detail
@@ -1138,13 +1197,8 @@ STYLE:
 
 End at a natural narrative beat.
 </response_instruction>`;
-    } else {
-      // Adventure mode
-      if (pov === 'third') {
-        const protagonist = worldState.characters.find(c => c.relationship === 'self');
-        const protagonistName = protagonist?.name || 'the protagonist';
-
-        basePrompt += `\n\n<response_instruction>
+    } else if (pov === 'third') {
+      basePrompt += `\n\n<response_instruction>
 Respond to the player's action with an engaging narrative continuation:
 1. Show the immediate results of their action through sensory detail
 2. Bring NPCs and environment to life with their own reactions
@@ -1159,9 +1213,8 @@ CRITICAL VOICE RULES:
 
 End with a natural opening for action, not a direct question.
 </response_instruction>`;
-      } else {
-        // Second person (default for adventure mode)
-        basePrompt += `\n\n<response_instruction>
+    } else {
+      basePrompt += `\n\n<response_instruction>
 Respond to the player's action with an engaging narrative continuation:
 1. Show the immediate results of their action through sensory detail
 2. Bring NPCs and environment to life with their own reactions
@@ -1176,7 +1229,6 @@ CRITICAL VOICE RULES:
 
 End with a natural opening for action, not a direct question.
 </response_instruction>`;
-      }
     }
 
     return basePrompt;

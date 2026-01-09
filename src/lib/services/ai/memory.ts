@@ -2,6 +2,7 @@ import type { OpenAIProvider } from './openrouter';
 import type { Chapter, StoryEntry, MemoryConfig, TimeTracker } from '$lib/types';
 import { settings, type MemorySettings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 // Format time tracker for display in context (always shows full format)
 function formatTime(time: TimeTracker | null): string {
@@ -86,18 +87,6 @@ export class MemoryService {
     return this.settingsOverride?.temperature ?? settings.systemServicesSettings.memory.temperature;
   }
 
-  private get chapterAnalysisPrompt(): string {
-    return this.settingsOverride?.chapterAnalysisPrompt ?? settings.systemServicesSettings.memory.chapterAnalysisPrompt;
-  }
-
-  private get chapterSummarizationPrompt(): string {
-    return this.settingsOverride?.chapterSummarizationPrompt ?? settings.systemServicesSettings.memory.chapterSummarizationPrompt;
-  }
-
-  private get retrievalDecisionPrompt(): string {
-    return this.settingsOverride?.retrievalDecisionPrompt ?? settings.systemServicesSettings.memory.retrievalDecisionPrompt;
-  }
-
   private get extraBody(): Record<string, unknown> | undefined {
     return buildExtraBody({
       manualMode: settings.advancedRequestSettings.manualMode,
@@ -111,12 +100,17 @@ export class MemoryService {
    * Analyze if a new chapter should be created based on token count.
    * Triggered when tokens exceed threshold, excluding buffer messages.
    * Per design doc section 3.1.2: Auto-Summarization
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async analyzeForChapter(
     entries: StoryEntry[],
     lastChapterEndIndex: number,
     config: MemoryConfig,
-    tokensOutsideBuffer: number
+    tokensOutsideBuffer: number,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<ChapterAnalysis> {
     const messagesSinceLastChapter = entries.length - lastChapterEndIndex;
 
@@ -168,13 +162,14 @@ export class MemoryService {
 
     // Ask AI to find optimal chapter break point
     // Pass startIndex so message IDs are correctly numbered
-    const prompt = this.buildChapterAnalysisPrompt(chapterEntries, startIndex);
+    const promptContext = this.getPromptContext(mode, pov, tense);
+    const prompt = this.buildChapterAnalysisPrompt(chapterEntries, startIndex, promptContext);
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.chapterAnalysisPrompt },
+          { role: 'system', content: promptService.renderPrompt('chapter-analysis', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -200,8 +195,10 @@ export class MemoryService {
    * Generate a summary and metadata for a chapter.
    * @param entries - The entries to summarize
    * @param previousChapters - Previous chapter summaries for context (optional)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
-  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[]): Promise<ChapterSummary> {
+  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[], mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<ChapterSummary> {
     log('summarizeChapter called', { entryCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0 });
 
     const content = entries.map((e, i) => {
@@ -224,29 +221,17 @@ NOTE: Only use for reference. This is NOT what you will be summarizing.
 `;
     }
 
-    const prompt = `${previousContext}Summarize this story chapter and extract metadata.
-
-CHAPTER CONTENT:
-"""
-${content}
-"""
-
-Respond with JSON:
-{
-  "summary": "A concise 2-3 sentence summary of what happened in this chapter",
-  "title": "A short evocative chapter title (3-6 words)",
-  "keywords": ["key", "words", "for", "search"],
-  "characters": ["Character names mentioned"],
-  "locations": ["Location names mentioned"],
-  "plotThreads": ["Active plot threads or quests"],
-  "emotionalTone": "The overall emotional tone (e.g., tense, hopeful, mysterious)"
-}`;
+    const promptContext = this.getPromptContext(mode, pov, tense);
+    const prompt = promptService.renderUserPrompt('chapter-summarization', promptContext, {
+      previousContext,
+      chapterContent: content,
+    });
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.chapterSummarizationPrompt },
+          { role: 'system', content: promptService.renderPrompt('chapter-summarization', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -275,31 +260,42 @@ Respond with JSON:
    * @param chapter - The chapter to resummarize
    * @param entries - The entries in this chapter
    * @param allChapters - All chapters in the story
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async resummarizeChapter(
     chapter: Chapter,
     entries: StoryEntry[],
-    allChapters: Chapter[]
+    allChapters: Chapter[],
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<ChapterSummary> {
-    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number });
+    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number, mode });
 
     // Get only chapters BEFORE this one (not current, not after)
     const previousChapters = allChapters
       .filter(ch => ch.number < chapter.number)
       .sort((a, b) => a.number - b.number);
 
-    return this.summarizeChapter(entries, previousChapters);
+    return this.summarizeChapter(entries, previousChapters, mode, pov, tense);
   }
 
   /**
    * Decide which chapters are relevant for the current context.
    * Per design doc section 3.1.3: Retrieval Flow
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async decideRetrieval(
     userInput: string,
     recentEntries: StoryEntry[],
     chapters: Chapter[],
-    config: MemoryConfig
+    config: MemoryConfig,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<RetrievalDecision> {
     if (!config.enableRetrieval || chapters.length === 0) {
       return { relevantChapterIds: [], queries: [] };
@@ -322,38 +318,19 @@ Respond with JSON:
 
     const recentContext = recentEntries.slice(-5).map(e => e.content).join('\n');
 
-    const prompt = `Based on the user's input and current scene, decide which past chapters are relevant.
-
-USER INPUT:
-"${userInput}"
-
-CURRENT SCENE (last few messages):
-"""
-${recentContext}
-"""
-
-CHAPTER SUMMARIES:
-${JSON.stringify(chapterSummaries, null, 2)}
-
-Respond with JSON:
-{
-  "relevantChapterIds": ["id1", "id2"],
-  "queries": [
-    {"chapterId": "id1", "question": "What was X?"}
-  ]
-}
-
-Guidelines:
-- Only include chapters that are ACTUALLY relevant to the current context
-- Often, no chapters need to be queried - return empty arrays if nothing is relevant
-- Maximum ${config.maxChaptersPerRetrieval} chapters per query
-- Consider: characters mentioned, locations being revisited, plot threads referenced`;
+    const promptContext = this.getPromptContext(mode, pov, tense);
+    const prompt = promptService.renderUserPrompt('retrieval-decision', promptContext, {
+      userInput,
+      recentContext,
+      chapterSummaries: JSON.stringify(chapterSummaries, null, 2),
+      maxChaptersPerRetrieval: config.maxChaptersPerRetrieval,
+    });
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.retrievalDecisionPrompt },
+          { role: 'system', content: promptService.renderPrompt('retrieval-decision', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -405,7 +382,11 @@ Guidelines:
     return contextBlock;
   }
 
-  private buildChapterAnalysisPrompt(entries: StoryEntry[], startIndex: number): string {
+  private buildChapterAnalysisPrompt(
+    entries: StoryEntry[],
+    startIndex: number,
+    promptContext: PromptContext
+  ): string {
     // Format messages with their actual IDs (1-based for clarity)
     const messagesInRange = entries.map((e, i) => {
       const messageId = startIndex + i + 1; // 1-based message ID
@@ -416,14 +397,20 @@ Guidelines:
     const firstValidId = startIndex + 1;
     const lastValidId = startIndex + entries.length;
 
-    return `# Message Range for Auto-Summarize
-First valid message ID: ${firstValidId}
-Last valid message ID: ${lastValidId}
+    return promptService.renderUserPrompt('chapter-analysis', promptContext, {
+      firstValidId,
+      lastValidId,
+      messagesInRange,
+    });
+  }
 
-# Messages in Range:
-${messagesInRange}
-
-Select the single best chapter endpoint from this range.`;
+  private getPromptContext(mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): PromptContext {
+    return {
+      mode,
+      pov: pov ?? (mode === 'creative-writing' ? 'third' : 'second'),
+      tense: tense ?? (mode === 'creative-writing' ? 'past' : 'present'),
+      protagonistName: 'the protagonist',
+    };
   }
 
   private parseChapterAnalysis(

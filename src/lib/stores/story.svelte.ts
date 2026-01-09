@@ -73,6 +73,15 @@ class StoryStore {
     return stored;
   }
 
+  get tense(): 'past' | 'present' {
+    const mode = this.currentStory?.mode ?? 'adventure';
+    const stored = this.currentStory?.settings?.tense ?? null;
+    if (mode === 'creative-writing') {
+      return 'past';
+    }
+    return stored ?? 'present';
+  }
+
   get inventoryItems(): Item[] {
     return this.items.filter(i => i.location === 'inventory');
   }
@@ -1563,7 +1572,7 @@ class StoryStore {
     const { aiService } = await import('$lib/services/ai');
 
     // Generate summary with previous chapters as context
-    const chapterData = await aiService.summarizeChapter(chapterEntries, previousChapters);
+    const chapterData = await aiService.summarizeChapter(chapterEntries, previousChapters, this.currentStory?.mode ?? 'adventure', this.pov, this.tense);
 
     // Get the next chapter number
     const chapterNumber = await this.getNextChapterNumber();

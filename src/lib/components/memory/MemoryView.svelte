@@ -90,7 +90,10 @@
             });
             ui.updateLoreManagementProgress('Merging entries...', bumpChanges());
           },
-        }
+        },
+        story.currentStory?.mode ?? 'adventure',
+        story.pov,
+        story.tense
       );
 
       console.log('[MemoryView] Lore management complete', {
@@ -138,7 +141,7 @@
     ui.setMemoryLoading(true);
     try {
       const entries = getChapterEntries(chapter);
-      const newSummary = await aiService.resummarizeChapter(chapter, entries, story.chapters);
+      const newSummary = await aiService.resummarizeChapter(chapter, entries, story.chapters, story.currentStory?.mode ?? 'adventure', story.pov, story.tense);
 
       // Update the chapter with new summary and metadata
       await story.updateChapter(chapter.id, {

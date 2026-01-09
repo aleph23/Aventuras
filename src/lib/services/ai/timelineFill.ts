@@ -2,6 +2,7 @@ import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import type { Chapter, StoryEntry, TimeTracker, Location } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 // Format time tracker for timeline display (always shows full format)
 function formatTime(time: TimeTracker | null): string {
@@ -105,12 +106,13 @@ export class TimelineFillService {
     return this.settingsOverride?.maxQueries ?? settings.systemServicesSettings.timelineFill?.maxQueries ?? 5;
   }
 
-  private get systemPrompt(): string {
-    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.timelineFill?.systemPrompt ?? DEFAULT_TIMELINE_FILL_PROMPT;
-  }
-
-  private get queryAnswerPrompt(): string {
-    return this.settingsOverride?.queryAnswerPrompt ?? settings.systemServicesSettings.timelineFill?.queryAnswerPrompt ?? DEFAULT_QUERY_ANSWER_PROMPT;
+  private getPromptContext(mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): PromptContext {
+    return {
+      mode,
+      pov: pov ?? (mode === 'creative-writing' ? 'third' : 'second'),
+      tense: tense ?? (mode === 'creative-writing' ? 'past' : 'present'),
+      protagonistName: 'the protagonist',
+    };
   }
 
   /**
@@ -121,13 +123,18 @@ export class TimelineFillService {
    * @param visibleEntries - Entries in the current (unsummarized) chapter
    * @param chapters - All summarized chapters (the timeline)
    * @param allEntries - All entries including summarized ones (for querying chapter content)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async fillTimeline(
     userInput: string,
     visibleEntries: StoryEntry[],
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<TimelineFillResult> {
     log('fillTimeline called', {
       userInputLength: userInput.length,
@@ -141,7 +148,7 @@ export class TimelineFillService {
     }
 
     // Step 1: Generate queries based on current context (visible entries = current chapter)
-    const queries = await this.generateQueries(userInput, visibleEntries, chapters, signal);
+    const queries = await this.generateQueries(userInput, visibleEntries, chapters, signal, mode, pov, tense);
     log('Generated queries', { count: queries.length, queries: queries.map(q => q.query) });
 
     if (queries.length === 0) {
@@ -149,7 +156,7 @@ export class TimelineFillService {
     }
 
     // Step 2: Execute queries in parallel against full chapter content
-    const responses = await this.executeQueries(queries, chapters, allEntries, signal);
+    const responses = await this.executeQueries(queries, chapters, allEntries, signal, mode, pov, tense);
     log('Executed queries', { responsesCount: responses.length });
 
     return {
@@ -167,7 +174,10 @@ export class TimelineFillService {
     userInput: string,
     recentEntries: StoryEntry[],
     chapters: Chapter[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<ResolvedTimelineQuery[]> {
     // Build visible chat history (current chapter content)
     const chapterHistory = recentEntries.map(e => {
@@ -185,24 +195,17 @@ export class TimelineFillService {
     }));
 
     // SillyTavern-style user prompt
-    const prompt = `Visible chat history:
-${chapterHistory}
-
-Existing chapter timeline:
-${JSON.stringify(timeline, null, 2)}
-
-Provide a JSON array where each item describes a question to ask about the timeline. Each item MUST be an object with:
-- "query": the question string.
-- EITHER "chapters": an array of chapter numbers to query,
-  OR both "startChapter" and "endChapter" integers defining an inclusive range.
-You may include both styles in the same array. The maximum number of chapters per query is 3.
-Return ONLY the JSON array, no code fences or commentary.`;
+    const promptContext = this.getPromptContext(mode, pov, tense);
+    const prompt = promptService.renderUserPrompt('timeline-fill', promptContext, {
+      chapterHistory,
+      timeline: JSON.stringify(timeline, null, 2),
+    });
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.systemPrompt },
+          { role: 'system', content: promptService.renderPrompt('timeline-fill', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -231,7 +234,10 @@ Return ONLY the JSON array, no code fences or commentary.`;
     queries: ResolvedTimelineQuery[],
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<TimelineQueryResult[]> {
     // Build a map of chapter content for querying
     const chapterContentMap = this.buildChapterContentMap(chapters, allEntries);
@@ -258,7 +264,7 @@ Return ONLY the JSON array, no code fences or commentary.`;
         return `=== Chapter ${ch.number}: ${ch.title || 'Untitled'} ===\n[Summary only] ${ch.summary}`;
       }).join('\n\n');
 
-      return await this.answerFromCombinedContent(query, combinedContent, signal);
+      return await this.answerFromCombinedContent(query, combinedContent, signal, mode, pov, tense);
     });
 
     return Promise.all(queryPromises);
@@ -266,13 +272,18 @@ Return ONLY the JSON array, no code fences or commentary.`;
 
   /**
    * Answer a specific question using a limited set of chapters (max 3).
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async answerQuestionForChapters(
     question: string,
     chapterNumbers: number[],
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<string> {
     const limitedNumbers = chapterNumbers.filter(n => typeof n === 'number').slice(0, 3);
     if (limitedNumbers.length === 0) {
@@ -307,7 +318,10 @@ Return ONLY the JSON array, no code fences or commentary.`;
     const result = await this.answerFromCombinedContent(
       { query: question, chapterIds, chapterNumbers: validNumbers },
       combinedContent,
-      signal
+      signal,
+      mode,
+      pov,
+      tense
     );
 
     return result.answer;
@@ -315,6 +329,8 @@ Return ONLY the JSON array, no code fences or commentary.`;
 
   /**
    * Answer a question across a contiguous chapter range (max 3 chapters).
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async answerQuestionForChapterRange(
     question: string,
@@ -322,7 +338,10 @@ Return ONLY the JSON array, no code fences or commentary.`;
     endChapter: number,
     chapters: Chapter[],
     allEntries: StoryEntry[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<string> {
     const start = startChapter;
     const end = Math.min(endChapter, startChapter + 2);
@@ -330,7 +349,7 @@ Return ONLY the JSON array, no code fences or commentary.`;
     for (let i = start; i <= end; i++) {
       chapterNumbers.push(i);
     }
-    return this.answerQuestionForChapters(question, chapterNumbers, chapters, allEntries, signal);
+    return this.answerQuestionForChapters(question, chapterNumbers, chapters, allEntries, signal, mode, pov, tense);
   }
 
   /**
@@ -366,23 +385,26 @@ Return ONLY the JSON array, no code fences or commentary.`;
   private async answerFromCombinedContent(
     query: ResolvedTimelineQuery,
     combinedContent: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<TimelineQueryResult> {
     const chapterLabel = query.chapterNumbers.length === 1
       ? `Chapter ${query.chapterNumbers[0]}`
       : `Chapters ${query.chapterNumbers.join(', ')}`;
 
-    const prompt = `${combinedContent}
-
-QUESTION: ${query.query}
-
-Provide a concise, factual answer based only on the chapter content above. If the information isn't available in these chapters, say "Not mentioned in these chapters."`;
+    const promptContext = this.getPromptContext(mode, pov, tense);
+    const prompt = promptService.renderUserPrompt('timeline-fill-answer', promptContext, {
+      chapterContent: combinedContent,
+      query: query.query,
+    });
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.queryAnswerPrompt },
+          { role: 'system', content: promptService.renderPrompt('timeline-fill-answer', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: 0.2,

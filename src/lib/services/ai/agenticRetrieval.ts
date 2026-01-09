@@ -12,6 +12,7 @@ import type {
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import type { ReasoningEffort } from '$lib/types';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -196,19 +197,25 @@ export class AgenticRetrievalService {
     return this.settingsOverride?.maxIterations ?? settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 10;
   }
 
-  private get systemPrompt(): string {
-    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.agenticRetrieval?.systemPrompt ?? DEFAULT_AGENTIC_RETRIEVAL_PROMPT;
-  }
-
   /**
    * Run agentic retrieval to gather context for the current situation.
    * Per design doc section 3.1.4: Agentic Retrieval (Optional)
+   * @param context - The retrieval context
+   * @param onQueryChapter - Callback for querying a single chapter
+   * @param onQueryChapters - Callback for querying a range of chapters
+   * @param signal - Optional abort signal
+   * @param mode - Story mode (affects prompt context defaults)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async runRetrieval(
     context: AgenticRetrievalContext,
     onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>,
     onQueryChapters?: (startChapter: number, endChapter: number, question: string) => Promise<string>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    mode: StoryMode = 'adventure',
+    pov?: POV,
+    tense?: Tense
   ): Promise<AgenticRetrievalResult> {
     const sessionId = crypto.randomUUID();
     const queriedChapters: number[] = [];
@@ -221,11 +228,11 @@ export class AgenticRetrievalService {
     });
 
     // Build initial prompt
-    const initialPrompt = this.buildInitialPrompt(context);
+    const initialPrompt = this.buildInitialPrompt(context, mode, pov, tense);
 
     // Initialize conversation
     const messages: AgenticMessage[] = [
-      { role: 'system', content: this.systemPrompt },
+      { role: 'system', content: promptService.renderPrompt('agentic-retrieval', this.getPromptContext(mode, pov, tense)) },
       { role: 'user', content: initialPrompt },
     ];
 
@@ -363,29 +370,43 @@ export class AgenticRetrievalService {
     };
   }
 
-  private buildInitialPrompt(context: AgenticRetrievalContext): string {
+  private buildInitialPrompt(context: AgenticRetrievalContext, mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): string {
+    const promptContext = this.getPromptContext(mode, pov, tense);
+
     // Format recent context (last 5 entries)
     const recentContext = context.recentEntries.slice(-5).map(e => {
       const prefix = e.type === 'user_action' ? '[ACTION]' : '[NARRATION]';
       return `${prefix} ${e.content}`;
     }).join('\n\n');
 
-    return `# Current Situation
+    const chapterList = context.chapters.length > 0
+      ? context.chapters.map(c => `- Chapter ${c.number}: ${c.title || 'Untitled'} (${c.characters.join(', ')})`).join('\n')
+      : '(none)';
 
-USER INPUT:
-"${context.userInput}"
+    const entryList = context.entries.length > 0
+      ? context.entries.slice(0, 20).map(e => `- ${e.name} (${e.type})`).join('\n')
+      : '(none)';
+    const entryOverflow = context.entries.length > 20
+      ? `...and ${context.entries.length - 20} more`
+      : '';
 
-RECENT SCENE:
-${recentContext}
+    return promptService.renderUserPrompt('agentic-retrieval', promptContext, {
+      userInput: context.userInput,
+      recentContext,
+      chaptersCount: context.chapters.length,
+      chapterList,
+      entriesCount: context.entries.length,
+      entryList: `${entryList}${entryOverflow ? `\n${entryOverflow}` : ''}`,
+    });
+  }
 
-# Available Chapters: ${context.chapters.length}
-${context.chapters.map(c => `- Chapter ${c.number}: ${c.title || 'Untitled'} (${c.characters.join(', ')})`).join('\n')}
-
-# Lorebook Entries: ${context.entries.length}
-${context.entries.slice(0, 20).map(e => `- ${e.name} (${e.type})`).join('\n')}
-${context.entries.length > 20 ? `...and ${context.entries.length - 20} more` : ''}
-
-Please gather relevant context from past chapters that will help respond to this situation. Focus on information that is actually needed - often, no retrieval is necessary for simple actions.`;
+  private getPromptContext(mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): PromptContext {
+    return {
+      mode,
+      pov: pov ?? (mode === 'creative-writing' ? 'third' : 'second'),
+      tense: tense ?? (mode === 'creative-writing' ? 'past' : 'present'),
+      protagonistName: 'the protagonist',
+    };
   }
 
   private async executeTool(

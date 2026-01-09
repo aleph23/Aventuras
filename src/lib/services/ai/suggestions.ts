@@ -2,6 +2,7 @@ import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import type { StoryEntry, StoryBeat, Entry } from '$lib/types';
 import { settings, type SuggestionsSettings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -41,19 +42,19 @@ export class SuggestionsService {
     return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.suggestions.maxTokens;
   }
 
-  private get systemPrompt(): string {
-    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.suggestions.systemPrompt;
-  }
-
   /**
    * Generate story direction suggestions for creative writing mode.
    * Per design doc section 4.2: Suggestions System
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
   async generateSuggestions(
     recentEntries: StoryEntry[],
     activeThreads: StoryBeat[],
     genre?: string | null,
-    lorebookEntries?: Entry[]
+    lorebookEntries?: Entry[],
+    pov?: POV,
+    tense?: Tense
   ): Promise<SuggestionsResult> {
     log('generateSuggestions called', {
       recentEntriesCount: recentEntries.length,
@@ -84,55 +85,28 @@ export class SuggestionsService {
         }
         return desc;
       }).join('\n');
-      lorebookContext = `\n\n## Lorebook/World Elements\nThe following characters, locations, and concepts exist in this world and can be incorporated into suggestions:\n${entryDescriptions}`;
+      lorebookContext = `\n## Lorebook/World Elements\nThe following characters, locations, and concepts exist in this world and can be incorporated into suggestions:\n${entryDescriptions}`;
     }
 
-    const prompt = `Based on the current story moment, suggest 3 distinct directions the overall narrative could develop.
+    const promptContext: PromptContext = {
+      mode: 'creative-writing',
+      pov: pov ?? 'third',
+      tense: tense ?? 'past',
+      protagonistName: 'the protagonist',
+    };
 
-## Recent Story Content
-"""
-${lastContent}
-"""
-
-## Active Story Threads
-${threadsContext}
-
-${genre ? `## Genre: ${genre}` : ''}${lorebookContext}
-
-## Your Task
-Generate 3 diverse STORY DIRECTION suggestions. These should be plot developments, scene ideas, or narrative beats—NOT singular character actions.
-
-BAD examples (too small/action-focused):
-- "She picks up the letter"
-- "He draws his sword"
-- "They walk to the door"
-
-GOOD examples (story directions):
-- "A messenger arrives with news that changes everything"
-- "The confrontation with her father finally happens"
-- "The truth about the murder is revealed through an unexpected witness"
-- "A tense negotiation tests their alliance"
-
-Each suggestion should be:
-- A narrative direction or plot beat, not a character micro-action
-- Varied in approach (don't give 3 similar options)
-- Specific enough to write toward, vague enough to allow creativity
-- Appropriate to the established tone and genre
-
-Respond with JSON only:
-{
-  "suggestions": [
-    {"text": "Direction 1...", "type": "action|dialogue|revelation|twist"},
-    {"text": "Direction 2...", "type": "action|dialogue|revelation|twist"},
-    {"text": "Direction 3...", "type": "action|dialogue|revelation|twist"}
-  ]
-}`;
+    const prompt = promptService.renderUserPrompt('suggestions', promptContext, {
+      recentContent: lastContent,
+      activeThreads: threadsContext,
+      genre: genre ? `## Genre: ${genre}\n` : '',
+      lorebookContext,
+    });
 
     try {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.systemPrompt },
+          { role: 'system', content: promptService.renderPrompt('suggestions', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,

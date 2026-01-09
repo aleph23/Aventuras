@@ -4,6 +4,7 @@ import { OpenAIProvider, OPENROUTER_API_URL } from './openrouter';
 import { buildExtraBody } from './requestOverrides';
 import type { Message } from './types';
 import type { StoryMode, POV, Character, Location, Item } from '$lib/types';
+import { promptService, type PromptContext } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -413,7 +414,8 @@ class ScenarioService {
     const provider = this.getProvider(overrides?.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
-    const systemPrompt = overrides?.systemPrompt || DEFAULT_PROMPTS.settingExpansion;
+    const promptContext = this.getWizardPromptContext();
+    const systemPrompt = promptService.renderPrompt('setting-expansion', promptContext);
 
     // Build lorebook context if entries are provided - include ALL entries with full descriptions
     // to avoid hallucinating details that contradict established lore
@@ -444,6 +446,7 @@ class ScenarioService {
           }
         }
       }
+      lorebookContext += '\nMake sure the setting is consistent with the existing lore provided above.';
     }
 
     const messages: Message[] = [
@@ -453,11 +456,11 @@ class ScenarioService {
       },
       {
         role: 'user',
-        content: `Create a ${genreLabel} setting based on this seed idea:
-
-"${seed}"
-${lorebookContext}
-Expand this into a rich, detailed world suitable for interactive storytelling.${lorebookEntries && lorebookEntries.length > 0 ? ' Make sure the setting is consistent with the existing lore provided above.' : ''}`
+        content: promptService.renderUserPrompt('setting-expansion', promptContext, {
+          genreLabel,
+          seed,
+          lorebookContext,
+        })
       }
     ];
 
@@ -525,12 +528,26 @@ Expand this into a rich, detailed world suitable for interactive storytelling.${
     const provider = this.getProvider(overrides?.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
-    // Build system prompt with context-specific additions
-    let systemPrompt = overrides?.systemPrompt || DEFAULT_PROMPTS.characterElaboration;
-    systemPrompt += `\n- Keep the tone appropriate for the ${genreLabel} genre`;
-    if (setting) {
-      systemPrompt += `\n- Make the character fit naturally into: ${setting.name}`;
+    const promptContext = this.getWizardPromptContext();
+    const toneInstruction = `- Keep the tone appropriate for the ${genreLabel} genre`;
+    const settingInstruction = setting
+      ? `- Make the character fit naturally into: ${setting.name}`
+      : '';
+    const systemPrompt = promptService.renderPrompt('character-elaboration', promptContext, {
+      toneInstruction,
+      settingInstruction,
+    });
+
+    const characterName = userInput.name ? `NAME: ${userInput.name}` : 'NAME: (suggest one)';
+    const characterDescription = userInput.description ? `DESCRIPTION: ${userInput.description}` : '';
+    const characterBackgroundParts: string[] = [];
+    if (userInput.background) characterBackgroundParts.push(`BACKGROUND: ${userInput.background}`);
+    if (userInput.motivation) characterBackgroundParts.push(`MOTIVATION: ${userInput.motivation}`);
+    if (userInput.traits && userInput.traits.length > 0) {
+      characterBackgroundParts.push(`TRAITS: ${userInput.traits.join(', ')}`);
     }
+    const characterBackground = characterBackgroundParts.join('\n');
+    const settingContext = setting ? `SETTING: ${setting.name}\n${setting.description}` : '';
 
     const messages: Message[] = [
       {
@@ -539,17 +556,13 @@ Expand this into a rich, detailed world suitable for interactive storytelling.${
       },
       {
         role: 'user',
-        content: `Elaborate on this character for a ${genreLabel} story:
-
-${userInput.name ? `NAME: ${userInput.name}` : 'NAME: (suggest one)'}
-${userInput.description ? `DESCRIPTION: ${userInput.description}` : ''}
-${userInput.background ? `BACKGROUND: ${userInput.background}` : ''}
-${userInput.motivation ? `MOTIVATION: ${userInput.motivation}` : ''}
-${userInput.traits && userInput.traits.length > 0 ? `TRAITS: ${userInput.traits.join(', ')}` : ''}
-
-${setting ? `SETTING: ${setting.name}\n${setting.description}` : ''}
-
-Expand and enrich these details while staying true to what I've provided.`
+        content: promptService.renderUserPrompt('character-elaboration', promptContext, {
+          genreLabel,
+          characterName,
+          characterDescription,
+          characterBackground,
+          settingContext,
+        })
       }
     ];
 
@@ -620,9 +633,10 @@ Expand and enrich these details while staying true to what I've provided.`
       ? 'This is for an interactive adventure where the reader makes choices as this character.'
       : 'This is for a creative writing project where this character drives the narrative.';
 
-    // Build system prompt with context
-    const basePrompt = overrides?.systemPrompt || DEFAULT_PROMPTS.protagonistGeneration;
-    const systemPrompt = `${basePrompt}\n\n${povContext}\n${modeContext}`;
+    const promptContext = this.getWizardPromptContext(mode, pov);
+    const systemPrompt = promptService.renderPrompt('protagonist-generation', promptContext);
+    const povInstruction = `${povContext}\n${modeContext}`;
+    const settingDescription = `${setting.description}\n\nATMOSPHERE: ${setting.atmosphere}\n\nTHEMES: ${setting.themes.join(', ')}`;
 
     const messages: Message[] = [
       {
@@ -631,16 +645,12 @@ Expand and enrich these details while staying true to what I've provided.`
       },
       {
         role: 'user',
-        content: `Create a protagonist for this ${genreLabel} setting:
-
-SETTING: ${setting.name}
-${setting.description}
-
-ATMOSPHERE: ${setting.atmosphere}
-
-THEMES: ${setting.themes.join(', ')}
-
-Generate a compelling protagonist who would fit naturally into this world.`
+        content: promptService.renderUserPrompt('protagonist-generation', promptContext, {
+          genreLabel,
+          settingName: setting.name,
+          settingDescription,
+          povInstruction,
+        })
       }
     ];
 
@@ -700,23 +710,22 @@ Generate a compelling protagonist who would fit naturally into this world.`
     const provider = this.getProvider(overrides?.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
+    const promptContext = this.getWizardPromptContext('adventure', 'second', 'present', protagonist.name);
     const messages: Message[] = [
       {
         role: 'system',
-        content: overrides?.systemPrompt || DEFAULT_PROMPTS.supportingCharacters
+        content: promptService.renderPrompt('supporting-characters', promptContext)
       },
       {
         role: 'user',
-        content: `Create ${count} supporting characters for this ${genreLabel} story:
-
-SETTING: ${setting.name}
-${setting.description}
-
-PROTAGONIST: ${protagonist.name}
-${protagonist.description}
-Motivation: ${protagonist.motivation}
-
-Generate ${count} interesting supporting characters who would create compelling dynamics with the protagonist.`
+        content: promptService.renderUserPrompt('supporting-characters', promptContext, {
+          count,
+          genreLabel,
+          settingName: setting.name,
+          settingDescription: setting.description,
+          protagonistName: protagonist.name,
+          protagonistDescription: `${protagonist.description}\nMotivation: ${protagonist.motivation}`,
+        })
       }
     ];
 
@@ -771,239 +780,11 @@ Generate ${count} interesting supporting characters who would create compelling 
     });
 
     const provider = this.getProvider(overrides?.profileId || undefined);
-    const { mode, genre, customGenre, expandedSetting, protagonist, characters, writingStyle, title } = wizardData;
-    const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
-    const userName = protagonist?.name || 'the protagonist';
-
-    const tenseInstruction = writingStyle.tense === 'present'
-      ? 'Use present tense.'
-      : 'Use past tense.';
-
-    // Build system prompt - use override if provided, otherwise build contextual prompt
-    let systemPrompt: string;
-    if (overrides?.systemPrompt) {
-      // Replace placeholder tokens in custom prompt
-      systemPrompt = overrides.systemPrompt
-        .replace(/\{userName\}/g, userName)
-        .replace(/\{genreLabel\}/g, genreLabel)
-        .replace(/\{mode\}/g, mode)
-        .replace(/\{tense\}/g, tenseInstruction)
-        .replace(/\{tone\}/g, writingStyle.tone || 'immersive and engaging');
-    } else if (mode === 'creative-writing') {
-      // Creative writing mode: The user is the AUTHOR, not the protagonist
-      // The AI can and should write the protagonist's actions, thoughts, and dialogue
-      systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
-
-<critical_understanding>
-The person reading this opening is the AUTHOR, not a character. They sit outside the story, directing what happens. The protagonist (${userName}) is a fictional character you write—not a stand-in for the author.
-</critical_understanding>
-
-<style>
-- POV: Third person limited (through ${userName}'s perspective)
-- ${tenseInstruction}
-- Tone: ${writingStyle.tone || 'immersive and engaging'}
-- 2-3 paragraphs of literary prose
-- Concrete sensory details grounded in character perception
-- Reach past the first cliché; invisible prose serves the story better than showy prose
-</style>
-
-<what_to_write>
-Write a compelling opening that:
-- Establishes the scene through ${userName}'s perspective and actions
-- Shows ${userName} engaged in the world—what they're doing, thinking, noticing
-- Introduces tension, stakes, or interesting elements
-- Includes other characters if appropriate, with their own actions and dialogue
-- Builds toward one crystallizing moment—the image or line the reader remembers
-- Ends at a natural narrative beat that invites the author to direct what happens next
-</what_to_write>
-
-<protagonist_as_character>
-${userName} is a character you control. Write their:
-- Actions and movements
-- Dialogue (if appropriate)
-- Thoughts and perceptions
-- Reactions to the environment and other characters
-
-NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
-</protagonist_as_character>
-
-<dialogue_craft>
-If dialogue appears:
-- Characters rarely answer directly—they deflect, interrupt, talk past each other
-- Compress rather than explain: don't spell out "A, therefore B, therefore C"
-- Interruptions cut mid-phrase, not after complete clauses
-- Status through brevity: authority figures state and act; they don't justify
-- Single-word responses can carry weight: "Evidence." "Always."
-- "Said" is invisible—use fancy tags sparingly
-- Mix clipped lines with fuller ones; vary rhythm naturally
-</dialogue_craft>
-
-<prohibited_patterns>
-Avoid cliché phrases: "like a physical blow," "ribs like a trapped bird," "heart hammering against ribs," "dust motes dancing," "silence stretched," "metallic tang," "voice dropping an octave," "for the first time in years"
-
-Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
-
-Also avoid:
-- Purple prose, "not X but Y" constructs, telling emotions directly
-- Explanation chains: characters spelling out logical steps
-- Formal hedging: "Protocol dictates," "It would suggest"
-- Over-clipped dialogue: not every line should be a fragment
-- Melodrama: hearts shattering, waves of emotion
-- Narrative bows: tying scenes with conclusions or realizations
-</prohibited_patterns>
-
-Respond with valid JSON:
-{
-  "scene": "string - the opening (2-3 paragraphs of third-person narrative featuring ${userName})",
-  "title": "string - story title",
-  "initialLocation": {
-    "name": "string - location name",
-    "description": "string - 1-2 sentences"
-  }
-}`;
-    } else {
-      // Adventure mode: The user IS the protagonist
-      // The AI should NOT write the protagonist's actions—the player decides those
-      systemPrompt = `You are crafting the opening scene of an interactive ${genreLabel} adventure.
-
-<critical_constraints>
-# ABSOLUTE RULES - VIOLATION IS FAILURE
-1. **NEVER write what ${userName} does** - no actions, movements, or gestures
-2. **NEVER write what ${userName} says** - no dialogue or speech
-3. **NEVER write what ${userName} thinks or feels** - no internal states, emotions, or reactions
-4. **NEVER write what ${userName} perceives** - avoid "you see", "you notice", "you hear" constructions
-5. **Only describe the environment, NPCs, and situation** - let ${userName} decide how to engage
-</critical_constraints>
-
-<what_to_write>
-Write ONLY:
-- The physical environment (sights, sounds, smells, textures)
-- What NPCs are doing, saying, or how they're positioned
-- Objects, details, and atmosphere of the scene
-- Tension, stakes, or interesting elements present
-- Build toward one crystallizing moment—the image or detail that anchors the scene
-
-Do NOT write:
-- "${userName} walks into..." / "${userName} looks at..." / "${userName} feels..."
-- "You notice..." / "You see..." / "You sense..."
-- Any action, perception, or internal state belonging to ${userName}
-</what_to_write>
-
-<style>
-- ${tenseInstruction}
-- Tone: ${writingStyle.tone || 'immersive and engaging'}
-- 2-3 paragraphs of environmental and situational detail
-- Concrete sensory details, not abstractions
-- Reach past the first cliché; favor specific, grounded imagery
-</style>
-
-<npc_dialogue>
-If NPCs speak:
-- Dialogue is imperfect—false starts, evasions, non sequiturs; not prepared speeches
-- Compress rather than explain: don't spell out "A, therefore B, therefore C"
-- Interruptions cut mid-phrase, not after complete clauses
-- Status through brevity: authority figures state and act; they don't justify
-- Single-word responses can carry weight
-- "Said" is invisible—use fancy tags sparingly
-- Characters talk past each other—they advance their own concerns
-</npc_dialogue>
-
-<ending>
-End by presenting a situation that naturally invites ${userName} to act:
-- An NPC looking expectantly, mid-conversation
-- A door ajar, a sound from within
-- An object of interest within reach
-- A choice point or moment of tension
-
-NO questions. NO "What do you do?" Just the pregnant moment.
-</ending>
-
-<prohibited_patterns>
-Avoid cliché phrases: "like a physical blow," "dust motes dancing," "silence stretched," "metallic tang," "for the first time in years"
-
-Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
-
-Also avoid:
-- Purple prose, "not X but Y" constructs
-- Explanation chains: NPCs spelling out logical steps
-- Formal hedging: "Protocol dictates," "It would suggest"
-- Over-clipped dialogue: not every line should be a fragment
-- Dialogue tag overload: "said" is invisible; use fancy tags sparingly
-</prohibited_patterns>
-
-Respond with valid JSON:
-{
-  "scene": "string - the opening (2-3 paragraphs describing environment/situation, NOT ${userName}'s actions)",
-  "title": "string - story title",
-  "initialLocation": {
-    "name": "string - location name",
-    "description": "string - 1-2 sentences"
-  }
-}`;
-    }
-
-    // Build lorebook context if entries are provided - include ALL entries with full descriptions
-    let lorebookContext = '';
-    if (lorebookEntries && lorebookEntries.length > 0) {
-      const entriesByType: Record<string, { name: string; description: string; hiddenInfo?: string }[]> = {};
-      for (const entry of lorebookEntries) {
-        if (!entriesByType[entry.type]) {
-          entriesByType[entry.type] = [];
-        }
-        entriesByType[entry.type].push({
-          name: entry.name,
-          description: entry.description,
-          hiddenInfo: entry.hiddenInfo,
-        });
-      }
-
-      lorebookContext = '\n\n## LOREBOOK (Established Canon)\nThe opening scene MUST be consistent with this established lore:\n';
-      for (const [type, entries] of Object.entries(entriesByType)) {
-        if (entries.length > 0) {
-          lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
-          for (const entry of entries) {
-            lorebookContext += `- **${entry.name}**: ${entry.description}`;
-            if (entry.hiddenInfo) {
-              lorebookContext += ` [Hidden lore: ${entry.hiddenInfo}]`;
-            }
-            lorebookContext += '\n';
-          }
-        }
-      }
-    }
-
-    // Build opening guidance section if provided
-    const guidanceSection = wizardData.openingGuidance?.trim()
-      ? `\nAUTHOR'S GUIDANCE FOR OPENING:\n${wizardData.openingGuidance.trim()}\n`
-      : '';
-
-    const openingInstruction = mode === 'creative-writing'
-      ? ''
-      : `Describe the environment and situation. Do NOT write anything ${userName} does, says, thinks, or perceives. End with a moment that invites action.`;
+    const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, lorebookEntries, 'json');
 
     const messages: Message[] = [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
-      {
-        role: 'user',
-        content: `Create the opening scene:
-
-TITLE: ${title || '(suggest one)'}
-
-SETTING: ${expandedSetting?.name || 'Unknown World'}
-${expandedSetting?.description || wizardData.settingSeed}
-
-ATMOSPHERE: ${expandedSetting?.atmosphere || 'mysterious'}
-
-PROTAGONIST: ${userName}
-${protagonist?.description || ''}
-
-${characters && characters.length > 0 ? `NPCs WHO MAY APPEAR:
-${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}
-` : ''}${guidanceSection}${lorebookContext}${openingInstruction ? `\n${openingInstruction}` : ''}`
-      }
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ];
 
     // Use z-ai provider for GLM models
@@ -1040,10 +821,10 @@ ${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}
 
     return {
       scene: cleanedContent,
-      title: title || 'Untitled Adventure',
+      title: wizardData.title || 'Untitled Adventure',
       initialLocation: {
-        name: expandedSetting?.keyLocations?.[0]?.name || 'Starting Location',
-        description: expandedSetting?.keyLocations?.[0]?.description || 'Where the story begins.',
+        name: wizardData.expandedSetting?.keyLocations?.[0]?.name || 'Starting Location',
+        description: wizardData.expandedSetting?.keyLocations?.[0]?.description || 'Where the story begins.',
       },
     };
   }
@@ -1058,169 +839,11 @@ ${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}
     log('streamOpening called', { hasOverrides: !!overrides, profileId: overrides?.profileId });
 
     const provider = this.getProvider(overrides?.profileId || undefined);
-    const { mode, genre, customGenre, expandedSetting, protagonist, writingStyle } = wizardData;
-    const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
-    const userName = protagonist?.name || 'the protagonist';
-
-    const tenseInstruction = writingStyle.tense === 'present'
-      ? 'Use present tense.'
-      : 'Use past tense.';
-
-    // Build system prompt - use override if provided, otherwise build contextual prompt
-    let systemPrompt: string;
-    if (overrides?.systemPrompt) {
-      // Replace placeholder tokens in custom prompt
-      systemPrompt = overrides.systemPrompt
-        .replace(/\{userName\}/g, userName)
-        .replace(/\{genreLabel\}/g, genreLabel)
-        .replace(/\{mode\}/g, mode)
-        .replace(/\{tense\}/g, tenseInstruction)
-        .replace(/\{tone\}/g, writingStyle.tone || 'immersive and engaging');
-      // Add prose-only instruction for streaming
-      systemPrompt += '\n\nWrite ONLY prose. No JSON, no metadata.';
-    } else if (mode === 'creative-writing') {
-      // Creative writing mode: The user is the AUTHOR, not the protagonist
-      systemPrompt = `You are crafting the opening scene of a ${genreLabel} story in collaboration with an author.
-
-<critical_understanding>
-The person reading this opening is the AUTHOR, not a character. They sit outside the story, directing what happens. The protagonist (${userName}) is a fictional character you write—not a stand-in for the author.
-</critical_understanding>
-
-<style>
-- POV: Third person limited (through ${userName}'s perspective)
-- ${tenseInstruction}
-- Tone: ${writingStyle.tone || 'immersive and engaging'}
-- 2-3 paragraphs of literary prose
-- Reach past the first cliché; invisible prose serves the story better than showy prose
-</style>
-
-<what_to_write>
-Write a compelling opening that:
-- Establishes the scene through ${userName}'s perspective and actions
-- Shows ${userName} engaged in the world—what they're doing, thinking, noticing
-- Introduces tension, stakes, or interesting elements
-- Builds toward one crystallizing moment—the image or line the reader remembers
-- Ends at a natural narrative beat that invites the author to direct what happens next
-
-${userName} is a character you control. Write their actions, dialogue, thoughts, and perceptions.
-NEVER use second person ("you"). Always use "${userName}" or "he/she/they".
-</what_to_write>
-
-<dialogue_craft>
-If dialogue appears:
-- Characters rarely answer directly—they deflect, interrupt, talk past each other
-- Compress rather than explain: don't spell out "A, therefore B, therefore C"
-- Interruptions cut mid-phrase, not after complete clauses
-- Status through brevity: authority figures state and act; they don't justify
-- "Said" is invisible—use fancy tags sparingly
-- Mix clipped lines with fuller ones; vary rhythm naturally
-</dialogue_craft>
-
-<prohibited_patterns>
-Avoid cliché phrases: "like a physical blow," "ribs like a trapped bird," "heart hammering against ribs," "dust motes dancing," "silence stretched," "metallic tang," "voice dropping an octave," "for the first time in years"
-
-Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
-
-Also avoid:
-- Purple prose, "not X but Y" constructs, telling emotions directly
-- Explanation chains: characters spelling out logical steps
-- Formal hedging: "Protocol dictates," "It would suggest"
-- Over-clipped dialogue: not every line should be a fragment
-- Melodrama: hearts shattering, waves of emotion
-</prohibited_patterns>
-
-Write ONLY prose. No JSON, no metadata.`;
-    } else {
-      // Adventure mode: The user IS the protagonist
-      systemPrompt = `You are crafting the opening scene of an interactive ${genreLabel} adventure.
-
-<critical_constraints>
-# ABSOLUTE RULES - VIOLATION IS FAILURE
-1. **NEVER write what ${userName} does** - no actions, movements, or gestures
-2. **NEVER write what ${userName} says** - no dialogue or speech
-3. **NEVER write what ${userName} thinks or feels** - no internal states, emotions, or reactions
-4. **NEVER write what ${userName} perceives** - avoid "you see", "you notice", "you hear"
-5. **Only describe the environment, NPCs, and situation**
-</critical_constraints>
-
-<what_to_write>
-Write ONLY:
-- The physical environment (sights, sounds, smells, textures)
-- What NPCs are doing, saying, or how they're positioned
-- Objects, details, and atmosphere of the scene
-- Build toward one crystallizing moment—the image or detail that anchors the scene
-
-Do NOT write:
-- "${userName} walks..." / "${userName} looks..." / "${userName} feels..."
-- "You notice..." / "You see..." / "You sense..."
-- Any action or perception belonging to ${userName}
-</what_to_write>
-
-<style>
-- ${tenseInstruction}
-- Tone: ${writingStyle.tone || 'immersive and engaging'}
-- 2-3 paragraphs of environmental and situational detail
-- Reach past the first cliché; favor specific, grounded imagery
-</style>
-
-<npc_dialogue>
-If NPCs speak:
-- Dialogue is imperfect—false starts, evasions, non sequiturs; not prepared speeches
-- Compress rather than explain: don't spell out "A, therefore B, therefore C"
-- Interruptions cut mid-phrase, not after complete clauses
-- Status through brevity: authority figures state and act; they don't justify
-- "Said" is invisible—use fancy tags sparingly
-- Characters talk past each other—they advance their own concerns
-</npc_dialogue>
-
-<ending>
-End with a situation inviting action: an NPC waiting, a door ajar, an object within reach.
-NO questions. Just the pregnant moment.
-</ending>
-
-<prohibited_patterns>
-Avoid cliché phrases: "like a physical blow," "dust motes dancing," "silence stretched," "metallic tang," "for the first time in years"
-
-Banned words: ozone, orbs (for eyes), tresses, alabaster, porcelain
-
-Also avoid:
-- Purple prose, "not X but Y" constructs
-- Explanation chains: NPCs spelling out logical steps
-- Formal hedging: "Protocol dictates," "It would suggest"
-- Over-clipped dialogue: not every line should be a fragment
-</prohibited_patterns>
-
-Write ONLY prose. No JSON, no metadata.`;
-    }
-
-    // Build user message based on mode
-    const userMessage = mode === 'creative-writing'
-      ? `Write the opening scene:
-
-SETTING: ${expandedSetting?.name || 'Unknown World'}
-${expandedSetting?.description || wizardData.settingSeed}
-
-PROTAGONIST: ${userName}
-
-Write the opening featuring ${userName} as the main character. Use third person.`
-      : `Write the opening scene:
-
-SETTING: ${expandedSetting?.name || 'Unknown World'}
-${expandedSetting?.description || wizardData.settingSeed}
-
-PROTAGONIST: ${userName}
-
-Describe the environment and situation only. Do NOT write anything ${userName} does, says, thinks, or perceives.`;
+    const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, undefined, 'stream');
 
     const messages: Message[] = [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
-      {
-        role: 'user',
-        content: userMessage
-      }
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ];
 
     // Use z-ai provider for GLM models
@@ -1242,6 +865,153 @@ Describe the environment and situation only. Do NOT write anything ${userName} d
     })) {
       yield chunk;
     }
+  }
+
+  private buildOpeningPrompts(
+    wizardData: WizardData,
+    lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[],
+    outputMode: 'json' | 'stream' = 'json'
+  ): { systemPrompt: string; userPrompt: string } {
+    const { mode, genre, customGenre, expandedSetting, protagonist, characters, writingStyle, title } = wizardData;
+    const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
+    const protagonistName = protagonist?.name || 'the protagonist';
+    const promptContext = this.getWizardPromptContext(mode, writingStyle.pov, writingStyle.tense, protagonistName);
+    const templateId = mode === 'creative-writing'
+      ? 'opening-generation-creative'
+      : 'opening-generation-adventure';
+
+    const tenseInstruction = writingStyle.tense === 'present'
+      ? 'Use present tense.'
+      : 'Use past tense.';
+
+    const tone = writingStyle.tone || 'immersive and engaging';
+    const outputFormat = this.getOpeningOutputFormat(mode, protagonistName, outputMode);
+
+    const systemPrompt = promptService.renderPrompt(templateId, promptContext, {
+      genreLabel,
+      mode,
+      tenseInstruction,
+      tone,
+      outputFormat,
+    });
+
+    const atmosphereSection = expandedSetting?.atmosphere
+      ? `ATMOSPHERE: ${expandedSetting.atmosphere}`
+      : '';
+    const protagonistDescription = protagonist?.description ? `\n${protagonist.description}` : '';
+    const supportingCharactersSection = characters && characters.length > 0
+      ? `NPCs WHO MAY APPEAR:\n${characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')}\n`
+      : '';
+    const guidanceSection = wizardData.openingGuidance?.trim()
+      ? `\nAUTHOR'S GUIDANCE FOR OPENING:\n${wizardData.openingGuidance.trim()}\n`
+      : '';
+    const lorebookContext = this.buildOpeningLorebookContext(lorebookEntries);
+    const openingInstruction = mode === 'creative-writing'
+      ? ''
+      : `\nDescribe the environment and situation. Do NOT write anything ${protagonistName} does, says, thinks, or perceives. End with a moment that invites action.`;
+    const povInstruction = this.getOpeningPovInstruction(writingStyle.pov);
+
+    const userPrompt = promptService.renderUserPrompt(templateId, promptContext, {
+      title: title || '(suggest one)',
+      genreLabel,
+      mode,
+      settingName: expandedSetting?.name || 'Unknown World',
+      settingDescription: expandedSetting?.description || wizardData.settingSeed,
+      atmosphereSection,
+      protagonistName,
+      protagonistDescription,
+      supportingCharactersSection,
+      povInstruction,
+      guidanceSection,
+      lorebookContext,
+      openingInstruction,
+    });
+
+    return { systemPrompt, userPrompt };
+  }
+
+  private buildOpeningLorebookContext(
+    lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[]
+  ): string {
+    if (!lorebookEntries || lorebookEntries.length === 0) return '';
+
+    const entriesByType: Record<string, { name: string; description: string; hiddenInfo?: string }[]> = {};
+    for (const entry of lorebookEntries) {
+      if (!entriesByType[entry.type]) {
+        entriesByType[entry.type] = [];
+      }
+      entriesByType[entry.type].push({
+        name: entry.name,
+        description: entry.description,
+        hiddenInfo: entry.hiddenInfo,
+      });
+    }
+
+    let lorebookContext = '\n\n## LOREBOOK (Established Canon)\nThe opening scene MUST be consistent with this established lore:\n';
+    for (const [type, entries] of Object.entries(entriesByType)) {
+      if (entries.length > 0) {
+        lorebookContext += `\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s:\n`;
+        for (const entry of entries) {
+          lorebookContext += `- **${entry.name}**: ${entry.description}`;
+          if (entry.hiddenInfo) {
+            lorebookContext += ` [Hidden lore: ${entry.hiddenInfo}]`;
+          }
+          lorebookContext += '\n';
+        }
+      }
+    }
+
+    return lorebookContext;
+  }
+
+  private getOpeningPovInstruction(pov: POV): string {
+    switch (pov) {
+      case 'first':
+        return 'POV: First person (I...).';
+      case 'second':
+        return 'POV: Second person (You...).';
+      case 'third':
+      default:
+        return 'POV: Third person (he/she/they).';
+    }
+  }
+
+  private getOpeningOutputFormat(
+    mode: StoryMode,
+    protagonistName: string,
+    outputMode: 'json' | 'stream'
+  ): string {
+    if (outputMode === 'stream') {
+      return 'Write ONLY prose. No JSON, no metadata.';
+    }
+
+    const sceneInstruction = mode === 'creative-writing'
+      ? `string - the opening (2-3 paragraphs of third-person narrative featuring ${protagonistName})`
+      : `string - the opening (2-3 paragraphs describing environment/situation, NOT ${protagonistName}'s actions)`;
+
+    return `Respond with valid JSON:
+{
+  "scene": "${sceneInstruction}",
+  "title": "string - story title",
+  "initialLocation": {
+    "name": "string - location name",
+    "description": "string - 1-2 sentences"
+  }
+}`;
+  }
+
+  private getWizardPromptContext(
+    mode: StoryMode = 'adventure',
+    pov: POV = 'second',
+    tense: Tense = 'present',
+    protagonistName: string = 'the protagonist'
+  ): PromptContext {
+    return {
+      mode,
+      pov,
+      tense,
+      protagonistName,
+    };
   }
 
   /**

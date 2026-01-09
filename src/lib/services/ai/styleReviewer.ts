@@ -2,6 +2,7 @@ import type { OpenAIProvider } from './openrouter';
 import type { StoryEntry } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -51,15 +52,15 @@ export class StyleReviewerService {
     return settings.systemServicesSettings.styleReviewer.maxTokens;
   }
 
-  private get systemPrompt(): string {
-    return settings.systemServicesSettings.styleReviewer.systemPrompt;
-  }
-
   /**
    * Analyze narration entries for style issues.
    * Only analyzes visible (non-summarized) narration entries.
+   * @param entries - Story entries to analyze
+   * @param mode - Story mode (affects default POV/tense context)
+   * @param pov - Point of view from story settings
+   * @param tense - Tense from story settings
    */
-  async analyzeStyle(entries: StoryEntry[]): Promise<StyleReviewResult> {
+  async analyzeStyle(entries: StoryEntry[], mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<StyleReviewResult> {
     // Filter to only narration entries (exclude user_action, system, retry)
     const narrationEntries = entries.filter(e => e.type === 'narration');
 
@@ -78,7 +79,16 @@ export class StyleReviewerService {
       .map(e => e.content)
       .join('\n\n---\n\n');
 
-    const prompt = this.buildAnalysisPrompt(combinedText, narrationEntries.length);
+    const promptContext: PromptContext = {
+      mode,
+      pov: pov ?? (mode === 'creative-writing' ? 'third' : 'second'),
+      tense: tense ?? (mode === 'creative-writing' ? 'past' : 'present'),
+      protagonistName: 'the protagonist',
+    };
+    const prompt = promptService.renderUserPrompt('style-reviewer', promptContext, {
+      passageCount: narrationEntries.length,
+      passages: combinedText,
+    });
 
     try {
       log('Sending style analysis request...');
@@ -86,7 +96,7 @@ export class StyleReviewerService {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.systemPrompt },
+          { role: 'system', content: promptService.renderPrompt('style-reviewer', promptContext) },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
@@ -116,37 +126,6 @@ export class StyleReviewerService {
     }
   }
 
-  private buildAnalysisPrompt(text: string, entryCount: number): string {
-    return `Analyze the following narrative text (${entryCount} passages) for repetitive phrases and style issues.
-
-## Narrative Text
-"""
-${text}
-"""
-
-## Your Task
-1. Identify phrases that appear multiple times (2+ occurrences)
-2. Note problematic sentence patterns or stylistic tics
-3. Rate severity based on frequency and impact
-4. Provide 2-3 specific alternatives for each issue
-
-## Response Format (JSON only)
-{
-  "phrases": [
-    {
-      "phrase": "exact phrase text",
-      "frequency": 3,
-      "severity": "medium",
-      "alternatives": ["alternative 1", "alternative 2"],
-      "contexts": ["brief snippet showing usage"]
-    }
-  ],
-  "overallAssessment": "Brief 1-2 sentence summary of prose quality and main issues"
-}
-
-Focus on the most impactful issues (up to 10 phrases max). Return valid JSON only.`;
-  }
-
   private parseAnalysisResponse(content: string, entryCount: number): StyleReviewResult {
     try {
       let jsonStr = content.trim();
@@ -165,23 +144,32 @@ Focus on the most impactful issues (up to 10 phrases max). Return valid JSON onl
       const parsed = JSON.parse(jsonStr);
 
       const phrases: PhraseAnalysis[] = [];
-      if (Array.isArray(parsed.phrases)) {
-        for (const p of parsed.phrases.slice(0, 10)) {
-          if (p.phrase) {
-            phrases.push({
-              phrase: p.phrase,
-              frequency: typeof p.frequency === 'number' ? p.frequency : 2,
-              severity: ['low', 'medium', 'high'].includes(p.severity) ? p.severity : 'low',
-              alternatives: Array.isArray(p.alternatives) ? p.alternatives.slice(0, 3) : [],
-              contexts: Array.isArray(p.contexts) ? p.contexts.slice(0, 2) : [],
-            });
-          }
+      const rawItems = Array.isArray(parsed.phrases)
+        ? parsed.phrases
+        : (Array.isArray(parsed.issues) ? parsed.issues : []);
+
+      for (const item of rawItems.slice(0, 10)) {
+        const phraseText = item.phrase ?? item.description;
+        if (phraseText) {
+          phrases.push({
+            phrase: phraseText,
+            frequency: typeof item.frequency === 'number'
+              ? item.frequency
+              : (typeof item.occurrences === 'number' ? item.occurrences : 2),
+            severity: ['low', 'medium', 'high'].includes(item.severity) ? item.severity : 'low',
+            alternatives: Array.isArray(item.alternatives)
+              ? item.alternatives.slice(0, 3)
+              : (Array.isArray(item.suggestions) ? item.suggestions.slice(0, 3) : []),
+            contexts: Array.isArray(item.contexts)
+              ? item.contexts.slice(0, 2)
+              : (Array.isArray(item.examples) ? item.examples.slice(0, 2) : []),
+          });
         }
       }
 
       return {
         phrases,
-        overallAssessment: parsed.overallAssessment || '',
+        overallAssessment: parsed.overallAssessment || parsed.summary || '',
         reviewedEntryCount: entryCount,
         timestamp: Date.now(),
       };

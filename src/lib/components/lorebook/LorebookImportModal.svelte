@@ -104,7 +104,8 @@
         parseResult.entries,
         (progress) => {
           classificationProgress = progress;
-        }
+        },
+        story.currentStory?.mode ?? 'adventure'
       );
       parseResult = {
         ...parseResult,
@@ -133,7 +134,8 @@
           parseResult.entries,
           (progress) => {
             classificationProgress = progress;
-          }
+          },
+          story.currentStory?.mode ?? 'adventure'
         );
         classifying = false;
       }

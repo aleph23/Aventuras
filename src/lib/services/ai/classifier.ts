@@ -2,6 +2,7 @@ import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import type { Character, Location, Item, StoryBeat, StoryEntry, TimeTracker } from '$lib/types';
 import { settings, type ClassifierSettings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
+import { promptService, type PromptContext } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -145,10 +146,6 @@ export class ClassifierService {
     return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.classifier.maxTokens;
   }
 
-  private get systemPrompt(): string {
-    return this.settingsOverride?.systemPrompt ?? settings.systemServicesSettings.classifier.systemPrompt;
-  }
-
   private get chatHistoryTruncation(): number {
     return this.settingsOverride?.chatHistoryTruncation ?? settings.systemServicesSettings.classifier.chatHistoryTruncation ?? 100;
   }
@@ -167,6 +164,8 @@ export class ClassifierService {
     });
 
     const prompt = this.buildClassificationPrompt(context);
+    const promptContext = this.buildPromptContext(context);
+    const systemPrompt = promptService.renderPrompt('classifier', promptContext);
 
     try {
       log('Sending classification request...');
@@ -181,7 +180,7 @@ export class ClassifierService {
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
-          { role: 'system', content: this.systemPrompt },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: this.temperature,
@@ -258,6 +257,8 @@ ${formattedEntries}
   }
 
   private buildClassificationPrompt(context: ClassificationContext): string {
+    const promptContext = this.buildPromptContext(context);
+
     // Include traits for characters so the classifier can decide when to prune
     const existingCharacterInfo = context.existingCharacters.map(c => {
       const traits = c.traits ?? [];
@@ -294,90 +295,37 @@ ${formattedEntries}
       ? `Current Story Time: ${this.formatTime(context.currentStoryTime)}`
       : '';
 
-    return `Analyze this narrative passage and extract world state changes.
-
-## Context
-${context.genre ? `Genre: ${context.genre}` : ''}
-Mode: ${isCreativeMode ? 'Creative Writing (author directing the story)' : 'Adventure (player as protagonist)'}
-Already tracking: ${existingCharacterInfo.length} characters, ${existingLocationNames.length} locations, ${existingItemNames.length} items
-${currentTimeInfo}
-${chatHistoryBlock}
-## ${inputLabel}
-"${context.userAction}"
-
-## The Narrative Response (to classify)
-"""
-${context.narrativeResponse}
-"""
-
-## Already Known Entities (check before adding duplicates)
-Characters: ${existingCharacterInfo.length > 0 ? existingCharacterInfo.join(', ') : '(none)'}
-Locations: ${existingLocationNames.length > 0 ? existingLocationNames.join(', ') : '(none)'}
-Items: ${existingItemNames.length > 0 ? existingItemNames.join(', ') : '(none)'}
-
-## Active Story Beats (update these when resolved!)
-${existingBeatsList || '(none)'}
-
-## Your Task
-1. Check if any EXISTING entities need updates (status change, new info learned, etc.)
-2. **IMPORTANT**: Check if any active story beats have been COMPLETED or FAILED in this passage - mark them accordingly to keep the list clean
-3. Identify any NEW significant entities introduced (apply the extraction rules strictly)
-4. Determine the current scene state
-
-## Response Format (JSON only)
-{
-  "entryUpdates": {
-    "characterUpdates": [],
-    "locationUpdates": [],
-    "itemUpdates": [],
-    "storyBeatUpdates": [],
-    "newCharacters": [],
-    "newLocations": [],
-    "newItems": [],
-    "newStoryBeats": []
-  },
-  "scene": {
-    "currentLocationName": null,
-    "presentCharacterNames": [],
-    "timeProgression": "none"
+    return promptService.renderUserPrompt('classifier', promptContext, {
+      genre: context.genre ? `Genre: ${context.genre}` : '',
+      mode: context.storyMode,
+      entityCounts: `${existingCharacterInfo.length} characters, ${existingLocationNames.length} locations, ${existingItemNames.length} items`,
+      currentTimeInfo,
+      chatHistoryBlock,
+      inputLabel,
+      userAction: context.userAction,
+      narrativeResponse: context.narrativeResponse,
+      existingCharacters: existingCharacterInfo.length > 0 ? existingCharacterInfo.join(', ') : '(none)',
+      existingLocations: existingLocationNames.length > 0 ? existingLocationNames.join(', ') : '(none)',
+      existingItems: existingItemNames.length > 0 ? existingItemNames.join(', ') : '(none)',
+      existingBeats: existingBeatsList || '(none)',
+      itemLocationOptions,
+      defaultItemLocation: isCreativeMode ? 'with_character' : 'inventory',
+      storyBeatTypes,
+      sceneLocationDesc,
+    });
   }
-}
 
-### Field Specifications
+  private buildPromptContext(context: ClassificationContext): PromptContext {
+    const protagonist = context.existingCharacters.find(c => c.relationship === 'self');
+    const protagonistName = protagonist?.name || 'the protagonist';
+    const isCreative = context.storyMode === 'creative-writing';
 
-characterUpdates: [{"name": "ExistingName", "changes": {"status": "active|inactive|deceased", "relationship": "new relationship", "newTraits": ["trait"], "removeTraits": ["trait"]}}]
-- Traits should be concise phrases (6 words max)
-- Use "removeTraits" when a character loses, overcomes, or no longer exhibits a trait (e.g., "cowardly" after an act of bravery, "injured" after healing)
-- Also use "removeTraits" to prune redundant, outdated, or less important traits when a character has accumulated too many (aim to keep around 6 traits per character; if a character has 8+ traits, proactively remove the least relevant ones)
-
-locationUpdates: [{"name": "ExistingName", "changes": {"visited": true, "current": true, "descriptionAddition": "new detail learned"}}]
-
-itemUpdates: [{"name": "ExistingName", "changes": {"quantity": 1, "equipped": true, "location": "${itemLocationOptions}"}}]
-
-storyBeatUpdates: [{"title": "ExistingBeatTitle", "changes": {"status": "completed|failed", "description": "optional updated description"}}]
-- Mark as "completed" when a quest is finished, goal achieved, mystery solved, or plot point resolved
-- Mark as "failed" when a quest becomes impossible, opportunity is lost, or goal is abandoned
-- Clean up old beats that are no longer relevant to the current story
-
-newCharacters: [{"name": "ProperName", "description": "one sentence", "relationship": "friend|enemy|ally|neutral|unknown", "traits": ["trait1"]}]
-- Keep traits concise (6 words max each) and limit to 2-4 key traits per new character
-
-newLocations: [{"name": "ProperName", "description": "one sentence", "visited": true, "current": false}]
-
-newItems: [{"name": "ItemName", "description": "one sentence", "quantity": 1, "location": "${isCreativeMode ? 'with_character' : 'inventory'}"}]
-
-newStoryBeats: [{"title": "Short Title", "description": "what happened or was learned", "type": "${storyBeatTypes}", "status": "pending|active|completed"}]
-
-scene.currentLocationName: ${sceneLocationDesc}
-scene.presentCharacterNames: Names of characters physically present in the scene
-scene.timeProgression: How much time passed - "none", "minutes", "hours", or "days"
-- Look at the chat history timestamps to see when time was last advanced
-- If multiple messages have passed without time advancing, consider whether this narrative should advance time
-- Actions like traveling, sleeping, waiting, or scene transitions typically warrant time progression
-- Quick dialogue exchanges or immediate actions within the same scene may be "none"
-- IMPORTANT: If 3 or more messages have passed without any time advancement, you should advance time by at least "minutes" - even casual dialogue takes time in the story world
-
-Return valid JSON only. Empty arrays are fine - don't invent entities that aren't clearly in the text.`;
+    return {
+      mode: context.storyMode,
+      pov: isCreative ? 'third' : 'second',
+      tense: isCreative ? 'past' : 'present',
+      protagonistName,
+    };
   }
 
   private parseClassificationResponse(content: string): ClassificationResult {

@@ -8,6 +8,7 @@ import type { Entry, EntryType, EntryInjectionMode, EntryCreator } from '$lib/ty
 import { OpenAIProvider as OpenAIProvider } from './ai/openrouter';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from '$lib/services/ai/requestOverrides';
+import { promptService, type PromptContext, type StoryMode } from '$lib/services/prompts';
 
 const DEBUG = true;
 
@@ -181,10 +182,14 @@ function inferEntryType(name: string, content: string): EntryType {
 /**
  * LLM-based entry type classification using configurable settings.
  * Classifies entries in batches with concurrent requests for faster processing.
+ * @param entries - The entries to classify
+ * @param onProgress - Optional progress callback
+ * @param mode - Story mode (affects prompt context defaults)
  */
 export async function classifyEntriesWithLLM(
   entries: ImportedEntry[],
-  onProgress?: (classified: number, total: number) => void
+  onProgress?: (classified: number, total: number) => void,
+  mode: StoryMode = 'adventure'
 ): Promise<ImportedEntry[]> {
   if (entries.length === 0) return entries;
 
@@ -255,7 +260,12 @@ Respond with ONLY valid JSON in this exact format:
         messages: [
           {
             role: 'system',
-            content: lorebookSettings.systemPrompt,
+            content: promptService.renderPrompt('lorebook-classifier', {
+              mode,
+              pov: mode === 'creative-writing' ? 'third' : 'second',
+              tense: mode === 'creative-writing' ? 'past' : 'present',
+              protagonistName: 'the protagonist',
+            } satisfies PromptContext),
           },
           { role: 'user', content: prompt },
         ],

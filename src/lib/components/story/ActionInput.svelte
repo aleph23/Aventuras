@@ -84,7 +84,9 @@
         story.entries,
         story.pendingQuests,
         story.currentStory?.genre,
-        activeLorebookEntries
+        activeLorebookEntries,
+        story.pov,
+        story.tense
       );
       ui.setSuggestions(result.suggestions, story.currentStory?.id);
       log('Suggestions refreshed:', result.suggestions.length, 'with', activeLorebookEntries.length, 'active lorebook entries');
@@ -145,7 +147,7 @@
       ui.setStyleReviewLoading(true, storyId);
 
       try {
-        const result = await aiService.analyzeStyle(story.entries);
+        const result = await aiService.analyzeStyle(story.entries, story.currentStory?.mode ?? 'adventure', story.pov, story.tense);
         ui.setStyleReview(result, storyId);
         log('Style review complete', { phrasesFound: result.phrases.length });
       } catch (error) {
@@ -215,7 +217,10 @@
       story.entries,
       story.lastChapterEndIndex,
       config,
-      tokensOutsideBuffer
+      tokensOutsideBuffer,
+      story.currentStory?.mode ?? 'adventure',
+      story.pov,
+      story.tense
     );
 
     if (!analysis.shouldCreateChapter) {
@@ -238,7 +243,7 @@
     const previousChapters = [...story.chapters].sort((a, b) => a.number - b.number);
 
     // Generate chapter summary with previous chapters as context
-    const summary = await aiService.summarizeChapter(chapterEntries, previousChapters);
+    const summary = await aiService.summarizeChapter(chapterEntries, previousChapters, story.currentStory?.mode ?? 'adventure', story.pov, story.tense);
 
     // Create the chapter - use database method to handle deletions correctly
     const chapterNumber = await story.getNextChapterNumber();
@@ -349,7 +354,10 @@
             });
             ui.updateLoreManagementProgress('Merging entries...', bumpChanges());
           },
-        }
+        },
+        story.currentStory?.mode ?? 'adventure',
+        story.pov,
+        story.tense
       );
 
       log('Lore management complete', {
@@ -456,6 +464,7 @@
       let retrievedChapterContext: string | null = null;
       let lorebookContext: string | null = null;
       let timelineFillResult: import('$lib/services/ai/timelineFill').TimelineFillResult | null = null;
+      const storyMode = story.currentStory?.mode ?? 'adventure';
 
       // Build parallel retrieval tasks
       const retrievalTasks: Promise<void>[] = [];
@@ -487,7 +496,8 @@
                     question,
                     story.chapters,
                     story.entries,
-                    activeAbortController?.signal
+                    activeAbortController?.signal,
+                    storyMode
                   ),
                 (startChapter, endChapter, question) =>
                   aiService.answerChapterRangeQuestion(
@@ -496,9 +506,13 @@
                     question,
                     story.chapters,
                     story.entries,
-                    activeAbortController?.signal
+                    activeAbortController?.signal,
+                    storyMode
                   ),
-                activeAbortController?.signal
+                activeAbortController?.signal,
+                storyMode,
+                story.pov,
+                story.tense
               );
 
               if (agenticResult.context) {
@@ -520,7 +534,10 @@
                 story.visibleEntries,
                 story.chapters,
                 story.entries, // All entries for querying chapter content
-                activeAbortController?.signal
+                activeAbortController?.signal,
+                storyMode,
+                story.pov,
+                story.tense
               );
 
               // Store raw result - formatting is now done in buildChapterSummariesBlock

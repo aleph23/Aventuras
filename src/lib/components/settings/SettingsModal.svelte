@@ -13,7 +13,12 @@
   } from '$lib/services/ai/scenario';
   import { serializeManualBody } from '$lib/services/ai/requestOverrides';
   import type { ReasoningEffort } from '$lib/types';
-  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen, ListChecks } from 'lucide-svelte';
+  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen, ListChecks, Scroll } from 'lucide-svelte';
+  import { promptService, type PromptTemplate, type MacroOverride, type Macro, type SimpleMacro, type ComplexMacro } from '$lib/services/prompts';
+  import PromptEditor from '../prompts/PromptEditor.svelte';
+  import MacroChip from '../prompts/MacroChip.svelte';
+  import MacroEditor from '../prompts/MacroEditor.svelte';
+  import ComplexMacroEditor from '../prompts/ComplexMacroEditor.svelte';
   import { ask } from '@tauri-apps/plugin-dialog';
   import ProfileModal from './ProfileModal.svelte';
   import ModelSelector from './ModelSelector.svelte';
@@ -23,10 +28,9 @@
   import { swipe } from '$lib/utils/swipe';
   import { updaterService, type UpdateInfo, type UpdateProgress } from '$lib/services/updater';
 
-  let activeTab = $state<'api' | 'generation' | 'ui' | 'advanced'>('api');
+  let activeTab = $state<'api' | 'generation' | 'ui' | 'prompts' | 'advanced'>('api');
 
   // Advanced settings section state
-  let showStoryGenSection = $state(true);
   let showWizardSection = $state(false);
   let showClassifierSection = $state(false);
   let showMemorySection = $state(false);
@@ -36,17 +40,110 @@
   let showEntryRetrievalSection = $state(false);
   let showLoreManagementSection = $state(false);
   let showTimelineFillSection = $state(false);
-  let editingStoryPrompt = $state<'adventure' | 'creativeWriting' | null>(null);
-  let editingProcess = $state<keyof AdvancedWizardSettings | null>(null);
-  let editingClassifierPrompt = $state(false);
   let editingLorebookClassifier = $state(false);
-  let editingLorebookClassifierPrompt = $state(false);
-  let editingMemoryPrompt = $state<'chapterAnalysis' | 'chapterSummarization' | 'retrievalDecision' | null>(null);
-  let editingSuggestionsPrompt = $state(false);
-  let editingStyleReviewerPrompt = $state(false);
-  let editingLoreManagementPrompt = $state(false);
-  let editingTimelineFillPrompt = $state<'system' | 'answer' | null>(null);
-  let editingAgenticRetrievalPrompt = $state(false);
+  let editingProcess = $state<keyof AdvancedWizardSettings | null>(null);
+
+  // Prompts tab state
+  let selectedTemplateId = $state<string | null>(null);
+  let editingMacro = $state<Macro | null>(null);
+  let showMacroEditor = $state(false);
+  let showComplexMacroEditor = $state(false);
+  let promptsCategory = $state<'story' | 'service' | 'wizard'>('story');
+
+  // Get all templates grouped by category
+  const allTemplates = $derived(promptService.getAllTemplates());
+  const storyTemplates = $derived(allTemplates.filter(t => t.category === 'story'));
+  const serviceTemplates = $derived(allTemplates.filter(t => t.category === 'service'));
+  const wizardTemplates = $derived(allTemplates.filter(t => t.category === 'wizard'));
+  const allMacros = $derived(promptService.getAllMacros());
+
+  // Get templates for current category
+  function getTemplatesForCategory() {
+    if (promptsCategory === 'story') return storyTemplates;
+    if (promptsCategory === 'service') return serviceTemplates;
+    return wizardTemplates;
+  }
+
+  // Get category label
+  function getCategoryLabel() {
+    if (promptsCategory === 'story') return 'Story Templates';
+    if (promptsCategory === 'service') return 'Service Templates';
+    return 'Wizard Templates';
+  }
+
+  // Get current template content (with overrides)
+  function getTemplateContent(templateId: string): string {
+    const override = settings.promptSettings.templateOverrides.find(o => o.templateId === templateId);
+    if (override) return override.content;
+    const template = allTemplates.find(t => t.id === templateId);
+    return template?.content ?? '';
+  }
+
+  // Get current user content (with overrides)
+  function getUserContent(templateId: string): string | undefined {
+    const template = allTemplates.find(t => t.id === templateId);
+    if (!template?.userContent) return undefined;
+
+    // Check for user content override (stored as templateId-user)
+    const override = settings.promptSettings.templateOverrides.find(o => o.templateId === `${templateId}-user`);
+    if (override) return override.content;
+    return template.userContent;
+  }
+
+  // Check if template is modified
+  function isTemplateModified(templateId: string): boolean {
+    return settings.promptSettings.templateOverrides.some(o => o.templateId === templateId);
+  }
+
+  // Check if user content is modified
+  function isUserContentModified(templateId: string): boolean {
+    return settings.promptSettings.templateOverrides.some(o => o.templateId === `${templateId}-user`);
+  }
+
+  // Handle template content change
+  function handleTemplateChange(templateId: string, content: string) {
+    settings.setTemplateOverride(templateId, content);
+  }
+
+  // Handle user content change
+  function handleUserContentChange(templateId: string, content: string) {
+    settings.setTemplateOverride(`${templateId}-user`, content);
+  }
+
+  // Handle template reset
+  function handleTemplateReset(templateId: string) {
+    settings.removeTemplateOverride(templateId);
+  }
+
+  // Handle user content reset
+  function handleUserContentReset(templateId: string) {
+    settings.removeTemplateOverride(`${templateId}-user`);
+  }
+
+  // Handle macro override
+  function handleMacroOverride(override: MacroOverride) {
+    const existingIndex = settings.promptSettings.macroOverrides.findIndex(o => o.macroId === override.macroId);
+    if (existingIndex >= 0) {
+      // Use spread operator to trigger Svelte reactivity
+      const updated = [...settings.promptSettings.macroOverrides];
+      updated[existingIndex] = override;
+      settings.promptSettings.macroOverrides = updated;
+    } else {
+      settings.promptSettings.macroOverrides = [...settings.promptSettings.macroOverrides, override];
+    }
+    settings.savePromptSettings();
+  }
+
+  // Handle macro reset
+  function handleMacroReset(macroId: string) {
+    settings.promptSettings.macroOverrides = settings.promptSettings.macroOverrides.filter(o => o.macroId !== macroId);
+    settings.savePromptSettings();
+  }
+
+  // Find macro override
+  function findMacroOverride(macroId: string): MacroOverride | undefined {
+    return settings.promptSettings.macroOverrides.find(o => o.macroId === macroId);
+  }
 
   // Process labels for UI
   const processLabels: Record<keyof AdvancedWizardSettings, string> = {
@@ -578,6 +675,17 @@
       </button>
       <button
         class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
+        class:bg-surface-700={activeTab === 'prompts'}
+        class:text-surface-100={activeTab === 'prompts'}
+        class:text-surface-400={activeTab !== 'prompts'}
+        onclick={() => activeTab = 'prompts'}
+      >
+        <Scroll class="h-4 w-4" />
+        <span class="hidden xs:inline">Prompts</span>
+        <span class="xs:hidden">Pmt</span>
+      </button>
+      <button
+        class="flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-sm min-h-[40px] flex-shrink-0"
         class:bg-surface-700={activeTab === 'advanced'}
         class:text-surface-100={activeTab === 'advanced'}
         class:text-surface-400={activeTab !== 'advanced'}
@@ -1043,6 +1151,163 @@
             </div>
           </div>
         </div>
+      {:else if activeTab === 'prompts'}
+        <div class="space-y-6">
+          <!-- Category Toggle -->
+          <div class="flex items-center gap-2 border-b border-surface-700 pb-3 overflow-x-auto">
+            <button
+              class="px-3 py-1.5 text-sm rounded-lg transition-colors flex-shrink-0"
+              class:bg-surface-700={promptsCategory === 'story'}
+              class:text-surface-100={promptsCategory === 'story'}
+              class:text-surface-400={promptsCategory !== 'story'}
+              onclick={() => promptsCategory = 'story'}
+            >
+              Story
+            </button>
+            <button
+              class="px-3 py-1.5 text-sm rounded-lg transition-colors flex-shrink-0"
+              class:bg-surface-700={promptsCategory === 'service'}
+              class:text-surface-100={promptsCategory === 'service'}
+              class:text-surface-400={promptsCategory !== 'service'}
+              onclick={() => promptsCategory = 'service'}
+            >
+              Services
+            </button>
+            <button
+              class="px-3 py-1.5 text-sm rounded-lg transition-colors flex-shrink-0"
+              class:bg-surface-700={promptsCategory === 'wizard'}
+              class:text-surface-100={promptsCategory === 'wizard'}
+              class:text-surface-400={promptsCategory !== 'wizard'}
+              onclick={() => promptsCategory = 'wizard'}
+            >
+              Wizard
+            </button>
+          </div>
+
+          <!-- Templates List -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-medium text-surface-200">
+                {getCategoryLabel()}
+              </h3>
+              <button
+                class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                onclick={() => {
+                  getTemplatesForCategory().forEach(t => {
+                    handleTemplateReset(t.id);
+                    handleUserContentReset(t.id);
+                  });
+                }}
+              >
+                <RotateCcw class="h-3 w-3" />
+                Reset All
+              </button>
+            </div>
+
+            {#each getTemplatesForCategory() as template}
+              <div class="card bg-surface-900 p-4">
+                {#if selectedTemplateId === template.id}
+                  <PromptEditor
+                    {template}
+                    content={getTemplateContent(template.id)}
+                    userContent={getUserContent(template.id)}
+                    isModified={isTemplateModified(template.id)}
+                    isUserModified={isUserContentModified(template.id)}
+                    macroOverrides={settings.promptSettings.macroOverrides}
+                    onChange={(content) => handleTemplateChange(template.id, content)}
+                    onUserChange={(content) => handleUserContentChange(template.id, content)}
+                    onReset={() => handleTemplateReset(template.id)}
+                    onUserReset={() => handleUserContentReset(template.id)}
+                    onMacroOverride={handleMacroOverride}
+                    onMacroReset={handleMacroReset}
+                  />
+                  <button
+                    class="mt-3 text-xs text-surface-400 hover:text-surface-200"
+                    onclick={() => selectedTemplateId = null}
+                  >
+                    Collapse
+                  </button>
+                {:else}
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-surface-200">{template.name}</span>
+                        {#if isTemplateModified(template.id)}
+                          <span class="text-xs px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/30">
+                            Modified
+                          </span>
+                        {/if}
+                      </div>
+                      <p class="text-xs text-surface-500 mt-0.5">{template.description}</p>
+                    </div>
+                    <button
+                      class="text-xs text-accent-400 hover:text-accent-300"
+                      onclick={() => selectedTemplateId = template.id}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+
+          <!-- Macros Section -->
+          <div class="border-t border-surface-700 pt-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-medium text-surface-200">Macro Library</h3>
+                <p class="text-xs text-surface-500 mt-0.5">
+                  Click a macro to view and edit its values
+                </p>
+              </div>
+              <button
+                class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                onclick={() => {
+                  settings.promptSettings.macroOverrides = [];
+                  settings.savePromptSettings();
+                }}
+              >
+                <RotateCcw class="h-3 w-3" />
+                Reset All Macros
+              </button>
+            </div>
+
+            <!-- Simple Macros -->
+            <div class="card bg-surface-900 p-4">
+              <h4 class="text-xs font-medium text-surface-400 mb-3">Simple Macros</h4>
+              <div class="flex flex-wrap gap-2">
+                {#each allMacros.filter(m => m.type === 'simple') as macro}
+                  <MacroChip
+                    {macro}
+                    interactive={true}
+                    onClick={() => {
+                      editingMacro = macro;
+                      showMacroEditor = true;
+                    }}
+                  />
+                {/each}
+              </div>
+            </div>
+
+            <!-- Complex Macros -->
+            <div class="card bg-surface-900 p-4">
+              <h4 class="text-xs font-medium text-surface-400 mb-3">Complex Macros (Variant-based)</h4>
+              <div class="flex flex-wrap gap-2">
+                {#each allMacros.filter(m => m.type === 'complex') as macro}
+                  <MacroChip
+                    {macro}
+                    interactive={true}
+                    onClick={() => {
+                      editingMacro = macro;
+                      showComplexMacroEditor = true;
+                    }}
+                  />
+                {/each}
+              </div>
+            </div>
+          </div>
+        </div>
       {:else if activeTab === 'advanced'}
         <div class="space-y-4">
           <div class="border-b border-surface-700 pb-3">
@@ -1102,91 +1367,6 @@
               <p class="mt-2 text-xs text-amber-400/80">
                 A debug button will appear to view request/response logs. Logs are session-only.
               </p>
-            {/if}
-          </div>
-
-          <!-- Story Generation Section -->
-          <div class="border-b border-surface-700 pb-3">
-            <div class="flex items-center justify-between">
-              <button
-                class="flex items-center gap-2 text-left flex-1"
-                onclick={() => showStoryGenSection = !showStoryGenSection}
-              >
-                <div>
-                  <h3 class="text-sm font-medium text-surface-200">Story Generation</h3>
-                  <p class="text-xs text-surface-500">Main AI prompts for gameplay</p>
-                </div>
-              </button>
-              <div class="flex items-center gap-2">
-                <button
-                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
-                  onclick={() => settings.resetStoryGenerationSettings()}
-                >
-                  <RotateCcw class="h-3 w-3" />
-                  Reset
-                </button>
-                <button onclick={() => showStoryGenSection = !showStoryGenSection}>
-                  {#if showStoryGenSection}
-                    <ChevronUp class="h-4 w-4 text-surface-400" />
-                  {:else}
-                    <ChevronDown class="h-4 w-4 text-surface-400" />
-                  {/if}
-                </button>
-              </div>
-            </div>
-
-            {#if showStoryGenSection}
-              <div class="mt-3 space-y-3">
-                <!-- Adventure Mode Prompt -->
-                <div class="card bg-surface-900 p-3">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-surface-200">Adventure Mode Prompt</span>
-                    <button
-                      class="text-xs text-accent-400 hover:text-accent-300"
-                      onclick={() => editingStoryPrompt = editingStoryPrompt === 'adventure' ? null : 'adventure'}
-                    >
-                      {editingStoryPrompt === 'adventure' ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {#if editingStoryPrompt === 'adventure'}
-                    <textarea
-                      bind:value={settings.storyGenerationSettings.adventurePrompt}
-                      onblur={() => settings.saveStoryGenerationSettings()}
-                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
-                      rows="10"
-                    ></textarea>
-                  {:else}
-                    <p class="text-xs text-surface-400 line-clamp-2">
-                      {settings.storyGenerationSettings.adventurePrompt.slice(0, 150)}...
-                    </p>
-                  {/if}
-                </div>
-
-                <!-- Creative Writing Mode Prompt -->
-                <div class="card bg-surface-900 p-3">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-surface-200">Creative Writing Mode Prompt</span>
-                    <button
-                      class="text-xs text-accent-400 hover:text-accent-300"
-                      onclick={() => editingStoryPrompt = editingStoryPrompt === 'creativeWriting' ? null : 'creativeWriting'}
-                    >
-                      {editingStoryPrompt === 'creativeWriting' ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {#if editingStoryPrompt === 'creativeWriting'}
-                    <textarea
-                      bind:value={settings.storyGenerationSettings.creativeWritingPrompt}
-                      onblur={() => settings.saveStoryGenerationSettings()}
-                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
-                      rows="10"
-                    ></textarea>
-                  {:else}
-                    <p class="text-xs text-surface-400 line-clamp-2">
-                      {settings.storyGenerationSettings.creativeWritingPrompt.slice(0, 150)}...
-                    </p>
-                  {/if}
-                </div>
-              </div>
             {/if}
           </div>
 
@@ -1369,23 +1549,6 @@
                           </div>
                         {/if}
 
-                        <!-- System Prompt -->
-                        <div>
-                          <label class="mb-1 block text-xs font-medium text-surface-400">System Prompt</label>
-                          <textarea
-                            bind:value={settings.wizardSettings[process].systemPrompt}
-                            onblur={() => settings.saveWizardSettings()}
-                            class="input text-xs min-h-[120px] resize-y font-mono"
-                            rows="6"
-                          ></textarea>
-                          <p class="text-xs text-surface-500 mt-1">
-                            {#if process === 'openingGeneration'}
-                              Placeholders: {'{userName}'}, {'{genreLabel}'}, {'{mode}'}, {'{tense}'}, {'{tone}'}
-                            {:else}
-                              Customize the system prompt for this process.
-                            {/if}
-                          </p>
-                        </div>
                       </div>
                     {:else}
                       <div class="text-xs text-surface-400">
@@ -1575,17 +1738,20 @@
                       {/if}
 
                       <!-- System Prompt -->
-                      <div>
-                        <label class="mb-1 block text-xs font-medium text-surface-400">System Prompt</label>
-                        <textarea
-                          value={settings.systemServicesSettings.lorebookClassifier?.systemPrompt ?? ''}
-                          oninput={(e) => {
-                            settings.systemServicesSettings.lorebookClassifier.systemPrompt = e.currentTarget.value;
+                      <div class="rounded-lg border border-surface-700 bg-surface-900/40 p-3">
+                        <p class="text-xs text-surface-400">
+                          This prompt is managed in the Prompts tab.
+                        </p>
+                        <button
+                          class="mt-2 text-xs text-accent-400 hover:text-accent-300"
+                          onclick={() => {
+                            activeTab = 'prompts';
+                            promptsCategory = 'service';
+                            selectedTemplateId = 'lorebook-classifier';
                           }}
-                          onblur={() => settings.saveSystemServicesSettings()}
-                          class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                          rows="5"
-                        ></textarea>
+                        >
+                          Open Lorebook Classifier Prompt
+                        </button>
                       </div>
                     </div>
                   {:else}
@@ -1775,28 +1941,6 @@
                     </div>
                   {/if}
 
-                  <!-- System Prompt -->
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-medium text-surface-400">System Prompt</span>
-                    <button
-                      class="text-xs text-accent-400 hover:text-accent-300"
-                      onclick={() => editingClassifierPrompt = !editingClassifierPrompt}
-                    >
-                      {editingClassifierPrompt ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {#if editingClassifierPrompt}
-                    <textarea
-                      bind:value={settings.systemServicesSettings.classifier.systemPrompt}
-                      onblur={() => settings.saveSystemServicesSettings()}
-                      class="input text-xs min-h-[200px] resize-y font-mono w-full"
-                      rows="10"
-                    ></textarea>
-                  {:else}
-                    <p class="text-xs text-surface-400 line-clamp-2">
-                      {settings.systemServicesSettings.classifier.systemPrompt.slice(0, 150)}...
-                    </p>
-                  {/if}
                 </div>
               </div>
             {/if}
@@ -1935,80 +2079,6 @@
                     </div>
                   {/if}
 
-                  <!-- Chapter Analysis Prompt -->
-                  <div class="mb-3 border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Chapter Analysis Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'chapterAnalysis' ? null : 'chapterAnalysis'}
-                      >
-                        {editingMemoryPrompt === 'chapterAnalysis' ? 'Close' : 'Edit'}
-                      </button>
-                    </div>
-                    {#if editingMemoryPrompt === 'chapterAnalysis'}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.memory.chapterAnalysisPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                        rows="5"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.memory.chapterAnalysisPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
-
-                  <!-- Chapter Summarization Prompt -->
-                  <div class="mb-3 border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Chapter Summarization Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'chapterSummarization' ? null : 'chapterSummarization'}
-                      >
-                        {editingMemoryPrompt === 'chapterSummarization' ? 'Close' : 'Edit'}
-                      </button>
-                    </div>
-                    {#if editingMemoryPrompt === 'chapterSummarization'}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.memory.chapterSummarizationPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                        rows="5"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.memory.chapterSummarizationPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
-
-                  <!-- Retrieval Decision Prompt -->
-                  <div class="border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Retrieval Decision Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingMemoryPrompt = editingMemoryPrompt === 'retrievalDecision' ? null : 'retrievalDecision'}
-                      >
-                        {editingMemoryPrompt === 'retrievalDecision' ? 'Close' : 'Edit'}
-                      </button>
-                    </div>
-                    {#if editingMemoryPrompt === 'retrievalDecision'}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.memory.retrievalDecisionPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                        rows="5"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.memory.retrievalDecisionPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
                 </div>
               </div>
             {/if}
@@ -2164,28 +2234,6 @@
                     </div>
                   {/if}
 
-                  <!-- System Prompt -->
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-medium text-surface-400">System Prompt</span>
-                    <button
-                      class="text-xs text-accent-400 hover:text-accent-300"
-                      onclick={() => editingSuggestionsPrompt = !editingSuggestionsPrompt}
-                    >
-                      {editingSuggestionsPrompt ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {#if editingSuggestionsPrompt}
-                    <textarea
-                      bind:value={settings.systemServicesSettings.suggestions.systemPrompt}
-                      onblur={() => settings.saveSystemServicesSettings()}
-                      class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                      rows="5"
-                    ></textarea>
-                  {:else}
-                    <p class="text-xs text-surface-400 line-clamp-2">
-                      {settings.systemServicesSettings.suggestions.systemPrompt.slice(0, 100)}...
-                    </p>
-                  {/if}
                 </div>
               </div>
             {/if}
@@ -2533,28 +2581,6 @@
                     </div>
                   {/if}
 
-                  <!-- System Prompt -->
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-medium text-surface-400">System Prompt</span>
-                    <button
-                      class="text-xs text-accent-400 hover:text-accent-300"
-                      onclick={() => editingStyleReviewerPrompt = !editingStyleReviewerPrompt}
-                    >
-                      {editingStyleReviewerPrompt ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {#if editingStyleReviewerPrompt}
-                    <textarea
-                      bind:value={settings.systemServicesSettings.styleReviewer.systemPrompt}
-                      onblur={() => settings.saveSystemServicesSettings()}
-                      class="input text-xs min-h-[150px] resize-y font-mono w-full"
-                      rows="8"
-                    ></textarea>
-                  {:else}
-                    <p class="text-xs text-surface-400 line-clamp-2">
-                      {settings.systemServicesSettings.styleReviewer.systemPrompt.slice(0, 100)}...
-                    </p>
-                  {/if}
                 </div>
               </div>
             {/if}
@@ -2917,30 +2943,6 @@
                     </div>
                   {/if}
 
-                  <!-- System Prompt -->
-                  <div class="border-t border-surface-700 pt-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-surface-400">Lore Management Prompt</span>
-                      <button
-                        class="text-xs text-accent-400 hover:text-accent-300"
-                        onclick={() => editingLoreManagementPrompt = !editingLoreManagementPrompt}
-                      >
-                        {editingLoreManagementPrompt ? 'Close' : 'Edit'}
-                      </button>
-                    </div>
-                    {#if editingLoreManagementPrompt}
-                      <textarea
-                        bind:value={settings.systemServicesSettings.loreManagement.systemPrompt}
-                        onblur={() => settings.saveSystemServicesSettings()}
-                        class="input text-xs min-h-[120px] resize-y font-mono w-full"
-                        rows="6"
-                      ></textarea>
-                    {:else}
-                      <p class="text-xs text-surface-400 line-clamp-2">
-                        {settings.systemServicesSettings.loreManagement.systemPrompt.slice(0, 100)}...
-                      </p>
-                    {/if}
-                  </div>
                 </div>
               </div>
             {/if}
@@ -3164,55 +3166,6 @@
                         </div>
                       {/if}
 
-                      <!-- Query Generation Prompt -->
-                      <div class="border-t border-surface-700 pt-3">
-                        <div class="flex items-center justify-between mb-2">
-                          <span class="text-xs font-medium text-surface-400">Query Generation Prompt</span>
-                          <button
-                            class="text-xs text-accent-400 hover:text-accent-300"
-                            onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'system' ? null : 'system'}
-                          >
-                            {editingTimelineFillPrompt === 'system' ? 'Close' : 'Edit'}
-                          </button>
-                        </div>
-                        {#if editingTimelineFillPrompt === 'system'}
-                          <textarea
-                            bind:value={settings.systemServicesSettings.timelineFill.systemPrompt}
-                            onblur={() => settings.saveSystemServicesSettings()}
-                            class="input text-xs min-h-[150px] resize-y font-mono w-full"
-                            rows="8"
-                          ></textarea>
-                        {:else}
-                          <p class="text-xs text-surface-400 line-clamp-2">
-                            {settings.systemServicesSettings.timelineFill.systemPrompt.slice(0, 100)}...
-                          </p>
-                        {/if}
-                      </div>
-
-                      <!-- Query Answer Prompt -->
-                      <div class="border-t border-surface-700 pt-3">
-                        <div class="flex items-center justify-between mb-2">
-                          <span class="text-xs font-medium text-surface-400">Query Answer Prompt</span>
-                          <button
-                            class="text-xs text-accent-400 hover:text-accent-300"
-                            onclick={() => editingTimelineFillPrompt = editingTimelineFillPrompt === 'answer' ? null : 'answer'}
-                          >
-                            {editingTimelineFillPrompt === 'answer' ? 'Close' : 'Edit'}
-                          </button>
-                        </div>
-                        {#if editingTimelineFillPrompt === 'answer'}
-                          <textarea
-                            bind:value={settings.systemServicesSettings.timelineFill.queryAnswerPrompt}
-                            onblur={() => settings.saveSystemServicesSettings()}
-                            class="input text-xs min-h-[100px] resize-y font-mono w-full"
-                            rows="5"
-                          ></textarea>
-                        {:else}
-                          <p class="text-xs text-surface-400 line-clamp-2">
-                            {settings.systemServicesSettings.timelineFill.queryAnswerPrompt.slice(0, 100)}...
-                          </p>
-                        {/if}
-                      </div>
                     </div>
                   {:else}
                     <!-- Agentic Mode Settings -->
@@ -3335,29 +3288,6 @@
                         </div>
                       {/if}
 
-                      <div class="border-t border-surface-700 pt-3">
-                        <div class="flex items-center justify-between mb-2">
-                          <span class="text-xs font-medium text-surface-400">Agentic Prompt</span>
-                          <button
-                            class="text-xs text-accent-400 hover:text-accent-300"
-                            onclick={() => editingAgenticRetrievalPrompt = !editingAgenticRetrievalPrompt}
-                          >
-                            {editingAgenticRetrievalPrompt ? 'Close' : 'Edit'}
-                          </button>
-                        </div>
-                        {#if editingAgenticRetrievalPrompt}
-                          <textarea
-                            bind:value={settings.systemServicesSettings.agenticRetrieval.systemPrompt}
-                            onblur={() => settings.saveSystemServicesSettings()}
-                            class="input text-xs min-h-[120px] resize-y font-mono w-full"
-                            rows="6"
-                          ></textarea>
-                        {:else}
-                          <p class="text-xs text-surface-400 line-clamp-2">
-                            {settings.systemServicesSettings.agenticRetrieval.systemPrompt.slice(0, 100)}...
-                          </p>
-                        {/if}
-                      </div>
                     </div>
                   {/if}
                 </div>
@@ -3441,3 +3371,50 @@
   onClose={() => { showProfileModal = false; editingProfile = null; }}
   onSave={handleProfileSave}
 />
+
+<!-- Macro Editor Modals -->
+{#if editingMacro && editingMacro.type === 'simple'}
+  <MacroEditor
+    isOpen={showMacroEditor}
+    macro={editingMacro as SimpleMacro}
+    currentOverride={findMacroOverride(editingMacro.id)}
+    onClose={() => { showMacroEditor = false; editingMacro = null; }}
+    onSave={(value) => {
+      if (editingMacro) {
+        handleMacroOverride({ macroId: editingMacro.id, value });
+      }
+      showMacroEditor = false;
+      editingMacro = null;
+    }}
+    onReset={() => {
+      if (editingMacro) {
+        handleMacroReset(editingMacro.id);
+      }
+      showMacroEditor = false;
+      editingMacro = null;
+    }}
+  />
+{/if}
+
+{#if editingMacro && editingMacro.type === 'complex'}
+  <ComplexMacroEditor
+    isOpen={showComplexMacroEditor}
+    macro={editingMacro as ComplexMacro}
+    currentOverride={findMacroOverride(editingMacro.id)}
+    onClose={() => { showComplexMacroEditor = false; editingMacro = null; }}
+    onSave={(variantOverrides) => {
+      if (editingMacro) {
+        handleMacroOverride({ macroId: editingMacro.id, variantOverrides });
+      }
+      showComplexMacroEditor = false;
+      editingMacro = null;
+    }}
+    onReset={() => {
+      if (editingMacro) {
+        handleMacroReset(editingMacro.id);
+      }
+      showComplexMacroEditor = false;
+      editingMacro = null;
+    }}
+  />
+{/if}
