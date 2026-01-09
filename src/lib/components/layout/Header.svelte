@@ -45,7 +45,7 @@
   <div class="flex items-center gap-2 sm:gap-3 min-w-0">
     {#if story.currentStory}
       <button
-        class="btn-ghost rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+        class="btn-ghost rounded-lg p-3 min-h-[48px] min-w-[48px] flex items-center justify-center"
         onclick={() => ui.toggleSidebar()}
         title={ui.sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
       >

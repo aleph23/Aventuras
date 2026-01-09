@@ -86,7 +86,7 @@
     <div class="flex items-center gap-3 min-w-0">
       {#if isMobile}
         <button
-          class="btn-ghost rounded-lg p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2"
+          class="btn-ghost rounded-lg p-3 min-h-[48px] min-w-[48px] flex items-center justify-center -ml-1"
           onclick={handleBack}
         >
           <ArrowLeft class="h-5 w-5" />
