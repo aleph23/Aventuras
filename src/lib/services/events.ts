@@ -25,6 +25,8 @@ export type EventType =
   | 'SuggestionsReady'       // AI suggestions generated (creative mode)
   | 'StateUpdated'           // Entries/world state changed
   | 'ChapterCreated'         // New chapter summarized
+  | 'ImageAnalysisStarted'   // Started analyzing narrative for imageable scenes
+  | 'ImageAnalysisComplete'  // Finished analyzing narrative for imageable scenes
   | 'ImageQueued'            // Image generation requested
   | 'ImageReady'             // Image generation complete
   | 'SaveComplete'           // Autosave finished
@@ -125,6 +127,18 @@ export interface SaveCompleteEvent {
   storyId: string;
 }
 
+export interface ImageAnalysisStartedEvent {
+  type: 'ImageAnalysisStarted';
+  entryId: string;
+}
+
+export interface ImageAnalysisCompleteEvent {
+  type: 'ImageAnalysisComplete';
+  entryId: string;
+  sceneCount: number;
+  portraitCount: number;
+}
+
 export interface ImageQueuedEvent {
   type: 'ImageQueued';
   imageId: string;
@@ -160,6 +174,8 @@ export type AventuraEvent =
   | StoryCreatedEvent
   | ModeChangedEvent
   | SaveCompleteEvent
+  | ImageAnalysisStartedEvent
+  | ImageAnalysisCompleteEvent
   | ImageQueuedEvent
   | ImageReadyEvent
   | GenericEvent;
@@ -304,6 +320,14 @@ export function emitStoryLoaded(storyId: string, mode: 'adventure' | 'creative-w
 
 export function emitModeChanged(mode: 'adventure' | 'creative-writing'): void {
   eventBus.emit<ModeChangedEvent>({ type: 'ModeChanged', mode });
+}
+
+export function emitImageAnalysisStarted(entryId: string): void {
+  eventBus.emit<ImageAnalysisStartedEvent>({ type: 'ImageAnalysisStarted', entryId });
+}
+
+export function emitImageAnalysisComplete(entryId: string, sceneCount: number, portraitCount: number): void {
+  eventBus.emit<ImageAnalysisCompleteEvent>({ type: 'ImageAnalysisComplete', entryId, sceneCount, portraitCount });
 }
 
 export function emitImageQueued(imageId: string, entryId: string): void {

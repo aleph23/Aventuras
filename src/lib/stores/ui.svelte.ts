@@ -94,6 +94,10 @@ class UIStore {
   isGenerating = $state(false);
   isRetryingLastMessage = $state(false); // Hide stop button during completed-message retries
 
+  // Image generation state
+  imageAnalysisInProgress = $state(false);  // LLM analyzing narrative for imageable scenes
+  imagesGenerating = $state(0);              // Count of images currently being generated
+
   // Streaming state
   streamingContent = $state('');
   isStreaming = $state(false);
@@ -237,6 +241,24 @@ class UIStore {
 
   setRetryingLastMessage(value: boolean) {
     this.isRetryingLastMessage = value;
+  }
+
+  // Image generation state methods
+  setImageAnalysisInProgress(value: boolean) {
+    this.imageAnalysisInProgress = value;
+  }
+
+  incrementImagesGenerating() {
+    this.imagesGenerating++;
+  }
+
+  decrementImagesGenerating() {
+    this.imagesGenerating = Math.max(0, this.imagesGenerating - 1);
+  }
+
+  resetImageGenerationState() {
+    this.imageAnalysisInProgress = false;
+    this.imagesGenerating = 0;
   }
 
   // Streaming methods

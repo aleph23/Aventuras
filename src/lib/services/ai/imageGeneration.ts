@@ -17,7 +17,7 @@ import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
 import { story } from '$lib/stores/story.svelte';
-import { emitImageQueued, emitImageReady } from '$lib/services/events';
+import { emitImageQueued, emitImageReady, emitImageAnalysisStarted, emitImageAnalysisComplete } from '$lib/services/events';
 import { normalizeImageDataUrl } from '$lib/utils/image';
 
 const DEBUG = true;
@@ -128,6 +128,9 @@ export class ImageGenerationService {
         portraitMode,
       };
 
+      // Emit event: starting image analysis
+      emitImageAnalysisStarted(context.entryId);
+
       // Identify imageable scenes
       const scenes = await this.promptService.identifyScenes(promptContext);
 
@@ -137,15 +140,24 @@ export class ImageGenerationService {
         characters: scenes.map(s => s.character),
       });
 
-      if (scenes.length === 0) {
+      // Limit to max images per message (0 = unlimited)
+      const scenesToProcess = scenes.length === 0
+        ? []
+        : maxImages === 0
+          ? scenes.sort((a, b) => b.priority - a.priority)
+          : scenes.sort((a, b) => b.priority - a.priority).slice(0, maxImages);
+
+      // Separate portrait generation scenes from regular scenes
+      const portraitScenes = scenesToProcess.filter(s => s.generatePortrait && s.character);
+      const regularScenes = scenesToProcess.filter(s => !s.generatePortrait);
+
+      // Emit event: analysis complete
+      emitImageAnalysisComplete(context.entryId, regularScenes.length, portraitScenes.length);
+
+      if (scenesToProcess.length === 0) {
         log('No imageable scenes found');
         return;
       }
-
-      // Limit to max images per message (0 = unlimited)
-      const scenesToProcess = maxImages === 0
-        ? scenes.sort((a, b) => b.priority - a.priority)
-        : scenes.sort((a, b) => b.priority - a.priority).slice(0, maxImages);
 
       log('Processing scenes', {
         total: scenes.length,
@@ -153,14 +165,53 @@ export class ImageGenerationService {
         maxAllowed: maxImages,
       });
 
-      // Create pending EmbeddedImage records and queue generation
-      for (const scene of scenesToProcess) {
+      log('Scene breakdown', {
+        portraits: portraitScenes.length,
+        regular: regularScenes.length,
+      });
+
+      // PHASE 1: Generate portraits first (synchronously) so they can be used immediately
+      // This allows the LLM to request both a portrait AND a scene for the same character
+      const updatedCharacters = [...context.presentCharacters];
+      const updatedCharactersWithPortraits = [...charactersWithPortraits];
+
+      for (const scene of portraitScenes) {
+        const result = await this.generateCharacterPortrait(
+          context.storyId,
+          scene.character!,
+          scene.prompt,
+          imageSettings,
+          updatedCharacters
+        );
+
+        // Update our local tracking if portrait was generated
+        if (result) {
+          // Update the character in our local array
+          const charIndex = updatedCharacters.findIndex(
+            c => c.name.toLowerCase() === scene.character!.toLowerCase()
+          );
+          if (charIndex !== -1) {
+            updatedCharacters[charIndex] = {
+              ...updatedCharacters[charIndex],
+              portrait: result.portraitDataUrl,
+            };
+            // Add to characters with portraits list
+            if (!updatedCharactersWithPortraits.includes(updatedCharacters[charIndex].name)) {
+              updatedCharactersWithPortraits.push(updatedCharacters[charIndex].name);
+            }
+          }
+          log('Portrait ready for immediate use', { character: scene.character });
+        }
+      }
+
+      // PHASE 2: Generate regular scene images (can now use freshly generated portraits)
+      for (const scene of regularScenes) {
         await this.queueImageGeneration(
           context.storyId,
           context.entryId,
           scene,
           imageSettings,
-          context.presentCharacters
+          updatedCharacters  // Use updated characters with new portraits
         );
       }
 
@@ -282,7 +333,8 @@ export class ImageGenerationService {
   }
 
   /**
-   * Generate a portrait for a character and save it to their profile
+   * Generate a portrait for a character and save it to their profile.
+   * Returns the portrait data if successful, null otherwise.
    */
   private async generateCharacterPortrait(
     storyId: string,
@@ -290,7 +342,7 @@ export class ImageGenerationService {
     prompt: string,
     imageSettings: typeof settings.systemServicesSettings.imageGeneration,
     presentCharacters: Character[]
-  ): Promise<void> {
+  ): Promise<{ characterId: string; portraitDataUrl: string } | null> {
     try {
       // Find the character
       const character = presentCharacters.find(
@@ -299,12 +351,12 @@ export class ImageGenerationService {
 
       if (!character) {
         log('Character not found for portrait generation', { characterName });
-        return;
+        return null;
       }
 
       if (character.portrait) {
         log('Character already has portrait, skipping', { characterName });
-        return;
+        return null;
       }
 
       // Get API key from settings
@@ -334,11 +386,12 @@ export class ImageGenerationService {
 
       const portraitDataUrl = `data:image/png;base64,${response.images[0].b64_json}`;
 
-      // Update character with portrait
+      // Update character with portrait in database
       await database.updateCharacter(character.id, {
         portrait: portraitDataUrl,
       });
 
+      // Update the story store
       if (story.currentStory?.id === storyId) {
         story.characters = story.characters.map(c =>
           c.id === character.id ? { ...c, portrait: portraitDataUrl } : c
@@ -346,9 +399,13 @@ export class ImageGenerationService {
       }
 
       log('Portrait generated and saved', { characterName, characterId: character.id });
+
+      // Return the portrait data so caller can update local state
+      return { characterId: character.id, portraitDataUrl };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       log('Portrait generation failed', { characterName, error: errorMessage });
+      return null;
     }
   }
 

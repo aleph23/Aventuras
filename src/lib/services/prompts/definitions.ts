@@ -1747,9 +1747,8 @@ Return a JSON array (no markdown, just raw JSON):
 ## generatePortrait Field - Creating Portraits for New Characters
 When a NEW named character is introduced who does NOT have a portrait yet (not in "Characters With Portraits" list):
 - You MAY request portrait generation by setting "generatePortrait": true
-- This will create a portrait for them so they CAN be depicted in FUTURE images
-- CRITICAL: You CANNOT use that portrait in the same output - it won't exist until the next turn
-- When generatePortrait is true: create a portrait-style prompt (head/shoulders, neutral background)
+- Portraits are generated FIRST, so you CAN include BOTH a portrait request AND scene images for the same character in the same output
+- When generatePortrait is true: create a FULL BODY portrait prompt (head to feet, neutral background)
 - For portrait prompts: use the character's visual descriptors to describe their appearance
 
 ## Prompt Structure (for scenes WITH character reference)
@@ -1798,10 +1797,10 @@ When a NEW named character is introduced who does NOT have a portrait yet (not i
 }
 
 ## CRITICAL Rules
-1. **ONLY depict characters WITH portraits** - characters without portraits CANNOT appear in scene images
+1. **Characters need portraits for scenes** - to depict a character in a scene, they must have a portrait OR you must also include a generatePortrait request for them
 2. **ONE CHARACTER PER IMAGE** - only depict a single character per prompt
 3. **For characters WITH portraits** - do NOT describe appearance, just action/pose/environment
-4. **generatePortrait** - use to CREATE portraits for new characters (cannot use same turn)
+4. **generatePortrait** - generates portrait FIRST, then scene images can use it immediately in the same output
 5. **ALWAYS include style** - copy style keywords from the Style section
 6. **Stay under 600 characters**
 7. **sourceText** MUST be COPY-PASTED EXACTLY from the narrative
@@ -1823,7 +1822,7 @@ When a NEW named character is introduced who does NOT have a portrait yet (not i
 ## Narrative to Analyze
 {{narrativeResponse}}
 
-Identify the most visually striking moments and return the JSON array. Remember: only characters with portraits can be depicted in scene images. Use generatePortrait to create portraits for important new characters.`,
+Identify the most visually striking moments and return the JSON array. For new characters without portraits, you can request BOTH a portrait (generatePortrait: true) AND a scene image - the portrait generates first so the scene can use it.`,
 };
 
 // Portrait generation template - direct image prompt (not LLM instructions)

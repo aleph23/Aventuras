@@ -1,12 +1,50 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { story } from '$lib/stores/story.svelte';
   import { settings } from '$lib/stores/settings.svelte';
   import { exportService } from '$lib/services/export';
   import { database } from '$lib/services/database';
-  import { PanelLeft, Settings, BookOpen, Library, Feather, Download, FileJson, FileText, ChevronDown, Bug, BookMarked, Brain } from 'lucide-svelte';
+  import {
+    eventBus,
+    type ImageAnalysisStartedEvent,
+    type ImageAnalysisCompleteEvent,
+    type ImageQueuedEvent,
+    type ImageReadyEvent,
+  } from '$lib/services/events';
+  import { PanelLeft, Settings, BookOpen, Library, Feather, Download, FileJson, FileText, ChevronDown, Bug, BookMarked, Brain, ImageIcon } from 'lucide-svelte';
 
   let showExportMenu = $state(false);
+
+  // Subscribe to image generation events
+  onMount(() => {
+    const unsubAnalysisStarted = eventBus.subscribe<ImageAnalysisStartedEvent>(
+      'ImageAnalysisStarted',
+      () => ui.setImageAnalysisInProgress(true)
+    );
+
+    const unsubAnalysisComplete = eventBus.subscribe<ImageAnalysisCompleteEvent>(
+      'ImageAnalysisComplete',
+      () => ui.setImageAnalysisInProgress(false)
+    );
+
+    const unsubImageQueued = eventBus.subscribe<ImageQueuedEvent>(
+      'ImageQueued',
+      () => ui.incrementImagesGenerating()
+    );
+
+    const unsubImageReady = eventBus.subscribe<ImageReadyEvent>(
+      'ImageReady',
+      () => ui.decrementImagesGenerating()
+    );
+
+    return () => {
+      unsubAnalysisStarted();
+      unsubAnalysisComplete();
+      unsubImageQueued();
+      unsubImageReady();
+    };
+  });
 
   async function exportAventura() {
     if (!story.currentStory) return;
@@ -122,6 +160,22 @@
       <div class="flex items-center gap-1.5 text-sm text-accent-400">
         <div class="h-2 w-2 animate-pulse rounded-full bg-accent-500"></div>
         <span class="hidden sm:inline">Generating...</span>
+      </div>
+    {/if}
+
+    <!-- Image generation status indicators -->
+    {#if ui.imageAnalysisInProgress}
+      <div class="flex items-center gap-1.5 text-sm text-blue-400" title="Analyzing scene for images">
+        <ImageIcon class="h-3.5 w-3.5 animate-pulse" />
+        <span class="hidden sm:inline">Analyzing...</span>
+      </div>
+    {:else if ui.imagesGenerating > 0}
+      <div class="flex items-center gap-1.5 text-sm text-emerald-400" title="Generating images">
+        <ImageIcon class="h-3.5 w-3.5" />
+        <span class="hidden sm:inline">
+          {ui.imagesGenerating} image{ui.imagesGenerating > 1 ? 's' : ''}
+        </span>
+        <div class="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></div>
       </div>
     {/if}
 
