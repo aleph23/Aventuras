@@ -271,7 +271,7 @@ export function sanitizeTextForTTS(html: string, options: TTSSanitizeOptions): s
 
   return text
     .replace(/\r/g, '')
-    .replace(/\n{3,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 }
