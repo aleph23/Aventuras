@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { slide } from 'svelte/transition';
   import { story } from "$lib/stores/story.svelte";
   import { ui } from "$lib/stores/ui.svelte";
   import { settings } from "$lib/stores/settings.svelte";
@@ -128,13 +129,41 @@
   let generatingPortraitName = $state<string | null>(null);
 
   // Step 2: Import Lorebook (optional - moved to early position)
-  let importedLorebook = $state<LorebookImportResult | null>(null);
-  let importedEntries = $state<ImportedEntry[]>([]);
+  interface ImportedLorebookItem {
+    id: string; // Unique ID for removal
+    filename: string; // Display name
+    result: LorebookImportResult;
+    entries: ImportedEntry[];
+    expanded: boolean;
+  }
+
+  let importedLorebooks = $state<ImportedLorebookItem[]>([]);
   let isImporting = $state(false);
   let isClassifying = $state(false);
   let classificationProgress = $state({ current: 0, total: 0 });
   let importError = $state<string | null>(null);
   let importFileInput: HTMLInputElement | null = null;
+
+  // Combine all entries from all lorebooks for use in later steps
+  const importedEntries = $derived(importedLorebooks.flatMap((lb) => lb.entries));
+
+  // Combined summary for display
+  const importSummary = $derived.by(() => {
+    if (importedLorebooks.length === 0) return null;
+    const entries = importedEntries;
+    return {
+      total: entries.length,
+      withContent: entries.filter((e) => e.description?.trim()).length,
+      byType: {
+        character: entries.filter((e) => e.type === "character").length,
+        location: entries.filter((e) => e.type === "location").length,
+        item: entries.filter((e) => e.type === "item").length,
+        faction: entries.filter((e) => e.type === "faction").length,
+        concept: entries.filter((e) => e.type === "concept").length,
+        event: entries.filter((e) => e.type === "event").length,
+      },
+    };
+  });
 
   // Step 4: Character Card Import (optional)
   let isImportingCard = $state(false);
@@ -296,6 +325,18 @@
       default:
         return false;
     }
+  }
+
+  // Helper for type counts
+  function getTypeCounts(entries: ImportedEntry[]) {
+    return {
+      character: entries.filter((e) => e.type === "character").length,
+      location: entries.filter((e) => e.type === "location").length,
+      item: entries.filter((e) => e.type === "item").length,
+      faction: entries.filter((e) => e.type === "faction").length,
+      concept: entries.filter((e) => e.type === "concept").length,
+      event: entries.filter((e) => e.type === "event").length,
+    };
   }
 
   // Navigation
@@ -1127,8 +1168,6 @@
 
       if (!result.success) {
         importError = result.errors.join("; ") || "Failed to parse lorebook";
-        importedLorebook = null;
-        importedEntries = [];
         isImporting = false;
         return;
       }
@@ -1136,13 +1175,11 @@
       if (result.entries.length === 0) {
         importError =
           "No valid entries found in this file. Please select a valid lorebook JSON file.";
-        importedLorebook = null;
-        importedEntries = [];
         isImporting = false;
         return;
       }
 
-      importedLorebook = result;
+      let classifiedEntries = result.entries;
 
       // Run LLM classification if we have entries and an API key is available
       if (result.entries.length > 0 && !settings.needsApiKey) {
@@ -1151,37 +1188,59 @@
         classificationProgress = { current: 0, total: result.entries.length };
 
         try {
-          const classifiedEntries = await classifyEntriesWithLLM(
+          classifiedEntries = await classifyEntriesWithLLM(
             result.entries,
             (current, total) => {
               classificationProgress = { current, total };
             },
             selectedMode,
           );
-          importedEntries = classifiedEntries;
         } catch (classifyError) {
           console.error("LLM classification failed:", classifyError);
-          // Fall back to keyword-based classification
-          importedEntries = result.entries;
+          // Fall back to keyword-based classification on error, handled by default
         } finally {
           isClassifying = false;
         }
-      } else {
-        importedEntries = result.entries;
-        isImporting = false;
       }
+
+      // Add to array
+      importedLorebooks.push({
+        id: crypto.randomUUID(),
+        filename: file.name,
+        result,
+        entries: classifiedEntries,
+        expanded: true,
+      });
+
+      isImporting = false;
     } catch (err) {
       importError = err instanceof Error ? err.message : "Failed to read file";
-      importedLorebook = null;
-      importedEntries = [];
       isImporting = false;
       isClassifying = false;
+    } finally {
+      // Reset input so the same file can be selected again if needed
+      if (importFileInput) {
+        importFileInput.value = "";
+      }
     }
   }
 
-  function clearImport() {
-    importedLorebook = null;
-    importedEntries = [];
+  function removeLorebook(id: string) {
+    importedLorebooks = importedLorebooks.filter((lb) => lb.id !== id);
+    if (importedLorebooks.length === 0) {
+      importError = null;
+    }
+  }
+
+  function toggleLorebookExpanded(id: string) {
+    const lb = importedLorebooks.find((lb) => lb.id === id);
+    if (lb) {
+      lb.expanded = !lb.expanded;
+    }
+  }
+
+  function clearAllLorebooks() {
+    importedLorebooks = [];
     importError = null;
     isClassifying = false;
     classificationProgress = { current: 0, total: 0 };
@@ -1301,10 +1360,7 @@
     );
   }
 
-  // Derived import summary
-  const importSummary = $derived(
-    importedEntries.length > 0 ? getImportSummary(importedEntries) : null,
-  );
+
 </script>
 
 <div
@@ -1427,18 +1483,12 @@
             content later.
           </p>
 
-          {#if !importedLorebook || isClassifying}
-            <!-- File Upload Area -->
+          <!-- File Upload Area (always visible unless busy) -->
+          {#if !isImporting && !isClassifying}
             <div
               class="card bg-surface-900 border-dashed border-2 border-surface-600 p-8 text-center hover:border-accent-500/50 transition-colors cursor-pointer"
-              class:pointer-events-none={isImporting || isClassifying}
-              onclick={() =>
-                !isImporting && !isClassifying && importFileInput?.click()}
-              onkeydown={(e) =>
-                e.key === "Enter" &&
-                !isImporting &&
-                !isClassifying &&
-                importFileInput?.click()}
+              onclick={() => importFileInput?.click()}
+              onkeydown={(e) => e.key === "Enter" && importFileInput?.click()}
               role="button"
               tabindex="0"
             >
@@ -1449,97 +1499,116 @@
                 bind:this={importFileInput}
                 onchange={handleFileSelect}
               />
-              {#if isImporting}
-                <Loader2
-                  class="h-8 w-8 mx-auto mb-2 text-accent-400 animate-spin"
-                />
-                <p class="text-surface-300">Parsing lorebook...</p>
-              {:else if isClassifying}
-                <Loader2
-                  class="h-8 w-8 mx-auto mb-2 text-accent-400 animate-spin"
-                />
-                <p class="text-surface-300 font-medium">
-                  Classifying entries with AI...
-                </p>
-                <p class="text-xs text-surface-500 mt-1">
-                  {classificationProgress.current} / {classificationProgress.total}
-                  entries
-                </p>
-                <div
-                  class="mt-3 w-full max-w-xs mx-auto bg-surface-700 rounded-full h-2"
-                >
-                  <div
-                    class="bg-accent-500 h-2 rounded-full transition-all duration-300"
-                    style="width: {classificationProgress.total > 0
-                      ? (classificationProgress.current /
-                          classificationProgress.total) *
-                        100
-                      : 0}%"
-                  ></div>
-                </div>
-              {:else}
-                <Upload class="h-8 w-8 mx-auto mb-2 text-surface-500" />
-                <p class="text-surface-300 font-medium">
-                  Click to upload a lorebook
-                </p>
-                <p class="text-xs text-surface-500 mt-1">
-                  Supports SillyTavern lorebook format (.json)
-                </p>
-              {/if}
+              <Upload class="h-8 w-8 mx-auto mb-2 text-surface-500" />
+              <p class="text-surface-300 font-medium">
+                {importedLorebooks.length > 0
+                  ? "Add Another Lorebook"
+                  : "Click to upload a lorebook"}
+              </p>
+              <p class="text-xs text-surface-500 mt-1">
+                Supports SillyTavern lorebook format (.json)
+              </p>
             </div>
-
-            {#if importError && !isClassifying}
+          {:else if isImporting}
+            <div
+              class="card bg-surface-900 border-dashed border-2 border-surface-600 p-8 text-center"
+            >
+              <Loader2
+                class="h-8 w-8 mx-auto mb-2 text-accent-400 animate-spin"
+              />
+              <p class="text-surface-300">Parsing lorebook...</p>
+            </div>
+          {:else if isClassifying}
+            <div
+              class="card bg-surface-900 border-dashed border-2 border-surface-600 p-8 text-center"
+            >
+              <Loader2
+                class="h-8 w-8 mx-auto mb-2 text-accent-400 animate-spin"
+              />
+              <p class="text-surface-300 font-medium">
+                Classifying entries with AI...
+              </p>
+              <p class="text-xs text-surface-500 mt-1">
+                {classificationProgress.current} / {classificationProgress.total}
+                entries
+              </p>
               <div
-                class="card bg-red-500/10 border-red-500/30 p-3 flex items-start gap-2"
+                class="mt-3 w-full max-w-xs mx-auto bg-surface-700 rounded-full h-2"
               >
-                <AlertCircle class="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                <p class="text-sm text-red-400">{importError}</p>
+                <div
+                  class="bg-accent-500 h-2 rounded-full transition-all duration-300"
+                  style="width: {classificationProgress.total > 0
+                    ? (classificationProgress.current /
+                        classificationProgress.total) *
+                      100
+                    : 0}%"
+                ></div>
               </div>
-            {/if}
-          {:else if !isClassifying}
-            <!-- Import Results -->
-            <div class="card bg-surface-900 p-4 space-y-4">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <FileJson class="h-5 w-5 text-accent-400" />
-                  <span class="font-medium text-surface-100">
-                    Lorebook Imported
-                  </span>
-                  {#if importedLorebook.success}
-                    <Check class="h-4 w-4 text-green-400" />
-                  {/if}
-                </div>
-                <button
-                  class="text-xs text-surface-400 hover:text-surface-200"
-                  onclick={clearImport}
-                >
-                  Clear
-                </button>
-              </div>
+            </div>
+          {/if}
 
-              {#if importSummary}
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                  <div class="card bg-surface-800 p-3">
-                    <div class="text-2xl font-bold text-surface-100">
-                      {importSummary.total}
-                    </div>
-                    <div class="text-xs text-surface-400">Total Entries</div>
-                  </div>
-                  <div class="card bg-surface-800 p-3">
-                    <div class="text-2xl font-bold text-surface-100">
-                      {importSummary.withContent}
-                    </div>
-                    <div class="text-xs text-surface-400">With Content</div>
-                  </div>
-                </div>
+          {#if importError}
+            <div
+              class="card bg-red-500/10 border-red-500/30 p-3 flex items-start gap-2"
+            >
+              <AlertCircle class="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <p class="text-sm text-red-400">{importError}</p>
+            </div>
+          {/if}
 
-                <!-- Type Breakdown -->
-                <div class="space-y-2">
-                  <h4 class="text-xs font-medium text-surface-400 uppercase">
-                    By Type
-                  </h4>
-                  <div class="flex flex-wrap gap-2">
-                    {#each Object.entries(importSummary.byType) as [type, count]}
+          <!-- List of Imported Lorebooks -->
+          {#if importedLorebooks.length > 0}
+            <div class="space-y-3">
+              {#each importedLorebooks as lorebook (lorebook.id)}
+                <div class="card bg-surface-900 p-4 transition-all">
+                  <!-- Header - Clickable for toggle -->
+                  <div
+                    class="flex items-center justify-between mb-2 cursor-pointer"
+                    onclick={() => toggleLorebookExpanded(lorebook.id)}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) =>
+                      e.key === "Enter" && toggleLorebookExpanded(lorebook.id)}
+                  >
+                    <div class="flex items-center gap-2">
+                      <ChevronRight
+                        class="h-4 w-4 text-surface-500 transition-transform duration-200 {lorebook.expanded
+                          ? 'rotate-90'
+                          : ''}"
+                      />
+                      <FileJson class="h-5 w-5 text-accent-400" />
+                      <span
+                        class="font-medium text-surface-100 truncate max-w-[200px]"
+                        title={lorebook.filename}
+                      >
+                        {lorebook.filename}
+                      </span>
+                      <span class="text-xs text-surface-500">
+                        {lorebook.entries.length} entries
+                      </span>
+                      {#if lorebook.result.warnings.length > 0}
+                        <span
+                          class="text-xs text-amber-400 ml-2"
+                          title="{lorebook.result.warnings.length} warnings"
+                        >
+                          ⚠️
+                        </span>
+                      {/if}
+                    </div>
+                    <button
+                      class="text-xs text-surface-400 hover:text-red-400 transition-colors z-10 p-1"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        removeLorebook(lorebook.id);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <!-- Type breakdown (Always visible) -->
+                  <div class="flex flex-wrap gap-2 ml-6">
+                    {#each Object.entries(getTypeCounts(lorebook.entries)) as [type, count]}
                       {#if count > 0}
                         <span
                           class="px-2 py-1 rounded-full bg-surface-700 text-xs {getTypeColor(
@@ -1551,52 +1620,83 @@
                       {/if}
                     {/each}
                   </div>
-                </div>
 
-                <!-- Entry Preview List -->
-                {#if importedEntries.length > 0}
-                  <div class="space-y-2">
-                    <h4 class="text-xs font-medium text-surface-400 uppercase">
-                      Preview (first 10)
-                    </h4>
-                    <div class="max-h-40 overflow-y-auto space-y-1">
-                      {#each importedEntries.slice(0, 10) as entry}
-                        <div
-                          class="flex items-center gap-2 text-sm p-2 rounded bg-surface-800"
+                  <!-- Expanded Content -->
+                  {#if lorebook.expanded}
+                    <div
+                      class="mt-4 pt-4 border-t border-surface-700 space-y-4 ml-6"
+                      transition:slide
+                    >
+                      <!-- Preview (first 10) -->
+                      <div class="space-y-2">
+                        <h4
+                          class="text-xs font-medium text-surface-400 uppercase"
                         >
-                          <span
-                            class="px-1.5 py-0.5 rounded text-xs {getTypeColor(
-                              entry.type,
-                            )} bg-surface-700"
-                          >
-                            {entry.type}
-                          </span>
-                          <span class="text-surface-200 truncate flex-1"
-                            >{entry.name}</span
-                          >
-                          {#if entry.keywords.length > 0}
-                            <span class="text-xs text-surface-500"
-                              >{entry.keywords.length} keywords</span
+                          Preview (first 10)
+                        </h4>
+                        <div class="max-h-40 overflow-y-auto space-y-1">
+                          {#each lorebook.entries.slice(0, 10) as entry}
+                            <div
+                              class="flex items-center gap-2 text-sm p-2 rounded bg-surface-800"
                             >
+                              <span
+                                class="px-1.5 py-0.5 rounded text-xs {getTypeColor(
+                                  entry.type,
+                                )} bg-surface-700"
+                              >
+                                {entry.type}
+                              </span>
+                              <span class="text-surface-200 truncate flex-1"
+                                >{entry.name}</span
+                              >
+                              {#if entry.keywords.length > 0}
+                                <span class="text-xs text-surface-500"
+                                  >{entry.keywords.length} keywords</span
+                                >
+                              {/if}
+                            </div>
+                          {/each}
+                          {#if lorebook.entries.length > 10}
+                            <p
+                              class="text-xs text-surface-500 text-center py-2"
+                            >
+                              ...and {lorebook.entries.length - 10} more
+                              entries
+                            </p>
                           {/if}
                         </div>
-                      {/each}
-                      {#if importedEntries.length > 10}
-                        <p class="text-xs text-surface-500 text-center py-2">
-                          ...and {importedEntries.length - 10} more entries
-                        </p>
+                      </div>
+
+                      {#if lorebook.result.warnings.length > 0}
+                        <div class="text-xs text-amber-400">
+                          {lorebook.result.warnings.length} warning(s) during
+                          import
+                        </div>
                       {/if}
                     </div>
-                  </div>
-                {/if}
-              {/if}
-
-              {#if importedLorebook.warnings.length > 0}
-                <div class="text-xs text-amber-400">
-                  {importedLorebook.warnings.length} warning(s) during import
+                  {/if}
                 </div>
-              {/if}
+              {/each}
             </div>
+
+            <!-- Combined Summary -->
+            {#if importedLorebooks.length > 1 && importSummary}
+              <div class="card bg-surface-800 p-3">
+                <div class="flex justify-between items-center">
+                  <p class="text-sm text-surface-300">
+                    <strong>Total:</strong>
+                    {importSummary.total} entries across {importedLorebooks.length}
+                    lorebooks
+                  </p>
+                  <button
+                    class="text-xs text-surface-400 hover:text-surface-200"
+                    onclick={clearAllLorebooks}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            {/if}
           {/if}
 
           <p class="text-xs text-surface-500 text-center">
