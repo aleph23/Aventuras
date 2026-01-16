@@ -1349,18 +1349,18 @@ if (retryCount > 0) {
     <GrammarCheck text={inputValue} onApplySuggestion={(newText) => inputValue = newText} />
 
     <!-- Creative Writing Mode: Direction Input -->
-    <div class="flex gap-2">
+    <div class="group flex items-end gap-2 p-2 rounded-2xl bg-surface-800 border border-surface-700/50 border-l-4 {ui.isGenerating ? 'border-l-surface-600' : 'border-l-accent-500'} transition-all focus-within:border-accent-500/50">
       <div class="relative flex-1">
         <textarea
           bind:value={inputValue}
           onkeydown={handleKeydown}
           disabled={ui.isGenerating}
           placeholder="Direct the story (e.g. 'I explore the cave' or 'Suddenly, a dragon appears')"
-          class="input min-h-[56px] py-3 resize-none w-full pr-10"
+          class="w-full bg-transparent border-none focus:ring-0 px-4 py-3 min-h-[56px] resize-none text-base text-surface-200 placeholder-surface-400 focus:outline-none"
           rows="1"
         ></textarea>
         <!-- Character Count -->
-        <div class="absolute bottom-1.5 right-2 text-[10px] text-surface-500 pointer-events-none">
+        <div class="absolute bottom-2 right-2 text-[10px] text-surface-500 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
           {inputValue.length}
         </div>
       </div>
@@ -1368,100 +1368,19 @@ if (retryCount > 0) {
       {#if ui.isGenerating}
         <button
           onclick={handleStopGeneration}
-          class="btn btn-primary bg-red-600 hover:bg-red-700 w-12 sm:w-auto px-0 sm:px-4 flex items-center justify-center"
+          class="btn btn-primary bg-red-600 hover:bg-red-700 h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 transition-transform active:scale-95"
           title="Stop generation"
         >
           <Square class="h-5 w-5 fill-current" />
-          <span class="hidden sm:inline ml-2">Stop</span>
         </button>
       {:else}
         <button
           onclick={handleSubmit}
           disabled={!inputValue.trim()}
-          class="btn btn-primary w-12 sm:w-auto px-0 sm:px-4 flex items-center justify-center"
+          class="btn btn-primary h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 transition-transform active:scale-95"
           title="Send direction"
         >
           <Send class="h-5 w-5" />
-          <span class="hidden sm:inline ml-2">Send</span>
-        </button>
-      {/if}
-    </div>
-  {:else}
-    <!-- Adventure Mode Input -->
-    
-    <!-- Action Type Selector - Hidden if disabled -->
-    {#if !settings.uiSettings.disableActionPrefixes}
-      <div class="flex flex-wrap gap-2 mb-2">
-        <button
-          class="btn btn-sm text-xs {actionType === 'do' ? 'btn-primary' : 'btn-secondary'}"
-          onclick={() => actionType = 'do'}
-        >
-          Do
-        </button>
-        <button
-          class="btn btn-sm text-xs {actionType === 'say' ? 'btn-primary' : 'btn-secondary'}"
-          onclick={() => actionType = 'say'}
-        >
-          Say
-        </button>
-        <button
-          class="btn btn-sm text-xs {actionType === 'think' ? 'btn-primary' : 'btn-secondary'}"
-          onclick={() => actionType = 'think'}
-        >
-          Think
-        </button>
-        <button
-          class="btn btn-sm text-xs {actionType === 'story' ? 'btn-primary' : 'btn-secondary'}"
-          onclick={() => actionType = 'story'}
-        >
-          Story
-        </button>
-        <button
-          class="btn btn-sm text-xs {actionType === 'free' ? 'btn-primary' : 'btn-secondary'}"
-          onclick={() => actionType = 'free'}
-        >
-          Free
-        </button>
-      </div>
-    {/if}
-
-    <div class="flex gap-2">
-      <div class="relative flex-1">
-        <textarea
-          bind:value={inputValue}
-          onkeydown={handleKeydown}
-          placeholder="Describe what happens next in the story..."
-          class="input min-h-[56px] sm:min-h-[60px] resize-none text-base"
-          rows="2"
-          disabled={ui.isGenerating}
-        ></textarea>
-      </div>
-      {#if ui.isGenerating}
-        {#if !ui.isRetryingLastMessage}
-          <button
-            onclick={handleStopGeneration}
-            class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
-            title="Stop generation"
-          >
-            <Square class="h-5 w-5" />
-          </button>
-        {:else}
-          <button
-            disabled
-            class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed"
-            title="Stop disabled during retry"
-          >
-            <Square class="h-5 w-5" />
-          </button>
-        {/if}
-      {:else}
-        <button
-          onclick={handleSubmit}
-          disabled={!inputValue.trim() || ui.isGenerating}
-          class="btn btn-primary self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
-          title="Continue story"
-        >
-          <Feather class="h-5 w-5" />
         </button>
       {/if}
     </div>
@@ -1470,7 +1389,7 @@ if (retryCount > 0) {
     {#if !settings.uiSettings.disableActionPrefixes}
       <div class="action-type-buttons flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
         <button
-          class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
+          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
           class:btn-primary={actionType === 'do'}
           class:btn-secondary={actionType !== 'do'}
           onclick={() => actionType = 'do'}
@@ -1479,7 +1398,7 @@ if (retryCount > 0) {
           <span class="hidden xs:inline">Do</span>
         </button>
         <button
-          class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
+          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
           class:btn-primary={actionType === 'say'}
           class:btn-secondary={actionType !== 'say'}
           onclick={() => actionType = 'say'}
@@ -1488,7 +1407,7 @@ if (retryCount > 0) {
           <span class="hidden xs:inline">Say</span>
         </button>
         <button
-          class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
+          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
           class:btn-primary={actionType === 'think'}
           class:btn-secondary={actionType !== 'think'}
           onclick={() => actionType = 'think'}
@@ -1497,7 +1416,7 @@ if (retryCount > 0) {
           <span class="hidden xs:inline">Think</span>
         </button>
         <button
-          class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
+          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
           class:btn-primary={actionType === 'story'}
           class:btn-secondary={actionType !== 'story'}
           onclick={() => actionType = 'story'}
@@ -1506,7 +1425,7 @@ if (retryCount > 0) {
           <span class="hidden xs:inline">Story</span>
         </button>
         <button
-          class="btn flex items-center gap-1 sm:gap-1.5 text-sm flex-shrink-0 min-h-[40px] px-2.5 sm:px-4"
+          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
           class:btn-primary={actionType === 'free'}
           class:btn-secondary={actionType !== 'free'}
           onclick={() => actionType = 'free'}
@@ -1521,13 +1440,13 @@ if (retryCount > 0) {
     <GrammarCheck text={inputValue} onApplySuggestion={(newText) => inputValue = newText} />
 
     <!-- Adventure Mode: Input area -->
-    <div class="flex gap-2">
+    <div class="flex items-end gap-2 p-2 rounded-2xl bg-surface-800 border border-surface-700/50 border-l-4 {ui.isGenerating ? 'border-l-surface-600' : 'border-l-accent-500'} transition-all focus-within:border-accent-500/50">
       <div class="relative flex-1">
         <textarea
           bind:value={inputValue}
           onkeydown={handleKeydown}
-          placeholder={actionType === 'story' ? 'Describe what happens...' : actionType === 'free' ? 'Write anything...' : 'What do you do?'}
-          class="input min-h-[56px] sm:min-h-[60px] resize-none text-base"
+          placeholder={actionType === 'story' ? 'Describe what happens...' : actionType === 'say' ? 'What do you say?' : actionType === 'think' ? 'What are you thinking?' : actionType === 'free' ? 'Write anything...' : 'What do you do?'}
+          class="w-full bg-transparent border-none focus:ring-0 px-4 py-3 min-h-[56px] sm:min-h-[60px] resize-none text-base text-surface-200 placeholder-surface-400 focus:outline-none"
           rows="2"
           disabled={ui.isGenerating}
         ></textarea>
@@ -1536,7 +1455,7 @@ if (retryCount > 0) {
         {#if !ui.isRetryingLastMessage}
           <button
             onclick={handleStopGeneration}
-            class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 hover:bg-red-500/30"
+            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-transform active:scale-95"
             title="Stop generation"
           >
             <Square class="h-5 w-5" />
@@ -1544,7 +1463,7 @@ if (retryCount > 0) {
         {:else}
           <button
             disabled
-            class="btn self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed"
+            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed shadow-none"
             title="Stop disabled during retry"
           >
             <Square class="h-5 w-5" />
@@ -1554,7 +1473,7 @@ if (retryCount > 0) {
         <button
           onclick={handleSubmit}
           disabled={!inputValue.trim() || ui.isGenerating}
-          class="btn btn-primary self-stretch px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px]"
+          class="btn btn-primary h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 transition-transform active:scale-95"
         >
           <Send class="h-5 w-5" />
         </button>
