@@ -369,21 +369,21 @@
 </script>
 
 <div
-  class="w-[400px] flex flex-col border-l border-surface-700 bg-surface-800"
+  class="fixed inset-0 z-50 flex flex-col bg-surface-800 md:relative md:inset-auto md:z-auto md:w-[400px] md:border-l md:border-surface-700"
   in:slide={{ axis: 'x', duration: 200 }}
 >
   <!-- Header -->
-  <div class="flex items-center justify-between px-4 py-3 border-b border-surface-700 bg-surface-800/80">
+  <div class="flex items-center justify-between px-4 py-4 md:py-3 border-b border-surface-700 bg-surface-800/80 pt-safe">
     <div class="flex items-center gap-2">
       <Bot class="h-5 w-5 text-purple-400" />
       <span class="font-medium text-surface-100">AI Assistant</span>
     </div>
     <button
-      class="p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-700"
+      class="p-2.5 md:p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-700 -mr-1 md:mr-0"
       onclick={onClose}
       title="Close chat"
     >
-      <X class="h-5 w-5" />
+      <X class="h-6 w-6 md:h-5 md:w-5" />
     </button>
   </div>
 
@@ -410,7 +410,7 @@
         class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}"
         in:fade={{ duration: 150 }}
       >
-        <div class="max-w-[85%] {message.role === 'user' ? 'order-2' : 'order-1'}">
+        <div class="max-w-[90%] md:max-w-[85%] {message.role === 'user' ? 'order-2' : 'order-1'}">
           <!-- Message bubble -->
           <div
             class="rounded-lg p-3 {message.role === 'user'
@@ -525,7 +525,7 @@
     <!-- Progress indicator -->
     {#if isGenerating}
       <div class="flex justify-start" in:fade>
-        <div class="max-w-[85%]">
+        <div class="max-w-[90%] md:max-w-[85%]">
           <div class="bg-surface-700 rounded-lg p-3 text-surface-100">
             <div class="flex items-start gap-2">
               <Bot class="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
@@ -580,18 +580,18 @@
   {/if}
 
   <!-- Input area -->
-  <div class="p-4 border-t border-surface-700 bg-surface-800/80">
-    <div class="flex items-end gap-2">
+  <div class="p-4 border-t border-surface-700 bg-surface-800/80 pb-safe">
+    <div class="flex items-end gap-2 md:gap-2">
       <textarea
         bind:value={inputValue}
         onkeydown={handleKeyDown}
         placeholder="Describe what you'd like to add..."
         rows="2"
-        class="flex-1 resize-none rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-sm text-surface-100 placeholder-surface-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+        class="flex-1 resize-none rounded-lg border border-surface-600 bg-surface-700 px-3 py-3 md:py-2 text-base md:text-sm text-surface-100 placeholder-surface-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
         disabled={isGenerating || !service}
       ></textarea>
       <button
-        class="flex items-center justify-center h-10 w-10 rounded-lg bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="flex items-center justify-center h-12 w-12 md:h-10 md:w-10 rounded-lg bg-purple-600 text-white hover:bg-purple-500 active:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         onclick={handleSend}
         disabled={!inputValue.trim() || isGenerating || !service}
         title="Send message"
@@ -603,7 +603,7 @@
         {/if}
       </button>
     </div>
-    <div class="mt-2 text-xs text-surface-500">
+    <div class="mt-2 text-xs text-surface-500 hidden md:block">
       Press Enter to send, Shift+Enter for new line
     </div>
   </div>

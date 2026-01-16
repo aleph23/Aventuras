@@ -50,7 +50,7 @@
 
 <div class="rounded-lg border border-surface-600 bg-surface-800 overflow-hidden" in:fade={{ duration: 150 }}>
   <!-- Header -->
-  <div class="flex items-center justify-between px-4 py-2 bg-surface-700/50 border-b border-surface-600">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-surface-700/50 border-b border-surface-600">
     <div class="flex items-center gap-2">
       {#if change.type === 'create'}
         <Plus class="h-4 w-4 text-green-400" />
@@ -69,14 +69,14 @@
 
     <div class="flex items-center gap-2">
       <button
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors"
+        class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 active:bg-red-500/40 text-sm font-medium transition-colors"
         onclick={onReject}
       >
         <X class="h-4 w-4" />
         Reject
       </button>
       <button
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30 text-sm font-medium transition-colors"
+        class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30 active:bg-green-500/40 text-sm font-medium transition-colors"
         onclick={onApprove}
       >
         <Check class="h-4 w-4" />
@@ -86,7 +86,7 @@
   </div>
 
   <!-- Content -->
-  <div class="p-4">
+  <div class="p-3 sm:p-4">
     {#if change.type === 'create'}
       <!-- Create: Show new entry -->
       <div class="rounded-md bg-green-500/10 border border-green-500/30 p-3">
@@ -95,8 +95,8 @@
       </div>
 
     {:else if change.type === 'update'}
-      <!-- Update: Side-by-side diff -->
-      <div class="grid grid-cols-2 gap-4">
+      <!-- Update: Stacked on mobile, side-by-side on desktop -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <!-- Old (Previous) -->
         <div class="rounded-md bg-red-500/10 border border-red-500/30 p-3">
           <div class="text-xs font-medium text-red-400 mb-2">Before</div>
