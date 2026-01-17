@@ -46,15 +46,16 @@ export interface ImageGenerationContext {
 export class ImageGenerationService {
   private promptService: ImagePromptService;
   private imageProvider: ImageProvider | null = null;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider) {
-    // Get prompt settings from image generation settings
-    const imageSettings = settings.systemServicesSettings.imageGeneration;
+  constructor(provider: OpenAIProvider, presetId: string) {
+    this.presetId = presetId;
+    const preset = settings.getPresetConfig(presetId);
     const promptSettings = {
-      model: imageSettings.promptModel,
-      temperature: imageSettings.promptTemperature,
-      maxTokens: imageSettings.promptMaxTokens,
-      reasoningEffort: imageSettings.reasoningEffort,
+      model: preset.model,
+      temperature: preset.temperature,
+      maxTokens: preset.maxTokens,
+      reasoningEffort: preset.reasoningEffort,
     };
     this.promptService = new ImagePromptService(provider, promptSettings);
   }

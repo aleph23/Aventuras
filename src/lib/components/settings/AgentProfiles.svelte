@@ -36,6 +36,7 @@
     { id: 'suggestions', label: 'Suggestions', icon: Lightbulb, description: 'Generates plot suggestions' },
     { id: 'actionChoices', label: 'Action Choices', icon: ListChecks, description: 'Generates RPG choices' },
     { id: 'styleReviewer', label: 'Style Reviewer', icon: Sparkles, description: 'Analyzes prose quality' },
+    { id: 'imageGeneration', label: 'Image Gen', icon: Wand2, description: 'Generates image prompts' },
     // Agentic tasks
     { id: 'loreManagement', label: 'Lore Manager', icon: BookOpen, description: 'Autonomous lore maintenance' },
     { id: 'agenticRetrieval', label: 'Agentic Retrieval', icon: Search, description: 'Active context search' },
@@ -71,6 +72,7 @@
     suggestions: 'suggestions',
     actionChoices: 'suggestions',
     styleReviewer: 'suggestions',
+    imageGeneration: 'suggestions',
     // Agentic
     loreManagement: 'agentic',
     agenticRetrieval: 'agentic',
@@ -97,22 +99,19 @@
   }
 
   function getServiceSettings(serviceId: string): any {
-    if (serviceId.startsWith('wizard:')) {
-      const wizardKey = serviceId.replace('wizard:', '') as keyof typeof settings.wizardSettings;
-      return settings.wizardSettings[wizardKey];
-    }
-    // @ts-ignore - dynamic access
-    return settings.systemServicesSettings[serviceId];
+    const presetId = settings.servicePresetAssignments[serviceId];
+    if (!presetId) return null;
+    const preset = settings.generationPresets.find(p => p.id === presetId);
+    return preset ? { presetId: preset.id, ...preset } : null;
   }
 
   function getServicesForProfile(profileId: string | 'custom') {
     return systemServices.filter(service => {
-      const serviceSettings = getServiceSettings(service.id);
-      if (!serviceSettings) return profileId === 'custom';
+      const assignedPresetId = settings.servicePresetAssignments[service.id];
       if (profileId === 'custom') {
-        return !serviceSettings.presetId;
+        return !assignedPresetId;
       }
-      return serviceSettings.presetId === profileId;
+      return assignedPresetId === profileId;
     });
   }
 
@@ -146,7 +145,7 @@
 
   async function handleSavePreset() {
     if (!tempPreset) return;
-    
+
     const index = settings.generationPresets.findIndex(p => p.id === tempPreset!.id);
     if (index >= 0) {
       settings.generationPresets[index] = tempPreset;
@@ -154,32 +153,6 @@
       settings.generationPresets = [...settings.generationPresets, tempPreset];
     }
     await settings.saveGenerationPresets();
-
-    // Propagate changes to services using this preset
-    let systemChanged = false;
-    let wizardChanged = false;
-    
-    for (const service of systemServices) {
-      const serviceSettings = getServiceSettings(service.id);
-      if (serviceSettings?.presetId === tempPreset.id) {
-        serviceSettings.profileId = tempPreset.profileId;
-        serviceSettings.model = tempPreset.model;
-        serviceSettings.temperature = tempPreset.temperature;
-        serviceSettings.maxTokens = tempPreset.maxTokens;
-        serviceSettings.reasoningEffort = tempPreset.reasoningEffort;
-        serviceSettings.providerOnly = [...tempPreset.providerOnly];
-        serviceSettings.manualBody = tempPreset.manualBody;
-        
-        if (service.id.startsWith('wizard:')) {
-          wizardChanged = true;
-        } else {
-          systemChanged = true;
-        }
-      }
-    }
-    
-    if (systemChanged) await settings.saveSystemServicesSettings();
-    if (wizardChanged) await settings.saveWizardSettings();
 
     editingPresetId = null;
     tempPreset = null;
@@ -189,7 +162,7 @@
     const preset = settings.generationPresets.find(p => p.id === presetId);
     if (!preset) return;
 
-    const confirmed = await ask(`Delete profile "${preset.name}"? Tasks assigned to it will revert to Custom.`, {
+    const confirmed = await ask(`Delete profile "${preset.name}"? Tasks assigned to it will revert to Unassigned.`, {
       title: 'Delete Profile',
       kind: 'warning',
     });
@@ -197,53 +170,18 @@
     if (confirmed) {
       settings.generationPresets = settings.generationPresets.filter(p => p.id !== presetId);
       await settings.saveGenerationPresets();
-      
+
       // Reset assignments
-      let systemChanged = false;
-      let wizardChanged = false;
-      
       for (const service of systemServices) {
-        const serviceSettings = getServiceSettings(service.id);
-        if (serviceSettings?.presetId === presetId) {
-          serviceSettings.presetId = undefined;
-          if (service.id.startsWith('wizard:')) {
-            wizardChanged = true;
-          } else {
-            systemChanged = true;
-          }
+        if (settings.servicePresetAssignments[service.id] === presetId) {
+          settings.setServicePresetId(service.id, '');
         }
       }
-      
-      if (systemChanged) await settings.saveSystemServicesSettings();
-      if (wizardChanged) await settings.saveWizardSettings();
     }
   }
 
   async function handleAssignPreset(serviceId: string, presetId: string | 'custom') {
-    const serviceSettings = getServiceSettings(serviceId);
-    if (!serviceSettings) return;
-
-    if (presetId === 'custom') {
-      serviceSettings.presetId = undefined;
-    } else {
-      const preset = settings.generationPresets.find(p => p.id === presetId);
-      if (preset) {
-        serviceSettings.presetId = presetId;
-        serviceSettings.profileId = preset.profileId;
-        serviceSettings.model = preset.model;
-        serviceSettings.temperature = preset.temperature;
-        serviceSettings.maxTokens = preset.maxTokens;
-        serviceSettings.reasoningEffort = preset.reasoningEffort;
-        serviceSettings.providerOnly = [...preset.providerOnly];
-        serviceSettings.manualBody = preset.manualBody;
-      }
-    }
-
-    if (serviceId.startsWith('wizard:')) {
-      await settings.saveWizardSettings();
-    } else {
-      await settings.saveSystemServicesSettings();
-    }
+    settings.setServicePresetId(serviceId, presetId === 'custom' ? '' : presetId);
   }
 
   async function handleResetProfiles() {
@@ -254,32 +192,12 @@
     if (!confirmed) return;
 
     await settings.resetGenerationPresets();
-    
+
     // Assign tasks to their default profiles
     for (const service of systemServices) {
-      const serviceSettings = getServiceSettings(service.id);
-      if (serviceSettings) {
-        const presetId = defaultAssignments[service.id];
-        if (presetId) {
-          serviceSettings.presetId = presetId;
-          const preset = settings.generationPresets.find(p => p.id === presetId);
-          if (preset) {
-            serviceSettings.profileId = preset.profileId;
-            serviceSettings.model = preset.model;
-            serviceSettings.temperature = preset.temperature;
-            serviceSettings.maxTokens = preset.maxTokens;
-            serviceSettings.reasoningEffort = preset.reasoningEffort;
-            serviceSettings.providerOnly = [...preset.providerOnly];
-            serviceSettings.manualBody = preset.manualBody;
-          }
-        } else {
-          serviceSettings.presetId = undefined;
-        }
-      }
+      const presetId = defaultAssignments[service.id] || '';
+      settings.setServicePresetId(service.id, presetId);
     }
-    
-    await settings.saveSystemServicesSettings();
-    await settings.saveWizardSettings();
   }
 
   function handleTaskClick(e: MouseEvent, serviceId: string) {
@@ -466,16 +384,21 @@
       {/if}
     {/each}
 
-    <!-- Custom / Unassigned Card -->
-    <div 
+    <!-- Unassigned Card -->
+    <div
       class="card p-3 flex flex-col gap-3 border-2 border-dashed border-surface-600 bg-surface-900/20"
       role="region"
-      aria-label="Custom Tasks"
+      aria-label="Unassigned Tasks"
     >
-      <div class="font-medium text-surface-300 text-sm pb-2 border-b border-surface-700/50">Custom / Unassigned</div>
+      <div class="font-medium text-surface-300 text-sm pb-2 border-b border-surface-700/50">Unassigned</div>
       <div class="flex-1 flex flex-col gap-2 bg-surface-900/30 rounded p-2 min-h-[60px]">
+        {#if getServicesForProfile('custom').length > 0}
+          <div class="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5 mb-2">
+            Unassigned agents will not work. Assign them to a profile.
+          </div>
+        {/if}
         {#each getServicesForProfile('custom') as service (service.id)}
-          <button 
+          <button
             class="flex items-center gap-2 p-2 rounded bg-surface-700 hover:bg-surface-600 border border-surface-600 shadow-sm select-none text-left w-full transition-colors group relative"
             onclick={(e) => handleTaskClick(e, service.id)}
             title={service.description}
@@ -496,12 +419,12 @@
 
   <!-- Context Menu Portal -->
   {#if activeTaskMenu}
-    <div 
-      class="fixed inset-0 z-[60]" 
+    <div
+      class="fixed inset-0 z-[60]"
       onclick={closeTaskMenu}
       role="presentation"
     >
-      <div 
+      <div
         class="absolute bg-surface-800 border border-surface-600 rounded-lg shadow-xl p-1 w-48 z-[70] flex flex-col gap-1 overflow-hidden"
         style="left: {Math.min(activeTaskMenu.x, window.innerWidth - 200)}px; top: {Math.min(activeTaskMenu.y, window.innerHeight - 300)}px;"
         onclick={(e) => e.stopPropagation()}
@@ -509,21 +432,21 @@
         <div class="px-2 py-1.5 text-xs font-semibold text-surface-400 border-b border-surface-700 mb-1">
           Move to...
         </div>
-        
+
         {#each settings.generationPresets as preset}
-          <button 
+          <button
             class="text-left px-2 py-1.5 text-xs text-surface-200 hover:bg-surface-700 rounded transition-colors truncate"
             onclick={() => moveTask(activeTaskMenu!.serviceId, preset.id)}
           >
             {preset.name}
           </button>
         {/each}
-        
-        <button 
+
+        <button
           class="text-left px-2 py-1.5 text-xs text-surface-400 hover:bg-surface-700 rounded transition-colors border-t border-surface-700 mt-1"
           onclick={() => moveTask(activeTaskMenu!.serviceId, 'custom')}
         >
-          Custom / Unassigned
+          Unassigned
         </button>
       </div>
     </div>

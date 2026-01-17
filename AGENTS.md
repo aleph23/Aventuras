@@ -37,6 +37,73 @@ npm test -- -t "test name" # Run a single test (if using Vitest/Jest)
 - **Database**: SQLite via `@tauri-apps/plugin-sql`
 - **AI**: OpenAI-compatible APIs (OpenRouter, custom providers)
 
+## Current Refactor: Preset-Based Service Configuration
+
+**Status**: In Progress - Phase 3 (AgentProfiles UI) Complete
+
+### Overview
+Implementing preset-based service configuration to fix bugs where services have `presetId` fields but don't actually use them at runtime. This addresses the issue where Story Wizard categories don't populate in Agent Profiles UI at first.
+
+### Completed (Phase 1: Service Updates)
+Services updated to accept `presetId` and use `settings.getPresetConfig(presetId)`:
+1. MemoryService ✅
+2. ClassifierService ✅
+3. SuggestionsService ✅
+4. ActionChoicesService ✅
+5. StyleReviewerService ✅
+6. TimelineFillService ✅
+7. LoreManagementService ✅
+8. AgenticRetrievalService ✅
+9. EntryRetrievalService ✅
+10. ImageGenerationService ✅
+11. InteractiveLorebookService ✅
+
+### Completed (Phase 2: Service-Specific Settings)
+- Added `serviceSpecificSettings` state property to SettingsStore
+- Implemented default functions for all 15 service-specific interfaces:
+  - ClassifierSpecificSettings
+  - LorebookClassifierSpecificSettings
+  - MemorySpecificSettings
+  - SuggestionsSpecificSettings
+  - ActionChoicesSpecificSettings
+  - StyleReviewerSpecificSettings
+  - LoreManagementSpecificSettings
+  - InteractiveLorebookSpecificSettings
+  - AgenticRetrievalSpecificSettings
+  - TimelineFillSpecificSettings
+  - ChapterQuerySpecificSettings
+  - EntryRetrievalSpecificSettings
+  - ImageGenerationSpecificSettings
+  - TTSSpecificSettings
+  - CharacterCardImportSpecificSettings
+- Added database loading/saving for `serviceSpecificSettings`
+- Added helper methods: `saveServiceSpecificSettings()`, `resetServiceSpecificSettings()`
+
+### Completed (Phase 3: AgentProfiles UI)
+- Updated `getServiceSettings()` to use `settings.servicePresetAssignments` instead of `systemServicesSettings`/`wizardSettings`
+- Updated `getServicesForProfile()` to use `settings.servicePresetAssignments`
+- Updated `handleSavePreset()` to only save the preset (no longer propagates to services)
+- Updated `handleDeletePreset()` to reset assignments using `settings.setServicePresetId()`
+- Updated `handleAssignPreset()` to use `settings.setServicePresetId()`
+- Updated `handleResetProfiles()` to reset `settings.servicePresetAssignments` to defaults
+- Added `imageGeneration` to `systemServices` list and `defaultAssignments`
+
+### Remaining Work
+**Phase 4**: Add migration logic for existing users
+**Phase 5**: Testing and verification
+
+### Key Architecture Changes
+- Services now accept `presetId` parameter in constructor
+- Services use `settings.getPresetConfig(presetId)` for generation config
+- Service-specific fields (like `chatHistoryTruncation`) remain separate
+- Default preset assignments in `servicePresetAssignments` state
+
+### Notes
+- TTSService is a separate audio generation service (not LLM text generation), so it doesn't use generation presets
+- CharacterCardImport service doesn't exist (only defined in settings interfaces)
+
+---
+
 ## Code Style Guidelines
 
 ### File Organization

@@ -1,6 +1,6 @@
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
-import type { StoryEntry, StoryBeat, Entry } from '$lib/types';
-import { settings, type SuggestionsSettings } from '$lib/stores/settings.svelte';
+import type { StoryEntry, StoryBeat, Entry, GenerationPreset } from '$lib/types';
+import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
@@ -23,23 +23,38 @@ export interface SuggestionsResult {
 
 export class SuggestionsService {
   private provider: OpenAIProvider;
-  private settingsOverride?: Partial<SuggestionsSettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<SuggestionsSettings>) {
+  constructor(provider: OpenAIProvider, presetId: string = 'suggestions', settingsOverride?: Partial<GenerationPreset>) {
     this.provider = provider;
+    this.presetId = presetId;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.suggestions.model;
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.suggestions.temperature;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
   private get maxTokens(): number {
-    return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.suggestions.maxTokens;
+    return this.settingsOverride?.maxTokens ?? this.preset.maxTokens;
+  }
+
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   /**
@@ -111,12 +126,7 @@ export class SuggestionsService {
         ],
         temperature: this.temperature,
         maxTokens: this.maxTokens,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: this.settingsOverride?.manualBody ?? settings.systemServicesSettings.suggestions.manualBody,
-          reasoningEffort: this.settingsOverride?.reasoningEffort ?? settings.systemServicesSettings.suggestions.reasoningEffort,
-          providerOnly: this.settingsOverride?.providerOnly ?? settings.systemServicesSettings.suggestions.providerOnly,
-        }),
+        extraBody: this.extraBody,
       });
 
       const result = this.parseSuggestions(response.content);

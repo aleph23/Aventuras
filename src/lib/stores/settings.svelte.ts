@@ -8,6 +8,7 @@ import {
 import { OPENROUTER_API_URL } from '$lib/services/ai/openrouter';
 import { promptService, type PromptSettings, getDefaultPromptSettings } from '$lib/services/prompts';
 import type { ReasoningEffort } from '$lib/types';
+import { ui } from '$lib/stores/ui.svelte';
 
 // Provider preset types
 // 'custom' uses OpenRouter defaults but allows user to configure their own API endpoint
@@ -1188,6 +1189,196 @@ export function getDefaultCharacterCardImportSettingsForProvider(provider: Provi
 }
 
 // Combined system services settings
+// Service-specific settings (only extra fields, not generation config)
+export interface ClassifierSpecificSettings {
+  chatHistoryTruncation: number;
+}
+
+export interface LorebookClassifierSpecificSettings {
+  batchSize: number;
+  maxConcurrent: number;
+}
+
+export interface MemorySpecificSettings {
+  chapterAnalysisPrompt: string;
+  chapterSummarizationPrompt: string;
+  retrievalDecisionPrompt: string;
+}
+
+export interface SuggestionsSpecificSettings {
+}
+
+export interface ActionChoicesSpecificSettings {
+}
+
+export interface StyleReviewerSpecificSettings {
+}
+
+export interface LoreManagementSpecificSettings {
+}
+
+export interface InteractiveLorebookSpecificSettings {
+}
+
+export interface AgenticRetrievalSpecificSettings {
+}
+
+export interface TimelineFillSpecificSettings {
+}
+
+export interface ChapterQuerySpecificSettings {
+}
+
+export interface EntryRetrievalSpecificSettings {
+  enableLLMSelection: boolean;
+  activationTimeout: number;
+  stickyTimeout: number;
+  stickinessDecay: number;
+  tier1DistanceThreshold: number;
+  tier2DistanceThreshold: number;
+  tier2Boost: number;
+  tier3Boost: number;
+  entryContextWindow: number;
+  recencyWeight: number;
+}
+
+export interface ImageGenerationSpecificSettings {
+  promptProfileId: string | null;
+}
+
+export interface TTSSpecificSettings {
+  model: string;
+  voice: string;
+  speed: number;
+}
+
+export interface CharacterCardImportSpecificSettings {
+}
+
+export interface ServiceSpecificSettings {
+  classifier: ClassifierSpecificSettings;
+  lorebookClassifier: LorebookClassifierSpecificSettings;
+  memory: MemorySpecificSettings;
+  suggestions: SuggestionsSpecificSettings;
+  actionChoices: ActionChoicesSpecificSettings;
+  styleReviewer: StyleReviewerSpecificSettings;
+  loreManagement: LoreManagementSpecificSettings;
+  interactiveLorebook: InteractiveLorebookSpecificSettings;
+  agenticRetrieval: AgenticRetrievalSpecificSettings;
+  timelineFill: TimelineFillSpecificSettings;
+  chapterQuery: ChapterQuerySpecificSettings;
+  entryRetrieval: EntryRetrievalSpecificSettings;
+  imageGeneration: ImageGenerationSpecificSettings;
+  tts: TTSSpecificSettings;
+  characterCardImport: CharacterCardImportSpecificSettings;
+}
+
+export function getDefaultServiceSpecificSettings(): ServiceSpecificSettings {
+  return {
+    classifier: getDefaultClassifierSpecificSettings(),
+    lorebookClassifier: getDefaultLorebookClassifierSpecificSettings(),
+    memory: getDefaultMemorySpecificSettings(),
+    suggestions: getDefaultSuggestionsSpecificSettings(),
+    actionChoices: getDefaultActionChoicesSpecificSettings(),
+    styleReviewer: getDefaultStyleReviewerSpecificSettings(),
+    loreManagement: getDefaultLoreManagementSpecificSettings(),
+    interactiveLorebook: getDefaultInteractiveLorebookSpecificSettings(),
+    agenticRetrieval: getDefaultAgenticRetrievalSpecificSettings(),
+    timelineFill: getDefaultTimelineFillSpecificSettings(),
+    chapterQuery: getDefaultChapterQuerySpecificSettings(),
+    entryRetrieval: getDefaultEntryRetrievalSpecificSettings(),
+    imageGeneration: getDefaultImageGenerationSpecificSettings(),
+    tts: getDefaultTTSSpecificSettings(),
+    characterCardImport: getDefaultCharacterCardImportSpecificSettings(),
+  };
+}
+
+export function getDefaultClassifierSpecificSettings(): ClassifierSpecificSettings {
+  return {
+    chatHistoryTruncation: 0,
+  };
+}
+
+export function getDefaultLorebookClassifierSpecificSettings(): LorebookClassifierSpecificSettings {
+  return {
+    batchSize: 50,
+    maxConcurrent: 5,
+  };
+}
+
+export function getDefaultMemorySpecificSettings(): MemorySpecificSettings {
+  return {
+    chapterAnalysisPrompt: '',
+    chapterSummarizationPrompt: '',
+    retrievalDecisionPrompt: '',
+  };
+}
+
+export function getDefaultSuggestionsSpecificSettings(): SuggestionsSpecificSettings {
+  return {};
+}
+
+export function getDefaultActionChoicesSpecificSettings(): ActionChoicesSpecificSettings {
+  return {};
+}
+
+export function getDefaultStyleReviewerSpecificSettings(): StyleReviewerSpecificSettings {
+  return {};
+}
+
+export function getDefaultLoreManagementSpecificSettings(): LoreManagementSpecificSettings {
+  return {};
+}
+
+export function getDefaultInteractiveLorebookSpecificSettings(): InteractiveLorebookSpecificSettings {
+  return {};
+}
+
+export function getDefaultAgenticRetrievalSpecificSettings(): AgenticRetrievalSpecificSettings {
+  return {};
+}
+
+export function getDefaultTimelineFillSpecificSettings(): TimelineFillSpecificSettings {
+  return {};
+}
+
+export function getDefaultChapterQuerySpecificSettings(): ChapterQuerySpecificSettings {
+  return {};
+}
+
+export function getDefaultEntryRetrievalSpecificSettings(): EntryRetrievalSpecificSettings {
+  return {
+    enableLLMSelection: true,
+    activationTimeout: 2000,
+    stickyTimeout: 10000,
+    stickinessDecay: 0.9,
+    tier1DistanceThreshold: 0.5,
+    tier2DistanceThreshold: 0.7,
+    tier2Boost: 0.5,
+    tier3Boost: 0.3,
+    entryContextWindow: 1000,
+    recencyWeight: 0.3,
+  };
+}
+
+export function getDefaultImageGenerationSpecificSettings(): ImageGenerationSpecificSettings {
+  return {
+    promptProfileId: null,
+  };
+}
+
+export function getDefaultTTSSpecificSettings(): TTSSpecificSettings {
+  return {
+    model: 'tts-1',
+    voice: 'alloy',
+    speed: 1.0,
+  };
+}
+
+export function getDefaultCharacterCardImportSpecificSettings(): CharacterCardImportSpecificSettings {
+  return {};
+}
+
 export interface SystemServicesSettings {
   classifier: ClassifierSettings;
   lorebookClassifier: LorebookClassifierSettings;
@@ -1507,6 +1698,34 @@ class SettingsStore {
   // Prompt settings (centralized macro-based prompts)
   promptSettings = $state<PromptSettings>(getDefaultPromptSettings());
 
+  // Service preset assignments - which preset each service uses
+  servicePresetAssignments = $state<Record<string, string>>({
+    classifier: 'classification',
+    lorebookClassifier: 'classification',
+    entryRetrieval: 'classification',
+    characterCardImport: 'classification',
+    memory: 'memory',
+    chapterQuery: 'memory',
+    timelineFill: 'memory',
+    suggestions: 'suggestions',
+    actionChoices: 'suggestions',
+    styleReviewer: 'suggestions',
+    loreManagement: 'agentic',
+    agenticRetrieval: 'agentic',
+    interactiveLorebook: 'agentic',
+    imageGeneration: 'suggestions',
+    'wizard:settingExpansion': 'wizard',
+    'wizard:settingRefinement': 'wizard',
+    'wizard:protagonistGeneration': 'wizard',
+    'wizard:characterElaboration': 'wizard',
+    'wizard:characterRefinement': 'wizard',
+    'wizard:supportingCharacters': 'wizard',
+    'wizard:openingGeneration': 'wizard',
+    'wizard:openingRefinement': 'wizard',
+  });
+
+  serviceSpecificSettings = $state<ServiceSpecificSettings>(getDefaultServiceSpecificSettings());
+
   // Generation Presets (Profiles)
   generationPresets = $state<GenerationPreset[]>([
     {
@@ -1781,6 +2000,44 @@ class SettingsStore {
           if (Array.isArray(loadedPresets) && loadedPresets.length > 0) {
             this.generationPresets = loadedPresets;
           }
+        } catch {
+          // Keep defaults
+        }
+      }
+
+      // Load service preset assignments
+      const assignmentsJson = await database.getSetting('service_preset_assignments');
+      if (assignmentsJson) {
+        try {
+          const loaded = JSON.parse(assignmentsJson);
+          this.servicePresetAssignments = { ...this.servicePresetAssignments, ...loaded };
+        } catch {
+          // Keep defaults
+        }
+      }
+
+      // Load service-specific settings
+      const serviceSpecificJson = await database.getSetting('service_specific_settings');
+      if (serviceSpecificJson) {
+        try {
+          const loaded = JSON.parse(serviceSpecificJson);
+          this.serviceSpecificSettings = {
+            classifier: { ...getDefaultClassifierSpecificSettings(), ...loaded.classifier },
+            lorebookClassifier: { ...getDefaultLorebookClassifierSpecificSettings(), ...loaded.lorebookClassifier },
+            memory: { ...getDefaultMemorySpecificSettings(), ...loaded.memory },
+            suggestions: getDefaultSuggestionsSpecificSettings(),
+            actionChoices: getDefaultActionChoicesSpecificSettings(),
+            styleReviewer: getDefaultStyleReviewerSpecificSettings(),
+            loreManagement: getDefaultLoreManagementSpecificSettings(),
+            interactiveLorebook: getDefaultInteractiveLorebookSpecificSettings(),
+            agenticRetrieval: getDefaultAgenticRetrievalSpecificSettings(),
+            timelineFill: getDefaultTimelineFillSpecificSettings(),
+            chapterQuery: getDefaultChapterQuerySpecificSettings(),
+            entryRetrieval: { ...getDefaultEntryRetrievalSpecificSettings(), ...loaded.entryRetrieval },
+            imageGeneration: { ...getDefaultImageGenerationSpecificSettings(), ...loaded.imageGeneration },
+            tts: { ...getDefaultTTSSpecificSettings(), ...loaded.tts },
+            characterCardImport: getDefaultCharacterCardImportSpecificSettings(),
+          };
         } catch {
           // Keep defaults
         }
@@ -2599,6 +2856,15 @@ class SettingsStore {
     await database.setSetting('system_services_settings', JSON.stringify(this.systemServicesSettings));
   }
 
+  async saveServiceSpecificSettings() {
+    await database.setSetting('service_specific_settings', JSON.stringify(this.serviceSpecificSettings));
+  }
+
+  async resetServiceSpecificSettings() {
+    this.serviceSpecificSettings = getDefaultServiceSpecificSettings();
+    await this.saveServiceSpecificSettings();
+  }
+
   async resetClassifierSettings() {
     const customModel = this.providerPreset === 'custom' ? this.getFirstModelFromDefaultProfile() : null;
     this.systemServicesSettings.classifier = getDefaultClassifierSettingsForProvider(this.providerPreset, customModel);
@@ -3032,9 +3298,9 @@ class SettingsStore {
   }
 
   /**
-   * Check if a generation preset matches its default values for the current provider.
-   * Used to determine if we should auto-update when the default profile changes.
-   */
+    * Check if a generation preset matches its default values for current provider.
+    * Used to determine if we should auto-update when default profile changes.
+    */
   private presetMatchesDefault(preset: GenerationPreset, defaultPreset: GenerationPreset): boolean {
     return (
       preset.model === defaultPreset.model &&
@@ -3044,6 +3310,48 @@ class SettingsStore {
       JSON.stringify(preset.providerOnly) === JSON.stringify(defaultPreset.providerOnly) &&
       preset.manualBody === defaultPreset.manualBody
     );
+  }
+
+  /**
+     * Get generation preset configuration by ID.
+     * Used by all services to look up their configuration from central presets array.
+     * @param presetId - The preset ID to look up (e.g., 'classification', 'memory', 'wizard')
+     * @param serviceName - Optional service name for better error messages
+     * @returns The preset configuration, or throws error if not found
+     */
+  getPresetConfig(presetId: string, serviceName?: string): GenerationPreset {
+    if (!presetId) {
+      const serviceLabel = serviceName ? `the "${serviceName}" service` : 'this agent';
+      const message = `${serviceLabel} is not assigned to an Agent Profile. Please assign it to a profile in Settings > Generation tab.`;
+      ui.showToast(message, 'error');
+      throw new Error(`No preset assigned for ${serviceName || 'service'}`);
+    }
+    const preset = this.generationPresets.find(p => p.id === presetId);
+    if (!preset) {
+      const message = `Agent Profile "${presetId}" not found. Please check your settings.`;
+      ui.showToast(message, 'error');
+      throw new Error(`Generation preset not found: ${presetId}`);
+    }
+    return preset;
+  }
+
+  /**
+    * Get the preset ID assigned to a specific service.
+    * @param serviceId - The service identifier (e.g., 'classifier', 'wizard:settingExpansion')
+    * @returns The preset ID assigned to this service
+    */
+  getServicePresetId(serviceId: string): string {
+    return this.servicePresetAssignments[serviceId];
+  }
+
+  /**
+    * Update the preset ID assigned to a specific service.
+    * @param serviceId - The service identifier (e.g., 'classifier', 'wizard:settingExpansion')
+    * @param presetId - The preset ID to assign (e.g., 'classification', 'memory', 'wizard')
+    */
+  async setServicePresetId(serviceId: string, presetId: string) {
+    this.servicePresetAssignments[serviceId] = presetId;
+    await database.setSetting('service_preset_assignments', JSON.stringify(this.servicePresetAssignments));
   }
 
   /**

@@ -1,5 +1,5 @@
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
-import type { StoryEntry, Character, Location, Item, StoryBeat, Entry } from '$lib/types';
+import type { StoryEntry, Character, Location, Item, StoryBeat, Entry, GenerationPreset } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 
@@ -31,21 +31,38 @@ interface WorldStateContext {
 
 export class ActionChoicesService {
   private provider: OpenAIProvider;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider) {
+  constructor(provider: OpenAIProvider, presetId: string = 'suggestions', settingsOverride?: Partial<GenerationPreset>) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.settingsOverride = settingsOverride;
+  }
+
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
   }
 
   private get model(): string {
-    return settings.systemServicesSettings.actionChoices.model;
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return settings.systemServicesSettings.actionChoices.temperature;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
   private get maxTokens(): number {
-    return settings.systemServicesSettings.actionChoices.maxTokens;
+    return this.settingsOverride?.maxTokens ?? this.preset.maxTokens;
+  }
+
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   /**
@@ -194,18 +211,13 @@ Types:
         messages: [
           {
             role: 'system',
-            content: `You are an RPG game master generating action choices for a player. The player has a character/persona that represents THEM in the story - when you generate choices, these are suggestions for what the PLAYER (the real person) might want their character to do next. Generate action options that fit the current narrative moment and MATCH THE PLAYER'S WRITING STYLE - if they write verbose actions, generate verbose choices; if they write terse commands, generate terse choices. Mimic their vocabulary, phrasing, and tone. Always respond with valid JSON only.`,
+            content: `You are an RPG game master generating action choices for a player. The player has a character/persona that represents THEM in the story - when you generate choices, these are suggestions for what the PLAYER (the real person) might want their character to do next. Generate action options that fit to current narrative moment and MATCH THE PLAYER'S WRITING STYLE - if they write verbose actions, generate verbose choices; if they write terse commands, generate terse choices. Mimic their vocabulary, phrasing, and tone. Always respond with valid JSON only.`,
           },
           { role: 'user', content: prompt },
         ],
         temperature: this.temperature,
         maxTokens: this.maxTokens,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: settings.systemServicesSettings.actionChoices.manualBody,
-          reasoningEffort: settings.systemServicesSettings.actionChoices.reasoningEffort,
-          providerOnly: settings.systemServicesSettings.actionChoices.providerOnly,
-        }),
+        extraBody: this.extraBody,
       });
 
       const result = this.parseChoices(response.content);

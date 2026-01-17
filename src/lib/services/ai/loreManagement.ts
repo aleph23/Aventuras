@@ -21,6 +21,7 @@ import type {
   FactionEntryState,
   ConceptEntryState,
   EventEntryState,
+  GenerationPreset,
 } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
@@ -394,24 +395,41 @@ interface ToolExecutionContext {
 export class LoreManagementService {
   private provider: OpenAIProvider;
   private changes: LoreChange[] = [];
-  private settingsOverride?: Partial<LoreManagementSettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
+  private maxIterations: number;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<LoreManagementSettings>) {
+  constructor(
+    provider: OpenAIProvider,
+    presetId: string = 'agentic',
+    maxIterations: number = 50,
+    settingsOverride?: Partial<GenerationPreset>
+  ) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.maxIterations = maxIterations;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    // Use minimax-m2.1 as default - good for agentic tool calling with reasoning
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.loreManagement?.model ?? 'minimax/minimax-m2.1';
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.loreManagement?.temperature ?? 0.3;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
-  private get maxIterations(): number {
-    return this.settingsOverride?.maxIterations ?? settings.systemServicesSettings.loreManagement?.maxIterations ?? 50;
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   /**
@@ -470,12 +488,7 @@ export class LoreManagementService {
           maxTokens: 8192,
           tools: LORE_MANAGEMENT_TOOLS,
           tool_choice: 'auto',
-          extraBody: buildExtraBody({
-            manualMode: settings.advancedRequestSettings.manualMode,
-            manualBody: this.settingsOverride?.manualBody ?? settings.systemServicesSettings.loreManagement.manualBody,
-            reasoningEffort: this.settingsOverride?.reasoningEffort ?? settings.systemServicesSettings.loreManagement.reasoningEffort,
-            providerOnly: this.settingsOverride?.providerOnly ?? settings.systemServicesSettings.loreManagement.providerOnly,
-          }),
+          extraBody: this.extraBody,
         });
 
         log('Agent response', {

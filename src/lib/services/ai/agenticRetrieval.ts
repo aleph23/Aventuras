@@ -8,6 +8,7 @@ import type {
   Chapter,
   StoryEntry,
   Entry,
+  GenerationPreset,
 } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
@@ -178,23 +179,41 @@ export interface AgenticRetrievalResult {
 
 export class AgenticRetrievalService {
   private provider: OpenAIProvider;
-  private settingsOverride?: Partial<AgenticRetrievalSettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
+  private maxIterations: number;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<AgenticRetrievalSettings>) {
+  constructor(
+    provider: OpenAIProvider,
+    presetId: string = 'agentic',
+    maxIterations: number = 10,
+    settingsOverride?: Partial<GenerationPreset>
+  ) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.maxIterations = maxIterations;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.agenticRetrieval?.model ?? 'minimax/minimax-m2.1';
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.agenticRetrieval?.temperature ?? 0.3;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
-  private get maxIterations(): number {
-    return this.settingsOverride?.maxIterations ?? settings.systemServicesSettings.agenticRetrieval?.maxIterations ?? 10;
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   /**
@@ -259,12 +278,7 @@ export class AgenticRetrievalService {
           maxTokens: 8192,
           tools: RETRIEVAL_TOOLS,
           tool_choice: 'auto',
-          extraBody: buildExtraBody({
-            manualMode: settings.advancedRequestSettings.manualMode,
-            manualBody: this.settingsOverride?.manualBody ?? settings.systemServicesSettings.agenticRetrieval.manualBody,
-            reasoningEffort: this.settingsOverride?.reasoningEffort ?? settings.systemServicesSettings.agenticRetrieval.reasoningEffort,
-            providerOnly: this.settingsOverride?.providerOnly ?? settings.systemServicesSettings.agenticRetrieval.providerOnly,
-          }),
+          extraBody: this.extraBody,
           signal,
         });
 

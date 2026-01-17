@@ -65,10 +65,9 @@
 
   function initializeService() {
     try {
-      // Use the interactive lorebook profile if configured, otherwise fall back to main narrative profile
-      const ilSettings = settings.systemServicesSettings.interactiveLorebook ?? getDefaultInteractiveLorebookSettings();
-      const profileId = ilSettings.profileId ?? settings.apiSettings.mainNarrativeProfileId;
-      const apiSettings = settings.getApiSettingsForProfile(profileId);
+      const presetId = settings.getServicePresetId('interactiveLorebook');
+      const preset = settings.getPresetConfig(presetId, 'Interactive Lorebook');
+      const apiSettings = settings.getApiSettingsForProfile(preset.profileId);
 
       if (!apiSettings.openaiApiKey) {
         error = 'No API key configured. Please set up an API key in settings.';
@@ -76,7 +75,7 @@
       }
 
       const provider = new OpenAIProvider(apiSettings);
-      service = new InteractiveLorebookService(provider);
+      service = new InteractiveLorebookService(provider, presetId);
       service.initialize(lorebook.name || 'New Lorebook', entries.length);
 
       // Add initial greeting message (display-only, not sent to API)

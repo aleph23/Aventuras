@@ -1422,11 +1422,67 @@ class UIStore {
     this.debugModalOpen = false;
   }
 
-  /**
-   * Toggle the debug log modal.
-   */
+   /**
+    * Toggle the debug log modal.
+    */
   toggleDebugModal() {
     this.debugModalOpen = !this.debugModalOpen;
+  }
+
+  // Toast notification state
+  toastVisible = $state(false);
+  toastMessage = $state('');
+  toastType = $state<'error' | 'warning' | 'info'>('info');
+  toastHovering = $state(false);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Show a toast notification.
+   * @param message - The message to display
+   * @param type - The type of toast (error, warning, info)
+   * @param duration - Duration in milliseconds (default: 4000, errors use 8000)
+   */
+  showToast(message: string, type: 'error' | 'warning' | 'info' = 'info', duration?: number) {
+    const capitalized = message.charAt(0).toUpperCase() + message.slice(1);
+    this.toastMessage = capitalized;
+    this.toastType = type;
+    this.toastVisible = true;
+    this.toastHovering = false;
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    const autoDuration = duration ?? (type === 'error' ? 8000 : 4000);
+
+    this.toastTimeout = setTimeout(() => {
+      if (!this.toastHovering) {
+        this.toastVisible = false;
+      }
+    }, autoDuration);
+  }
+
+  setToastHovering(hovering: boolean) {
+    this.toastHovering = hovering;
+    if (hovering && this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    } else if (!hovering && this.toastVisible) {
+      const autoDuration = this.toastType === 'error' ? 8000 : 4000;
+      this.toastTimeout = setTimeout(() => {
+        this.toastVisible = false;
+      }, autoDuration);
+    }
+  }
+
+  /**
+   * Hide toast notification.
+   */
+  hideToast() {
+    this.toastVisible = false;
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+      this.toastTimeout = null;
+    }
   }
 }
 

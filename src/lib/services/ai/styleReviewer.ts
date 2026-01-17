@@ -1,5 +1,5 @@
 import type { OpenAIProvider } from './openrouter';
-import type { StoryEntry } from '$lib/types';
+import type { StoryEntry, GenerationPreset } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
@@ -35,21 +35,38 @@ export interface StyleReviewResult {
  */
 export class StyleReviewerService {
   private provider: OpenAIProvider;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider) {
+  constructor(provider: OpenAIProvider, presetId: string = 'suggestions', settingsOverride?: Partial<GenerationPreset>) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.settingsOverride = settingsOverride;
+  }
+
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
   }
 
   private get model(): string {
-    return settings.systemServicesSettings.styleReviewer.model;
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return settings.systemServicesSettings.styleReviewer.temperature;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
   private get maxTokens(): number {
-    return settings.systemServicesSettings.styleReviewer.maxTokens;
+    return this.settingsOverride?.maxTokens ?? this.preset.maxTokens;
+  }
+
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   /**
@@ -101,12 +118,7 @@ export class StyleReviewerService {
         ],
         temperature: this.temperature,
         maxTokens: this.maxTokens,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: settings.systemServicesSettings.styleReviewer.manualBody,
-          reasoningEffort: settings.systemServicesSettings.styleReviewer.reasoningEffort,
-          providerOnly: settings.systemServicesSettings.styleReviewer.providerOnly,
-        }),
+        extraBody: this.extraBody,
       });
 
       log('Style analysis response received', {

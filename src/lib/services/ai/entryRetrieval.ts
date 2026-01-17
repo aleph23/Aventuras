@@ -8,7 +8,7 @@
  * - Tier 3: LLM selection (remaining entries sent to LLM to decide relevance)
  */
 
-import type { Entry, EntryType, StoryEntry, Character, Location, Item } from '$lib/types';
+import type { Entry, EntryType, StoryEntry, Character, Location, Item, GenerationPreset } from '$lib/types';
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
@@ -88,6 +88,7 @@ export const DEFAULT_ENTRY_RETRIEVAL_CONFIG: EntryRetrievalConfig = {
  */
 export function getEntryRetrievalConfigFromSettings(): EntryRetrievalConfig {
   const entrySettings = settings.systemServicesSettings.entryRetrieval;
+  const preset = settings.getPresetConfig(settings.getServicePresetId('entryRetrieval'));
   const maxWordsPerEntryRaw = typeof entrySettings.maxWordsPerEntry === 'number'
     ? entrySettings.maxWordsPerEntry
     : Number(entrySettings.maxWordsPerEntry);
@@ -99,8 +100,8 @@ export function getEntryRetrievalConfigFromSettings(): EntryRetrievalConfig {
     maxWordsPerEntry,
     enableLLMSelection: entrySettings.enableLLMSelection ?? true,
     recentEntriesCount: 5, // Not configurable currently
-    tier3Model: entrySettings.model ?? DEFAULT_ENTRY_RETRIEVAL_CONFIG.tier3Model,
-    temperature: entrySettings.temperature ?? DEFAULT_ENTRY_RETRIEVAL_CONFIG.temperature,
+    tier3Model: preset.model,
+    temperature: preset.temperature,
   };
 }
 
@@ -122,12 +123,27 @@ export interface EntryRetrievalResult {
 export class EntryRetrievalService {
   private provider: OpenAIProvider | null;
   private config: EntryRetrievalConfig;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider | null, config: Partial<EntryRetrievalConfig> = {}) {
+  constructor(provider: OpenAIProvider | null, config: Partial<EntryRetrievalConfig> = {}, presetId: string = 'classification') {
     this.provider = provider;
+    this.presetId = presetId;
     this.config = { ...DEFAULT_ENTRY_RETRIEVAL_CONFIG, ...config };
     const maxWords = Number.isFinite(this.config.maxWordsPerEntry) ? this.config.maxWordsPerEntry : 0;
     this.config.maxWordsPerEntry = Math.min(Math.max(0, Math.floor(maxWords)), 500);
+  }
+
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.preset.manualBody,
+      reasoningEffort: this.preset.reasoningEffort,
+      providerOnly: this.preset.providerOnly,
+    });
   }
 
   /**
@@ -583,15 +599,10 @@ Return an empty array [] if none are relevant.`;
     try {
       const response = await this.provider.generateResponse({
         messages: [{ role: 'user', content: prompt }],
-        model: this.config.tier3Model,
-        temperature: this.config.temperature,
+        model: this.preset.model,
+        temperature: this.preset.temperature,
         maxTokens: 8192,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: settings.systemServicesSettings.entryRetrieval.manualBody,
-          reasoningEffort: settings.systemServicesSettings.entryRetrieval.reasoningEffort,
-          providerOnly: settings.systemServicesSettings.entryRetrieval.providerOnly,
-        }),
+        extraBody: this.extraBody,
         signal,
       });
 

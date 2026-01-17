@@ -1,6 +1,6 @@
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
-import type { Character, Location, Item, StoryBeat, StoryEntry, TimeTracker } from '$lib/types';
-import { settings, type ClassifierSettings } from '$lib/stores/settings.svelte';
+import type { Character, Location, Item, StoryBeat, StoryEntry, TimeTracker, GenerationPreset } from '$lib/types';
+import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext } from '$lib/services/prompts';
 
@@ -134,27 +134,45 @@ export interface ClassificationContext {
 
 export class ClassifierService {
   private provider: OpenAIProvider;
-  private settingsOverride?: Partial<ClassifierSettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
+  private chatHistoryTruncation: number;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<ClassifierSettings>) {
+  constructor(
+    provider: OpenAIProvider,
+    presetId: string = 'classification',
+    chatHistoryTruncation: number = 100,
+    settingsOverride?: Partial<GenerationPreset>
+  ) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.chatHistoryTruncation = chatHistoryTruncation;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.classifier.model;
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.classifier.temperature;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
   private get maxTokens(): number {
-    return this.settingsOverride?.maxTokens ?? settings.systemServicesSettings.classifier.maxTokens;
+    return this.settingsOverride?.maxTokens ?? this.preset.maxTokens;
   }
 
-  private get chatHistoryTruncation(): number {
-    return this.settingsOverride?.chatHistoryTruncation ?? settings.systemServicesSettings.classifier.chatHistoryTruncation ?? 100;
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   async classify(context: ClassificationContext): Promise<ClassificationResult> {
@@ -177,13 +195,6 @@ export class ClassifierService {
     try {
       log('Sending classification request...');
 
-      const extraBody = buildExtraBody({
-        manualMode: settings.advancedRequestSettings.manualMode,
-        manualBody: this.settingsOverride?.manualBody ?? settings.systemServicesSettings.classifier.manualBody,
-        reasoningEffort: this.settingsOverride?.reasoningEffort ?? settings.systemServicesSettings.classifier.reasoningEffort,
-        providerOnly: this.settingsOverride?.providerOnly ?? settings.systemServicesSettings.classifier.providerOnly,
-      });
-
       const response = await this.provider.generateResponse({
         model: this.model,
         messages: [
@@ -192,7 +203,7 @@ export class ClassifierService {
         ],
         temperature: this.temperature,
         maxTokens: this.maxTokens,
-        extraBody,
+        extraBody: this.extraBody,
       });
 
       log('Classification response received', {
