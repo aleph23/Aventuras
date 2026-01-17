@@ -1,7 +1,9 @@
 <script lang="ts">
   import { ui } from '$lib/stores/ui.svelte';
-  import { BookOpen, Brain } from 'lucide-svelte';
+  import { BookOpen, Volume2, Pencil, Trash2 } from 'lucide-svelte';
   import { parseMarkdown } from '$lib/utils/markdown';
+  import ReasoningBlock from './ReasoningBlock.svelte';
+  import { settings } from '$lib/stores/settings.svelte';
 
   // Reactive binding to streaming content
   let content = $derived(ui.streamingContent);
@@ -14,40 +16,90 @@
     isVisualProse ? content : parseMarkdown(content)
   );
 
-  // Show thinking state when streaming but no content yet
-  let isThinking = $derived(ui.isStreaming && content.length === 0);
+  // Show thinking state when streaming but no content yet (and no reasoning)
+  let reasoning = $derived(ui.streamingReasoning);
+  let isThinking = $derived(ui.isStreaming && content.length === 0 && reasoning.length === 0);
+  
+  // Check if reasoning is enabled in API settings
+  let isReasoningEnabled = $derived(
+    settings.apiSettings.reasoningEffort !== 'off' && settings.apiSettings.enableThinking
+  );
+  
+  // Live token counts (separate)
+  let reasoningTokens = $derived(ui.streamingReasoningTokens);
+  let contentTokens = $derived(ui.streamingContentTokens);
+  
+  // Streaming phase detection for highlighting
+  // Phase 1: reasoning is actively streaming (has reasoning, no content yet)
+  // Phase 2: content is actively streaming (has content)
+  let isReasoningPhase = $derived(ui.isStreaming && reasoning.length > 0 && content.length === 0);
+  let isContentPhase = $derived(ui.isStreaming && content.length > 0);
 </script>
 
-{#if isThinking}
-  <!-- Thinking/reasoning indicator -->
-  <div class="rounded-lg border-l-4 border-l-accent-500 bg-accent-500/5 p-4 animate-fade-in">
-    <div class="flex items-center gap-3">
-      <div class="rounded-full bg-surface-700 p-1.5">
-        <Brain class="h-4 w-4 text-accent-400 animate-pulse" />
-      </div>
-      <div class="flex items-center gap-2 text-surface-400">
-        <span class="text-sm italic">Thinking</span>
-        <span class="thinking-dots">
-          <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-        </span>
+  <!-- Streaming content container -->
+  <div class="rounded-lg border-l-4 border-l-accent-500 bg-accent-500/5 px-4 pb-4 pt-3 animate-fade-in">
+    <!-- Header row -->
+    <div class="flex items-center gap-2 mb-2">
+      <BookOpen 
+        class="h-4 w-4 shrink-0 translate-y-px text-accent-400 {isContentPhase || !isReasoningEnabled ? 'animate-pulse' : ''}"
+      />
+      
+      <!-- Reasoning toggle (inline icon) - only show if reasoning is enabled -->
+      {#if isReasoningEnabled && (reasoning || isThinking)}
+        <ReasoningBlock content={reasoning} isStreaming={true} {isReasoningPhase} showToggleOnly={true} />
+      {/if}
+      
+      <!-- Live token counts with phase-based highlighting -->
+      <span class="text-[11px] bg-surface-700/50 px-1.5 py-0.5 rounded tabular-nums">
+        {#if isReasoningEnabled && reasoningTokens > 0}
+          <span 
+            class="transition-colors duration-200"
+            class:text-surface-400={isReasoningPhase}
+            class:text-surface-500={!isReasoningPhase}
+          >{reasoningTokens}r</span>
+          <span class="text-surface-600 mx-0.5">+</span>
+        {/if}
+        <span 
+          class="transition-colors duration-200"
+          class:text-surface-400={isContentPhase}
+          class:text-surface-500={!isContentPhase}
+        >{contentTokens}</span>
+        <span class="text-surface-500 ml-0.5">tokens</span>
+      </span>
+
+      <!-- Spacer to push buttons to the right -->
+      <div class="flex-1"></div>
+
+      <!-- Placeholder for action buttons (invisible, reserves space to match StoryEntry) -->
+      <div class="flex items-center gap-0.5 invisible">
+        <span class="inline-flex items-center justify-center h-7 w-7"><Volume2 class="h-4 w-4" /></span>
+        <span class="inline-flex items-center justify-center h-7 w-7"><Pencil class="h-4 w-4" /></span>
+        <span class="inline-flex items-center justify-center h-7 w-7"><Trash2 class="h-4 w-4" /></span>
       </div>
     </div>
-  </div>
-{:else}
-  <!-- Streaming content -->
-  <div class="rounded-lg border-l-4 border-l-accent-500 bg-accent-500/5 p-4 animate-fade-in">
-    <div class="flex items-start gap-3">
-      <div class="mt-0.5 rounded-full bg-surface-700 p-1.5">
-        <BookOpen class="h-4 w-4 text-accent-400 animate-pulse" />
-      </div>
-      <div class="flex-1">
-        <div class="story-text prose-content streaming-content">
+
+    <!-- Main Content -->
+    <div class="min-w-0">
+      <!-- Reasoning content panel -->
+      {#if reasoning || isThinking}
+        <ReasoningBlock content={reasoning} isStreaming={true} {isReasoningPhase} showToggleOnly={false} />
+      {/if}
+
+      <!-- Story Content -->
+      {#if content.length > 0}
+        <div class="story-text prose-content streaming-content animate-fade-in">
           {@html renderedContent}<span class="streaming-cursor"></span>
         </div>
-      </div>
+      {:else if isReasoningPhase || isThinking}
+        <!-- Pending Content Indicator (while reasoning or thinking) -->
+        <div class="story-text prose-content animate-fade-in text-surface-500 mt-1">
+          <span class="typing-indicator">
+            <span>.</span><span>.</span><span>.</span>
+          </span>
+        </div>
+      {/if}
     </div>
   </div>
-{/if}
 
 <style>
   @keyframes blink {
@@ -60,32 +112,32 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes dot-pulse {
-    0%, 20% { opacity: 0.2; }
-    40% { opacity: 1; }
-    60%, 100% { opacity: 0.2; }
+  @keyframes typing {
+    0%, 100% { 
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    50% { 
+      transform: translateY(-2px);
+      opacity: 1;
+    }
   }
+
+  .typing-indicator span {
+    animation: typing 1.2s infinite ease-in-out both;
+    font-size: 1.5rem;
+    line-height: 1rem;
+    display: inline-block;
+    margin-right: 1px;
+    color: var(--color-surface-400, #94a3b8);
+  }
+
+  .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
-  }
-
-  /* Thinking dots animation */
-  .thinking-dots .dot {
-    animation: dot-pulse 1.4s infinite;
-    font-weight: bold;
-  }
-
-  .thinking-dots .dot:nth-child(1) {
-    animation-delay: 0s;
-  }
-
-  .thinking-dots .dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-
-  .thinking-dots .dot:nth-child(3) {
-    animation-delay: 0.4s;
   }
 
   /* Streaming cursor that appears inline after the last content */

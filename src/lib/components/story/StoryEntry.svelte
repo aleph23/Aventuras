@@ -1,20 +1,56 @@
 <script lang="ts">
-  import type { StoryEntry, EmbeddedImage } from '$lib/types';
-  import { story } from '$lib/stores/story.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { settings } from '$lib/stores/settings.svelte';
-  import { User, BookOpen, Info, Pencil, Trash2, Check, X, RefreshCw, RotateCcw, Loader2, GitBranch, Bookmark, Volume2 } from 'lucide-svelte';
-  import { parseMarkdown } from '$lib/utils/markdown';
-  import { sanitizeTextForTTS, sanitizeVisualProse } from '$lib/utils/htmlSanitize';
-  import { replacePicTagsWithImages, type ImageReplacementInfo } from '$lib/utils/inlineImageParser';
-  import { database } from '$lib/services/database';
-  import { eventBus, type ImageReadyEvent, type TTSQueuedEvent } from '$lib/services/events';
-  import { NanoGPTImageProvider } from '$lib/services/ai/nanoGPTImageProvider';
-  import { ChutesImageProvider } from '$lib/services/ai/chutesImageProvider';
-  import { promptService } from '$lib/services/prompts';
-  import { onMount } from 'svelte';
+  import type { StoryEntry, EmbeddedImage } from "$lib/types";
+  import { story } from "$lib/stores/story.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import { settings } from "$lib/stores/settings.svelte";
+  import {
+    User,
+    BookOpen,
+    Info,
+    Pencil,
+    Trash2,
+    Check,
+    X,
+    RefreshCw,
+    RotateCcw,
+    Loader2,
+    GitBranch,
+    Bookmark,
+    Volume2,
+  } from "lucide-svelte";
+  import { parseMarkdown } from "$lib/utils/markdown";
+  import { slide } from "svelte/transition";
+  import {
+    sanitizeTextForTTS,
+    sanitizeVisualProse,
+  } from "$lib/utils/htmlSanitize";
+  import {
+    replacePicTagsWithImages,
+    type ImageReplacementInfo,
+  } from "$lib/utils/inlineImageParser";
+  import { database } from "$lib/services/database";
+  import {
+    eventBus,
+    type ImageReadyEvent,
+    type TTSQueuedEvent,
+  } from "$lib/services/events";
+  import { NanoGPTImageProvider } from "$lib/services/ai/nanoGPTImageProvider";
+  import { ChutesImageProvider } from "$lib/services/ai/chutesImageProvider";
+  import { promptService } from "$lib/services/prompts";
+  import { onMount } from "svelte";
+  import ReasoningBlock from "./ReasoningBlock.svelte";
+  import { countTokens } from "$lib/services/tokenizer";
 
   let { entry }: { entry: StoryEntry } = $props();
+
+  // Separate token counts for content and reasoning
+  const contentTokens = $derived(entry.metadata?.tokenCount ?? 0);
+  const reasoningTokens = $derived(entry.reasoning ? countTokens(entry.reasoning) : 0);
+
+  // Check if reasoning is enabled in API settings
+  const isReasoningEnabled = $derived(
+    settings.apiSettings.reasoningEffort !== 'off' && settings.apiSettings.enableThinking
+  );
 
   // TTS generation state
   let isGeneratingTTS = $state(false);
@@ -23,24 +59,27 @@
 
   // Check if this entry is an error entry (either tracked or detected by content)
   const isErrorEntry = $derived(
-    entry.type === 'system' && (
-      ui.lastGenerationError?.errorEntryId === entry.id ||
-      entry.content.toLowerCase().includes('generation failed') ||
-      entry.content.toLowerCase().includes('failed to generate') ||
-      entry.content.toLowerCase().includes('empty response')
-    )
+    entry.type === "system" &&
+      (ui.lastGenerationError?.errorEntryId === entry.id ||
+        entry.content.toLowerCase().includes("generation failed") ||
+        entry.content.toLowerCase().includes("failed to generate") ||
+        entry.content.toLowerCase().includes("empty response")),
   );
 
-// Check if Visual Prose mode is enabled for this story
-  const visualProseMode = $derived(story.currentStory?.settings?.visualProseMode ?? false);
+  // Check if Visual Prose mode is enabled for this story
+  const visualProseMode = $derived(
+    story.currentStory?.settings?.visualProseMode ?? false,
+  );
 
   // Check if Inline Image mode is enabled for this story
-  const inlineImageMode = $derived(story.currentStory?.settings?.inlineImageMode ?? false);
+  const inlineImageMode = $derived(
+    story.currentStory?.settings?.inlineImageMode ?? false,
+  );
 
   // Check if this is the latest narration entry (for retry button)
   const isLatestNarration = $derived.by(() => {
-    if (entry.type !== 'narration') return false;
-    const narrations = story.entries.filter(e => e.type === 'narration');
+    if (entry.type !== "narration") return false;
+    const narrations = story.entries.filter((e) => e.type === "narration");
     if (narrations.length === 0) return false;
     return narrations[narrations.length - 1].id === entry.id;
   });
@@ -48,11 +87,11 @@
   // Check if retry is available for this entry
   const canRetry = $derived(
     isLatestNarration &&
-    ui.retryBackup &&
-    story.currentStory &&
-    ui.retryBackup.storyId === story.currentStory.id &&
-    !ui.isGenerating &&
-    !ui.lastGenerationError
+      ui.retryBackup &&
+      story.currentStory &&
+      ui.retryBackup.storyId === story.currentStory.id &&
+      !ui.isGenerating &&
+      !ui.lastGenerationError,
   );
 
   /**
@@ -60,43 +99,48 @@
    * For tracked errors, uses the UI callback. For legacy errors, finds the previous user action.
    */
   async function handleRetryFromEntry() {
-    console.log('[StoryEntry] handleRetryFromEntry called', { entryId: entry.id, isGenerating: ui.isGenerating });
+    console.log("[StoryEntry] handleRetryFromEntry called", {
+      entryId: entry.id,
+      isGenerating: ui.isGenerating,
+    });
 
     if (ui.isGenerating) {
-      console.log('[StoryEntry] Already generating, returning');
+      console.log("[StoryEntry] Already generating, returning");
       return;
     }
 
     // If this is the currently tracked error, use the standard retry
     if (ui.lastGenerationError?.errorEntryId === entry.id) {
-      console.log('[StoryEntry] Using tracked error retry');
+      console.log("[StoryEntry] Using tracked error retry");
       await ui.triggerRetry();
       return;
     }
 
     // For legacy/untracked errors, find the previous user action and set up retry
-    console.log('[StoryEntry] Legacy error, finding previous user action');
-    const entryIndex = story.entries.findIndex(e => e.id === entry.id);
+    console.log("[StoryEntry] Legacy error, finding previous user action");
+    const entryIndex = story.entries.findIndex((e) => e.id === entry.id);
     if (entryIndex <= 0) {
-      console.log('[StoryEntry] Entry not found or is first entry');
+      console.log("[StoryEntry] Entry not found or is first entry");
       return;
     }
 
     // Find the most recent user action before this error
     let userActionEntry = null;
     for (let i = entryIndex - 1; i >= 0; i--) {
-      if (story.entries[i].type === 'user_action') {
+      if (story.entries[i].type === "user_action") {
         userActionEntry = story.entries[i];
         break;
       }
     }
 
     if (!userActionEntry) {
-      console.log('[StoryEntry] No user action found before error');
+      console.log("[StoryEntry] No user action found before error");
       return;
     }
 
-    console.log('[StoryEntry] Found user action', { userActionId: userActionEntry.id });
+    console.log("[StoryEntry] Found user action", {
+      userActionId: userActionEntry.id,
+    });
 
     // Set up the error state so the retry callback can handle it
     ui.setGenerationError({
@@ -106,14 +150,14 @@
       timestamp: Date.now(),
     });
 
-    console.log('[StoryEntry] Error state set, triggering retry');
+    console.log("[StoryEntry] Error state set, triggering retry");
     // Trigger the retry
     await ui.triggerRetry();
-    console.log('[StoryEntry] Retry complete');
+    console.log("[StoryEntry] Retry complete");
   }
 
   let isEditing = $state(false);
-  let editContent = $state('');
+  let editContent = $state("");
   let isDeleting = $state(false);
 
   // Embedded images state
@@ -121,18 +165,23 @@
   let expandedImageId = $state<string | null>(null);
   let clickedElement = $state<HTMLElement | null>(null);
 
-// Branching state
+  // Branching state
   let isBranching = $state(false);
-  let branchName = $state('');
+  let branchName = $state("");
 
   // Inline image edit state
   let isEditingImage = $state(false);
   let editingImageId = $state<string | null>(null);
-  let editingImagePrompt = $state('');
+  let editingImagePrompt = $state("");
 
   // Helper to get which branch a checkpoint belongs to (by checking its last entry's branchId)
-  function getCheckpointBranchId(checkpoint: { entriesSnapshot: { id: string; branchId?: string | null }[]; lastEntryId: string }): string | null {
-    const lastEntry = checkpoint.entriesSnapshot.find(e => e.id === checkpoint.lastEntryId);
+  function getCheckpointBranchId(checkpoint: {
+    entriesSnapshot: { id: string; branchId?: string | null }[];
+    lastEntryId: string;
+  }): string | null {
+    const lastEntry = checkpoint.entriesSnapshot.find(
+      (e) => e.id === checkpoint.lastEntryId,
+    );
     return lastEntry?.branchId ?? null;
   }
 
@@ -140,9 +189,11 @@
   // Only show checkpoints that belong to the current branch to prevent incorrect branch lineage
   const currentBranchId = $derived(story.currentStory?.currentBranchId ?? null);
   const entryCheckpoint = $derived(
-    story.checkpoints.find(cp =>
-      cp.lastEntryId === entry.id && getCheckpointBranchId(cp) === currentBranchId
-    )
+    story.checkpoints.find(
+      (cp) =>
+        cp.lastEntryId === entry.id &&
+        getCheckpointBranchId(cp) === currentBranchId,
+    ),
   );
   const canBranch = $derived(!!entryCheckpoint);
 
@@ -150,36 +201,41 @@
   async function handleCreateBranch() {
     if (!branchName.trim()) return;
     if (!entryCheckpoint) {
-      alert('Cannot branch from this entry - no checkpoint available');
+      alert("Cannot branch from this entry - no checkpoint available");
       return;
     }
     try {
-      await story.createBranchFromCheckpoint(branchName.trim(), entry.id, entryCheckpoint.id);
+      await story.createBranchFromCheckpoint(
+        branchName.trim(),
+        entry.id,
+        entryCheckpoint.id,
+      );
       isBranching = false;
-      branchName = '';
+      branchName = "";
     } catch (error) {
-      console.error('[StoryEntry] Failed to create branch:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create branch');
+      console.error("[StoryEntry] Failed to create branch:", error);
+      alert(error instanceof Error ? error.message : "Failed to create branch");
     }
   }
 
   function cancelBranch() {
     isBranching = false;
-    branchName = '';
+    branchName = "";
   }
 
   // Checkpoint creation state
   let isCreatingCheckpoint = $state(false);
-  let checkpointName = $state('');
+  let checkpointName = $state("");
 
   // Check if this is the latest entry (checkpoints can only be created at the latest entry)
   const isLatestEntry = $derived(
-    story.entries.length > 0 && story.entries[story.entries.length - 1].id === entry.id
+    story.entries.length > 0 &&
+      story.entries[story.entries.length - 1].id === entry.id,
   );
 
   // Can create checkpoint: latest entry, not a system entry, and no checkpoint exists yet
   const canCreateCheckpoint = $derived(
-    isLatestEntry && entry.type !== 'system' && !entryCheckpoint
+    isLatestEntry && entry.type !== "system" && !entryCheckpoint,
   );
 
   async function handleCreateCheckpoint() {
@@ -187,60 +243,76 @@
     try {
       await story.createCheckpoint(checkpointName.trim());
       isCreatingCheckpoint = false;
-      checkpointName = '';
+      checkpointName = "";
     } catch (error) {
-      console.error('[StoryEntry] Failed to create checkpoint:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create checkpoint');
+      console.error("[StoryEntry] Failed to create checkpoint:", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to create checkpoint",
+      );
     }
   }
 
   function cancelCheckpoint() {
     isCreatingCheckpoint = false;
-    checkpointName = '';
+    checkpointName = "";
   }
 
   // Load embedded images for narration entries
   async function loadEmbeddedImages() {
-    if (entry.type !== 'narration') return;
+    if (entry.type !== "narration") return;
     try {
       embeddedImages = await database.getEmbeddedImagesForEntry(entry.id);
     } catch (err) {
-      console.error('[StoryEntry] Failed to load embedded images:', err);
+      console.error("[StoryEntry] Failed to load embedded images:", err);
     }
   }
 
   // Escape special regex characters
   function escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   // Process content to wrap source text matches in clickable spans
-  function processContentWithImages(content: string, images: EmbeddedImage[]): string {
+  function processContentWithImages(
+    content: string,
+    images: EmbeddedImage[],
+  ): string {
     if (images.length === 0) return parseMarkdown(content);
 
     let processed = content;
 
     // Sort images by source text length (longest first) to avoid partial matches
     const sortedImages = [...images]
-      .filter(img => img.status === 'complete' || img.status === 'generating' || img.status === 'pending')
+      .filter(
+        (img) =>
+          img.status === "complete" ||
+          img.status === "generating" ||
+          img.status === "pending",
+      )
       .sort((a, b) => b.sourceText.length - a.sourceText.length);
 
     // Track which portions of text have been marked
-    const markers: { start: number; end: number; imageId: string; status: string }[] = [];
+    const markers: {
+      start: number;
+      end: number;
+      imageId: string;
+      status: string;
+    }[] = [];
 
     for (const img of sortedImages) {
       // Case-insensitive search for the source text
-      const regex = new RegExp(escapeRegex(img.sourceText), 'gi');
+      const regex = new RegExp(escapeRegex(img.sourceText), "gi");
       let match;
       while ((match = regex.exec(processed)) !== null) {
         const start = match.index;
         const end = start + match[0].length;
 
         // Check if this overlaps with an existing marker
-        const overlaps = markers.some(m =>
-          (start >= m.start && start < m.end) ||
-          (end > m.start && end <= m.end) ||
-          (start <= m.start && end >= m.end)
+        const overlaps = markers.some(
+          (m) =>
+            (start >= m.start && start < m.end) ||
+            (end > m.start && end <= m.end) ||
+            (start <= m.start && end >= m.end),
         );
 
         if (!overlaps) {
@@ -255,42 +327,64 @@
     // Apply markers from end to start to preserve positions
     for (const marker of markers) {
       const originalText = processed.slice(marker.start, marker.end);
-      const statusClass = marker.status === 'complete' ? 'complete' :
-                          marker.status === 'generating' ? 'generating' : 'pending';
+      const statusClass =
+        marker.status === "complete"
+          ? "complete"
+          : marker.status === "generating"
+            ? "generating"
+            : "pending";
       const replacement = `<span class="embedded-image-link ${statusClass}" data-image-id="${marker.imageId}">${originalText}</span>`;
-      processed = processed.slice(0, marker.start) + replacement + processed.slice(marker.end);
+      processed =
+        processed.slice(0, marker.start) +
+        replacement +
+        processed.slice(marker.end);
     }
 
     return parseMarkdown(processed);
   }
 
   // Process Visual Prose content with embedded images
-  function processVisualProseWithImages(content: string, images: EmbeddedImage[], entryId: string): string {
+  function processVisualProseWithImages(
+    content: string,
+    images: EmbeddedImage[],
+    entryId: string,
+  ): string {
     if (images.length === 0) return sanitizeVisualProse(content, entryId);
 
     let processed = content;
 
     // Sort images by source text length (longest first) to avoid partial matches
     const sortedImages = [...images]
-      .filter(img => img.status === 'complete' || img.status === 'generating' || img.status === 'pending')
+      .filter(
+        (img) =>
+          img.status === "complete" ||
+          img.status === "generating" ||
+          img.status === "pending",
+      )
       .sort((a, b) => b.sourceText.length - a.sourceText.length);
 
     // Track which portions of text have been marked
-    const markers: { start: number; end: number; imageId: string; status: string }[] = [];
+    const markers: {
+      start: number;
+      end: number;
+      imageId: string;
+      status: string;
+    }[] = [];
 
     for (const img of sortedImages) {
       // Case-insensitive search for the source text
-      const regex = new RegExp(escapeRegex(img.sourceText), 'gi');
+      const regex = new RegExp(escapeRegex(img.sourceText), "gi");
       let match;
       while ((match = regex.exec(processed)) !== null) {
         const start = match.index;
         const end = start + match[0].length;
 
         // Check if this overlaps with an existing marker
-        const overlaps = markers.some(m =>
-          (start >= m.start && start < m.end) ||
-          (end > m.start && end <= m.end) ||
-          (start <= m.start && end >= m.end)
+        const overlaps = markers.some(
+          (m) =>
+            (start >= m.start && start < m.end) ||
+            (end > m.start && end <= m.end) ||
+            (start <= m.start && end >= m.end),
         );
 
         if (!overlaps) {
@@ -305,22 +399,34 @@
     // Apply markers from end to start to preserve positions
     for (const marker of markers) {
       const originalText = processed.slice(marker.start, marker.end);
-      const statusClass = marker.status === 'complete' ? 'complete' :
-                          marker.status === 'generating' ? 'generating' : 'pending';
+      const statusClass =
+        marker.status === "complete"
+          ? "complete"
+          : marker.status === "generating"
+            ? "generating"
+            : "pending";
       const replacement = `<span class="embedded-image-link ${statusClass}" data-image-id="${marker.imageId}">${originalText}</span>`;
-      processed = processed.slice(0, marker.start) + replacement + processed.slice(marker.end);
+      processed =
+        processed.slice(0, marker.start) +
+        replacement +
+        processed.slice(marker.end);
     }
 
-return sanitizeVisualProse(processed, entryId);
+    return sanitizeVisualProse(processed, entryId);
   }
 
   // Process content with inline <pic> tags - replaces tags with images
-  function processContentWithInlineImages(content: string, images: EmbeddedImage[]): string {
+  function processContentWithInlineImages(
+    content: string,
+    images: EmbeddedImage[],
+  ): string {
     // Build map of original tag text -> image info for inline mode images
     const imageMap = new Map<string, ImageReplacementInfo>();
-    
-    const inlineImages = images.filter(img => img.generationMode === 'inline');
-    
+
+    const inlineImages = images.filter(
+      (img) => img.generationMode === "inline",
+    );
+
     for (const img of inlineImages) {
       imageMap.set(img.sourceText, {
         imageData: img.imageData,
@@ -329,21 +435,25 @@ return sanitizeVisualProse(processed, entryId);
         errorMessage: img.errorMessage,
       });
     }
-    
+
     // Replace <pic> tags with actual images
     const processedContent = replacePicTagsWithImages(content, imageMap);
-    
+
     // Parse markdown for any remaining content
     return parseMarkdown(processedContent);
   }
 
   // Process Visual Prose content with inline <pic> tags
-  function processVisualProseWithInlineImages(content: string, images: EmbeddedImage[], entryId: string): string {
+  function processVisualProseWithInlineImages(
+    content: string,
+    images: EmbeddedImage[],
+    entryId: string,
+  ): string {
     // Build map of original tag text -> image info for inline mode images
     const imageMap = new Map<string, ImageReplacementInfo>();
-    
+
     for (const img of images) {
-      if (img.generationMode === 'inline') {
+      if (img.generationMode === "inline") {
         imageMap.set(img.sourceText, {
           imageData: img.imageData,
           status: img.status,
@@ -352,36 +462,38 @@ return sanitizeVisualProse(processed, entryId);
         });
       }
     }
-    
+
     // Replace <pic> tags with actual images first
     const processedContent = replacePicTagsWithImages(content, imageMap);
-    
+
     // Then sanitize as Visual Prose
     return sanitizeVisualProse(processedContent, entryId);
   }
 
-// Handle click on embedded image link
+  // Handle click on embedded image link
   function handleContentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    
+
     // Check for inline image action buttons
-    const actionBtn = target.closest('.inline-image-btn') as HTMLElement | null;
+    const actionBtn = target.closest(".inline-image-btn") as HTMLElement | null;
     if (actionBtn) {
       event.preventDefault();
       event.stopPropagation();
-      const action = actionBtn.getAttribute('data-action');
-      const imageId = actionBtn.getAttribute('data-image-id');
-      
+      const action = actionBtn.getAttribute("data-action");
+      const imageId = actionBtn.getAttribute("data-image-id");
+
       if (action && imageId) {
         handleInlineImageAction(action, imageId);
       }
       return;
     }
-    
+
     // Check for embedded image link (analyzed mode)
-    const imageLink = target.closest('.embedded-image-link') as HTMLElement | null;
+    const imageLink = target.closest(
+      ".embedded-image-link",
+    ) as HTMLElement | null;
     if (imageLink) {
-      const imageId = imageLink.getAttribute('data-image-id');
+      const imageId = imageLink.getAttribute("data-image-id");
       if (imageId) {
         // Toggle expanded state
         if (expandedImageId === imageId) {
@@ -397,16 +509,17 @@ return sanitizeVisualProse(processed, entryId);
 
   // Handle inline image actions (edit, regenerate)
   async function handleInlineImageAction(action: string, imageId: string) {
-    const image = embeddedImages.find(img => img.id === imageId);
+    const image = embeddedImages.find((img) => img.id === imageId);
     if (!image) return;
 
-    if (action === 'edit') {
+    if (action === "edit") {
       // Open edit modal with current prompt
       editingImageId = imageId;
       // Extract the original prompt from the stored prompt (remove style suffix)
-      editingImagePrompt = image.prompt.split('. ').slice(0, -1).join('. ') || image.prompt;
+      editingImagePrompt =
+        image.prompt.split(". ").slice(0, -1).join(". ") || image.prompt;
       isEditingImage = true;
-    } else if (action === 'regenerate') {
+    } else if (action === "regenerate") {
       // Regenerate with same prompt
       await regenerateInlineImage(imageId, image.prompt);
     }
@@ -414,56 +527,62 @@ return sanitizeVisualProse(processed, entryId);
 
   // Regenerate an inline image with a new or existing prompt
   async function regenerateInlineImage(imageId: string, prompt: string) {
-    const image = embeddedImages.find(img => img.id === imageId);
+    const image = embeddedImages.find((img) => img.id === imageId);
     if (!image) return;
 
     try {
       // Update status to generating
-      await database.updateEmbeddedImage(imageId, { status: 'generating', errorMessage: undefined });
-      
+      await database.updateEmbeddedImage(imageId, {
+        status: "generating",
+        errorMessage: undefined,
+      });
+
       // Reload images to show generating state
       await loadEmbeddedImages();
 
       // Get image settings
       const imageSettings = settings.systemServicesSettings.imageGeneration;
-      const apiKey = imageSettings.imageProvider === 'chutes' 
-        ? imageSettings.chutesApiKey 
-        : imageSettings.nanoGptApiKey;
+      const apiKey =
+        imageSettings.imageProvider === "chutes"
+          ? imageSettings.chutesApiKey
+          : imageSettings.nanoGptApiKey;
 
       if (!apiKey) {
-        throw new Error('No API key configured');
+        throw new Error("No API key configured");
       }
 
       // Create provider
-      const provider = imageSettings.imageProvider === 'chutes'
-        ? new ChutesImageProvider(apiKey, false)
-        : new NanoGPTImageProvider(apiKey, false);
+      const provider =
+        imageSettings.imageProvider === "chutes"
+          ? new ChutesImageProvider(apiKey, false)
+          : new NanoGPTImageProvider(apiKey, false);
 
       // Generate new image
       const response = await provider.generateImage({
         prompt,
         model: image.model || imageSettings.model,
         size: imageSettings.size,
-        response_format: 'b64_json',
+        response_format: "b64_json",
       });
 
       if (response.images.length === 0 || !response.images[0].b64_json) {
-        throw new Error('No image data returned');
+        throw new Error("No image data returned");
       }
 
       // Update with new image data
       await database.updateEmbeddedImage(imageId, {
         imageData: response.images[0].b64_json,
         prompt,
-        status: 'complete',
+        status: "complete",
       });
 
       // Reload to show new image
       await loadEmbeddedImages();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Regeneration failed';
+      const errorMessage =
+        error instanceof Error ? error.message : "Regeneration failed";
       await database.updateEmbeddedImage(imageId, {
-        status: 'failed',
+        status: "failed",
         errorMessage,
       });
       await loadEmbeddedImages();
@@ -474,23 +593,23 @@ return sanitizeVisualProse(processed, entryId);
   async function handleEditImageSubmit() {
     if (!editingImageId || !editingImagePrompt.trim()) return;
 
-    const image = embeddedImages.find(img => img.id === editingImageId);
+    const image = embeddedImages.find((img) => img.id === editingImageId);
     if (!image) return;
 
     // Get style prompt and append it
     const imageSettings = settings.systemServicesSettings.imageGeneration;
     const styleId = imageSettings.styleId;
-    let stylePrompt = '';
+    let stylePrompt = "";
     try {
       const promptContext = {
-        mode: 'adventure' as const,
-        pov: 'second' as const,
-        tense: 'present' as const,
-        protagonistName: '',
+        mode: "adventure" as const,
+        pov: "second" as const,
+        tense: "present" as const,
+        protagonistName: "",
       };
-      stylePrompt = promptService.getPrompt(styleId, promptContext) || '';
+      stylePrompt = promptService.getPrompt(styleId, promptContext) || "";
     } catch {
-      stylePrompt = 'Soft cel-shaded anime illustration.';
+      stylePrompt = "Soft cel-shaded anime illustration.";
     }
 
     const fullPrompt = `${editingImagePrompt.trim()}. ${stylePrompt}`;
@@ -499,28 +618,28 @@ return sanitizeVisualProse(processed, entryId);
     isEditingImage = false;
     await regenerateInlineImage(editingImageId, fullPrompt);
     editingImageId = null;
-    editingImagePrompt = '';
+    editingImagePrompt = "";
   }
 
   // Cancel edit modal
   function handleEditImageCancel() {
     isEditingImage = false;
     editingImageId = null;
-    editingImagePrompt = '';
+    editingImagePrompt = "";
   }
 
   // Manage inline image display
   $effect(() => {
     // Clean up any existing inline image displays
-    const existingDisplays = document.querySelectorAll('.inline-image-display');
-    existingDisplays.forEach(el => el.remove());
+    const existingDisplays = document.querySelectorAll(".inline-image-display");
+    existingDisplays.forEach((el) => el.remove());
 
     if (!expandedImageId || !clickedElement || !expandedImage) return;
 
     // Create the inline image container
-    const container = document.createElement('div');
-    container.className = 'inline-image-display';
-    container.setAttribute('data-image-id', expandedImageId);
+    const container = document.createElement("div");
+    container.className = "inline-image-display";
+    container.setAttribute("data-image-id", expandedImageId);
 
     // Build the HTML content based on image status
     let innerHtml = `
@@ -532,33 +651,33 @@ return sanitizeVisualProse(processed, entryId);
       </div>
     `;
 
-    if (expandedImage.status === 'complete' && expandedImage.imageData) {
+    if (expandedImage.status === "complete" && expandedImage.imageData) {
       innerHtml += `<img src="data:image/png;base64,${expandedImage.imageData}" alt="${expandedImage.sourceText}" class="inline-image-content" />`;
-    } else if (expandedImage.status === 'generating') {
+    } else if (expandedImage.status === "generating") {
       innerHtml += `<div class="inline-image-loading"><span class="spinner"></span><span>Generating image...</span></div>`;
-    } else if (expandedImage.status === 'pending') {
+    } else if (expandedImage.status === "pending") {
       innerHtml += `<div class="inline-image-loading"><span>Image queued...</span></div>`;
-    } else if (expandedImage.status === 'failed') {
-      innerHtml += `<div class="inline-image-error"><span>Failed to generate image</span>${expandedImage.errorMessage ? `<span class="error-message">${expandedImage.errorMessage}</span>` : ''}</div>`;
+    } else if (expandedImage.status === "failed") {
+      innerHtml += `<div class="inline-image-error"><span>Failed to generate image</span>${expandedImage.errorMessage ? `<span class="error-message">${expandedImage.errorMessage}</span>` : ""}</div>`;
     }
 
     container.innerHTML = innerHtml;
 
     // Add close button handler
-    const closeBtn = container.querySelector('.inline-image-close');
+    const closeBtn = container.querySelector(".inline-image-close");
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
+      closeBtn.addEventListener("click", () => {
         expandedImageId = null;
         clickedElement = null;
       });
     }
 
     // Insert after the clicked element's parent paragraph or directly after
-    const paragraph = clickedElement.closest('p');
+    const paragraph = clickedElement.closest("p");
     if (paragraph) {
-      paragraph.insertAdjacentElement('afterend', container);
+      paragraph.insertAdjacentElement("afterend", container);
     } else {
-      clickedElement.insertAdjacentElement('afterend', container);
+      clickedElement.insertAdjacentElement("afterend", container);
     }
 
     // Cleanup function
@@ -569,29 +688,40 @@ return sanitizeVisualProse(processed, entryId);
 
   // Get the currently expanded image
   const expandedImage = $derived(
-    expandedImageId ? embeddedImages.find(img => img.id === expandedImageId) : null
+    expandedImageId
+      ? embeddedImages.find((img) => img.id === expandedImageId)
+      : null,
   );
 
   // Subscribe to ImageReady and TTS events
   onMount(() => {
     // Subscribe to ImageReady events to reload images when one completes
-    const unsubImageReady = eventBus.subscribe<ImageReadyEvent>('ImageReady', (event) => {
-      if (event.entryId === entry.id) {
-        loadEmbeddedImages();
-      }
-    });
+    const unsubImageReady = eventBus.subscribe<ImageReadyEvent>(
+      "ImageReady",
+      (event) => {
+        if (event.entryId === entry.id) {
+          loadEmbeddedImages();
+        }
+      },
+    );
 
     // Subscribe to TTSQueued events to auto-play TTS when triggered from ActionInput
-    const unsubTTSQueued = eventBus.subscribe<TTSQueuedEvent>('TTSQueued', (event) => {
-      if (event.entryId === entry.id && entry.type === 'narration') {
-        console.log('[StoryEntry] Received TTSQueued event, triggering auto-play', { entryId: entry.id });
-        handleTTSToggle();
-        loadEmbeddedImages();
-      }
-    });
+    const unsubTTSQueued = eventBus.subscribe<TTSQueuedEvent>(
+      "TTSQueued",
+      (event) => {
+        if (event.entryId === entry.id && entry.type === "narration") {
+          console.log(
+            "[StoryEntry] Received TTSQueued event, triggering auto-play",
+            { entryId: entry.id },
+          );
+          handleTTSToggle();
+          loadEmbeddedImages();
+        }
+      },
+    );
 
     // Load images on mount if this is a narration entry
-    if (entry.type === 'narration') {
+    if (entry.type === "narration") {
       loadEmbeddedImages();
     }
 
@@ -609,10 +739,10 @@ return sanitizeVisualProse(processed, entryId);
   };
 
   const styles = {
-    user_action: 'border-l-accent-500 bg-accent-500/5',
-    narration: 'border-l-surface-600 bg-surface-800/50',
-    system: 'border-l-surface-500 bg-surface-800/30 italic text-surface-400',
-    retry: 'border-l-amber-500 bg-amber-500/5',
+    user_action: "border-l-accent-500 bg-accent-500/5",
+    narration: "border-l-surface-600 bg-surface-800/50",
+    system: "border-l-surface-500 bg-surface-800/30 italic text-surface-400",
+    retry: "border-l-amber-500 bg-amber-500/5",
   };
 
   const Icon = $derived(icons[entry.type]);
@@ -631,11 +761,19 @@ return sanitizeVisualProse(processed, entryId);
 
     try {
       // Check if this is the last user_action entry
-      const isLastUserAction = entry.type === 'user_action' && isLastUserActionEntry();
+      const isLastUserAction =
+        entry.type === "user_action" && isLastUserActionEntry();
 
-      if (isLastUserAction && ui.retryBackup && story.currentStory && ui.retryBackup.storyId === story.currentStory.id) {
+      if (
+        isLastUserAction &&
+        ui.retryBackup &&
+        story.currentStory &&
+        ui.retryBackup.storyId === story.currentStory.id
+      ) {
         // Update the backup with the new content and trigger retry
-        console.log('[StoryEntry] Editing last user action, triggering retry with new content');
+        console.log(
+          "[StoryEntry] Editing last user action, triggering retry with new content",
+        );
         ui.updateRetryBackupContent(newContent);
         isEditing = false;
         await ui.triggerRetryLastMessage();
@@ -645,8 +783,8 @@ return sanitizeVisualProse(processed, entryId);
         isEditing = false;
       }
     } catch (error) {
-      console.error('[StoryEntry] Failed to save edit:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save edit');
+      console.error("[StoryEntry] Failed to save edit:", error);
+      alert(error instanceof Error ? error.message : "Failed to save edit");
     }
   }
 
@@ -655,7 +793,7 @@ return sanitizeVisualProse(processed, entryId);
    */
   function isLastUserActionEntry(): boolean {
     // Find all user_action entries
-    const userActions = story.entries.filter(e => e.type === 'user_action');
+    const userActions = story.entries.filter((e) => e.type === "user_action");
     if (userActions.length === 0) return false;
 
     // Check if this entry is the last one
@@ -677,12 +815,14 @@ return sanitizeVisualProse(processed, entryId);
     const ttsSettings = settings.systemServicesSettings.tts;
 
     if (!ttsSettings.enabled) {
-      alert('TTS is not enabled. Please enable it in settings.');
+      alert("TTS is not enabled. Please enable it in settings.");
       return;
     }
 
     if (!ttsSettings.endpoint || !ttsSettings.apiKey) {
-      alert('TTS is not properly configured. Please set the endpoint and API key in settings.');
+      alert(
+        "TTS is not properly configured. Please set the endpoint and API key in settings.",
+      );
       return;
     }
 
@@ -699,36 +839,49 @@ return sanitizeVisualProse(processed, entryId);
       const textToNarrate = sanitizeTextForTTS(entry.content, {
         removeTags: ttsSettings.removeHtmlTags,
         removeAllTagContent: ttsSettings.removeAllHtmlContent,
-        htmlTagsToRemoveContent: ttsSettings.htmlTagsToRemoveContent.replace(/\s+/g, '').split(','),
+        htmlTagsToRemoveContent: ttsSettings.htmlTagsToRemoveContent
+          .replace(/\s+/g, "")
+          .split(","),
       });
 
       // Remove excluded characters after HTML cleanup
-      const excludedCharArray = ttsSettings.excludedCharacters.replace(/\s+/g, '').split(',');
+      const excludedCharArray = ttsSettings.excludedCharacters
+        .replace(/\s+/g, "")
+        .split(",");
       const hasExcludedChars = excludedCharArray.some(Boolean);
       const finalNarrationText = hasExcludedChars
-        ? textToNarrate.replace(new RegExp(`[${excludedCharArray.filter(Boolean).map(escapeRegex).join('')}]`, 'g'), '')
+        ? textToNarrate.replace(
+            new RegExp(
+              `[${excludedCharArray.filter(Boolean).map(escapeRegex).join("")}]`,
+              "g",
+            ),
+            "",
+          )
         : textToNarrate;
 
-      console.log('[StoryEntry] Generating TTS with text:', finalNarrationText);
+      console.log("[StoryEntry] Generating TTS with text:", finalNarrationText);
 
       const response = await fetch(ttsSettings.endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${ttsSettings.apiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ttsSettings.apiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: ttsSettings.model || 'tts-1',
+          model: ttsSettings.model || "tts-1",
           input: finalNarrationText,
-          voice: ttsSettings.voice || 'alloy',
+          voice: ttsSettings.voice || "alloy",
           speed: ttsSettings.speed || 1.0,
-          response_format: 'mp3',
+          response_format: "mp3",
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `TTS generation failed: ${response.statusText}`);
+        throw new Error(
+          errorData.error?.message ||
+            `TTS generation failed: ${response.statusText}`,
+        );
       }
 
       const audioBlob = await response.blob();
@@ -740,21 +893,21 @@ return sanitizeVisualProse(processed, entryId);
       isPlayingTTS = true;
 
       // Handle audio end
-      currentAudioElement.addEventListener('ended', () => {
+      currentAudioElement.addEventListener("ended", () => {
         URL.revokeObjectURL(audioUrl);
         currentAudioElement = null;
         isPlayingTTS = false;
       });
 
       // Handle pause
-      currentAudioElement.addEventListener('pause', () => {
+      currentAudioElement.addEventListener("pause", () => {
         if (!currentAudioElement?.ended) {
           isPlayingTTS = false;
         }
       });
     } catch (error) {
-      console.error('[StoryEntry] TTS generation failed:', error);
-      alert(error instanceof Error ? error.message : 'Failed to generate TTS');
+      console.error("[StoryEntry] TTS generation failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to generate TTS");
     } finally {
       isGeneratingTTS = false;
     }
@@ -762,7 +915,7 @@ return sanitizeVisualProse(processed, entryId);
 
   function cancelEdit() {
     isEditing = false;
-    editContent = '';
+    editContent = "";
   }
 
   async function confirmDelete() {
@@ -770,83 +923,130 @@ return sanitizeVisualProse(processed, entryId);
       await story.deleteEntry(entry.id);
       isDeleting = false;
     } catch (error) {
-      console.error('[StoryEntry] Failed to delete entry:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete entry');
+      console.error("[StoryEntry] Failed to delete entry:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete entry");
       isDeleting = false;
     }
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       cancelEdit();
-    } else if (event.key === 'Enter' && event.ctrlKey) {
+    } else if (event.key === "Enter" && event.ctrlKey) {
       saveEdit();
     }
   }
+
+  $effect(() => {
+    if (entry.type === 'narration' && isLatestEntry && ui.streamingReasoningExpanded) {
+      ui.transferStreamingReasoningState(entry.id);
+    }
+  });
 </script>
 
-<div class="group rounded-lg border-l-4 p-3 sm:p-4 {styles[entry.type]}">
-  <div class="flex items-start gap-3">
-    <div class="flex flex-col items-center gap-1">
-      <div class="rounded-full bg-surface-700 p-1.5">
-        <Icon class="h-4 w-4 text-surface-400" />
+<div
+  class="group rounded-lg border-l-4 px-4 pb-4 pt-3 {styles[
+    entry.type
+  ]}"
+>
+  <!-- Header row: Label + metadata on left, action buttons on right -->
+  <div class="flex items-center gap-2 mb-2">
+    <!-- Left side: Entry type indicator + reasoning toggle -->
+    {#if entry.type === "user_action"}
+      <span class="user-action text-sm font-semibold tracking-wide">You</span>
+    {:else if entry.type === "system"}
+      <div class="flex items-center gap-1.5 text-surface-400">
+        <Icon class="h-4 w-4 shrink-0 translate-y-px" />
+        <span class="text-xs font-medium uppercase tracking-wider">System</span>
       </div>
-      <!-- Edit/Delete buttons below icon (always visible on mobile, hover on desktop) -->
-      {#if !isEditing && !isDeleting && !isBranching && !isCreatingCheckpoint && entry.type !== 'system'}
-        <div class="flex flex-col gap-1 sm:opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            onclick={startEdit}
-            class="rounded p-1.5 text-surface-400 hover:bg-surface-600 hover:text-surface-200 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
-            title="Edit entry"
-          >
-            <Pencil class="h-3.5 w-3.5" />
-          </button>
-          <button
-            onclick={handleTTSToggle}
-            disabled={isGeneratingTTS}
-            class="rounded p-1.5 text-surface-400 hover:bg-surface-600 hover:text-surface-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
-            title={isPlayingTTS ? 'Stop narration' : 'Narrate'}
-          >
-            {#if isGeneratingTTS}
-              <Loader2 class="h-3.5 w-3.5 animate-spin" />
-            {:else if isPlayingTTS}
-              <X class="h-3.5 w-3.5 text-red-400" />
-            {:else}
-              <Volume2 class="h-3.5 w-3.5" />
-            {/if}
-          </button>
-          <button
-            onclick={() => isDeleting = true}
-            class="rounded p-1.5 text-surface-400 hover:bg-red-500/20 hover:text-red-400 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
-            title="Delete entry"
-          >
-            <Trash2 class="h-3.5 w-3.5" />
-          </button>
-          {#if canBranch}
-            <button
-              onclick={() => isBranching = true}
-              class="rounded p-1.5 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
-              title="Branch from here (checkpoint available)"
-            >
-              <GitBranch class="h-3.5 w-3.5" />
-            </button>
-          {/if}
-          {#if canCreateCheckpoint}
-            <button
-              onclick={() => isCreatingCheckpoint = true}
-              class="rounded p-1.5 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center"
-              title="Create checkpoint here (for branching)"
-            >
-              <Bookmark class="h-3.5 w-3.5" />
-            </button>
-          {/if}
-        </div>
+    {:else}
+      <Icon class="h-4 w-4 shrink-0 translate-y-px text-surface-500" />
+    {/if}
+    
+    <!-- Reasoning toggle (inline icon in header) - only show if reasoning is enabled -->
+    {#if isReasoningEnabled && entry.reasoning}
+      <ReasoningBlock content={entry.reasoning} isStreaming={false} entryId={entry.id} showToggleOnly={true} />
+    {/if}
+    
+    <!-- Token count badge (shows 0 if no tokens) -->
+    <span class="text-[11px] bg-surface-700/50 px-1.5 py-0.5 rounded tabular-nums">
+      {#if isReasoningEnabled && reasoningTokens > 0}
+        <span class="text-surface-500">{reasoningTokens}r</span>
+        <span class="text-surface-600 mx-0.5">+</span>
       {/if}
-    </div>
-    <div class="flex-1">
-      {#if entry.type === 'user_action'}
-        <p class="user-action mb-1 text-sm font-medium">You</p>
-      {/if}
+      <span class="text-surface-500">{contentTokens}</span>
+      <span class="text-surface-500 ml-0.5">tokens</span>
+    </span>
+
+    <!-- Spacer to push buttons to the right -->
+    <div class="flex-1"></div>
+
+    <!-- Right side: Action buttons toolbar (always visible on mobile, hover-only on desktop) -->
+    {#if !isEditing && !isDeleting && !isBranching && !isCreatingCheckpoint && entry.type !== "system"}
+      <div
+        class="flex items-center gap-0.5 visible sm:invisible sm:group-hover:visible sm:focus-within:visible transition-[visibility] duration-0"
+      >
+        {#if canRetry}
+          <button
+            onclick={() => ui.triggerRetryLastMessage()}
+            class="entry-action-btn text-accent-400 hover:bg-accent-500/15"
+            title="Generate a different response"
+          >
+            <RotateCcw class="h-4 w-4" />
+          </button>
+        {/if}
+        {#if canBranch}
+          <button
+            onclick={() => (isBranching = true)}
+            class="entry-action-btn text-amber-400 hover:bg-amber-500/15"
+            title="Branch from here"
+          >
+            <GitBranch class="h-4 w-4" />
+          </button>
+        {/if}
+        {#if canCreateCheckpoint}
+          <button
+            onclick={() => (isCreatingCheckpoint = true)}
+            class="entry-action-btn text-blue-400 hover:bg-blue-500/15"
+            title="Create checkpoint"
+          >
+            <Bookmark class="h-4 w-4" />
+          </button>
+        {/if}
+        <button
+          onclick={handleTTSToggle}
+          disabled={isGeneratingTTS}
+          class="entry-action-btn text-surface-400 hover:bg-surface-600 hover:text-surface-200 disabled:opacity-40"
+          title={isPlayingTTS ? "Stop narration" : "Narrate"}
+        >
+          {#if isGeneratingTTS}
+            <Loader2 class="h-4 w-4 animate-spin" />
+          {:else if isPlayingTTS}
+            <X class="h-4 w-4 text-red-400" />
+          {:else}
+            <Volume2 class="h-4 w-4" />
+          {/if}
+        </button>
+        <button
+          onclick={startEdit}
+          class="entry-action-btn text-surface-400 hover:bg-surface-600 hover:text-surface-200"
+          title="Edit"
+        >
+          <Pencil class="h-4 w-4" />
+        </button>
+        <button
+          onclick={() => (isDeleting = true)}
+          class="entry-action-btn text-surface-400 hover:bg-red-500/15 hover:text-red-400"
+          title="Delete"
+        >
+          <Trash2 class="h-4 w-4" />
+        </button>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Content area -->
+  <div class="min-w-0">
 
       {#if isEditing}
         <div class="space-y-2">
@@ -872,7 +1072,9 @@ return sanitizeVisualProse(processed, entryId);
               Cancel
             </button>
           </div>
-          <p class="text-xs text-surface-500 hidden sm:block">Ctrl+Enter to save, Esc to cancel</p>
+          <p class="text-xs text-surface-500 hidden sm:block">
+            Ctrl+Enter to save, Esc to cancel
+          </p>
         </div>
       {:else if isDeleting}
         <div class="space-y-2">
@@ -886,7 +1088,7 @@ return sanitizeVisualProse(processed, entryId);
               Delete
             </button>
             <button
-              onclick={() => isDeleting = false}
+              onclick={() => (isDeleting = false)}
               class="btn btn-secondary flex items-center gap-1.5 text-sm min-h-[40px] px-3"
             >
               <X class="h-4 w-4" />
@@ -896,15 +1098,17 @@ return sanitizeVisualProse(processed, entryId);
         </div>
       {:else if isBranching}
         <div class="space-y-2">
-          <p class="text-sm text-surface-300">Create a branch from this point:</p>
+          <p class="text-sm text-surface-300">
+            Create a branch from this point:
+          </p>
           <input
             type="text"
             class="input w-full text-sm"
             placeholder="Branch name..."
             bind:value={branchName}
             onkeydown={(e) => {
-              if (e.key === 'Enter') handleCreateBranch();
-              if (e.key === 'Escape') cancelBranch();
+              if (e.key === "Enter") handleCreateBranch();
+              if (e.key === "Escape") cancelBranch();
             }}
           />
           <div class="flex gap-2">
@@ -924,19 +1128,23 @@ return sanitizeVisualProse(processed, entryId);
               Cancel
             </button>
           </div>
-          <p class="text-xs text-surface-500">This will create a new timeline from this checkpoint.</p>
+          <p class="text-xs text-surface-500">
+            This will create a new timeline from this checkpoint.
+          </p>
         </div>
       {:else if isCreatingCheckpoint}
         <div class="space-y-2">
-          <p class="text-sm text-surface-300">Create a checkpoint at this point:</p>
+          <p class="text-sm text-surface-300">
+            Create a checkpoint at this point:
+          </p>
           <input
             type="text"
             class="input w-full text-sm"
             placeholder="Checkpoint name..."
             bind:value={checkpointName}
             onkeydown={(e) => {
-              if (e.key === 'Enter') handleCreateCheckpoint();
-              if (e.key === 'Escape') cancelCheckpoint();
+              if (e.key === "Enter") handleCreateCheckpoint();
+              if (e.key === "Escape") cancelCheckpoint();
             }}
           />
           <div class="flex gap-2">
@@ -956,21 +1164,45 @@ return sanitizeVisualProse(processed, entryId);
               Cancel
             </button>
           </div>
-          <p class="text-xs text-surface-500">Checkpoints save the current story state and allow branching from this point.</p>
+          <p class="text-xs text-surface-500">
+            Checkpoints save the current story state and allow branching from
+            this point.
+          </p>
         </div>
-{:else}
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <div class="story-text prose-content" class:visual-prose-container={visualProseMode && entry.type === 'narration'} onclick={handleContentClick}>
-          {#if entry.type === 'narration'}
+      {:else}
+        <!-- Reasoning content panel (between header and story text) -->
+        {#if entry.reasoning}
+          <ReasoningBlock content={entry.reasoning} isStreaming={false} entryId={entry.id} showToggleOnly={false} />
+        {/if}
+
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div
+          class="story-text prose-content"
+          class:visual-prose-container={visualProseMode &&
+            entry.type === "narration"}
+          onclick={handleContentClick}
+        >
+          {#if entry.type === "narration"}
             {#if visualProseMode && inlineImageMode}
               <!-- Both Visual Prose and Inline Image mode -->
-              {@html processVisualProseWithInlineImages(entry.content, embeddedImages, entry.id)}
+              {@html processVisualProseWithInlineImages(
+                entry.content,
+                embeddedImages,
+                entry.id,
+              )}
             {:else if visualProseMode}
               <!-- Visual Prose mode only -->
-              {@html processVisualProseWithImages(entry.content, embeddedImages, entry.id)}
+              {@html processVisualProseWithImages(
+                entry.content,
+                embeddedImages,
+                entry.id,
+              )}
             {:else if inlineImageMode}
               <!-- Inline Image mode only -->
-              {@html processContentWithInlineImages(entry.content, embeddedImages)}
+              {@html processContentWithInlineImages(
+                entry.content,
+                embeddedImages,
+              )}
             {:else}
               <!-- Standard mode with analyzed images -->
               {@html processContentWithImages(entry.content, embeddedImages)}
@@ -979,6 +1211,7 @@ return sanitizeVisualProse(processed, entryId);
             {@html parseMarkdown(entry.content)}
           {/if}
         </div>
+
         {#if isErrorEntry}
           <button
             onclick={handleRetryFromEntry}
@@ -989,50 +1222,65 @@ return sanitizeVisualProse(processed, entryId);
             Retry
           </button>
         {/if}
-        {#if canRetry}
-          <button
-            onclick={() => ui.triggerRetryLastMessage()}
-            class="mt-3 btn flex items-center gap-1.5 text-sm bg-primary-500/20 text-primary-400 hover:bg-primary-500/30"
-            title="Generate a different response"
-          >
-            <RotateCcw class="h-4 w-4" />
-            Retry
-          </button>
-        {/if}
-        {#if entry.metadata?.tokenCount}
-          <p class="mt-2 text-xs text-surface-500">
-            {entry.metadata.tokenCount} tokens
-          </p>
-        {/if}
       {/if}
-    </div>
   </div>
 </div>
 
 {#if isEditingImage}
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="inline-image-edit-overlay" onclick={handleEditImageCancel}>
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="inline-image-edit-modal" onclick={(e) => e.stopPropagation()}>
-    <h3>Edit Image Prompt</h3>
-    <textarea
-      bind:value={editingImagePrompt}
-      placeholder="Describe the image you want to generate..."
-      onkeydown={(e) => {
-        if (e.key === 'Escape') handleEditImageCancel();
-      }}
-    ></textarea>
-    <div class="inline-image-edit-actions">
-      <button class="cancel-btn" onclick={handleEditImageCancel}>Cancel</button>
-      <button class="generate-btn" onclick={handleEditImageSubmit} disabled={!editingImagePrompt.trim()}>
-        Generate
-      </button>
+  <div class="inline-image-edit-overlay" onclick={handleEditImageCancel}>
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="inline-image-edit-modal" onclick={(e) => e.stopPropagation()}>
+      <h3>Edit Image Prompt</h3>
+      <textarea
+        bind:value={editingImagePrompt}
+        placeholder="Describe the image you want to generate..."
+        onkeydown={(e) => {
+          if (e.key === "Escape") handleEditImageCancel();
+        }}
+      ></textarea>
+      <div class="inline-image-edit-actions">
+        <button class="cancel-btn" onclick={handleEditImageCancel}
+          >Cancel</button
+        >
+        <button
+          class="generate-btn"
+          onclick={handleEditImageSubmit}
+          disabled={!editingImagePrompt.trim()}
+        >
+          Generate
+        </button>
+      </div>
     </div>
   </div>
-</div>
 {/if}
 
 <style>
+  /* Entry action button base style */
+  .entry-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    min-height: 28px;
+    min-width: 28px;
+  }
+
+  .entry-action-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .entry-action-btn:active {
+    transform: translateY(0);
+  }
+
+  .entry-action-btn:disabled {
+    cursor: not-allowed;
+    transform: none;
+  }
+
   /* Embedded image link styles */
   :global(.embedded-image-link) {
     color: var(--accent-400);
@@ -1059,8 +1307,13 @@ return sanitizeVisualProse(processed, entryId);
   }
 
   @keyframes pulse-glow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 
   /* Inline image display styles */
@@ -1156,6 +1409,8 @@ return sanitizeVisualProse(processed, entryId);
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

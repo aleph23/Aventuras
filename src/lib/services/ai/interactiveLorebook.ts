@@ -259,9 +259,18 @@ export class InteractiveLorebookService {
   private messages: AgenticMessage[] = [];
   private lorebookName: string = '';
   private initialized: boolean = false;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider) {
+  constructor(provider: OpenAIProvider, presetId: string) {
     this.provider = provider;
+    this.presetId = presetId;
+  }
+
+  /**
+   * Get the preset configuration.
+   */
+  private get preset() {
+    return settings.getPresetConfig(this.presetId);
   }
 
   /**
@@ -270,13 +279,6 @@ export class InteractiveLorebookService {
    */
   private getSettings(): InteractiveLorebookSettings {
     return settings.systemServicesSettings.interactiveLorebook ?? getDefaultInteractiveLorebookSettings();
-  }
-
-  /**
-   * Get the model ID from settings.
-   */
-  private getModelId(): string {
-    return this.getSettings().model;
   }
 
   /**
@@ -298,8 +300,7 @@ export class InteractiveLorebookService {
       { role: 'system', content: systemPrompt },
     ];
 
-    const serviceSettings = this.getSettings();
-    log('Initialized conversation', { lorebookName, entryCount, model: serviceSettings.model });
+    log('Initialized conversation', { lorebookName, entryCount, model: this.preset.model });
   }
 
   /**
@@ -345,19 +346,18 @@ export class InteractiveLorebookService {
         iterations++;
         log(`Agentic loop iteration ${iterations}`);
 
-        const serviceSettings = this.getSettings();
         const response = await this.provider.generateWithTools({
           messages: this.messages,
-          model: serviceSettings.model,
-          temperature: serviceSettings.temperature,
-          maxTokens: 4096,
+          model: this.preset.model,
+          temperature: this.preset.temperature,
+          maxTokens: this.preset.maxTokens,
           tools: INTERACTIVE_LOREBOOK_TOOLS,
           tool_choice: 'auto',
           extraBody: buildExtraBody({
             manualMode: false,
-            manualBody: serviceSettings.manualBody,
-            reasoningEffort: serviceSettings.reasoningEffort,
-            providerOnly: serviceSettings.providerOnly,
+            manualBody: this.preset.manualBody,
+            reasoningEffort: this.preset.reasoningEffort,
+            providerOnly: this.preset.providerOnly,
           }),
         });
 
@@ -495,8 +495,6 @@ export class InteractiveLorebookService {
         // Signal that we're thinking
         yield { type: 'thinking' };
 
-        const serviceSettings = this.getSettings();
-
         // Track this iteration's data separately
         const iterationToolCalls: ToolCallDisplay[] = [];
         const iterationPendingChanges: PendingChange[] = [];
@@ -504,16 +502,16 @@ export class InteractiveLorebookService {
         // Use non-streaming generateWithTools for clean reasoning
         const response = await this.provider.generateWithTools({
           messages: this.messages,
-          model: serviceSettings.model,
-          temperature: serviceSettings.temperature,
-          maxTokens: 4096,
+          model: this.preset.model,
+          temperature: this.preset.temperature,
+          maxTokens: this.preset.maxTokens,
           tools: INTERACTIVE_LOREBOOK_TOOLS,
           tool_choice: 'auto',
           extraBody: buildExtraBody({
             manualMode: false,
-            manualBody: serviceSettings.manualBody,
-            reasoningEffort: serviceSettings.reasoningEffort,
-            providerOnly: serviceSettings.providerOnly,
+            manualBody: this.preset.manualBody,
+            reasoningEffort: this.preset.reasoningEffort,
+            providerOnly: this.preset.providerOnly,
           }),
           signal,
         });

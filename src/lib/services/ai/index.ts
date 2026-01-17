@@ -360,8 +360,12 @@ class AIService {
       currentStoryTime,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.classifier.profileId);
-    const classifier = new ClassifierService(provider);
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('classifier'), 'Classifier').profileId);
+    const classifier = new ClassifierService(
+      provider,
+      settings.getServicePresetId('classifier'),
+      settings.systemServicesSettings.classifier.chatHistoryTruncation ?? 100
+    );
 
     // Build chat history from visible entries with time metadata
     const chatHistory: ClassificationChatEntry[] = (visibleEntries ?? [])
@@ -418,8 +422,8 @@ class AIService {
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.actionChoices.profileId);
-    const suggestions = new SuggestionsService(provider);
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('suggestions'), 'Suggestions').profileId);
+    const suggestions = new SuggestionsService(provider, settings.getServicePresetId('suggestions'));
     return await suggestions.generateSuggestions(entries, activeThreads, genre, lorebookEntries, pov, tense);
   }
 
@@ -441,8 +445,8 @@ class AIService {
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.suggestions.profileId);
-    const actionChoices = new ActionChoicesService(provider);
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('actionChoices'), 'Action Choices').profileId);
+    const actionChoices = new ActionChoicesService(provider, settings.getServicePresetId('actionChoices'));
     return await actionChoices.generateChoices(entries, worldState, narrativeResponse, pov, lorebookEntries);
   }
 
@@ -457,8 +461,8 @@ class AIService {
   async analyzeStyle(entries: StoryEntry[], mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): Promise<StyleReviewResult> {
     log('analyzeStyle called', { entriesCount: entries.length, mode });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.styleReviewer.profileId);
-    const styleReviewer = new StyleReviewerService(provider);
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('styleReviewer'), 'Style Reviewer').profileId);
+    const styleReviewer = new StyleReviewerService(provider, settings.getServicePresetId('styleReviewer'));
     return await styleReviewer.analyzeStyle(entries, mode, pov, tense);
   }
 
@@ -651,13 +655,13 @@ class AIService {
     let provider: OpenAIProvider | null = null;
     if (config.enableLLMSelection) {
       try {
-        provider = this.getProviderForProfile(settings.systemServicesSettings.entryRetrieval.profileId);
+        provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('entryRetrieval'), 'Entry Retrieval').profileId);
       } catch {
         log('No provider available, skipping Tier 3 LLM selection for entries');
       }
     }
 
-    const entryService = new EntryRetrievalService(provider, config);
+    const entryService = new EntryRetrievalService(provider, config, settings.getServicePresetId('entryRetrieval'));
     const result = await entryService.getRelevantEntries(
       entries,
       userInput,
@@ -709,8 +713,13 @@ class AIService {
       chaptersCount: chapters.length,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.loreManagement.profileId);
-    const loreManager = new LoreManagementService(provider);
+    const loreManagementSettings = settings.systemServicesSettings.loreManagement;
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('loreManagement'), 'Lore Manager').profileId);
+    const loreManager = new LoreManagementService(
+      provider,
+      settings.getServicePresetId('loreManagement'),
+      loreManagementSettings.maxIterations
+    );
 
     return await loreManager.runSession({
       storyId,
@@ -748,8 +757,13 @@ class AIService {
       entriesCount: entries.length,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.agenticRetrieval.profileId);
-    const retrieval = new AgenticRetrievalService(provider);
+    const agenticRetrievalSettings = settings.systemServicesSettings.agenticRetrieval;
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('agenticRetrieval'), 'Agentic Retrieval').profileId);
+    const retrieval = new AgenticRetrievalService(
+      provider,
+      settings.getServicePresetId('agenticRetrieval'),
+      agenticRetrievalSettings.maxIterations
+    );
 
     return await retrieval.runRetrieval(
       { userInput, recentEntries, chapters, entries },
@@ -814,8 +828,15 @@ class AIService {
       allEntriesCount: allEntries.length,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.timelineFill.profileId);
-    const timelineFill = new TimelineFillService(provider);
+    const timelineFillSettings = settings.systemServicesSettings.timelineFill;
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('timelineFill'), 'Timeline Fill').profileId);
+    const timelineFill = new TimelineFillService(
+      provider,
+      settings.getServicePresetId('timelineFill'),
+      timelineFillSettings.maxQueries,
+      timelineFillSettings.systemPrompt,
+      timelineFillSettings.queryAnswerPrompt
+    );
 
     return await timelineFill.fillTimeline(
       userInput,
@@ -842,14 +863,22 @@ class AIService {
     mode: StoryMode = 'adventure'
   ): Promise<string> {
     const chapterQuerySettings = settings.systemServicesSettings.chapterQuery;
-    const provider = this.getProviderForProfile(chapterQuerySettings.profileId);
-    const timelineFill = new TimelineFillService(provider, {
-      model: chapterQuerySettings.model,
-      temperature: chapterQuerySettings.temperature,
-      reasoningEffort: chapterQuerySettings.reasoningEffort,
-      providerOnly: chapterQuerySettings.providerOnly,
-      manualBody: chapterQuerySettings.manualBody,
-    });
+    const timelineFillSettings = settings.systemServicesSettings.timelineFill;
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('chapterQuery'), 'Chapter Query').profileId);
+    const timelineFill = new TimelineFillService(
+      provider,
+      settings.getServicePresetId('chapterQuery'),
+      timelineFillSettings.maxQueries,
+      timelineFillSettings.systemPrompt,
+      timelineFillSettings.queryAnswerPrompt,
+      {
+        model: chapterQuerySettings.model,
+        temperature: chapterQuerySettings.temperature,
+        reasoningEffort: chapterQuerySettings.reasoningEffort,
+        providerOnly: chapterQuerySettings.providerOnly,
+        manualBody: chapterQuerySettings.manualBody,
+      }
+    );
     return await timelineFill.answerQuestionForChapters(
       question,
       [chapterNumber],
@@ -874,14 +903,22 @@ class AIService {
     mode: StoryMode = 'adventure'
   ): Promise<string> {
     const chapterQuerySettings = settings.systemServicesSettings.chapterQuery;
-    const provider = this.getProviderForProfile(chapterQuerySettings.profileId);
-    const timelineFill = new TimelineFillService(provider, {
-      model: chapterQuerySettings.model,
-      temperature: chapterQuerySettings.temperature,
-      reasoningEffort: chapterQuerySettings.reasoningEffort,
-      providerOnly: chapterQuerySettings.providerOnly,
-      manualBody: chapterQuerySettings.manualBody,
-    });
+    const timelineFillSettings = settings.systemServicesSettings.timelineFill;
+    const provider = this.getProviderForProfile(settings.getPresetConfig(settings.getServicePresetId('chapterQuery'), 'Chapter Query').profileId);
+    const timelineFill = new TimelineFillService(
+      provider,
+      settings.getServicePresetId('chapterQuery'),
+      timelineFillSettings.maxQueries,
+      timelineFillSettings.systemPrompt,
+      timelineFillSettings.queryAnswerPrompt,
+      {
+        model: chapterQuerySettings.model,
+        temperature: chapterQuerySettings.temperature,
+        reasoningEffort: chapterQuerySettings.reasoningEffort,
+        providerOnly: chapterQuerySettings.providerOnly,
+        manualBody: chapterQuerySettings.manualBody,
+      }
+    );
     return await timelineFill.answerQuestionForChapterRange(
       question,
       startChapter,
@@ -972,8 +1009,9 @@ class AIService {
       } else {
         // Use analyzed image generation (LLM scene analysis)
         log('Using analyzed image mode');
-        const provider = this.getProviderForProfile(settings.systemServicesSettings.imageGeneration.promptProfileId);
-        const imageService = new ImageGenerationService(provider);
+        const preset = settings.getPresetConfig(settings.getServicePresetId('imageGeneration'), 'Image Generation');
+        const provider = this.getProviderForProfile(preset.profileId);
+        const imageService = new ImageGenerationService(provider, settings.getServicePresetId('imageGeneration'));
         await imageService.generateForNarrative(context);
       }
     } catch (error) {

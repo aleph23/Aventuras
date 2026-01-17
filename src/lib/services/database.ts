@@ -59,6 +59,11 @@ class DatabaseService {
     );
   }
 
+  async deleteSetting(key: string): Promise<void> {
+    const db = await this.getDb();
+    await db.execute('DELETE FROM settings WHERE key = ?', [key]);
+  }
+
   // Story operations
   async getAllStories(): Promise<Story[]> {
     const db = await this.getDb();
@@ -349,8 +354,8 @@ class DatabaseService {
     const db = await this.getDb();
     const now = Date.now();
     await db.execute(
-      `INSERT INTO story_entries (id, story_id, type, content, parent_id, position, created_at, metadata, branch_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO story_entries (id, story_id, type, content, parent_id, position, created_at, metadata, branch_id, reasoning)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         entry.id,
         entry.storyId,
@@ -361,6 +366,7 @@ class DatabaseService {
         now,
         entry.metadata ? JSON.stringify(entry.metadata) : null,
         entry.branchId || null,
+        entry.reasoning || null,
       ]
     );
     return { ...entry, createdAt: now };
@@ -429,6 +435,10 @@ class DatabaseService {
     if (updates.metadata !== undefined) {
       setClauses.push('metadata = ?');
       values.push(updates.metadata ? JSON.stringify(updates.metadata) : null);
+    }
+    if (updates.reasoning !== undefined) {
+      setClauses.push('reasoning = ?');
+      values.push(updates.reasoning || null);
     }
 
     if (setClauses.length === 0) return;
@@ -1495,6 +1505,7 @@ private mapEmbeddedImage(row: any): EmbeddedImage {
       createdAt: row.created_at,
       metadata: row.metadata ? JSON.parse(row.metadata) : null,
       branchId: row.branch_id || null,
+      reasoning: row.reasoning || undefined,
     };
   }
 

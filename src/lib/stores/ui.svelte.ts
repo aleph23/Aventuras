@@ -6,8 +6,9 @@ import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/e
 import type { SyncMode } from '$lib/types/sync';
 import { SimpleActivationTracker } from '$lib/services/ai/entryRetrieval';
 import { database } from '$lib/services/database';
-import { SvelteMap } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { StreamingHtmlRenderer } from '$lib/utils/htmlStreaming';
+import { countTokens } from '$lib/services/tokenizer';
 
 // Debug log entry for request/response logging
 export interface DebugLogEntry {
@@ -90,7 +91,7 @@ interface PersistedActivationData {
 class UIStore {
   activePanel = $state<ActivePanel>('story');
   sidebarTab = $state<SidebarTab>('characters');
-  sidebarOpen = $state(true);
+  sidebarOpen = $state(typeof window !== 'undefined' ? window.innerWidth >= 640 : false);
   settingsModalOpen = $state(false);
   isGenerating = $state(false);
   isRetryingLastMessage = $state(false); // Hide stop button during completed-message retries
@@ -101,9 +102,14 @@ class UIStore {
 
   // Streaming state
   streamingContent = $state('');
+  streamingReasoning = $state('');
+  streamingReasoningTokens = $state(0);
+  streamingContentTokens = $state(0);
+  generationStatus = $state(''); // Status message during generation steps (e.g. "Retrieving memories...")
   isStreaming = $state(false);
   private htmlRenderer: StreamingHtmlRenderer | null = null;
   private visualProseEntryId: string | null = null;
+  private tokenCountInterval: ReturnType<typeof setInterval> | null = null;
 
   // Scroll break state - persists until user sends a new message
   userScrolledUp = $state(false);
@@ -208,6 +214,54 @@ class UIStore {
   // Retry last message callback - set by ActionInput for edit-and-retry feature
   private retryLastMessageCallback: (() => Promise<void>) | null = null;
 
+  // Reasoning block state persistence
+  streamingReasoningExpanded = $state(false);
+  expandedReasoningIds = new SvelteSet<string>();
+
+  // Sidebar widget collapsed state (session-only)
+  // Maps entity ID -> true if expanded
+  expandedEntities = new SvelteMap<string, boolean>();
+
+  setStreamingReasoningExpanded(expanded: boolean) {
+    this.streamingReasoningExpanded = expanded;
+  }
+
+  isReasoningExpanded(entryId: string): boolean {
+    return this.expandedReasoningIds.has(entryId);
+  }
+
+  toggleReasoningExpanded(entryId: string, expanded: boolean) {
+    if (expanded) {
+      this.expandedReasoningIds.add(entryId);
+    } else {
+      this.expandedReasoningIds.delete(entryId);
+    }
+  }
+
+  // Sidebar widget collapse methods
+  isEntityCollapsed(entityId: string): boolean {
+    return !this.expandedEntities.has(entityId);
+  }
+
+  toggleEntityCollapsed(entityId: string, collapsed: boolean) {
+    if (collapsed) {
+      this.expandedEntities.delete(entityId);
+    } else {
+      this.expandedEntities.set(entityId, true);
+    }
+  }
+
+  /**
+   * Transfer streaming expansion state to a specific entry ID (called when generation finishes).
+   * Only transfers if streaming was actually expanded.
+   */
+  transferStreamingReasoningState(entryId: string) {
+    if (this.streamingReasoningExpanded) {
+      this.expandedReasoningIds.add(entryId);
+      this.streamingReasoningExpanded = false;
+    }
+  }
+
   setActivePanel(panel: ActivePanel) {
     this.activePanel = panel;
   }
@@ -240,7 +294,15 @@ class UIStore {
 
   setGenerating(value: boolean) {
     this.isGenerating = value;
+    if (!value) {
+      this.generationStatus = '';
+    }
   }
+
+  setGenerationStatus(status: string) {
+    this.generationStatus = status;
+  }
+
 
   setRetryingLastMessage(value: boolean) {
     this.isRetryingLastMessage = value;
@@ -266,8 +328,17 @@ class UIStore {
 
   // Streaming methods
   startStreaming(visualProseMode = false, entryId?: string) {
+    // Ensure any existing interval is cleared to prevent leaks
+    if (this.tokenCountInterval) {
+      clearInterval(this.tokenCountInterval);
+      this.tokenCountInterval = null;
+    }
+
     this.isStreaming = true;
     this.streamingContent = '';
+    this.streamingReasoning = '';
+    this.streamingReasoningTokens = 0;
+    this.streamingContentTokens = 0;
     if (visualProseMode && entryId) {
       this.htmlRenderer = new StreamingHtmlRenderer(entryId);
       this.visualProseEntryId = entryId;
@@ -275,6 +346,18 @@ class UIStore {
       this.htmlRenderer = null;
       this.visualProseEntryId = null;
     }
+    // Start periodic token counting (every 500ms to avoid performance issues)
+    this.tokenCountInterval = setInterval(() => {
+      this.updateStreamingTokenCount();
+    }, 500);
+  }
+
+  private updateStreamingTokenCount() {
+    const contentToCount = this.htmlRenderer 
+      ? this.htmlRenderer.getRawContent() 
+      : this.streamingContent;
+    this.streamingReasoningTokens = countTokens(this.streamingReasoning);
+    this.streamingContentTokens = countTokens(contentToCount);
   }
 
   appendStreamContent(content: string) {
@@ -285,7 +368,19 @@ class UIStore {
     }
   }
 
+  appendReasoningContent(content: string) {
+    this.streamingReasoning += content;
+  }
+
   endStreaming(): string {
+    // Clear token count interval
+    if (this.tokenCountInterval) {
+      clearInterval(this.tokenCountInterval);
+      this.tokenCountInterval = null;
+    }
+    // Final token count update
+    this.updateStreamingTokenCount();
+    
     let finalContent: string;
     if (this.htmlRenderer) {
       finalContent = this.htmlRenderer.getRawContent();
@@ -1344,11 +1439,67 @@ class UIStore {
     this.debugModalOpen = false;
   }
 
-  /**
-   * Toggle the debug log modal.
-   */
+   /**
+    * Toggle the debug log modal.
+    */
   toggleDebugModal() {
     this.debugModalOpen = !this.debugModalOpen;
+  }
+
+  // Toast notification state
+  toastVisible = $state(false);
+  toastMessage = $state('');
+  toastType = $state<'error' | 'warning' | 'info'>('info');
+  toastHovering = $state(false);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Show a toast notification.
+   * @param message - The message to display
+   * @param type - The type of toast (error, warning, info)
+   * @param duration - Duration in milliseconds (default: 4000, errors use 8000)
+   */
+  showToast(message: string, type: 'error' | 'warning' | 'info' = 'info', duration?: number) {
+    const capitalized = message.charAt(0).toUpperCase() + message.slice(1);
+    this.toastMessage = capitalized;
+    this.toastType = type;
+    this.toastVisible = true;
+    this.toastHovering = false;
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    const autoDuration = duration ?? (type === 'error' ? 8000 : 4000);
+
+    this.toastTimeout = setTimeout(() => {
+      if (!this.toastHovering) {
+        this.toastVisible = false;
+      }
+    }, autoDuration);
+  }
+
+  setToastHovering(hovering: boolean) {
+    this.toastHovering = hovering;
+    if (hovering && this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    } else if (!hovering && this.toastVisible) {
+      const autoDuration = this.toastType === 'error' ? 8000 : 4000;
+      this.toastTimeout = setTimeout(() => {
+        this.toastVisible = false;
+      }, autoDuration);
+    }
+  }
+
+  /**
+   * Hide toast notification.
+   */
+  hideToast() {
+    this.toastVisible = false;
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+      this.toastTimeout = null;
+    }
   }
 }
 

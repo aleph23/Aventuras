@@ -1,34 +1,50 @@
 <script lang="ts">
-  import { characterVault } from '$lib/stores/characterVault.svelte';
-  import { lorebookVault } from '$lib/stores/lorebookVault.svelte';
-  import { scenarioVault } from '$lib/stores/scenarioVault.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import type { VaultCharacter, VaultCharacterType, VaultLorebook, VaultScenario } from '$lib/types';
+  import { characterVault } from "$lib/stores/characterVault.svelte";
+  import { lorebookVault } from "$lib/stores/lorebookVault.svelte";
+  import { scenarioVault } from "$lib/stores/scenarioVault.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import type {
+    VaultCharacter,
+    VaultCharacterType,
+    VaultLorebook,
+    VaultScenario,
+  } from "$lib/types";
   import {
-    Plus, Search, Star, User, Users, ChevronLeft, Upload, Loader2, Archive, Book, Globe, MapPin
-  } from 'lucide-svelte';
-  import VaultCharacterCard from './VaultCharacterCard.svelte';
-  import VaultCharacterForm from './VaultCharacterForm.svelte';
-  import VaultLorebookCard from './VaultLorebookCard.svelte';
-  import VaultLorebookEditor from './VaultLorebookEditor.svelte';
-  import VaultScenarioCard from './VaultScenarioCard.svelte';
-  import VaultScenarioEditor from './VaultScenarioEditor.svelte';
-  import DiscoveryModal from '$lib/components/discovery/DiscoveryModal.svelte';
-  import { fade } from 'svelte/transition';
+    Plus,
+    Search,
+    Star,
+    User,
+    Users,
+    ChevronLeft,
+    Upload,
+    Loader2,
+    Archive,
+    Book,
+    Globe,
+    MapPin,
+  } from "lucide-svelte";
+  import VaultCharacterCard from "./VaultCharacterCard.svelte";
+  import VaultCharacterForm from "./VaultCharacterForm.svelte";
+  import VaultLorebookCard from "./VaultLorebookCard.svelte";
+  import VaultLorebookEditor from "./VaultLorebookEditor.svelte";
+  import VaultScenarioCard from "./VaultScenarioCard.svelte";
+  import VaultScenarioEditor from "./VaultScenarioEditor.svelte";
+  import DiscoveryModal from "$lib/components/discovery/DiscoveryModal.svelte";
+  import { fade } from "svelte/transition";
 
   // Types
-  type VaultTab = 'characters' | 'lorebooks' | 'scenarios';
+  type VaultTab = "characters" | "lorebooks" | "scenarios";
 
   // State
-  let activeTab = $state<VaultTab>('characters');
-  let searchQuery = $state('');
+  let activeTab = $state<VaultTab>("characters");
+  let searchQuery = $state("");
   let showFavoritesOnly = $state(false);
-  
+
   // Character State
-  let charFilterType = $state<VaultCharacterType | 'all'>('all');
+  let charFilterType = $state<VaultCharacterType | "all">("all");
   let showCharForm = $state(false);
   let editingCharacter = $state<VaultCharacter | null>(null);
-  let defaultCharFormType = $state<VaultCharacterType>('protagonist');
+  let defaultCharFormType = $state<VaultCharacterType>("protagonist");
   let importCharError = $state<string | null>(null);
 
   // Lorebook State
@@ -41,27 +57,30 @@
 
   // Discovery Modal State
   let showDiscoveryModal = $state(false);
-  let discoveryMode = $state<'character' | 'lorebook' | 'scenario'>('character');
+  let discoveryMode = $state<"character" | "lorebook" | "scenario">(
+    "character",
+  );
 
   // Derived: Filtered Characters
   const filteredCharacters = $derived.by(() => {
     let chars = characterVault.characters;
 
-    if (charFilterType !== 'all') {
-      chars = chars.filter(c => c.characterType === charFilterType);
+    if (charFilterType !== "all") {
+      chars = chars.filter((c) => c.characterType === charFilterType);
     }
 
     if (showFavoritesOnly) {
-      chars = chars.filter(c => c.favorite);
+      chars = chars.filter((c) => c.favorite);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      chars = chars.filter(c =>
-        c.name.toLowerCase().includes(query) ||
-        c.description?.toLowerCase().includes(query) ||
-        c.tags.some(t => t.toLowerCase().includes(query)) ||
-        c.traits.some(t => t.toLowerCase().includes(query))
+      chars = chars.filter(
+        (c) =>
+          c.name.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query) ||
+          c.tags.some((t) => t.toLowerCase().includes(query)) ||
+          c.traits.some((t) => t.toLowerCase().includes(query)),
       );
     }
 
@@ -73,15 +92,16 @@
     let books = lorebookVault.lorebooks;
 
     if (showFavoritesOnly) {
-      books = books.filter(b => b.favorite);
+      books = books.filter((b) => b.favorite);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      books = books.filter(b =>
-        b.name.toLowerCase().includes(query) ||
-        b.description?.toLowerCase().includes(query) ||
-        b.tags.some(t => t.toLowerCase().includes(query))
+      books = books.filter(
+        (b) =>
+          b.name.toLowerCase().includes(query) ||
+          b.description?.toLowerCase().includes(query) ||
+          b.tags.some((t) => t.toLowerCase().includes(query)),
       );
     }
 
@@ -93,15 +113,16 @@
     let items = scenarioVault.scenarios;
 
     if (showFavoritesOnly) {
-      items = items.filter(s => s.favorite);
+      items = items.filter((s) => s.favorite);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      items = items.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.description?.toLowerCase().includes(query) ||
-        s.tags.some(t => t.toLowerCase().includes(query))
+      items = items.filter(
+        (s) =>
+          s.name.toLowerCase().includes(query) ||
+          s.description?.toLowerCase().includes(query) ||
+          s.tags.some((t) => t.toLowerCase().includes(query)),
       );
     }
 
@@ -116,7 +137,7 @@
   });
 
   // Character Handlers
-  function openCreateCharForm(type: VaultCharacterType = 'protagonist') {
+  function openCreateCharForm(type: VaultCharacterType = "protagonist") {
     editingCharacter = null;
     defaultCharFormType = type;
     showCharForm = true;
@@ -144,10 +165,13 @@
     try {
       await characterVault.importFromFile(file);
     } catch (error) {
-      console.error('[CharacterVault] Import failed:', error);
-      importCharError = error instanceof Error ? error.message : 'Failed to import character card';
+      console.error("[CharacterVault] Import failed:", error);
+      importCharError =
+        error instanceof Error
+          ? error.message
+          : "Failed to import character card";
     } finally {
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -161,10 +185,11 @@
     try {
       await lorebookVault.importFromFile(file);
     } catch (error) {
-      console.error('[VaultPanel] Lorebook import failed:', error);
-      importLorebookError = error instanceof Error ? error.message : 'Failed to import lorebook';
+      console.error("[VaultPanel] Lorebook import failed:", error);
+      importLorebookError =
+        error instanceof Error ? error.message : "Failed to import lorebook";
     } finally {
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -183,16 +208,16 @@
   async function handleCreateLorebook() {
     // Create a new empty lorebook and open it for editing
     const newLorebook = await lorebookVault.add({
-      name: '',
+      name: "",
       description: null,
       entries: [],
       tags: [],
       favorite: false,
-      source: 'manual',
+      source: "manual",
       originalFilename: null,
       originalStoryId: null,
       metadata: {
-        format: 'aventura',
+        format: "aventura",
         totalEntries: 0,
         entryBreakdown: {
           character: 0,
@@ -216,10 +241,11 @@
     try {
       await scenarioVault.importFromFile(file);
     } catch (error) {
-      console.error('[VaultPanel] Scenario import failed:', error);
-      importScenarioError = error instanceof Error ? error.message : 'Failed to import scenario';
+      console.error("[VaultPanel] Scenario import failed:", error);
+      importScenarioError =
+        error instanceof Error ? error.message : "Failed to import scenario";
     } finally {
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -235,7 +261,7 @@
     editingScenario = scenario;
   }
 
-  function openBrowseOnline(mode: 'character' | 'lorebook' | 'scenario') {
+  function openBrowseOnline(mode: "character" | "lorebook" | "scenario") {
     discoveryMode = mode;
     showDiscoveryModal = true;
   }
@@ -245,11 +271,11 @@
   <!-- Header -->
   <div class="flex flex-col border-b border-surface-700 bg-surface-800">
     <!-- Top Bar -->
-    <div class="flex items-center justify-between px-4 py-3 sm:px-6">
+    <div class="flex items-center justify-between px-3 py-3 sm:px-6">
       <div class="flex items-center gap-3">
         <button
-          class="rounded p-1.5 hover:bg-surface-700"
-          onclick={() => ui.setActivePanel('library')}
+          class="rounded p-1.5 hover:bg-surface-700 -ml-1 sm:ml-0"
+          onclick={() => ui.setActivePanel("library")}
           title="Back to Library"
         >
           <ChevronLeft class="h-5 w-5 text-surface-400" />
@@ -259,19 +285,21 @@
           <h2 class="text-lg font-semibold text-surface-100">Vault</h2>
         </div>
       </div>
-      
+
       <!-- Right Side Actions (Context Sensitive) -->
-      <div class="flex items-center gap-2">
-        {#if activeTab === 'characters'}
+      <div class="flex items-center gap-2 -mr-1 sm:mr-0">
+        {#if activeTab === "characters"}
           <button
             class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500 hover:bg-surface-600"
-            onclick={() => openBrowseOnline('character')}
+            onclick={() => openBrowseOnline("character")}
             title="Browse characters online"
           >
             <Globe class="h-4 w-4" />
             <span class="hidden sm:inline">Browse Online</span>
           </button>
-          <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500">
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500"
+          >
             <Upload class="h-4 w-4" />
             <span class="hidden sm:inline">Import Card</span>
             <input
@@ -288,17 +316,19 @@
             <Plus class="h-4 w-4" />
             <span class="hidden sm:inline">New Character</span>
           </button>
-        {:else if activeTab === 'lorebooks'}
+        {:else if activeTab === "lorebooks"}
           <!-- Lorebook Actions -->
           <button
             class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500 hover:bg-surface-600"
-            onclick={() => openBrowseOnline('lorebook')}
+            onclick={() => openBrowseOnline("lorebook")}
             title="Browse lorebooks online"
           >
             <Globe class="h-4 w-4" />
             <span class="hidden sm:inline">Browse Online</span>
           </button>
-          <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500">
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500"
+          >
             <Upload class="h-4 w-4" />
             <span class="hidden sm:inline">Import Lorebook</span>
             <input
@@ -315,17 +345,19 @@
             <Plus class="h-4 w-4" />
             <span class="hidden sm:inline">New Lorebook</span>
           </button>
-        {:else if activeTab === 'scenarios'}
+        {:else if activeTab === "scenarios"}
           <!-- Scenario Actions -->
           <button
             class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500 hover:bg-surface-600"
-            onclick={() => openBrowseOnline('scenario')}
+            onclick={() => openBrowseOnline("scenario")}
             title="Browse scenarios online"
           >
             <Globe class="h-4 w-4" />
             <span class="hidden sm:inline">Browse Online</span>
           </button>
-          <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500">
+          <label
+            class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500"
+          >
             <Upload class="h-4 w-4" />
             <span class="hidden sm:inline">Import Card</span>
             <input
@@ -342,32 +374,47 @@
     <!-- Tab Bar -->
     <div class="flex px-4 sm:px-6">
       <button
-        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab === 'characters' ? 'border-accent-500 text-accent-400' : 'border-transparent text-surface-400 hover:text-surface-200'}"
-        onclick={() => activeTab = 'characters'}
+        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab ===
+        'characters'
+          ? 'border-accent-500 text-accent-400'
+          : 'border-transparent text-surface-400 hover:text-surface-200'}"
+        onclick={() => (activeTab = "characters")}
       >
         <Users class="h-4 w-4" />
-        Characters
-        <span class="ml-1 rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+        <span class="hidden sm:inline">Characters</span>
+        <span
+          class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400 sm:ml-1"
+        >
           {characterVault.characters.length}
         </span>
       </button>
       <button
-        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab === 'lorebooks' ? 'border-accent-500 text-accent-400' : 'border-transparent text-surface-400 hover:text-surface-200'}"
-        onclick={() => activeTab = 'lorebooks'}
+        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab ===
+        'lorebooks'
+          ? 'border-accent-500 text-accent-400'
+          : 'border-transparent text-surface-400 hover:text-surface-200'}"
+        onclick={() => (activeTab = "lorebooks")}
       >
         <Book class="h-4 w-4" />
-        Lorebooks
-        <span class="ml-1 rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+        <span class="hidden sm:inline">Lorebooks</span>
+        <span
+          class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400 sm:ml-1"
+        >
           {lorebookVault.lorebooks.length}
         </span>
       </button>
       <button
-        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab === 'scenarios' ? 'border-accent-500 text-accent-400' : 'border-transparent text-surface-400 hover:text-surface-200'}"
-        onclick={() => activeTab = 'scenarios'}
+        class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors {activeTab ===
+        'scenarios'
+          ? 'border-accent-500 text-accent-400'
+          : 'border-transparent text-surface-400 hover:text-surface-200'}"
+        onclick={() => (activeTab = "scenarios")}
       >
         <MapPin class="h-4 w-4" />
-        Scenarios
-        <span class="ml-1 rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400">
+        <span class="hidden sm:inline">Scenarios</span>
+        <span
+          class="rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-400 sm:ml-1"
+        >
           {scenarioVault.scenarios.length}
         </span>
       </button>
@@ -375,71 +422,107 @@
   </div>
 
   <!-- Search and Filters (Common) -->
-  <div class="border-b border-surface-700 px-4 py-3 space-y-3 sm:px-6 bg-surface-900/50">
-    {#if activeTab === 'characters' && importCharError}
-      <div class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between">
+  <div
+    class="border-b border-surface-700 px-3 py-3 space-y-3 sm:px-6 bg-surface-900/50"
+  >
+    {#if activeTab === "characters" && importCharError}
+      <div
+        class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between"
+      >
         <span>{importCharError}</span>
-        <button onclick={() => importCharError = null} class="text-red-400 hover:text-red-300">
+        <button
+          onclick={() => (importCharError = null)}
+          class="text-red-400 hover:text-red-300"
+        >
           <span class="sr-only">Dismiss</span>
           &times;
         </button>
       </div>
     {/if}
 
-      {#if activeTab === 'lorebooks'}
-        {#if importLorebookError}
-          <div class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between">
-            <span>{importLorebookError}</span>
-            <button onclick={() => importLorebookError = null} class="text-red-400 hover:text-red-300">
-              <span class="sr-only">Dismiss</span>
-              &times;
-            </button>
-          </div>
-        {/if}
+    {#if activeTab === "lorebooks"}
+      {#if importLorebookError}
+        <div
+          class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between"
+        >
+          <span>{importLorebookError}</span>
+          <button
+            onclick={() => (importLorebookError = null)}
+            class="text-red-400 hover:text-red-300"
+          >
+            <span class="sr-only">Dismiss</span>
+            &times;
+          </button>
+        </div>
       {/if}
+    {/if}
 
-      {#if activeTab === 'scenarios'}
-        {#if importScenarioError}
-          <div class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between">
-            <span>{importScenarioError}</span>
-            <button onclick={() => importScenarioError = null} class="text-red-400 hover:text-red-300">
-              <span class="sr-only">Dismiss</span>
-              &times;
-            </button>
-          </div>
-        {/if}
+    {#if activeTab === "scenarios"}
+      {#if importScenarioError}
+        <div
+          class="rounded-lg bg-red-500/10 border border-red-500/30 p-2 text-sm text-red-400 flex items-center justify-between"
+        >
+          <span>{importScenarioError}</span>
+          <button
+            onclick={() => (importScenarioError = null)}
+            class="text-red-400 hover:text-red-300"
+          >
+            <span class="sr-only">Dismiss</span>
+            &times;
+          </button>
+        </div>
       {/if}
+    {/if}
 
     <div class="flex flex-col sm:flex-row gap-3">
       <div class="relative flex-1">
-        <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-500" />
+        <Search
+          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-500"
+        />
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder={activeTab === 'characters' ? "Search characters..." : activeTab === 'lorebooks' ? "Search lorebooks..." : "Search scenarios..."}
+          placeholder={activeTab === "characters"
+            ? "Search characters..."
+            : activeTab === "lorebooks"
+              ? "Search lorebooks..."
+              : "Search scenarios..."}
           class="w-full rounded-lg border border-surface-600 bg-surface-700 pl-10 pr-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
         />
       </div>
 
-      <div class="flex items-center gap-2">
-        {#if activeTab === 'characters'}
-          <div class="flex items-center gap-1 rounded-lg bg-surface-800 p-1 border border-surface-700">
+      <div
+        class="flex items-center gap-2 overflow-x-auto -mx-3 px-3 pb-1 sm:pb-0 sm:mx-0 sm:px-0 sm:overflow-visible no-scrollbar"
+      >
+        {#if activeTab === "characters"}
+          <div
+            class="flex items-center gap-1 rounded-lg bg-surface-800 p-1 border border-surface-700 shrink-0"
+          >
             <button
-              class="rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType === 'all' ? 'bg-surface-600 text-surface-100' : 'text-surface-400 hover:text-surface-200'}"
-              onclick={() => charFilterType = 'all'}
+              class="rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType ===
+              'all'
+                ? 'bg-surface-600 text-surface-100'
+                : 'text-surface-400 hover:text-surface-200'}"
+              onclick={() => (charFilterType = "all")}
             >
               All
             </button>
             <button
-              class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType === 'protagonist' ? 'bg-surface-600 text-surface-100' : 'text-surface-400 hover:text-surface-200'}"
-              onclick={() => charFilterType = 'protagonist'}
+              class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType ===
+              'protagonist'
+                ? 'bg-surface-600 text-surface-100'
+                : 'text-surface-400 hover:text-surface-200'}"
+              onclick={() => (charFilterType = "protagonist")}
             >
               <User class="h-3 w-3" />
               Protagonists
             </button>
             <button
-              class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType === 'supporting' ? 'bg-surface-600 text-surface-100' : 'text-surface-400 hover:text-surface-200'}"
-              onclick={() => charFilterType = 'supporting'}
+              class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors {charFilterType ===
+              'supporting'
+                ? 'bg-surface-600 text-surface-100'
+                : 'text-surface-400 hover:text-surface-200'}"
+              onclick={() => (charFilterType = "supporting")}
             >
               <Users class="h-3 w-3" />
               Supporting
@@ -448,8 +531,10 @@
         {/if}
 
         <button
-          class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors {showFavoritesOnly ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' : 'border-surface-600 bg-surface-800 text-surface-400 hover:border-surface-500'}"
-          onclick={() => showFavoritesOnly = !showFavoritesOnly}
+          class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors shrink-0 {showFavoritesOnly
+            ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+            : 'border-surface-600 bg-surface-800 text-surface-400 hover:border-surface-500'}"
+          onclick={() => (showFavoritesOnly = !showFavoritesOnly)}
         >
           <Star class="h-3 w-3 {showFavoritesOnly ? 'fill-yellow-400' : ''}" />
           Favorites
@@ -459,8 +544,8 @@
   </div>
 
   <!-- Content -->
-  <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-surface-900">
-    {#if activeTab === 'characters'}
+  <div class="flex-1 overflow-y-auto p-3 sm:p-6 bg-surface-900">
+    {#if activeTab === "characters"}
       <!-- Character Grid -->
       {#if !characterVault.isLoaded}
         <div class="flex h-full items-center justify-center">
@@ -471,24 +556,24 @@
           <div class="text-center">
             <Users class="mx-auto h-12 w-12 text-surface-600" />
             <p class="mt-3 text-surface-400">
-              {#if searchQuery || showFavoritesOnly || charFilterType !== 'all'}
+              {#if searchQuery || showFavoritesOnly || charFilterType !== "all"}
                 No characters match your filters
               {:else}
                 No characters in vault yet
               {/if}
             </p>
-            {#if !searchQuery && !showFavoritesOnly && charFilterType === 'all'}
+            {#if !searchQuery && !showFavoritesOnly && charFilterType === "all"}
               <div class="mt-4 flex justify-center gap-2">
                 <button
                   class="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600"
-                  onclick={() => openCreateCharForm('protagonist')}
+                  onclick={() => openCreateCharForm("protagonist")}
                 >
                   <User class="h-4 w-4" />
                   Create Protagonist
                 </button>
                 <button
                   class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-4 py-2 text-sm text-surface-300 hover:border-surface-500"
-                  onclick={() => openCreateCharForm('supporting')}
+                  onclick={() => openCreateCharForm("supporting")}
                 >
                   <Users class="h-4 w-4" />
                   Create Supporting
@@ -498,7 +583,10 @@
           </div>
         </div>
       {:else}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" in:fade>
+        <div
+          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          in:fade
+        >
           {#each filteredCharacters as character (character.id)}
             <VaultCharacterCard
               {character}
@@ -509,8 +597,7 @@
           {/each}
         </div>
       {/if}
-    
-    {:else if activeTab === 'lorebooks'}
+    {:else if activeTab === "lorebooks"}
       <!-- Lorebook Grid -->
       {#if !lorebookVault.isLoaded}
         <div class="flex h-full items-center justify-center">
@@ -544,7 +631,10 @@
           </div>
         </div>
       {:else}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" in:fade>
+        <div
+          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          in:fade
+        >
           {#each filteredLorebooks as lorebook (lorebook.id)}
             <VaultLorebookCard
               {lorebook}
@@ -555,8 +645,7 @@
           {/each}
         </div>
       {/if}
-
-    {:else if activeTab === 'scenarios'}
+    {:else if activeTab === "scenarios"}
       <!-- Scenario Grid -->
       {#if !scenarioVault.isLoaded}
         <div class="flex h-full items-center justify-center">
@@ -579,7 +668,10 @@
           </div>
         </div>
       {:else}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" in:fade>
+        <div
+          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          in:fade
+        >
           {#each filteredScenarios as scenario (scenario.id)}
             <VaultScenarioCard
               {scenario}
@@ -599,7 +691,10 @@
   <VaultCharacterForm
     character={editingCharacter}
     defaultType={defaultCharFormType}
-    onClose={() => { showCharForm = false; editingCharacter = null; }}
+    onClose={() => {
+      showCharForm = false;
+      editingCharacter = null;
+    }}
   />
 {/if}
 
@@ -607,7 +702,7 @@
 {#if editingLorebook}
   <VaultLorebookEditor
     lorebook={editingLorebook}
-    onClose={() => editingLorebook = null}
+    onClose={() => (editingLorebook = null)}
   />
 {/if}
 
@@ -615,7 +710,7 @@
 {#if editingScenario}
   <VaultScenarioEditor
     scenario={editingScenario}
-    onClose={() => editingScenario = null}
+    onClose={() => (editingScenario = null)}
   />
 {/if}
 
@@ -623,5 +718,5 @@
 <DiscoveryModal
   isOpen={showDiscoveryModal}
   mode={discoveryMode}
-  onClose={() => showDiscoveryModal = false}
+  onClose={() => (showDiscoveryModal = false)}
 />

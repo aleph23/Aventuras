@@ -1,6 +1,6 @@
 import type { OpenAIProvider } from './openrouter';
-import type { Chapter, StoryEntry, MemoryConfig, TimeTracker } from '$lib/types';
-import { settings, type MemorySettings } from '$lib/stores/settings.svelte';
+import type { Chapter, StoryEntry, MemoryConfig, TimeTracker, GenerationPreset } from '$lib/types';
+import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
 
@@ -72,27 +72,33 @@ export interface RetrievedContext {
 
 export class MemoryService {
   private provider: OpenAIProvider;
-  private settingsOverride?: Partial<MemorySettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<MemorySettings>) {
+  constructor(provider: OpenAIProvider, presetId: string = 'memory', settingsOverride?: Partial<GenerationPreset>) {
     this.provider = provider;
+    this.presetId = presetId;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.memory.model;
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.memory.temperature;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
   private get extraBody(): Record<string, unknown> | undefined {
     return buildExtraBody({
       manualMode: settings.advancedRequestSettings.manualMode,
-      manualBody: this.settingsOverride?.manualBody ?? settings.systemServicesSettings.memory.manualBody,
-      reasoningEffort: this.settingsOverride?.reasoningEffort ?? settings.systemServicesSettings.memory.reasoningEffort,
-      providerOnly: this.settingsOverride?.providerOnly ?? settings.systemServicesSettings.memory.providerOnly,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
     });
   }
 

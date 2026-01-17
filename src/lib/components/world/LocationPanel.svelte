@@ -1,5 +1,6 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
   import { Plus, MapPin, Eye, EyeOff, Navigation, Trash2, Pencil, ChevronDown, ChevronUp } from 'lucide-svelte';
   import type { Location } from '$lib/types';
 
@@ -10,15 +11,10 @@
   let editingId = $state<string | null>(null);
   let editName = $state('');
   let editDescription = $state('');
-  let collapsedLocations = $state<Set<string>>(new Set());
 
   function toggleCollapse(locationId: string) {
-    if (collapsedLocations.has(locationId)) {
-      collapsedLocations.delete(locationId);
-    } else {
-      collapsedLocations.add(locationId);
-    }
-    collapsedLocations = new Set(collapsedLocations);
+    const isCollapsed = ui.isEntityCollapsed(locationId);
+    ui.toggleEntityCollapsed(locationId, !isCollapsed);
   }
 
   function getSectionLineCount(location: Location): number {
@@ -114,24 +110,46 @@
 
   <!-- Current Location -->
   {#if story.currentLocation}
+    {@const currentIsCollapsed = ui.isEntityCollapsed(story.currentLocation.id)}
+    {@const currentSectionLineCount = getSectionLineCount(story.currentLocation)}
+    {@const currentNeedsCollapse = currentSectionLineCount > 4}
     <div class="card border-accent-500/50 bg-accent-500/10 p-3">
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 text-accent-400">
-          <Navigation class="h-4 w-4" />
-          <span class="text-sm font-medium">Current Location</span>
-        </div>
-        <button
-          class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
-          onclick={() => startEdit(story.currentLocation)}
-          title="Edit location"
-        >
-          <Pencil class="h-3.5 w-3.5" />
-        </button>
+      <div class="flex items-center gap-2 text-accent-400">
+        <Navigation class="h-4 w-4" />
+        <span class="text-sm font-medium">Current Location</span>
       </div>
       <h4 class="mt-1 break-words font-medium text-surface-100">{story.currentLocation.name}</h4>
       {#if story.currentLocation.description}
-        <p class="mt-1 break-words text-sm text-surface-400">{story.currentLocation.description}</p>
+        <div class="mt-1 space-y-2 rounded-md bg-surface-800/40" class:max-h-24={currentIsCollapsed && currentNeedsCollapse} class:overflow-hidden={currentIsCollapsed && currentNeedsCollapse}>
+          <p class="break-words text-sm text-surface-400">{story.currentLocation.description}</p>
+        </div>
       {/if}
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between gap-1 self-end sm:self-auto mt-3">
+        <div class="flex items-center gap-1">
+          <button
+            class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+            onclick={() => story.currentLocation && startEdit(story.currentLocation)}
+            title="Edit location"
+          >
+            <Pencil class="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {#if currentNeedsCollapse}
+          <button
+            class="btn-ghost rounded p-1.5 text-surface-500 hover:text-surface-200 sm:p-1"
+            onclick={() => story.currentLocation && toggleCollapse(story.currentLocation.id)}
+            title={currentIsCollapsed ? 'Expand' : 'Collapse'}
+          >
+            {#if currentIsCollapsed}
+              <ChevronDown class="h-3.5 w-3.5" />
+            {:else}
+              <ChevronUp class="h-3.5 w-3.5" />
+            {/if}
+          </button>
+        {/if}
+      </div>
       {#if editingId === story.currentLocation.id}
         <div class="mt-3 space-y-2">
           <input
@@ -152,7 +170,7 @@
             </button>
             <button
               class="btn btn-primary text-xs"
-              onclick={() => saveEdit(story.currentLocation)}
+              onclick={() => story.currentLocation && saveEdit(story.currentLocation)}
               disabled={!editName.trim()}
             >
               Save
@@ -170,7 +188,7 @@
   {:else}
     <div class="space-y-2">
       {#each story.locations.filter(l => !l.current) as location (location.id)}
-        {@const isCollapsed = collapsedLocations.has(location.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(location.id)}
         {@const sectionLineCount = getSectionLineCount(location)}
         {@const needsCollapse = sectionLineCount > 4}
         <div class="card p-3">

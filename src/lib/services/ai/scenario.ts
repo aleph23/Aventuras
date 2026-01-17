@@ -1,5 +1,5 @@
 import { settings, DEFAULT_OPENROUTER_PROFILE_ID, DEFAULT_NANOGPT_PROFILE_ID, type ProviderPreset } from '$lib/stores/settings.svelte';
-import type { ReasoningEffort } from '$lib/types';
+import type { ReasoningEffort, GenerationPreset } from '$lib/types';
 import { OpenAIProvider, OPENROUTER_API_URL } from './openrouter';
 import { buildExtraBody } from './requestOverrides';
 import type { Message } from './types';
@@ -26,6 +26,7 @@ export type Tense = 'past' | 'present';
 // Advanced settings for customizing generation processes
 export interface ProcessSettings {
   profileId?: string | null;  // API profile to use (null = use default profile)
+  presetId?: string;  // Agent profile preset ID
   model?: string;
   systemPrompt?: string;
   temperature?: number;
@@ -244,14 +245,27 @@ export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
   };
 }
 
-export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset): AdvancedWizardSettings {
+export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset, customModel?: string | null): AdvancedWizardSettings {
   const profileId = provider === 'nanogpt' ? DEFAULT_NANOGPT_PROFILE_ID : DEFAULT_OPENROUTER_PROFILE_ID;
-  // NanoGPT uses zai-org/ prefix and :thinking suffix for opening generation
-  const openingModel = provider === 'nanogpt' ? 'zai-org/glm-4.7:thinking' : 'z-ai/glm-4.7';
+  
+  // For custom provider, use provided model or fall back to placeholder
+  let generalModel: string;
+  let openingModel: string;
+  
+  if (provider === 'custom') {
+    generalModel = customModel || 'gpt-4o-mini';
+    openingModel = customModel || 'gpt-4o-mini';
+  } else {
+    generalModel = 'deepseek/deepseek-v3.2';
+    // NanoGPT uses zai-org/ prefix and :thinking suffix for opening generation
+    openingModel = provider === 'nanogpt' ? 'zai-org/glm-4.7:thinking' : 'z-ai/glm-4.7';
+  }
+
   return {
     settingExpansion: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.3,
       topP: 0.95,
@@ -261,8 +275,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     settingRefinement: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
       temperature: 0.3,
       topP: 0.95,
@@ -272,8 +287,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     protagonistGeneration: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.protagonistGeneration,
       temperature: 0.3,
       topP: 0.95,
@@ -283,8 +299,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     characterElaboration: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.characterElaboration,
       temperature: 0.3,
       topP: 0.95,
@@ -294,8 +311,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     characterRefinement: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
       temperature: 0.3,
       topP: 0.95,
@@ -305,20 +323,23 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     supportingCharacters: {
-      profileId,
-      model: SCENARIO_MODEL,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.supportingCharacters,
       temperature: 0.3,
+      topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: 'off',
       providerOnly: [],
       manualBody: '',
     },
     openingGeneration: {
-      profileId,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
       model: openingModel,
-      systemPrompt: '',
-      temperature: 0.8,
+      systemPrompt: DEFAULT_PROMPTS.openingGeneration,
+      temperature: 0.3,
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: 'high',
@@ -326,13 +347,14 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     openingRefinement: {
-      profileId,
-      model: openingModel,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
-      temperature: 0.8,
+      temperature: 0.3,
       topP: 0.95,
       maxTokens: 8192,
-      reasoningEffort: 'high',
+      reasoningEffort: 'off',
       providerOnly: [],
       manualBody: '',
     },
@@ -412,15 +434,15 @@ class ScenarioService {
   }
 
   private buildProcessExtraBody(
-    overrides: ProcessSettings | undefined,
+    presetConfig: GenerationPreset | Partial<ProcessSettings>,
     baseProvider: Record<string, unknown>,
     defaultReasoningEffort: ReasoningEffort
   ) {
     return buildExtraBody({
       manualMode: settings.advancedRequestSettings.manualMode,
-      manualBody: overrides?.manualBody,
-      reasoningEffort: overrides?.reasoningEffort ?? defaultReasoningEffort,
-      providerOnly: overrides?.providerOnly,
+      manualBody: presetConfig.manualBody,
+      reasoningEffort: presetConfig.reasoningEffort ?? defaultReasoningEffort,
+      providerOnly: presetConfig.providerOnly,
       baseProvider,
     });
   }
@@ -513,21 +535,20 @@ class ScenarioService {
     seed: string,
     genre: Genre,
     customGenre?: string,
-    overrides?: ProcessSettings,
+    presetId?: string,
     lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[],
     customInstruction?: string
   ): Promise<ExpandedSetting> {
-    log('expandSetting called', { seed, genre, hasOverrides: !!overrides, lorebookEntries: lorebookEntries?.length ?? 0, profileId: overrides?.profileId, hasCustomInstruction: !!customInstruction });
+    log('expandSetting called', { seed, genre, presetId, lorebookEntries: lorebookEntries?.length ?? 0, hasCustomInstruction: !!customInstruction });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Setting Expansion');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const promptContext = this.getWizardPromptContext();
-    // Build custom instruction block if provided
     const customInstructionBlock = customInstruction?.trim()
       ? `\n\nAUTHOR'S GUIDANCE: ${customInstruction.trim()}`
       : '';
-    // Use the prompt system - user customizations are handled via template overrides
     const systemPrompt = promptService.renderPrompt('setting-expansion', promptContext, {
       customInstruction: customInstructionBlock,
     });
@@ -550,15 +571,14 @@ class ScenarioService {
       }
     ];
 
-    const model = overrides?.model || 'z-ai/glm-4.7';
+    const model = presetConfig.model || 'z-ai/glm-4.7';
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.3,
-      topP: overrides?.topP,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Setting expansion response received', { length: response.content.length });
@@ -600,13 +620,14 @@ class ScenarioService {
     currentSetting: ExpandedSetting,
     genre: Genre,
     customGenre?: string,
-    overrides?: ProcessSettings,
+    presetId?: string,
     lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[],
     customInstruction?: string
   ): Promise<ExpandedSetting> {
-    log('refineSetting called', { settingName: currentSetting.name, genre, hasOverrides: !!overrides, lorebookEntries: lorebookEntries?.length ?? 0, profileId: overrides?.profileId, hasCustomInstruction: !!customInstruction });
+    log('refineSetting called', { settingName: currentSetting.name, genre, presetId, lorebookEntries: lorebookEntries?.length ?? 0, hasCustomInstruction: !!customInstruction });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Setting Refinement');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const promptContext = this.getWizardPromptContext();
@@ -651,15 +672,14 @@ class ScenarioService {
       }
     ];
 
-    const model = overrides?.model || 'deepseek/deepseek-v3.2';
+    const model = presetConfig.model || 'deepseek/deepseek-v3.2';
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.3,
-      topP: overrides?.topP,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Setting refinement response received', { length: response.content.length });
@@ -688,12 +708,13 @@ class ScenarioService {
     setting: ExpandedSetting | null,
     genre: Genre,
     customGenre?: string,
-    overrides?: ProcessSettings,
+    presetId?: string,
     customInstruction?: string
   ): Promise<GeneratedProtagonist> {
-    log('elaborateCharacter called', { userInput, genre, hasOverrides: !!overrides, profileId: overrides?.profileId, hasCustomInstruction: !!customInstruction });
+    log('elaborateCharacter called', { userInput, genre, presetId, hasCustomInstruction: !!customInstruction });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Character Elaboration');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const promptContext = this.getWizardPromptContext();
@@ -701,11 +722,9 @@ class ScenarioService {
     const settingInstruction = setting
       ? `- Make the character fit naturally into: ${setting.name}`
       : '';
-    // Build custom instruction block if provided
     const customInstructionBlock = customInstruction?.trim()
       ? `\n\nAUTHOR'S GUIDANCE: ${customInstruction.trim()}`
       : '';
-    // Use the prompt system - user customizations are handled via template overrides
     const systemPrompt = promptService.renderPrompt('character-elaboration', promptContext, {
       toneInstruction,
       settingInstruction,
@@ -741,15 +760,14 @@ class ScenarioService {
       }
     ];
 
-    const model = overrides?.model || 'deepseek/deepseek-v3.2';
+    const model = presetConfig.model || 'deepseek/deepseek-v3.2';
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.3,
-      topP: overrides?.topP,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Character elaboration response received', { length: response.content.length });
@@ -790,18 +808,19 @@ class ScenarioService {
     setting: ExpandedSetting | null,
     genre: Genre,
     customGenre?: string,
-    overrides?: ProcessSettings,
+    presetId?: string,
     customInstruction?: string
   ): Promise<GeneratedProtagonist> {
-    log('refineCharacter called', { characterName: currentCharacter.name, genre, hasOverrides: !!overrides, profileId: overrides?.profileId, hasCustomInstruction: !!customInstruction });
+    log('refineCharacter called', { characterName: currentCharacter.name, genre, presetId, hasCustomInstruction: !!customInstruction });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Character Refinement');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const promptContext = this.getWizardPromptContext();
     const toneInstruction = `- Keep the tone appropriate for the ${genreLabel} genre`;
     const settingInstruction = setting
-      ? `- Make the character fit naturally into: ${setting.name}`
+      ? `- Make character fit naturally into: ${setting.name}`
       : '';
     const customInstructionBlock = customInstruction?.trim()
       ? `\n\nAUTHOR'S GUIDANCE: ${customInstruction.trim()}`
@@ -840,15 +859,14 @@ class ScenarioService {
       }
     ];
 
-    const model = overrides?.model || 'deepseek/deepseek-v3.2';
+    const model = presetConfig.model || 'deepseek/deepseek-v3.2';
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.3,
-      topP: overrides?.topP,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Character refinement response received', { length: response.content.length });
@@ -864,7 +882,7 @@ class ScenarioService {
   }
 
   /**
-   * Generate a protagonist character based on the setting and mode.
+   * Generate a protagonist character based on setting and mode.
    */
   async generateProtagonist(
     setting: ExpandedSetting,
@@ -872,11 +890,12 @@ class ScenarioService {
     mode: StoryMode,
     pov: POV,
     customGenre?: string,
-    overrides?: ProcessSettings
+    presetId?: string
   ): Promise<GeneratedProtagonist> {
-    log('generateProtagonist called', { settingName: setting.name, genre, mode, pov, hasOverrides: !!overrides, profileId: overrides?.profileId });
+    log('generateProtagonist called', { settingName: setting.name, genre, mode, pov, presetId });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Protagonist Generation');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const povContext = pov === 'first'
@@ -886,11 +905,10 @@ class ScenarioService {
         : 'This is the main viewpoint character for a third person narrative.';
 
     const modeContext = mode === 'adventure'
-      ? 'This is for an interactive adventure where the reader makes choices as this character.'
+      ? 'This is for an interactive adventure where, reader makes choices as this character.'
       : 'This is for a creative writing project where this character drives the narrative.';
 
     const promptContext = this.getWizardPromptContext(mode, pov);
-    // Use the prompt system - user customizations are handled via template overrides
     const systemPrompt = promptService.renderPrompt('protagonist-generation', promptContext);
     const povInstruction = `${povContext}\n${modeContext}`;
     const settingDescription = `${setting.description}\n\nATMOSPHERE: ${setting.atmosphere}\n\nTHEMES: ${setting.themes.join(', ')}`;
@@ -911,15 +929,14 @@ class ScenarioService {
       }
     ];
 
-    const model = overrides?.model || 'deepseek/deepseek-v3.2';
+    const model = presetConfig.model || 'deepseek/deepseek-v3.2';
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.3,
-      topP: overrides?.topP,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Protagonist response received', { length: response.content.length });
@@ -960,15 +977,15 @@ class ScenarioService {
     genre: Genre,
     count: number = 3,
     customGenre?: string,
-    overrides?: ProcessSettings
+    presetId?: string
   ): Promise<GeneratedCharacter[]> {
-    log('generateCharacters called', { settingName: setting.name, count, hasOverrides: !!overrides, profileId: overrides?.profileId });
+    log('generateCharacters called', { settingName: setting.name, count, presetId });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Supporting Characters');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const genreLabel = genre === 'custom' && customGenre ? customGenre : genre;
 
     const promptContext = this.getWizardPromptContext('adventure', 'second', 'present', protagonist.name);
-    // Use the prompt system - user customizations are handled via template overrides
     const systemPrompt = promptService.renderPrompt('supporting-characters', promptContext);
     const messages: Message[] = [
       {
@@ -988,13 +1005,12 @@ class ScenarioService {
       }
     ];
 
-    // Deepseek with lower temperature for consistency
     const response = await provider.generateResponse({
       messages,
-      model: overrides?.model || SCENARIO_MODEL,
-      temperature: overrides?.temperature ?? 0.3,
-      maxTokens: overrides?.maxTokens ?? 8192,
-      extraBody: this.buildProcessExtraBody(overrides, SCENARIO_PROVIDER, 'off'),
+      model: presetConfig.model || SCENARIO_MODEL,
+      temperature: presetConfig.temperature ?? 0.3,
+      maxTokens: presetConfig.maxTokens ?? 8192,
+      extraBody: this.buildProcessExtraBody(presetConfig, SCENARIO_PROVIDER, 'off'),
     });
 
     log('Characters response received', { length: response.content.length });
@@ -1022,23 +1038,23 @@ class ScenarioService {
   }
 
   /**
-   * Generate an opening scene based on all the setup data.
+   * Generate an opening scene based on all of setup data.
    */
   async generateOpening(
     wizardData: WizardData,
-    overrides?: ProcessSettings,
+    presetId?: string,
     lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[]
   ): Promise<GeneratedOpening> {
     log('generateOpening called', {
       settingName: wizardData.expandedSetting?.name,
       protagonist: wizardData.protagonist?.name,
       mode: wizardData.mode,
-      hasOverrides: !!overrides,
+      presetId,
       lorebookEntries: lorebookEntries?.length ?? 0,
-      profileId: overrides?.profileId,
     });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Opening Generation');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, lorebookEntries, 'json');
 
     const messages: Message[] = [
@@ -1046,19 +1062,17 @@ class ScenarioService {
       { role: 'user', content: userPrompt },
     ];
 
-    // Use z-ai provider for GLM models
-    const model = overrides?.model || 'deepseek/deepseek-v3.2';
+    const model = presetConfig.model || 'deepseek/deepseek-v3.2';
     const isZAI = model.startsWith('z-ai/');
     const isGLM = model.includes('glm');
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.8,
-      topP: overrides?.topP ?? (isGLM ? 0.95 : undefined),
-      maxTokens: overrides?.maxTokens ?? 8192,
+      temperature: presetConfig.temperature ?? 0.8,
+      maxTokens: presetConfig.maxTokens ?? 8192,
       extraBody: this.buildProcessExtraBody(
-        overrides,
+        presetConfig,
         isZAI ? { order: ['z-ai'], require_parameters: true } : SCENARIO_PROVIDER,
         'high'
       ),
@@ -1094,18 +1108,18 @@ class ScenarioService {
   async refineOpening(
     wizardData: WizardData,
     currentOpening: GeneratedOpening,
-    overrides?: ProcessSettings,
+    presetId?: string,
     lorebookEntries?: { name: string; type: string; description: string; hiddenInfo?: string }[]
   ): Promise<GeneratedOpening> {
     log('refineOpening called', {
       title: currentOpening.title,
       mode: wizardData.mode,
-      hasOverrides: !!overrides,
+      presetId,
       lorebookEntries: lorebookEntries?.length ?? 0,
-      profileId: overrides?.profileId,
     });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Opening Refinement');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const { systemPrompt, userPrompt } = this.buildOpeningRefinementPrompts(
       wizardData,
       currentOpening,
@@ -1118,19 +1132,17 @@ class ScenarioService {
       { role: 'user', content: userPrompt },
     ];
 
-    // Use z-ai provider for GLM models
-    const model = overrides?.model || 'z-ai/glm-4.7';
+    const model = presetConfig.model || 'z-ai/glm-4.7';
     const isZAI = model.startsWith('z-ai/');
     const isGLM = model.includes('glm');
 
     const response = await provider.generateResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.8,
-      topP: overrides?.topP ?? (isGLM ? 0.95 : undefined),
-      maxTokens: overrides?.maxTokens ?? 8192,
+      temperature: presetConfig.temperature ?? 0.8,
+      maxTokens: presetConfig.maxTokens ?? 8192,
       extraBody: this.buildProcessExtraBody(
-        overrides,
+        presetConfig,
         isZAI ? { order: ['z-ai'], require_parameters: true } : SCENARIO_PROVIDER,
         'high'
       ),
@@ -1149,15 +1161,16 @@ class ScenarioService {
   }
 
   /**
-   * Stream the opening scene generation for real-time display.
+   * Stream opening scene generation for real-time display.
    */
   async *streamOpening(
     wizardData: WizardData,
-    overrides?: ProcessSettings
+    presetId?: string
   ): AsyncIterable<{ content: string; done: boolean }> {
-    log('streamOpening called', { hasOverrides: !!overrides, profileId: overrides?.profileId });
+    log('streamOpening called', { presetId });
 
-    const provider = this.getProvider(overrides?.profileId || undefined);
+    const presetConfig = settings.getPresetConfig(presetId || '', 'Opening Generation');
+    const provider = this.getProvider(presetConfig.profileId || undefined);
     const { systemPrompt, userPrompt } = this.buildOpeningPrompts(wizardData, undefined, 'stream');
 
     const messages: Message[] = [
@@ -1165,19 +1178,17 @@ class ScenarioService {
       { role: 'user', content: userPrompt },
     ];
 
-    // Use z-ai provider for GLM models
-    const model = overrides?.model || 'z-ai/glm-4.7';
+    const model = presetConfig.model || 'z-ai/glm-4.7';
     const isZAI = model.startsWith('z-ai/');
     const isGLM = model.includes('glm');
 
     for await (const chunk of provider.streamResponse({
       messages,
       model,
-      temperature: overrides?.temperature ?? 0.8,
-      topP: overrides?.topP ?? (isGLM ? 0.95 : undefined),
-      maxTokens: overrides?.maxTokens ?? 8192,
+      temperature: presetConfig.temperature ?? 0.8,
+      maxTokens: presetConfig.maxTokens ?? 8192,
       extraBody: this.buildProcessExtraBody(
-        overrides,
+        presetConfig,
         isZAI ? { order: ['z-ai'], require_parameters: true } : SCENARIO_PROVIDER,
         'high'
       ),

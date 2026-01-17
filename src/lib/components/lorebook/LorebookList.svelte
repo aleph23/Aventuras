@@ -1,9 +1,17 @@
 <script lang="ts">
-  import type { Entry, EntryType } from '$lib/types';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { story } from '$lib/stores/story.svelte';
-  import { Search, Plus, Download, Upload, Trash2, X, ChevronDown } from 'lucide-svelte';
-  import LorebookEntryCard from './LorebookEntryCard.svelte';
+  import type { Entry, EntryType } from "$lib/types";
+  import { ui } from "$lib/stores/ui.svelte";
+  import { story } from "$lib/stores/story.svelte";
+  import {
+    Search,
+    Plus,
+    Download,
+    Upload,
+    Trash2,
+    X,
+    ChevronDown,
+  } from "lucide-svelte";
+  import LorebookEntryCard from "./LorebookEntryCard.svelte";
 
   interface Props {
     onNewEntry?: () => void;
@@ -15,11 +23,22 @@
   let showTypeFilter = $state(false);
   let showSortMenu = $state(false);
 
-  const entryTypes: Array<EntryType | 'all'> = ['all', 'character', 'location', 'item', 'faction', 'concept', 'event'];
-  const sortOptions: Array<{ value: 'name' | 'type' | 'updated'; label: string }> = [
-    { value: 'name', label: 'Name' },
-    { value: 'type', label: 'Type' },
-    { value: 'updated', label: 'Recently Updated' },
+  const entryTypes: Array<EntryType | "all"> = [
+    "all",
+    "character",
+    "location",
+    "item",
+    "faction",
+    "concept",
+    "event",
+  ];
+  const sortOptions: Array<{
+    value: "name" | "type" | "updated";
+    label: string;
+  }> = [
+    { value: "name", label: "Name" },
+    { value: "type", label: "Type" },
+    { value: "updated", label: "Recently Updated" },
   ];
 
   // Lore management active state - disable editing actions
@@ -30,29 +49,30 @@
     let result = [...story.lorebookEntries]; // Create a copy to avoid mutating original
 
     // Filter by type
-    if (ui.lorebookTypeFilter !== 'all') {
-      result = result.filter(e => e.type === ui.lorebookTypeFilter);
+    if (ui.lorebookTypeFilter !== "all") {
+      result = result.filter((e) => e.type === ui.lorebookTypeFilter);
     }
 
     // Filter by search query
     if (ui.lorebookSearchQuery.trim()) {
       const query = ui.lorebookSearchQuery.toLowerCase();
-      result = result.filter(e =>
-        e.name.toLowerCase().includes(query) ||
-        e.description.toLowerCase().includes(query) ||
-        e.aliases.some(a => a.toLowerCase().includes(query)) ||
-        e.injection.keywords.some(k => k.toLowerCase().includes(query))
+      result = result.filter(
+        (e) =>
+          e.name.toLowerCase().includes(query) ||
+          e.description.toLowerCase().includes(query) ||
+          e.aliases.some((a) => a.toLowerCase().includes(query)) ||
+          e.injection.keywords.some((k) => k.toLowerCase().includes(query)),
       );
     }
 
     // Sort (safe since we already created a copy)
     return result.sort((a, b) => {
       switch (ui.lorebookSortBy) {
-        case 'name':
+        case "name":
           return a.name.localeCompare(b.name);
-        case 'type':
+        case "type":
           return a.type.localeCompare(b.type) || a.name.localeCompare(b.name);
-        case 'updated':
+        case "updated":
           return b.updatedAt - a.updatedAt;
         default:
           return 0;
@@ -63,7 +83,7 @@
   const hasBulkSelection = $derived(ui.lorebookBulkSelection.size > 0);
   const allSelected = $derived(
     filteredEntries.length > 0 &&
-    filteredEntries.every(e => ui.lorebookBulkSelection.has(e.id))
+      filteredEntries.every((e) => ui.lorebookBulkSelection.has(e.id)),
   );
 
   function handleSearchInput(e: Event) {
@@ -74,12 +94,12 @@
     }, 300);
   }
 
-  function handleTypeFilter(type: EntryType | 'all') {
+  function handleTypeFilter(type: EntryType | "all") {
     ui.setLorebookTypeFilter(type);
     showTypeFilter = false;
   }
 
-  function handleSort(sort: 'name' | 'type' | 'updated') {
+  function handleSort(sort: "name" | "type" | "updated") {
     ui.setLorebookSortBy(sort);
     showSortMenu = false;
   }
@@ -88,7 +108,7 @@
     if (allSelected) {
       ui.clearBulkSelection();
     } else {
-      ui.selectAllForBulk(filteredEntries.map(e => e.id));
+      ui.selectAllForBulk(filteredEntries.map((e) => e.id));
     }
   }
 
@@ -96,7 +116,9 @@
     if (ui.lorebookBulkSelection.size === 0) return;
 
     const count = ui.lorebookBulkSelection.size;
-    const confirmed = confirm(`Delete ${count} entr${count === 1 ? 'y' : 'ies'}? This cannot be undone.`);
+    const confirmed = confirm(
+      `Delete ${count} entr${count === 1 ? "y" : "ies"}? This cannot be undone.`,
+    );
     if (!confirmed) return;
 
     const ids = Array.from(ui.lorebookBulkSelection);
@@ -111,9 +133,11 @@
 
 <div class="flex flex-col h-full">
   <!-- Search -->
-  <div class="p-3 border-b border-surface-700">
+  <div class="pt-0 px-3 pb-3 sm:pt-3 border-b border-surface-700">
     <div class="relative">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-500" />
+      <Search
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-500"
+      />
       <input
         type="text"
         placeholder="Search entries..."
@@ -124,7 +148,7 @@
       {#if ui.lorebookSearchQuery}
         <button
           class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-surface-500 hover:text-surface-300"
-          onclick={() => ui.setLorebookSearchQuery('')}
+          onclick={() => ui.setLorebookSearchQuery("")}
         >
           <X class="h-4 w-4" />
         </button>
@@ -137,20 +161,31 @@
       <div class="relative flex-1">
         <button
           class="btn-ghost w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg border border-surface-600 text-sm"
-          onclick={() => { showTypeFilter = !showTypeFilter; showSortMenu = false; }}
+          onclick={() => {
+            showTypeFilter = !showTypeFilter;
+            showSortMenu = false;
+          }}
         >
-          <span class="capitalize">{ui.lorebookTypeFilter === 'all' ? 'All Types' : ui.lorebookTypeFilter}</span>
+          <span class="capitalize"
+            >{ui.lorebookTypeFilter === "all"
+              ? "All Types"
+              : ui.lorebookTypeFilter}</span
+          >
           <ChevronDown class="h-4 w-4" />
         </button>
         {#if showTypeFilter}
-          <div class="absolute top-full left-0 right-0 z-10 mt-1 bg-surface-800 border border-surface-600 rounded-lg shadow-lg py-1">
+          <div
+            class="absolute top-full left-0 right-0 z-10 mt-1 bg-surface-800 border border-surface-600 rounded-lg shadow-lg py-1"
+          >
             {#each entryTypes as type}
               <button
                 class="w-full px-3 py-2 text-left text-sm hover:bg-surface-700 capitalize
-                  {type === ui.lorebookTypeFilter ? 'text-accent-400' : 'text-surface-300'}"
+                  {type === ui.lorebookTypeFilter
+                  ? 'text-accent-400'
+                  : 'text-surface-300'}"
                 onclick={() => handleTypeFilter(type)}
               >
-                {type === 'all' ? 'All Types' : type}
+                {type === "all" ? "All Types" : type}
               </button>
             {/each}
           </div>
@@ -161,17 +196,27 @@
       <div class="relative flex-1">
         <button
           class="btn-ghost w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg border border-surface-600 text-sm"
-          onclick={() => { showSortMenu = !showSortMenu; showTypeFilter = false; }}
+          onclick={() => {
+            showSortMenu = !showSortMenu;
+            showTypeFilter = false;
+          }}
         >
-          <span>{sortOptions.find(s => s.value === ui.lorebookSortBy)?.label}</span>
+          <span
+            >{sortOptions.find((s) => s.value === ui.lorebookSortBy)
+              ?.label}</span
+          >
           <ChevronDown class="h-4 w-4" />
         </button>
         {#if showSortMenu}
-          <div class="absolute top-full left-0 right-0 z-10 mt-1 bg-surface-800 border border-surface-600 rounded-lg shadow-lg py-1">
+          <div
+            class="absolute top-full left-0 right-0 z-10 mt-1 bg-surface-800 border border-surface-600 rounded-lg shadow-lg py-1"
+          >
             {#each sortOptions as option}
               <button
                 class="w-full px-3 py-2 text-left text-sm hover:bg-surface-700
-                  {option.value === ui.lorebookSortBy ? 'text-accent-400' : 'text-surface-300'}"
+                  {option.value === ui.lorebookSortBy
+                  ? 'text-accent-400'
+                  : 'text-surface-300'}"
                 onclick={() => handleSort(option.value)}
               >
                 {option.label}
@@ -189,7 +234,9 @@
       class="btn-primary flex-1 flex items-center justify-center gap-2 py-2"
       onclick={onNewEntry}
       disabled={isLoreManagementActive}
-      title={isLoreManagementActive ? 'Editing disabled during lore management' : undefined}
+      title={isLoreManagementActive
+        ? "Editing disabled during lore management"
+        : undefined}
     >
       <Plus class="h-4 w-4" />
       <span class="hidden xs:inline">New Entry</span>
@@ -198,7 +245,9 @@
       class="btn-ghost flex items-center justify-center gap-2 px-3 py-2 border border-surface-600 rounded-lg"
       onclick={() => ui.openLorebookImport()}
       disabled={isLoreManagementActive}
-      title={isLoreManagementActive ? 'Import disabled during lore management' : 'Import'}
+      title={isLoreManagementActive
+        ? "Import disabled during lore management"
+        : "Import"}
     >
       <Upload class="h-4 w-4" />
     </button>
@@ -213,7 +262,9 @@
 
   <!-- Bulk selection header -->
   {#if hasBulkSelection}
-    <div class="flex items-center justify-between gap-2 p-3 bg-surface-700/50 border-b border-surface-700">
+    <div
+      class="flex items-center justify-between gap-2 p-3 bg-surface-700/50 border-b border-surface-700"
+    >
       <div class="flex items-center gap-2">
         <input
           type="checkbox"
@@ -221,7 +272,9 @@
           onchange={toggleSelectAll}
           class="h-4 w-4 rounded border-surface-600 bg-surface-800 text-accent-500 focus:ring-accent-500 focus:ring-offset-0"
         />
-        <span class="text-sm text-surface-300">{ui.lorebookBulkSelection.size} selected</span>
+        <span class="text-sm text-surface-300"
+          >{ui.lorebookBulkSelection.size} selected</span
+        >
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -243,8 +296,8 @@
 
   <!-- Entry count -->
   <div class="px-3 py-2 text-xs text-surface-500 border-b border-surface-700">
-    {filteredEntries.length} entr{filteredEntries.length === 1 ? 'y' : 'ies'}
-    {#if ui.lorebookTypeFilter !== 'all' || ui.lorebookSearchQuery}
+    {filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}
+    {#if ui.lorebookTypeFilter !== "all" || ui.lorebookSearchQuery}
       <span class="text-surface-600">
         (filtered from {story.lorebookEntries.length})
       </span>
@@ -257,14 +310,19 @@
       {#if story.lorebookEntries.length === 0}
         <div class="text-center py-8 text-surface-500">
           <p>No lorebook entries yet.</p>
-          <p class="text-sm mt-1">Create one or import a lorebook to get started.</p>
+          <p class="text-sm mt-1">
+            Create one or import a lorebook to get started.
+          </p>
         </div>
       {:else}
         <div class="text-center py-8 text-surface-500">
           <p>No entries match your filters.</p>
           <button
             class="text-accent-400 hover:text-accent-300 text-sm mt-1"
-            onclick={() => { ui.setLorebookSearchQuery(''); ui.setLorebookTypeFilter('all'); }}
+            onclick={() => {
+              ui.setLorebookSearchQuery("");
+              ui.setLorebookTypeFilter("all");
+            }}
           >
             Clear filters
           </button>
@@ -287,8 +345,12 @@
 {#if showTypeFilter || showSortMenu}
   <div
     class="fixed inset-0 z-0"
-    onclick={() => { showTypeFilter = false; showSortMenu = false; }}
-    onkeydown={(e) => e.key === 'Escape' && (showTypeFilter = false, showSortMenu = false)}
+    onclick={() => {
+      showTypeFilter = false;
+      showSortMenu = false;
+    }}
+    onkeydown={(e) =>
+      e.key === "Escape" && ((showTypeFilter = false), (showSortMenu = false))}
     role="button"
     tabindex="-1"
     aria-label="Close dropdown"

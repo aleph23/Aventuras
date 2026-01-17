@@ -1,18 +1,19 @@
 <script lang="ts">
-  import type { Chapter } from '$lib/types';
-  import { story } from '$lib/stores/story.svelte';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { aiService } from '$lib/services/ai';
-  import MemoryHeader from './MemoryHeader.svelte';
-  import MemorySettings from './MemorySettings.svelte';
-  import ChapterCard from './ChapterCard.svelte';
-  import ManualChapterModal from './ManualChapterModal.svelte';
-  import ResummarizeModal from './ResummarizeModal.svelte';
-  import { BookOpen } from 'lucide-svelte';
+  import type { Chapter } from "$lib/types";
+  import { story } from "$lib/stores/story.svelte";
+  import { ui } from "$lib/stores/ui.svelte";
+  import { aiService } from "$lib/services/ai";
+  import MemoryHeader from "./MemoryHeader.svelte";
+  import MemorySettings from "./MemorySettings.svelte";
+  import ChapterCard from "./ChapterCard.svelte";
+  import ManualChapterModal from "./ManualChapterModal.svelte";
+  import ResummarizeModal from "./ResummarizeModal.svelte";
+  import { BookOpen, ArrowLeft } from "lucide-svelte";
 
   // Get chapters sorted by number (descending - newest first)
+
   const sortedChapters = $derived(
-    [...story.chapters].sort((a, b) => b.number - a.number)
+    [...story.chapters].sort((a, b) => b.number - a.number),
   );
 
   // Get entries for each chapter
@@ -27,7 +28,7 @@
   async function runLoreManagement() {
     if (!story.currentStory) return;
 
-    console.log('[MemoryView] Starting lore management...');
+    console.log("[MemoryView] Starting lore management...");
     ui.startLoreManagement();
 
     let changeCount = 0;
@@ -61,15 +62,24 @@
               createdBy: entry.createdBy,
               loreManagementBlacklisted: entry.loreManagementBlacklisted,
             });
-            ui.updateLoreManagementProgress('Creating entries...', bumpChanges());
+            ui.updateLoreManagementProgress(
+              "Creating entries...",
+              bumpChanges(),
+            );
           },
           onUpdateEntry: async (id, updates) => {
             await story.updateLorebookEntry(id, updates);
-            ui.updateLoreManagementProgress('Updating entries...', bumpChanges());
+            ui.updateLoreManagementProgress(
+              "Updating entries...",
+              bumpChanges(),
+            );
           },
           onDeleteEntry: async (id) => {
             await story.deleteLorebookEntry(id);
-            ui.updateLoreManagementProgress('Cleaning up entries...', bumpChanges());
+            ui.updateLoreManagementProgress(
+              "Cleaning up entries...",
+              bumpChanges(),
+            );
           },
           onMergeEntries: async (entryIds, mergedEntry) => {
             await story.deleteLorebookEntries(entryIds);
@@ -89,20 +99,26 @@
               createdBy: mergedEntry.createdBy,
               loreManagementBlacklisted: mergedEntry.loreManagementBlacklisted,
             });
-            ui.updateLoreManagementProgress('Merging entries...', bumpChanges());
+            ui.updateLoreManagementProgress(
+              "Merging entries...",
+              bumpChanges(),
+            );
           },
         },
-        story.currentStory?.mode ?? 'adventure',
+        story.currentStory?.mode ?? "adventure",
         story.pov,
-        story.tense
+        story.tense,
       );
 
-      console.log('[MemoryView] Lore management complete', {
+      console.log("[MemoryView] Lore management complete", {
         changesCount: result.changes.length,
         summary: result.summary,
       });
 
-      ui.updateLoreManagementProgress(`Complete: ${result.summary}`, result.changes.length);
+      ui.updateLoreManagementProgress(
+        `Complete: ${result.summary}`,
+        result.changes.length,
+      );
     } finally {
       setTimeout(() => {
         ui.finishLoreManagement();
@@ -118,8 +134,8 @@
       ui.closeManualChapterModal();
 
       // Trigger lore management after successful chapter creation
-      runLoreManagement().catch(err => {
-        console.error('[MemoryView] Lore management failed:', err);
+      runLoreManagement().catch((err) => {
+        console.error("[MemoryView] Lore management failed:", err);
         ui.finishLoreManagement();
       });
     } finally {
@@ -136,13 +152,20 @@
     const chapterId = ui.resummarizeChapterId;
     if (!chapterId) return;
 
-    const chapter = story.chapters.find(c => c.id === chapterId);
+    const chapter = story.chapters.find((c) => c.id === chapterId);
     if (!chapter) return;
 
     ui.setMemoryLoading(true);
     try {
       const entries = getChapterEntries(chapter);
-      const newSummary = await aiService.resummarizeChapter(chapter, entries, story.chapters, story.currentStory?.mode ?? 'adventure', story.pov, story.tense);
+      const newSummary = await aiService.resummarizeChapter(
+        chapter,
+        entries,
+        story.chapters,
+        story.currentStory?.mode ?? "adventure",
+        story.pov,
+        story.tense,
+      );
 
       // Update the chapter with new summary and metadata
       await story.updateChapter(chapter.id, {
@@ -157,7 +180,7 @@
 
       ui.closeResummarizeModal();
     } catch (error) {
-      console.error('Failed to resummarize chapter:', error);
+      console.error("Failed to resummarize chapter:", error);
     } finally {
       ui.setMemoryLoading(false);
     }
@@ -165,8 +188,19 @@
 </script>
 
 <div class="flex h-full flex-col">
+  <!-- Back to Story Header -->
+  <div class="px-2 pt-0 sm:pt-2 pb-0">
+    <button
+      class="btn-ghost flex items-center gap-2 rounded-lg py-2 px-2 text-xs text-surface-400 hover:text-surface-200 transition-colors"
+      onclick={() => ui.setActivePanel("story")}
+    >
+      <ArrowLeft class="h-3.5 w-3.5" />
+      <span>Back to Story</span>
+    </button>
+  </div>
+
   <!-- Scrollable Content -->
-  <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 space-y-4">
+  <div class="flex-1 overflow-y-auto px-2 sm:px-4 py-0 sm:py-2 space-y-4">
     <!-- Header with context usage -->
     <MemoryHeader />
 
@@ -190,10 +224,13 @@
         <div class="p-4 rounded-full bg-surface-800 mb-4">
           <BookOpen class="h-8 w-8 text-surface-500" />
         </div>
-        <h3 class="text-lg font-medium text-surface-200 mb-2">No Chapters Yet</h3>
+        <h3 class="text-lg font-medium text-surface-200 mb-2">
+          No Chapters Yet
+        </h3>
         <p class="text-sm text-surface-400 max-w-sm">
-          Chapters are created automatically when the story grows beyond the token threshold,
-          or you can create one manually using the button above.
+          Chapters are created automatically when the story grows beyond the
+          token threshold, or you can create one manually using the button
+          above.
         </p>
       </div>
     {/if}

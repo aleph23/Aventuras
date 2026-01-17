@@ -118,6 +118,12 @@ pub fn run() {
             sql: include_str!("../migrations/018_scenario_vault.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 19,
+            description: "entry_reasoning",
+            sql: include_str!("../migrations/019_entry_reasoning.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

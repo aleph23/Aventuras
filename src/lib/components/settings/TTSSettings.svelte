@@ -86,7 +86,7 @@
         <p class="text-xs text-surface-500">Generate audio narration of story events using TTS.</p>
       </div>
       <button
-        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+        class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
         class:bg-accent-600={settings.systemServicesSettings.tts.enabled}
         class:bg-surface-600={!settings.systemServicesSettings.tts.enabled}
         onclick={() => {
@@ -226,7 +226,7 @@
           <p class="text-xs text-surface-500">Automatically play TTS audio when story is narrated.</p>
         </div>
         <button
-          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+          class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
           class:bg-accent-600={settings.systemServicesSettings.tts.autoPlay}
           class:bg-surface-600={!settings.systemServicesSettings.tts.autoPlay}
           onclick={() => {
@@ -269,7 +269,7 @@
         <p class="text-xs text-surface-500">Remove HTML tags from narrated text before sending to TTS. Always removes content of &lt;style&gt; tags as well.</p>
       </div>
       <button
-        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+        class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
         class:bg-accent-600={settings.systemServicesSettings.tts.removeHtmlTags}
         class:bg-surface-600={!settings.systemServicesSettings.tts.removeHtmlTags}
         onclick={() => {
@@ -315,7 +315,7 @@
             <p class="text-xs text-surface-500">Removes content inside any HTML tag before narration.</p>
           </div>
           <button
-            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
             class:bg-accent-600={settings.systemServicesSettings.tts.removeAllHtmlContent}
             class:bg-surface-600={!settings.systemServicesSettings.tts.removeAllHtmlContent}
             onclick={() => {

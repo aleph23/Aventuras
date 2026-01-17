@@ -373,6 +373,23 @@ class StoryStore {
     return repairsMade;
   }
 
+  // Close the current story and reset state
+  closeStory(): void {
+    this.currentStory = null;
+    this.entries = [];
+    this.characters = [];
+    this.locations = [];
+    this.items = [];
+    this.storyBeats = [];
+    this.chapters = [];
+    this.checkpoints = [];
+    this.lorebookEntries = [];
+    this.branches = [];
+    this.invalidateWordCountCache();
+    this.invalidateChapterCache();
+    log('Story closed');
+  }
+
   // Load all stories for library view
   async loadAllStories(): Promise<void> {
     this.allStories = await database.getAllStories();
@@ -600,7 +617,7 @@ class StoryStore {
   }
 
   // Add a new story entry
-  async addEntry(type: StoryEntry['type'], content: string, metadata?: StoryEntry['metadata']): Promise<StoryEntry> {
+  async addEntry(type: StoryEntry['type'], content: string, metadata?: StoryEntry['metadata'], reasoning?: string): Promise<StoryEntry> {
     if (!this.currentStory) {
       throw new Error('No story loaded');
     }
@@ -625,6 +642,7 @@ class StoryStore {
       position,
       metadata: { ...metadata, tokenCount, timeStart, timeEnd },
       branchId: this.currentStory.currentBranchId,
+      reasoning,
     });
 
     this.entries = [...this.entries, entry];
@@ -737,6 +755,22 @@ class StoryStore {
     );
 
     log('Entry timeEnd updated', { entryId, timeEnd });
+  }
+
+  /**
+   * Update an entry's reasoning content and persist to database.
+   */
+  async updateEntryReasoning(entryId: string, reasoning: string): Promise<void> {
+    const entry = this.entries.find(e => e.id === entryId);
+    if (!entry) return;
+
+    // Update in-memory state
+    this.entries = this.entries.map(e => 
+      e.id === entryId ? { ...e, reasoning } : e
+    );
+
+    // Persist to database
+    await database.updateStoryEntry(entryId, { reasoning });
   }
 
   /**

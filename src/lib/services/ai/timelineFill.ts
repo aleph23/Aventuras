@@ -1,5 +1,5 @@
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
-import type { Chapter, StoryEntry, TimeTracker, Location } from '$lib/types';
+import type { Chapter, StoryEntry, TimeTracker, Location, GenerationPreset } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
@@ -87,23 +87,47 @@ export const DEFAULT_QUERY_ANSWER_PROMPT = `You answer specific questions about 
 
 export class TimelineFillService {
   private provider: OpenAIProvider;
-  private settingsOverride?: Partial<TimelineFillSettings>;
+  private settingsOverride?: Partial<GenerationPreset>;
+  private presetId: string;
+  private maxQueries: number;
+  private systemPrompt: string;
+  private queryAnswerPrompt: string;
 
-  constructor(provider: OpenAIProvider, settingsOverride?: Partial<TimelineFillSettings>) {
+  constructor(
+    provider: OpenAIProvider,
+    presetId: string = 'memory',
+    maxQueries: number = 5,
+    systemPrompt: string = DEFAULT_TIMELINE_FILL_PROMPT,
+    queryAnswerPrompt: string = DEFAULT_QUERY_ANSWER_PROMPT,
+    settingsOverride?: Partial<GenerationPreset>
+  ) {
     this.provider = provider;
+    this.presetId = presetId;
+    this.maxQueries = maxQueries;
+    this.systemPrompt = systemPrompt;
+    this.queryAnswerPrompt = queryAnswerPrompt;
     this.settingsOverride = settingsOverride;
   }
 
+  private get preset(): GenerationPreset {
+    return settings.getPresetConfig(this.presetId);
+  }
+
   private get model(): string {
-    return this.settingsOverride?.model ?? settings.systemServicesSettings.timelineFill?.model ?? 'deepseek/deepseek-v3.2';
+    return this.settingsOverride?.model ?? this.preset.model;
   }
 
   private get temperature(): number {
-    return this.settingsOverride?.temperature ?? settings.systemServicesSettings.timelineFill?.temperature ?? 0.3;
+    return this.settingsOverride?.temperature ?? this.preset.temperature;
   }
 
-  private get maxQueries(): number {
-    return this.settingsOverride?.maxQueries ?? settings.systemServicesSettings.timelineFill?.maxQueries ?? 5;
+  private get extraBody(): Record<string, unknown> | undefined {
+    return buildExtraBody({
+      manualMode: settings.advancedRequestSettings.manualMode,
+      manualBody: this.settingsOverride?.manualBody ?? this.preset.manualBody,
+      reasoningEffort: this.settingsOverride?.reasoningEffort ?? this.preset.reasoningEffort,
+      providerOnly: this.settingsOverride?.providerOnly ?? this.preset.providerOnly,
+    });
   }
 
   private getPromptContext(mode: StoryMode = 'adventure', pov?: POV, tense?: Tense): PromptContext {
@@ -210,12 +234,7 @@ export class TimelineFillService {
         ],
         temperature: this.temperature,
         maxTokens: 8192,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: settings.systemServicesSettings.timelineFill.manualBody,
-          reasoningEffort: settings.systemServicesSettings.timelineFill.reasoningEffort,
-          providerOnly: settings.systemServicesSettings.timelineFill.providerOnly,
-        }),
+        extraBody: this.extraBody,
         signal,
       });
 
@@ -409,12 +428,7 @@ export class TimelineFillService {
         ],
         temperature: 0.2,
         maxTokens: 8192,
-        extraBody: buildExtraBody({
-          manualMode: settings.advancedRequestSettings.manualMode,
-          manualBody: settings.systemServicesSettings.timelineFill.manualBody,
-          reasoningEffort: settings.systemServicesSettings.timelineFill.reasoningEffort,
-          providerOnly: settings.systemServicesSettings.timelineFill.providerOnly,
-        }),
+        extraBody: this.extraBody,
         signal,
       });
 

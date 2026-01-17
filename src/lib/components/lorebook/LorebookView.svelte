@@ -1,14 +1,14 @@
 <script lang="ts">
-  import type { Entry, EntryType } from '$lib/types';
-  import { ui } from '$lib/stores/ui.svelte';
-  import { story } from '$lib/stores/story.svelte';
-  import { onMount, untrack } from 'svelte';
-  import LorebookList from './LorebookList.svelte';
-  import LorebookDetail from './LorebookDetail.svelte';
-  import LorebookEntryForm from './LorebookEntryForm.svelte';
-  import LorebookImportModal from './LorebookImportModal.svelte';
-  import LorebookExportModal from './LorebookExportModal.svelte';
-  import { BookOpen, Plus, ArrowLeft, Loader2, Bot } from 'lucide-svelte';
+  import type { Entry, EntryType } from "$lib/types";
+  import { ui } from "$lib/stores/ui.svelte";
+  import { story } from "$lib/stores/story.svelte";
+  import { onMount, untrack } from "svelte";
+  import LorebookList from "./LorebookList.svelte";
+  import LorebookDetail from "./LorebookDetail.svelte";
+  import LorebookEntryForm from "./LorebookEntryForm.svelte";
+  import LorebookImportModal from "./LorebookImportModal.svelte";
+  import LorebookExportModal from "./LorebookExportModal.svelte";
+  import { BookOpen, Plus, ArrowLeft, Loader2, Bot } from "lucide-svelte";
 
   // Lore management active state
   const isLoreManagementActive = $derived(ui.loreManagementActive);
@@ -23,13 +23,13 @@
   const selectedEntry = $derived.by(() => {
     const id = ui.selectedLorebookEntryId;
     if (!id) return null;
-    return story.lorebookEntries.find(e => e.id === id) ?? null;
+    return story.lorebookEntries.find((e) => e.id === id) ?? null;
   });
 
   // Show detail panel on desktop when entry selected, or on mobile when showing detail
   const showDetail = $derived(
     (!isMobile && (selectedEntry || creatingNew)) ||
-    (isMobile && ui.lorebookShowDetail)
+      (isMobile && ui.lorebookShowDetail),
   );
 
   // Show list on desktop always, or on mobile when not showing detail
@@ -41,7 +41,7 @@
 
   onMount(() => {
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Reset state when mounting - defer to avoid render cycle issues
     queueMicrotask(() => {
@@ -49,7 +49,7 @@
     });
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   });
 
@@ -93,15 +93,19 @@
 <div class="flex flex-col h-full bg-surface-900">
   <!-- Lore Management Active Banner -->
   {#if isLoreManagementActive}
-    <div class="flex items-center gap-3 px-4 py-3 bg-accent-500/20 border-b border-accent-500/30">
+    <div
+      class="flex items-center gap-3 px-4 py-3 bg-accent-500/20 border-b border-accent-500/30"
+    >
       <div class="flex items-center gap-2 text-accent-400">
         <Bot class="h-5 w-5" />
         <Loader2 class="h-4 w-4 animate-spin" />
       </div>
       <div class="flex-1 min-w-0">
-        <div class="text-sm font-medium text-accent-300">AI Lore Management Active</div>
+        <div class="text-sm font-medium text-accent-300">
+          AI Lore Management Active
+        </div>
         <div class="text-xs text-accent-400/80 truncate">
-          {ui.loreManagementProgress || 'Reviewing story content...'}
+          {ui.loreManagementProgress || "Reviewing story content..."}
           {#if ui.loreManagementChanges > 0}
             <span class="ml-2">({ui.loreManagementChanges} changes)</span>
           {/if}
@@ -113,60 +117,78 @@
   <div class="flex flex-1 min-h-0 relative">
     <!-- List panel -->
     {#if showList}
-    <div
-      class="flex flex-col border-r border-surface-700
+      <div
+        class="flex flex-col border-r border-surface-700
         {isMobile ? 'w-full' : 'w-72 lg:w-80 flex-shrink-0'}"
-    >
-      <LorebookList onNewEntry={handleNewEntry} />
-    </div>
-  {/if}
+      >
+        <!-- Back to Story Header -->
+        <div class="px-2 pt-0 sm:pt-3">
+          <button
+            class="btn-ghost flex items-center gap-2 rounded-lg py-1 px-2 text-xs text-surface-400 hover:text-surface-200 transition-colors"
+            onclick={() => ui.setActivePanel("story")}
+          >
+            <ArrowLeft class="h-3.5 w-3.5" />
+            <span>Back to Story</span>
+          </button>
+        </div>
 
-  <!-- Detail panel -->
-  {#if showDetail}
-    <div
-      class="flex-1 flex flex-col
-        {isMobile ? 'w-full absolute top-0 left-0 right-0 bottom-0 bg-surface-900 z-10' : ''}"
-    >
-      {#if creatingNew}
-        <!-- New entry form -->
-        <div class="flex flex-col h-full">
-          <div class="flex items-center gap-3 p-4 border-b border-surface-700">
-            {#if isMobile}
-              <button
-                class="btn-ghost rounded-lg p-3 min-h-[48px] min-w-[48px] flex items-center justify-center -ml-1"
-                onclick={handleMobileBack}
-              >
-                <ArrowLeft class="h-5 w-5" />
-              </button>
-            {/if}
-            <div class="p-2 rounded-lg bg-accent-500/20 text-accent-400">
-              <Plus class="h-5 w-5" />
+        <LorebookList onNewEntry={handleNewEntry} />
+      </div>
+    {/if}
+
+    <!-- Detail panel -->
+    {#if showDetail}
+      <div
+        class="flex-1 flex flex-col
+        {isMobile
+          ? 'w-full absolute top-0 left-0 right-0 bottom-0 bg-surface-900 z-10'
+          : ''}"
+      >
+        {#if creatingNew}
+          <!-- New entry form -->
+          <div class="flex flex-col h-full">
+            <div
+              class="flex items-center gap-3 p-3 sm:p-4 border-b border-surface-700"
+            >
+              {#if isMobile}
+                <button
+                  class="btn-ghost rounded-lg p-3 min-h-[48px] min-w-[48px] flex items-center justify-center -ml-1"
+                  onclick={handleMobileBack}
+                >
+                  <ArrowLeft class="h-5 w-5" />
+                </button>
+              {/if}
+              <div class="p-2 rounded-lg bg-accent-500/20 text-accent-400">
+                <Plus class="h-5 w-5" />
+              </div>
+              <h2 class="font-semibold text-surface-100">New Entry</h2>
             </div>
-            <h2 class="font-semibold text-surface-100">New Entry</h2>
+            <div class="flex-1 overflow-y-auto p-3 sm:p-4 pb-safe">
+              <LorebookEntryForm
+                onSave={handleSaveNew}
+                onCancel={handleCancelNew}
+              />
+            </div>
           </div>
-          <div class="flex-1 overflow-y-auto p-4 pb-safe">
-            <LorebookEntryForm
-              onSave={handleSaveNew}
-              onCancel={handleCancelNew}
-            />
+        {:else if selectedEntry}
+          <LorebookDetail entry={selectedEntry} {isMobile} />
+        {:else}
+          <!-- Empty state for desktop when no entry selected -->
+          <div class="flex-1 flex items-center justify-center text-center p-8">
+            <div>
+              <BookOpen class="h-12 w-12 text-surface-600 mx-auto mb-4" />
+              <h3 class="text-lg font-medium text-surface-400 mb-2">
+                Select an Entry
+              </h3>
+              <p class="text-sm text-surface-500 max-w-xs mx-auto">
+                Choose an entry from the list to view or edit its details, or
+                create a new one.
+              </p>
+            </div>
           </div>
-        </div>
-      {:else if selectedEntry}
-        <LorebookDetail entry={selectedEntry} {isMobile} />
-      {:else}
-        <!-- Empty state for desktop when no entry selected -->
-        <div class="flex-1 flex items-center justify-center text-center p-8">
-          <div>
-            <BookOpen class="h-12 w-12 text-surface-600 mx-auto mb-4" />
-            <h3 class="text-lg font-medium text-surface-400 mb-2">Select an Entry</h3>
-            <p class="text-sm text-surface-500 max-w-xs mx-auto">
-              Choose an entry from the list to view or edit its details, or create a new one.
-            </p>
-          </div>
-        </div>
-      {/if}
-    </div>
-  {/if}
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 

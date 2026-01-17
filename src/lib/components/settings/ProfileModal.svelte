@@ -1,7 +1,7 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings.svelte';
   import type { APIProfile } from '$lib/types';
-  import { X, Plus, Trash2, RefreshCw, Check, AlertCircle } from 'lucide-svelte';
+  import { X, Plus, Trash2, RefreshCw, Check, AlertCircle, Globe, Key as KeyIcon, Box } from 'lucide-svelte';
   import { ask } from '@tauri-apps/plugin-dialog';
   import { fetch } from '@tauri-apps/plugin-http';
 
@@ -30,13 +30,14 @@
   let customModels = $state<string[]>([]);
   let fetchedModels = $state<string[]>([]);
   let newModelInput = $state('');
+  let setAsDefault = $state(false);
 
   // UI state
   let isFetchingModels = $state(false);
   let fetchError = $state<string | null>(null);
   let showApiKey = $state(false);
   let abortController: AbortController | null = null;
-
+  
   // URL presets
   const urlPresets = [
     { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1' },
@@ -52,6 +53,7 @@
         apiKey = editingProfile.apiKey;
         customModels = [...editingProfile.customModels];
         fetchedModels = [...editingProfile.fetchedModels];
+        setAsDefault = editingProfile.id === settings.getDefaultProfileIdForProvider();
       } else {
         // Reset form for new profile - start with empty fields
         name = '';
@@ -59,6 +61,7 @@
         apiKey = '';  // API keys are not shared between profiles
         customModels = [];
         fetchedModels = [];
+        setAsDefault = false;
       }
       newModelInput = '';
       fetchError = null;
@@ -153,6 +156,12 @@
     };
 
     onSave(profile);
+    
+    if (setAsDefault) {
+      settings.setDefaultProfile(profile.id);
+    } else if (settings.apiSettings.defaultProfileId === profile.id) {
+      settings.setDefaultProfile(undefined);
+    }
   }
 
   async function handleDelete() {
@@ -181,68 +190,102 @@
 {#if isOpen}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="modal-backdrop" onclick={onClose}>
+  <div 
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" 
+    onclick={onClose}
+    aria-modal="true"
+    role="dialog"
+  >
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h2>{editingProfile ? 'Edit Profile' : 'New API Profile'}</h2>
-        <button class="close-btn" onclick={onClose}>
-          <X size={18} />
+    <div 
+      class="w-full max-w-lg bg-surface-900 border border-surface-700 rounded-xl shadow-2xl flex flex-col max-h-[90vh]" 
+      onclick={(e) => e.stopPropagation()}
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-surface-700 px-5 py-4 bg-surface-800 rounded-t-xl shrink-0">
+        <h2 class="text-lg font-semibold text-surface-100">{editingProfile ? 'Edit Profile' : 'New API Profile'}</h2>
+        <button 
+          class="p-1.5 hover:bg-surface-700 text-surface-400 hover:text-surface-100 rounded-lg transition-colors"
+          onclick={onClose}
+        >
+          <X size={20} />
         </button>
       </div>
 
-      <div class="modal-body">
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-6">
         <!-- Name -->
-        <div class="form-group">
-          <label for="profile-name">Profile Name</label>
+        <div class="space-y-2">
+          <label for="profile-name" class="text-sm font-medium text-surface-300">Profile Name</label>
           <input
             id="profile-name"
             type="text"
-            class="input"
+            class="input w-full bg-surface-950 border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-surface-100"
             placeholder="e.g., OpenRouter, Local LLM"
             bind:value={name}
           />
+          <label class="flex items-start gap-2 pt-1 cursor-pointer group">
+            <input 
+              type="checkbox" 
+              bind:checked={setAsDefault}
+              class="mt-1 h-4 w-4 rounded border-surface-600 bg-surface-800 text-accent-500 focus:ring-accent-500/20" 
+            />
+            <div class="text-xs">
+              <span class="block text-surface-300 group-hover:text-surface-200 transition-colors">Set as System Default (Fallback)</span>
+              <span class="block text-surface-500">Used for features that don't have a specific profile assigned</span>
+            </div>
+          </label>
         </div>
 
-        <!-- Base URL with presets -->
-        <div class="form-group">
-          <label for="profile-url">Base URL</label>
-          <div class="presets">
+        <!-- Base URL -->
+        <div class="space-y-2">
+          <label for="profile-url" class="text-sm font-medium text-surface-300 flex items-center gap-2">
+            <Globe size={14} />
+            Base URL
+          </label>
+          
+          <div class="flex flex-wrap gap-2 mb-2">
             {#each urlPresets as preset}
               <button
                 type="button"
-                class="preset-btn"
-                class:active={baseUrl === preset.url}
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border
+                  {baseUrl === preset.url 
+                    ? 'bg-accent-600 text-white border-accent-500 shadow-sm' 
+                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:bg-surface-700 hover:text-surface-200'}"
                 onclick={() => handleSelectPreset(preset)}
               >
                 {preset.name}
               </button>
             {/each}
           </div>
+
           <input
             id="profile-url"
             type="text"
-            class="input"
+            class="input w-full bg-surface-950 border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-surface-100 font-mono text-xs"
             placeholder="https://api.example.com/v1"
             bind:value={baseUrl}
           />
         </div>
 
         <!-- API Key -->
-        <div class="form-group">
-          <label for="profile-key">API Key</label>
-          <div class="api-key-container">
+        <div class="space-y-2">
+          <label for="profile-key" class="text-sm font-medium text-surface-300 flex items-center gap-2">
+            <KeyIcon size={14} />
+            API Key
+          </label>
+          <div class="relative">
             <input
               id="profile-key"
               type={showApiKey ? 'text' : 'password'}
-              class="input"
+              class="input w-full bg-surface-950 border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-surface-100 font-mono text-xs pr-16"
               placeholder="sk-..."
               bind:value={apiKey}
             />
             <button
               type="button"
-              class="toggle-key-btn"
+              class="absolute right-1 top-1 bottom-1 px-3 text-xs font-medium text-surface-500 hover:text-surface-300 bg-surface-800/50 hover:bg-surface-800 rounded transition-colors"
               onclick={() => showApiKey = !showApiKey}
             >
               {showApiKey ? 'Hide' : 'Show'}
@@ -251,38 +294,41 @@
         </div>
 
         <!-- Models Section -->
-        <div class="form-group">
-          <div class="models-header">
-            <label>Models</label>
+        <div class="space-y-4 pt-2 border-t border-surface-800">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium text-surface-300 flex items-center gap-2">
+              <Box size={14} />
+              Models
+            </label>
             <button
               type="button"
-              class="fetch-btn"
+              class="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-2"
               onclick={handleFetchModels}
               disabled={isFetchingModels || !baseUrl}
             >
-              <RefreshCw size={14} class={isFetchingModels ? 'spinning' : ''} />
+              <RefreshCw size={12} class={isFetchingModels ? 'animate-spin' : ''} />
               {isFetchingModels ? 'Fetching...' : 'Fetch Models'}
             </button>
           </div>
 
           {#if fetchError}
-            <div class="error-message">
-              <AlertCircle size={14} />
+            <div class="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <AlertCircle size={14} class="shrink-0" />
               {fetchError}
             </div>
           {/if}
 
           <!-- Fetched Models -->
           {#if fetchedModels.length > 0}
-            <div class="models-section">
-              <span class="models-label">Fetched ({fetchedModels.length})</span>
-              <div class="models-list">
+            <div class="space-y-2">
+              <div class="text-xs font-medium text-surface-500 uppercase tracking-wider">Fetched ({fetchedModels.length})</div>
+              <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-surface-950/30 rounded-lg border border-surface-800">
                 {#each fetchedModels as model, i (model + '-' + i)}
-                  <div class="model-tag">
-                    <span>{model}</span>
+                  <div class="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 bg-surface-800 text-surface-300 rounded text-xs group hover:bg-surface-700 hover:text-surface-200 transition-colors">
+                    <span class="truncate max-w-[180px]">{model}</span>
                     <button
                       type="button"
-                      class="remove-model-btn"
+                      class="p-0.5 rounded hover:bg-red-500/20 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                       onclick={() => handleRemoveFetchedModel(model)}
                     >
                       <X size={12} />
@@ -294,33 +340,34 @@
           {/if}
 
           <!-- Custom Models -->
-          <div class="models-section">
-            <span class="models-label">Custom Models</span>
-            <div class="add-model-row">
+          <div class="space-y-2">
+            <div class="text-xs font-medium text-surface-500 uppercase tracking-wider">Custom Models</div>
+            <div class="flex gap-2">
               <input
                 type="text"
-                class="input"
+                class="input flex-1 bg-surface-950 border-surface-700 text-surface-100 text-xs h-9"
                 placeholder="model-name or provider/model"
                 bind:value={newModelInput}
                 onkeydown={(e) => e.key === 'Enter' && handleAddCustomModel()}
               />
               <button
                 type="button"
-                class="add-model-btn"
+                class="btn btn-primary px-3 h-9 flex items-center justify-center"
                 onclick={handleAddCustomModel}
                 disabled={!newModelInput.trim()}
               >
-                <Plus size={14} />
+                <Plus size={16} />
               </button>
             </div>
+            
             {#if customModels.length > 0}
-              <div class="models-list">
+              <div class="flex flex-wrap gap-1.5">
                 {#each customModels as model, i (model + '-custom-' + i)}
-                  <div class="model-tag custom">
-                    <span>{model}</span>
+                  <div class="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 bg-accent-600/10 border border-accent-600/20 text-accent-400 rounded text-xs group hover:bg-accent-600/20 transition-colors">
+                    <span class="truncate max-w-[180px]">{model}</span>
                     <button
                       type="button"
-                      class="remove-model-btn"
+                      class="p-0.5 rounded hover:bg-red-500/20 hover:text-red-400 transition-colors"
                       onclick={() => handleRemoveCustomModel(model)}
                     >
                       <X size={12} />
@@ -333,26 +380,37 @@
         </div>
       </div>
 
-      <div class="modal-footer">
+      <!-- Footer -->
+      <div class="border-t border-surface-700 p-5 bg-surface-800/50 rounded-b-xl shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4">
         {#if editingProfile && canDelete}
-          <button type="button" class="btn btn-danger" onclick={handleDelete}>
-            <Trash2 size={14} />
-            Delete
+          <button 
+            type="button" 
+            class="px-4 py-2.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 active:scale-[0.98] w-full sm:w-auto flex items-center justify-center gap-2 font-medium" 
+            onclick={handleDelete}
+          >
+            <Trash2 size={16} />
+            Delete Profile
           </button>
         {:else if isDefaultProfile}
-          <span class="text-xs text-surface-500 italic">Default profile cannot be deleted</span>
+          <span class="text-xs text-surface-500 italic hidden sm:inline">Default profile cannot be deleted</span>
+        {:else}
+          <div class="hidden sm:block"></div>
         {/if}
-        <div class="footer-actions">
-          <button type="button" class="btn btn-secondary" onclick={onClose}>
+        
+        <div class="flex gap-3 w-full sm:w-auto">
+          <button 
+            type="button" 
+            class="px-4 py-2.5 rounded-lg border border-surface-600 bg-surface-800 text-surface-200 hover:bg-surface-700 hover:text-surface-100 font-medium transition-all duration-200 active:scale-[0.98] flex-1 sm:flex-none flex items-center justify-center shadow-sm" 
+            onclick={onClose}
+          >
             Cancel
           </button>
           <button
             type="button"
-            class="btn btn-primary"
+            class="px-6 py-2.5 rounded-lg bg-accent-600 hover:bg-accent-500 text-white font-semibold shadow-lg shadow-accent-600/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none flex-1 sm:flex-none flex items-center justify-center gap-2"
             onclick={handleSave}
             disabled={!name.trim() || !baseUrl.trim()}
           >
-            <Check size={14} />
             {editingProfile ? 'Save Changes' : 'Create Profile'}
           </button>
         </div>
@@ -362,407 +420,5 @@
 {/if}
 
 <style>
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-    backdrop-filter: blur(4px);
-  }
-
-  .modal {
-    background: rgb(30, 30, 35);
-    border: 1px solid rgb(60, 60, 70);
-    border-radius: 0.5rem;
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-header h2 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-  }
-
-  .close-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-radius: 0.25rem;
-    transition: all 0.15s ease;
-  }
-
-  .close-btn:hover {
-    background: var(--surface-2);
-    color: var(--text-primary);
-  }
-
-  .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .form-group > label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    background-color: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-  }
-
-  .input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .preset-btn {
-    padding: 0.5rem 0.75rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 0.25rem;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    min-height: 44px; /* Touch-friendly target size */
-    display: flex;
-    align-items: center;
-  }
-
-  .preset-btn:hover {
-    background: var(--surface-3);
-    color: var(--text-primary);
-  }
-
-  .preset-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .api-key-container {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .api-key-container .input {
-    flex: 1;
-  }
-
-  .toggle-key-btn {
-    padding: 0.5rem 0.75rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-  }
-
-  .toggle-key-btn:hover {
-    background: var(--surface-3);
-    color: var(--text-primary);
-  }
-
-  .checkbox-group {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    color: var(--text-primary);
-  }
-
-  .checkbox-label input[type="checkbox"] {
-    width: 1rem;
-    height: 1rem;
-    accent-color: var(--accent);
-  }
-
-  .models-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .models-header label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .fetch-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.625rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 0.25rem;
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .fetch-btn:hover:not(:disabled) {
-    background: var(--surface-3);
-    color: var(--text-primary);
-  }
-
-  .fetch-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  :global(.spinning) {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .error-message {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 0.375rem;
-    color: #ef4444;
-    font-size: 0.75rem;
-  }
-
-  .models-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-  }
-
-  .models-label {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-  }
-
-  .add-model-row {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .add-model-row .input {
-    flex: 1;
-  }
-
-  .add-model-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    background: var(--accent);
-    border: none;
-    border-radius: 0.375rem;
-    color: var(--text-on-accent);
-    cursor: pointer;
-    transition: opacity 0.15s ease;
-  }
-
-  .add-model-btn:hover:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  .add-model-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .models-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    max-height: 150px;
-    overflow-y: auto;
-    padding: 0.5rem;
-    background: var(--surface-2);
-    border-radius: 0.375rem;
-  }
-
-  .model-tag {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background: var(--surface-3);
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-primary);
-  }
-
-  .model-tag.custom {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-  }
-
-  .remove-model-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.125rem;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-radius: 0.125rem;
-    transition: all 0.15s ease;
-  }
-
-  .remove-model-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-  }
-
-  .modal-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-top: 1px solid var(--border);
-  }
-
-  @media (min-width: 400px) {
-    .modal-footer {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-  }
-
-  .footer-actions {
-    display: flex;
-    gap: 0.75rem;
-    width: 100%;
-  }
-
-  @media (min-width: 400px) {
-    .footer-actions {
-      width: auto;
-      margin-left: auto;
-    }
-  }
-
-  .footer-actions .btn {
-    flex: 1;
-  }
-
-  @media (min-width: 400px) {
-    .footer-actions .btn {
-      flex: none;
-    }
-  }
-
-  .btn {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    border: none;
-    color: var(--text-on-accent);
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-secondary {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-3);
-  }
-
-  .btn-danger {
-    background: transparent;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-  }
-
-  .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-  }
+  /* No custom styles, using Tailwind */
 </style>

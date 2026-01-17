@@ -1,6 +1,7 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
   import { settings } from '$lib/stores/settings.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
   import { characterVault } from '$lib/stores/characterVault.svelte';
   import { Plus, User, Skull, UserX, Pencil, Trash2, Star, ImageUp, Wand2, X, Loader2, ChevronDown, ChevronUp, Archive } from 'lucide-svelte';
   import type { Character } from '$lib/types';
@@ -23,7 +24,6 @@
   let pendingProtagonistId = $state<string | null>(null);
   let previousRelationshipLabel = $state('');
   let swapError = $state<string | null>(null);
-  let collapsedCharacters = $state<Set<string>>(new Set());
 
   // Portrait state
   let uploadingPortraitId = $state<string | null>(null);
@@ -293,12 +293,8 @@
   }
 
   function toggleCollapse(characterId: string) {
-    if (collapsedCharacters.has(characterId)) {
-      collapsedCharacters.delete(characterId);
-    } else {
-      collapsedCharacters.add(characterId);
-    }
-    collapsedCharacters = new Set(collapsedCharacters);
+    const isCollapsed = ui.isEntityCollapsed(characterId);
+    ui.toggleEntityCollapsed(characterId, !isCollapsed);
   }
 
   function getSectionLineCount(character: Character): number {
@@ -366,7 +362,7 @@
       {#each story.characters as character (character.id)}
         {@const StatusIcon = getStatusIcon(character.status)}
         {@const isProtagonist = character.relationship === 'self'}
-        {@const isCollapsed = collapsedCharacters.has(character.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(character.id)}
         {@const sectionLineCount = getSectionLineCount(character)}
         {@const needsCollapse = sectionLineCount > 8}
         <div class="card p-3">

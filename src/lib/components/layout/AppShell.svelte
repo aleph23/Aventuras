@@ -20,13 +20,13 @@
   let { children }: { children?: Snippet } = $props();
 
   // Swipe handlers for mobile sidebar toggle
-  function handleSwipeRight() {
+  function handleSwipeLeft() {
     if (story.currentStory && !ui.sidebarOpen) {
       ui.toggleSidebar();
     }
   }
 
-  function handleSwipeLeft() {
+  function handleSwipeRight() {
     if (ui.sidebarOpen) {
       ui.toggleSidebar();
     }
@@ -34,7 +34,7 @@
 </script>
 
 <div
-  class="app-shell flex h-screen w-screen bg-surface-900"
+  class="app-shell relative flex h-screen w-screen bg-surface-900"
   use:swipe={{ onSwipeRight: handleSwipeRight, onSwipeLeft: handleSwipeLeft, threshold: 50 }}
 >
   <!-- Mobile sidebar overlay (tap to close) -->
@@ -46,18 +46,11 @@
     ></button>
   {/if}
 
-  <!-- Sidebar -->
-  {#if ui.sidebarOpen && story.currentStory}
-    <div class="sidebar-container">
-      <Sidebar />
-    </div>
-  {/if}
-
-  <!-- Left edge swipe zone for opening sidebar (when closed) -->
+  <!-- Right edge swipe zone for opening sidebar (when closed) -->
   {#if !ui.sidebarOpen && story.currentStory}
     <div
       class="swipe-edge-zone"
-      use:swipe={{ onSwipeRight: handleSwipeRight, threshold: 30 }}
+      use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 30 }}
     ></div>
   {/if}
 
@@ -81,6 +74,13 @@
       {/if}
     </main>
   </div>
+
+  <!-- Sidebar (Right aligned) -->
+  {#if ui.sidebarOpen && story.currentStory}
+    <div class="sidebar-container">
+      <Sidebar />
+    </div>
+  {/if}
 
   <!-- Settings Modal -->
   {#if ui.settingsModalOpen}
@@ -119,10 +119,26 @@
     padding-top: env(safe-area-inset-top, 0);
   }
 
+  /* Safe area background filler - matches header color (bg-surface-800) */
+  .app-shell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0);
+    background-color: var(--color-surface-800);
+    z-index: 0;
+  }
+
   /* Mobile: add fallback padding for Android status bar */
   @media (max-width: 768px) {
     .app-shell {
       padding-top: max(env(safe-area-inset-top, 0px), 28px);
+    }
+
+    .app-shell::before {
+      height: max(env(safe-area-inset-top, 0px), 28px);
     }
   }
 
@@ -149,10 +165,10 @@
     z-index: 50;
   }
 
-  /* Left edge swipe zone */
+  /* Right edge swipe zone */
   .swipe-edge-zone {
     position: fixed;
-    left: 0;
+    right: 0;
     top: 0;
     width: 20px;
     height: 100%;
@@ -168,7 +184,7 @@
 
     .sidebar-container {
       position: fixed;
-      left: 0;
+      right: 0;
       top: max(env(safe-area-inset-top, 0px), 28px);
       height: calc(100% - max(env(safe-area-inset-top, 0px), 28px));
       animation: slide-in 0.2s ease-out;
@@ -182,7 +198,7 @@
 
   @keyframes slide-in {
     from {
-      transform: translateX(-100%);
+      transform: translateX(100%);
     }
     to {
       transform: translateX(0);

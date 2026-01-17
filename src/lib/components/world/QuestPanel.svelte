@@ -1,5 +1,6 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
   import { Plus, Target, CheckCircle, XCircle, Circle, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-svelte';
   import type { StoryBeat } from '$lib/types';
 
@@ -13,15 +14,10 @@
   let editType = $state<StoryBeat['type']>('quest');
   let editStatus = $state<StoryBeat['status']>('pending');
   let confirmingDeleteId = $state<string | null>(null);
-  let collapsedBeats = $state<Set<string>>(new Set());
 
   function toggleCollapse(beatId: string) {
-    if (collapsedBeats.has(beatId)) {
-      collapsedBeats.delete(beatId);
-    } else {
-      collapsedBeats.add(beatId);
-    }
-    collapsedBeats = new Set(collapsedBeats);
+    const isCollapsed = ui.isEntityCollapsed(beatId);
+    ui.toggleEntityCollapsed(beatId, !isCollapsed);
   }
 
   function getSectionLineCount(beat: StoryBeat): number {
@@ -157,7 +153,7 @@
       <h4 class="text-sm font-medium text-surface-400">Active</h4>
       {#each story.pendingQuests as beat (beat.id)}
         {@const StatusIcon = getStatusIcon(beat.status)}
-        {@const isCollapsed = collapsedBeats.has(beat.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(beat.id)}
         {@const sectionLineCount = getSectionLineCount(beat)}
         {@const needsCollapse = sectionLineCount > 4}
         <div class="card p-3">
@@ -290,7 +286,7 @@
         <h4 class="text-sm font-medium text-surface-400">History</h4>
         {#each completedBeats as beat (beat.id)}
           {@const StatusIcon = getStatusIcon(beat.status)}
-          {@const isCollapsed = collapsedBeats.has(beat.id)}
+          {@const isCollapsed = ui.isEntityCollapsed(beat.id)}
           {@const sectionLineCount = getSectionLineCount(beat)}
           {@const needsCollapse = sectionLineCount > 4}
           <div class="card p-3 opacity-60">

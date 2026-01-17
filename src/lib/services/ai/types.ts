@@ -151,6 +151,7 @@ export interface AgenticResponse {
 
 export interface StreamChunk {
   content: string;
+  reasoning?: string;
   done: boolean;
 }
 

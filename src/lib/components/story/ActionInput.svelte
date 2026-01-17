@@ -7,6 +7,7 @@
   import { database } from "$lib/services/database";
   import { SimpleActivationTracker } from "$lib/services/ai/entryRetrieval";
   import type { ImageGenerationContext } from "$lib/services/ai/imageGeneration";
+  import type { TimelineFillResult } from "$lib/services/ai/timelineFill";
   import {
     Send,
     Wand2,
@@ -59,6 +60,54 @@
 
   // In creative writing mode, show different input style
   const isCreativeMode = $derived(story.storyMode === "creative-writing");
+
+  // Action type configuration for the redesigned input
+  type ActionType = "do" | "say" | "think" | "story" | "free";
+
+  const actionIcons = {
+    do: Wand2,
+    say: MessageSquare,
+    think: Brain,
+    story: Sparkles,
+    free: PenLine,
+  };
+
+  const actionLabels: Record<ActionType, string> = {
+    do: "Do",
+    say: "Say",
+    think: "Think",
+    story: "Story",
+    free: "Free",
+  };
+
+  // Border colors (matching StoryEntry pattern)
+  const actionBorderColors: Record<ActionType, string> = {
+    do: "border-l-emerald-500",
+    say: "border-l-blue-500",
+    think: "border-l-purple-500",
+    story: "border-l-amber-500",
+    free: "border-l-surface-600",
+  };
+
+  // Active button styles
+  const actionActiveStyles: Record<ActionType, string> = {
+    do: "bg-emerald-500/15 text-emerald-400",
+    say: "bg-blue-500/15 text-blue-400",
+    think: "bg-purple-500/15 text-purple-400",
+    story: "bg-amber-500/15 text-amber-400",
+    free: "bg-surface-600/30 text-surface-300",
+  };
+
+  // Submit button styles (minimal - icon only)
+  const actionButtonStyles: Record<ActionType, string> = {
+    do: "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10",
+    say: "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10",
+    think: "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10",
+    story: "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10",
+    free: "text-surface-400 hover:text-surface-200 hover:bg-surface-500/10",
+  };
+
+  const actionTypes: ActionType[] = ["do", "say", "think", "story", "free"];
 
   $effect(() => {
     const storyId = story.currentStory?.id ?? null;
@@ -559,6 +608,7 @@
     ui.setGenerating(true);
     ui.clearGenerationError(); // Clear any previous error
     ui.clearActionChoices(story.currentStory?.id); // Clear previous action choices
+    ui.startStreaming(visualProseMode, streamingEntryId); // Show loading state immediately
 
     try {
       // Build world state for AI context (including chapters for summarization)
@@ -587,9 +637,7 @@
       // Per design doc: Memory retrieval and Entry retrieval run in parallel
       let retrievedChapterContext: string | null = null;
       let lorebookContext: string | null = null;
-      let timelineFillResult:
-        | import("$lib/services/ai/timelineFill").TimelineFillResult
-        | null = null;
+      let timelineFillResult: TimelineFillResult | null = null;
       const storyMode = story.currentStory?.mode ?? "adventure";
 
       // Build parallel retrieval tasks
@@ -785,6 +833,7 @@
         null;
 
       let fullResponse = "";
+      let fullReasoning = "";
       let chunkCount = 0;
 
       // Capture current story reference for use after streaming
@@ -800,6 +849,7 @@
       while (retryCount < MAX_EMPTY_RESPONSE_RETRIES) {
         // Reset for each attempt
         fullResponse = "";
+        fullReasoning = "";
         chunkCount = 0;
 
         if (retryCount > 0) {
@@ -819,7 +869,8 @@
           hasRetrievedContext: !!combinedRetrievedContext,
           hasLorebookContext: !!lorebookContext,
           hasTimelineFill: !!timelineFillResult,
-          timelineFillResponses: timelineFillResult?.responses?.length ?? 0,
+          timelineFillResponses:
+            (timelineFillResult as any)?.responses?.length ?? 0,
           attempt: retryCount + 1,
         });
 
@@ -848,6 +899,12 @@
               chunk: chunk.content,
               accumulated: fullResponse,
             });
+          }
+
+          // Handle reasoning chunk
+          if (chunk.reasoning) {
+            ui.appendReasoningContent(chunk.reasoning);
+            fullReasoning += chunk.reasoning;
           }
 
           if (chunk.done) {
@@ -889,8 +946,14 @@
       if (fullResponse.trim()) {
         log("Saving narration entry...", {
           contentLength: fullResponse.length,
+          hasReasoning: !!fullReasoning,
         });
-        const narrationEntry = await story.addEntry("narration", fullResponse);
+        const narrationEntry = await story.addEntry(
+          "narration",
+          fullResponse,
+          undefined,
+          fullReasoning || undefined,
+        );
         log("Narration entry saved", {
           entryId: narrationEntry.id,
           entriesCount: story.entries.length,
@@ -911,6 +974,7 @@
         // Pass visible entries so classifier can see full chat history with time data
         // Filter out the current narration entry to avoid sending it twice (once in chatHistory, once as narrativeResponse)
         log("Starting classification phase...");
+        ui.setGenerationStatus("Updating world...");
         try {
           const chatHistoryEntries = story.visibleEntries.filter(
             (e) => e.id !== narrationEntry.id,
@@ -943,6 +1007,7 @@
           // Phase 4: Apply classification results to world state
           await story.applyClassificationResult(classificationResult);
           log("World state updated from classification");
+          ui.setGenerationStatus("Saving...");
 
           // Phase 9: Generate images for imageable scenes (background, non-blocking)
           // This runs inside the classification try block because we need the presentCharacterNames
@@ -1074,6 +1139,7 @@
     } finally {
       ui.endStreaming();
       ui.setGenerating(false);
+      ui.setGenerationStatus("");
       activeAbortController = null;
       stopRequested = false;
       log("Generation complete, UI reset");
@@ -1509,6 +1575,29 @@
       handleSubmit();
     }
   }
+
+  function autoResize(node: HTMLTextAreaElement, _value?: string) {
+    function resize() {
+      node.style.height = "auto";
+      node.style.height = `${node.scrollHeight}px`;
+    }
+
+    // Resize initially
+    resize();
+
+    // Resize on input (user typing)
+    node.addEventListener("input", resize);
+
+    return {
+      update(_newValue?: string) {
+        // Resize when value changes programmatically (e.g. suggestions)
+        resize();
+      },
+      destroy() {
+        node.removeEventListener("input", resize);
+      },
+    };
+  }
 </script>
 
 <div class="space-y-3">
@@ -1540,185 +1629,184 @@
   {/if}
 
   {#if isCreativeMode}
-    <!-- Creative Writing Mode: Suggestions -->
-    {#if !settings.uiSettings.disableSuggestions}
-      <Suggestions
-        suggestions={ui.suggestions}
-        loading={ui.suggestionsLoading}
-        onSelect={handleSuggestionSelect}
-        onRefresh={refreshSuggestions}
-      />
-    {/if}
-
-    <!-- Grammar Check -->
-    <GrammarCheck
-      text={inputValue}
-      onApplySuggestion={(newText) => (inputValue = newText)}
-    />
-
     <!-- Creative Writing Mode: Direction Input -->
     <div
-      class="group flex items-end gap-2 p-2 rounded-2xl bg-surface-800 border border-surface-700/50 border-l-4 {ui.isGenerating
-        ? 'border-l-surface-600'
-        : 'border-l-accent-500'} transition-all focus-within:border-accent-500/50"
+      class="rounded-lg border-l-0 sm:border-l-4 {ui.isGenerating
+        ? 'sm:border-l-surface-600 bg-surface-400/5'
+        : 'border-l-accent-500 sm:bg-surface-400/5'} transition-colors duration-200 relative"
     >
-      <div class="relative flex-1">
-        <textarea
-          bind:value={inputValue}
-          onkeydown={handleKeydown}
-          disabled={ui.isGenerating}
-          placeholder="Describe what happens next in the story..."
-          class="w-full bg-transparent border-none focus:ring-0 px-4 py-3 min-h-[56px] resize-none text-base text-surface-200 placeholder-surface-400 focus:outline-none"
-          rows="1"
-        ></textarea>
-        <!-- Character Count -->
-        <div
-          class="absolute bottom-2 right-2 text-[10px] text-surface-500 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity"
-        >
-          {inputValue.length}
-        </div>
-      </div>
-
-      {#if ui.isGenerating}
-        {#if !ui.isRetryingLastMessage}
-          <button
-            onclick={handleStopGeneration}
-            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-transform active:scale-95"
-            title="Stop generation"
+      <!-- Mobile Word Count Pill -->
+      {#if settings.uiSettings.showWordCount}
+        <div class="absolute top-2 right-0 sm:hidden">
+          <div
+            class="bg-surface-700 px-2 py-0.5 rounded-b-lg rounded-t-md text-[10px] text-surface-400"
           >
-            <Square class="h-5 w-5" />
-          </button>
+            {story.wordCount} wc
+          </div>
+        </div>
+      {/if}
+
+      <!-- Creative Writing Mode: Suggestions (Header) -->
+      {#if !settings.uiSettings.disableSuggestions}
+        <div class="border-b border-surface-700/30">
+          <Suggestions
+            suggestions={ui.suggestions}
+            loading={ui.suggestionsLoading}
+            onSelect={handleSuggestionSelect}
+            onRefresh={refreshSuggestions}
+          />
+        </div>
+      {/if}
+
+      <div class="flex items-end gap-1 p-0.5 mb-3 sm:mb-2 sm:p-1.5">
+        <div class="relative flex-1 min-w-0">
+          <textarea
+            bind:value={inputValue}
+            use:autoResize={inputValue}
+            onkeydown={handleKeydown}
+            disabled={ui.isGenerating}
+            placeholder="Describe what happens next in the story..."
+            class="w-full bg-transparent border-none focus:ring-0 px-2 min-h-[24px] sm:min-h-[24px] max-h-[160px] resize-none text-base text-surface-200 placeholder-surface-500 focus:outline-none leading-relaxed"
+            rows="1"
+          ></textarea>
+          <!-- Character Count -->
+          <div
+            class="absolute bottom-0 right-0 text-[10px] text-surface-500 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity"
+          >
+            {inputValue.length}
+          </div>
+        </div>
+
+        {#if ui.isGenerating}
+          {#if !ui.isRetryingLastMessage}
+            <button
+              onclick={handleStopGeneration}
+              class="h-9 w-9 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 animate-pulse"
+              title="Stop generation"
+            >
+              <Square class="h-5 w-5" />
+            </button>
+          {:else}
+            <button
+              disabled
+              class="h-9 w-9 p-0 flex items-center justify-center rounded-lg text-red-400 opacity-50 cursor-not-allowed flex-shrink-0"
+              title="Stop disabled during retry"
+            >
+              <Square class="h-5 w-5" />
+            </button>
+          {/if}
         {:else}
           <button
-            disabled
-            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed shadow-none"
-            title="Stop disabled during retry"
+            onclick={handleSubmit}
+            disabled={!inputValue.trim()}
+            class="h-9 w-9 p-0 flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:opacity-50 flex-shrink-0 text-accent-400 hover:text-accent-300 hover:bg-accent-500/10"
+            title="Send direction"
           >
-            <Square class="h-5 w-5" />
+            <Send class="h-5 w-5" />
           </button>
         {/if}
-      {:else}
-        <button
-          onclick={handleSubmit}
-          disabled={!inputValue.trim()}
-          class="btn btn-primary h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 transition-transform active:scale-95"
-          title="Send direction"
-        >
-          <Send class="h-5 w-5" />
-        </button>
-      {/if}
+      </div>
     </div>
   {:else}
-    <!-- Adventure Mode: Action type buttons -->
-    {#if !settings.uiSettings.disableActionPrefixes}
-      <div
-        class="action-type-buttons flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide"
-      >
-        <button
-          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
-          class:btn-primary={actionType === "do"}
-          class:btn-secondary={actionType !== "do"}
-          onclick={() => (actionType = "do")}
-        >
-          <Wand2 class="h-4 w-4" />
-          <span class="hidden xs:inline">Do</span>
-        </button>
-        <button
-          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
-          class:btn-primary={actionType === "say"}
-          class:btn-secondary={actionType !== "say"}
-          onclick={() => (actionType = "say")}
-        >
-          <MessageSquare class="h-4 w-4" />
-          <span class="hidden xs:inline">Say</span>
-        </button>
-        <button
-          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
-          class:btn-primary={actionType === "think"}
-          class:btn-secondary={actionType !== "think"}
-          onclick={() => (actionType = "think")}
-        >
-          <Brain class="h-4 w-4" />
-          <span class="hidden xs:inline">Think</span>
-        </button>
-        <button
-          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
-          class:btn-primary={actionType === "story"}
-          class:btn-secondary={actionType !== "story"}
-          onclick={() => (actionType = "story")}
-        >
-          <Sparkles class="h-4 w-4" />
-          <span class="hidden xs:inline">Story</span>
-        </button>
-        <button
-          class="btn flex items-center gap-1.5 text-sm flex-shrink-0 min-h-[36px] px-4 rounded-full font-medium transition-all active:scale-95"
-          class:btn-primary={actionType === "free"}
-          class:btn-secondary={actionType !== "free"}
-          onclick={() => (actionType = "free")}
-        >
-          <PenLine class="h-4 w-4" />
-          <span class="hidden xs:inline">Free</span>
-        </button>
-      </div>
-    {/if}
-
     <!-- Grammar Check -->
     <GrammarCheck
       text={inputValue}
       onApplySuggestion={(newText) => (inputValue = newText)}
     />
 
-    <!-- Adventure Mode: Input area -->
+    <!-- Adventure Mode: Redesigned Input -->
     <div
-      class="flex items-end gap-2 p-2 rounded-2xl bg-surface-800 border border-surface-700/50 border-l-4 {ui.isGenerating
-        ? 'border-l-surface-600'
-        : 'border-l-accent-500'} transition-all focus-within:border-accent-500/50"
+      class="rounded-lg border-l-0 sm:border-l-4 sm:bg-surface-400/5 {ui.isGenerating
+        ? 'sm:border-l-surface-60'
+        : `${actionBorderColors[actionType]}`} transition-colors duration-200 relative"
     >
-      <div class="relative flex-1">
-        <textarea
-          bind:value={inputValue}
-          onkeydown={handleKeydown}
-          placeholder={actionType === "story"
-            ? "Describe what happens..."
-            : actionType === "say"
-              ? "What do you say?"
-              : actionType === "think"
-                ? "What are you thinking?"
-                : actionType === "free"
-                  ? "Write anything..."
-                  : "What do you do?"}
-          class="w-full bg-transparent border-none focus:ring-0 px-4 py-3 min-h-[56px] sm:min-h-[60px] resize-none text-base text-surface-200 placeholder-surface-400 focus:outline-none"
-          rows="2"
-          disabled={ui.isGenerating}
-        ></textarea>
-      </div>
-      {#if ui.isGenerating}
-        {#if !ui.isRetryingLastMessage}
-          <button
-            onclick={handleStopGeneration}
-            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-transform active:scale-95"
-            title="Stop generation"
+      <!-- Mobile Word Count Pill -->
+      {#if settings.uiSettings.showWordCount}
+        <div class="absolute -top-[2.05rem] -right-3 sm:hidden">
+          <div
+            class="bg-surface-800 px-2 py-0.5 border border-surface-500/30 border-b-0 rounded-tl-md text-sm text-surface-400"
           >
-            <Square class="h-5 w-5" />
-          </button>
+            {story.wordCount} words
+          </div>
+        </div>
+      {/if}
+
+      <!-- Action type selector row (Top - both mobile and desktop) -->
+      {#if !settings.uiSettings.disableActionPrefixes}
+        <div
+          class="flex items-center gap-1 border-b border-surface-700/30 px-1 pt-0 pb-2 sm:px-2 sm:py-1"
+        >
+          {#each actionTypes as type}
+            {@const Icon = actionIcons[type]}
+            <button
+              class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-1 sm:px-3 sm:py-1 rounded-md
+                     text-[10px] sm:text-xs font-medium transition-all duration-150
+                     {actionType === type
+                ? actionActiveStyles[type]
+                : 'text-surface-500 hover:text-surface-300 hover:bg-surface-700/50'}"
+              onclick={() => (actionType = type)}
+            >
+              <Icon class="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span>{actionLabels[type]}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+      <!-- Main input row -->
+      <div class="flex items-end gap-1 p-0.5 mb-3 sm:mb-2 sm:p-1.5">
+        <!-- Textarea -->
+        <div class="relative flex-1 min-w-0">
+          <textarea
+            bind:value={inputValue}
+            use:autoResize={inputValue}
+            onkeydown={handleKeydown}
+            placeholder={actionType === "story"
+              ? "Describe what happens..."
+              : actionType === "say"
+                ? "What do you say?"
+                : actionType === "think"
+                  ? "What are you thinking?"
+                  : actionType === "free"
+                    ? "Write anything..."
+                    : "What do you do?"}
+            class="w-full bg-transparent border-none focus:ring-0 px-2 min-h-[24px] sm:min-h-[24px] max-h-[160px] resize-none text-base text-surface-200 placeholder-surface-500 focus:outline-none leading-relaxed"
+            rows="1"
+            disabled={ui.isGenerating}
+          ></textarea>
+        </div>
+
+        <!-- Submit/Stop button -->
+        {#if ui.isGenerating}
+          {#if !ui.isRetryingLastMessage}
+            <button
+              onclick={handleStopGeneration}
+              class="h-9 w-9 p-0 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 animate-pulse"
+              title="Stop generation"
+            >
+              <Square class="h-5 w-5" />
+            </button>
+          {:else}
+            <button
+              disabled
+              class="h-9 w-9 p-0 flex items-center justify-center rounded-lg text-red-400 opacity-50 cursor-not-allowed flex-shrink-0"
+              title="Stop disabled during retry"
+            >
+              <Square class="h-5 w-5" />
+            </button>
+          {/if}
         {:else}
           <button
-            disabled
-            class="btn h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 bg-red-500/20 text-red-400 opacity-50 cursor-not-allowed shadow-none"
-            title="Stop disabled during retry"
+            onclick={handleSubmit}
+            disabled={!inputValue.trim()}
+            class="h-9 w-9 p-0 flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:opacity-50 flex-shrink-0 {actionButtonStyles[
+              actionType
+            ]}"
           >
-            <Square class="h-5 w-5" />
+            <Send class="h-5 w-5" />
           </button>
         {/if}
-      {:else}
-        <button
-          onclick={handleSubmit}
-          disabled={!inputValue.trim() || ui.isGenerating}
-          class="btn btn-primary h-11 w-11 p-0 flex items-center justify-center rounded-xl mb-0.5 transition-transform active:scale-95"
-        >
-          <Send class="h-5 w-5" />
-        </button>
-      {/if}
+      </div>
     </div>
   {/if}
 

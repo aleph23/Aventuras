@@ -115,6 +115,7 @@ export interface StoryEntry {
   createdAt: number;
   metadata: EntryMetadata | null;
   branchId: string | null;  // Branch this entry belongs to (null = main branch for legacy)
+  reasoning?: string; // In-memory only reasoning (chain of thought)
 }
 
 export interface EntryMetadata {
@@ -638,6 +639,7 @@ export interface APISettings {
   activeProfileId: string | null;  // ID of profile being edited in API tab (UI state only)
   // Main narrative generation settings
   mainNarrativeProfileId: string;  // Profile used for main story generation
+  defaultProfileId?: string;       // Global default profile used as fallback
   defaultModel: string;
   temperature: number;
   maxTokens: number;
@@ -664,6 +666,7 @@ export interface UISettings {
   debugMode: boolean;
   disableSuggestions: boolean;
   disableActionPrefixes: boolean;
+  showReasoning: boolean;
 }
 
 export interface UpdateSettings {
@@ -737,3 +740,79 @@ export interface ImageGenerationSettings {
   providerOnly: string[];
   manualBody: string;
 }
+
+export interface GenerationPreset {
+  id: string;
+  name: string;
+  description: string | null;
+  profileId: string | null; // API profile to use (null = use main narrative profile)
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  reasoningEffort: ReasoningEffort;
+  providerOnly: string[];
+  manualBody: string;
+}
+
+// ===== Prompt Export/Import Types =====
+
+/**
+ * Exported Generation Preset - excludes sensitive profileId
+ * On import, user must reconnect each preset to an API profile
+ */
+export interface ExportedGenerationPreset {
+  id: string;
+  name: string;
+  description: string | null;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  reasoningEffort: ReasoningEffort;
+  providerOnly: string[];
+  manualBody: string;
+  // profileId is EXCLUDED - will be reconnected on import
+}
+
+/**
+ * Main export structure for prompts, macros, presets, and assignments
+ */
+export interface PromptExportData {
+  version: string;
+  exportedAt: number;
+  appVersion?: string;
+
+  promptSettings: {
+    customMacros: import('$lib/services/prompts/types').Macro[];
+    macroOverrides: import('$lib/services/prompts/types').MacroOverride[];
+    templateOverrides: import('$lib/services/prompts/types').PromptOverride[];
+  };
+
+  generationPresets: ExportedGenerationPreset[];
+  servicePresetAssignments: Record<string, string>;
+}
+
+/**
+ * Parsed import data with validation state
+ */
+export interface ParsedPromptImport {
+  success: boolean;
+  data: PromptExportData | null;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Profile assignment for import - allows customizing preset parameters
+ */
+export interface ImportPresetConfig {
+  presetId: string;
+  presetName: string;
+  profileId: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  reasoningEffort: ReasoningEffort;
+  providerOnly: string[];
+  manualBody: string;
+}
+

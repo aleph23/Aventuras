@@ -1,5 +1,6 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
   import { Plus, Package, Shield, Pencil, Trash2, ArrowDown, ArrowUp, MapPin, ChevronDown, ChevronUp } from 'lucide-svelte';
   import type { Item } from '$lib/types';
 
@@ -15,17 +16,12 @@
   let confirmingDeleteId = $state<string | null>(null);
   let droppingItemId = $state<string | null>(null);
   let dropLocationId = $state<string>('');
-  let collapsedItems = $state<Set<string>>(new Set());
 
   const worldItems = $derived(story.items.filter(item => item.location !== 'inventory'));
 
   function toggleCollapse(itemId: string) {
-    if (collapsedItems.has(itemId)) {
-      collapsedItems.delete(itemId);
-    } else {
-      collapsedItems.add(itemId);
-    }
-    collapsedItems = new Set(collapsedItems);
+    const isCollapsed = ui.isEntityCollapsed(itemId);
+    ui.toggleEntityCollapsed(itemId, !isCollapsed);
   }
 
   function getSectionLineCount(item: Item): number {
@@ -174,7 +170,7 @@
     <div class="space-y-2">
       <h4 class="text-sm font-medium text-surface-400">Equipped</h4>
       {#each story.equippedItems as item (item.id)}
-        {@const isCollapsed = collapsedItems.has(item.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const sectionLineCount = getSectionLineCount(item)}
         {@const needsCollapse = sectionLineCount > 4}
         <div class="card border-accent-500/30 bg-accent-500/5 p-3">
@@ -336,7 +332,7 @@
         <h4 class="text-sm font-medium text-surface-400">Inventory</h4>
       {/if}
       {#each story.inventoryItems.filter(item => !item.equipped) as item (item.id)}
-        {@const isCollapsed = collapsedItems.has(item.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const sectionLineCount = getSectionLineCount(item)}
         {@const needsCollapse = sectionLineCount > 4}
         <div class="card p-3">
@@ -494,7 +490,7 @@
     <div class="space-y-2">
       <h4 class="text-sm font-medium text-surface-400">World Items</h4>
       {#each worldItems as item (item.id)}
-        {@const isCollapsed = collapsedItems.has(item.id)}
+        {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const sectionLineCount = getSectionLineCount(item)}
         {@const needsCollapse = sectionLineCount > 4}
         <div class="card p-3">
