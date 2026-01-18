@@ -2,7 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    // Fix for "Failed to create GBM buffer" error on some Linux environments
+    // Workaround for "Failed to create GBM buffer" on Linux (e.g. Wayland/NVIDIA).
+    // This disables the DMA-BUF renderer, forcing a more compatible fallback.
     #[cfg(target_os = "linux")]
     std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
 
