@@ -1863,14 +1863,15 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
 </script>
 
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+  class="fixed inset-0 z-50 flex items-center justify-center sm:bg-black/70"
   role="dialog"
   aria-modal="true"
 >
-  <div class="card w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+  <!-- Mobile: full screen with safe area; Desktop: centered modal -->
+  <div class="card w-full h-full sm:h-auto sm:max-w-3xl sm:max-h-[90vh] overflow-hidden flex flex-col rounded-none sm:rounded-xl pt-[env(safe-area-inset-top)] sm:pt-0">
     <!-- Header -->
     <div
-      class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0"
+      class="flex items-center justify-between border-b border-surface-700 pb-4 shrink-0 px-4 sm:px-0 pt-2 sm:pt-0"
     >
       <div>
         <h2 class="text-xl font-semibold text-surface-100">Create New Story</h2>
@@ -2366,14 +2367,11 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
           </p>
 
           <!-- Import Options Row -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <!-- Import Character Card (existing) -->
-            <div
-              class="card bg-surface-900 border-dashed border-2 border-surface-600 p-4 text-center hover:border-accent-500/50 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[100px]"
+          <div class="flex gap-2 sm:grid sm:grid-cols-3 sm:gap-3">
+            <!-- Import Character Card -->
+            <button
+              class="flex-1 sm:flex-none card bg-surface-900 border-dashed border-2 border-surface-600 p-2 sm:p-4 text-center hover:border-accent-500/50 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[70px] sm:min-h-[100px]"
               onclick={() => cardImportFileInput?.click()}
-              role="button"
-              tabindex="0"
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') cardImportFileInput?.click(); }}
             >
               <input
                 type="file"
@@ -2383,42 +2381,40 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                 onchange={handleCardImport}
               />
               {#if isImportingCard}
-                <Loader2 class="h-6 w-6 mb-2 text-surface-500 animate-spin" />
-                <p class="text-surface-300 text-sm font-medium">Converting...</p>
+                <Loader2 class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2 text-surface-500 animate-spin" />
+                <p class="text-surface-300 text-xs sm:text-sm font-medium">Converting...</p>
               {:else}
-                <Upload class="h-6 w-6 mb-2 text-surface-500" />
-                <p class="text-surface-300 text-sm font-medium">Import Card</p>
-                <p class="text-xs text-surface-500">JSON or PNG</p>
+                <Upload class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2 text-surface-500" />
+                <p class="text-surface-300 text-xs sm:text-sm font-medium">Import Card</p>
+                <p class="text-[10px] sm:text-xs text-surface-500 hidden sm:block">JSON or PNG</p>
               {/if}
-            </div>
-
-            <!-- Load from Vault (NEW) -->
-            <button
-              class="card bg-surface-900 border-dashed border-2 border-surface-600 p-4 text-center hover:border-accent-500/50 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[100px]"
-              onclick={() => showScenarioVaultPicker = true}
-            >
-              <Archive class="h-6 w-6 mb-2 text-surface-500" />
-              <p class="text-surface-300 text-sm font-medium">Load from Vault</p>
-              <p class="text-xs text-surface-500">Saved scenarios</p>
             </button>
 
-            <!-- Save to Vault (NEW - show when content exists) -->
-            {#if settingSeed.trim()}
-              <button
-                class="card bg-surface-900 border-dashed border-2 border-surface-600 p-4 text-center hover:border-green-500/50 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[100px] {savedScenarioToVaultConfirm ? 'border-green-500/50 bg-green-500/10' : ''}"
-                onclick={handleSaveScenarioToVault}
-                disabled={savedScenarioToVaultConfirm}
-              >
-                {#if savedScenarioToVaultConfirm}
-                  <Check class="h-6 w-6 mb-2 text-green-400" />
-                  <p class="text-green-300 text-sm font-medium">Saved!</p>
-                {:else}
-                  <Archive class="h-6 w-6 mb-2 text-surface-500" />
-                  <p class="text-surface-300 text-sm font-medium">Save to Vault</p>
-                  <p class="text-xs text-surface-500">For later use</p>
-                {/if}
-              </button>
-            {/if}
+            <!-- Load from Vault -->
+            <button
+              class="flex-1 sm:flex-none card bg-surface-900 border-dashed border-2 border-surface-600 p-2 sm:p-4 text-center hover:border-accent-500/50 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[70px] sm:min-h-[100px]"
+              onclick={() => showScenarioVaultPicker = true}
+            >
+              <Archive class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2 text-surface-500" />
+              <p class="text-surface-300 text-xs sm:text-sm font-medium">Load Vault</p>
+              <p class="text-[10px] sm:text-xs text-surface-500 hidden sm:block">Saved scenarios</p>
+            </button>
+
+            <!-- Save to Vault (always visible, disabled when no content) -->
+            <button
+              class="flex-1 sm:flex-none card bg-surface-900 border-dashed border-2 border-surface-600 p-2 sm:p-4 text-center transition-colors flex flex-col items-center justify-center min-h-[70px] sm:min-h-[100px] {savedScenarioToVaultConfirm ? 'border-green-500/50 bg-green-500/10' : ''} {settingSeed.trim() ? 'hover:border-green-500/50 cursor-pointer' : 'opacity-50 cursor-not-allowed'}"
+              onclick={handleSaveScenarioToVault}
+              disabled={!settingSeed.trim() || savedScenarioToVaultConfirm}
+            >
+              {#if savedScenarioToVaultConfirm}
+                <Check class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2 text-green-400" />
+                <p class="text-green-300 text-xs sm:text-sm font-medium">Saved!</p>
+              {:else}
+                <Archive class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2 text-surface-500" />
+                <p class="text-surface-300 text-xs sm:text-sm font-medium">Save Vault</p>
+                <p class="text-[10px] sm:text-xs text-surface-500 hidden sm:block">For later use</p>
+              {/if}
+            </button>
           </div>
 
           <!-- Import Status / Error -->
@@ -2462,7 +2458,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
           </div>
 
           <!-- Elaboration Guidance (visible before expansion) -->
-          {#if settingSeed.trim().length > 0 && !expandedSetting}
+          {#if !expandedSetting}
             <div>
               <label class="mb-1 block text-xs font-medium text-surface-400">
                 Elaboration guidance (optional)
@@ -2476,7 +2472,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
             </div>
           {/if}
 
-          {#if (settingSeed.trim().length > 0 || isEditingSetting) && !expandedSetting}
+          {#if !expandedSetting}
             <div class="flex flex-wrap gap-2">
               <button
                 class="btn btn-secondary flex items-center gap-2"
@@ -2778,13 +2774,14 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
                       {/if}
                     </button>
                     <button
-                      class="btn btn-secondary btn-sm flex items-center gap-1 ml-auto"
+                      class="btn btn-secondary btn-sm flex items-center gap-1 sm:ml-auto"
                       onclick={handleSaveProtagonistToVault}
                       disabled={!manualCharacterName.trim()}
                       title="Save this character to your vault for reuse"
                     >
                       <Archive class="h-3 w-3" />
-                      {savedToVaultConfirm ? "Saved!" : "Save to Vault"}
+                      <span class="hidden sm:inline">{savedToVaultConfirm ? "Saved!" : "Save to Vault"}</span>
+                      <span class="sm:hidden">Save</span>
                     </button>
                   </div>
                 </div>
@@ -3857,7 +3854,7 @@ import { QUICK_START_SEEDS } from "$lib/services/templates";
     </div>
 
     <!-- Footer Navigation -->
-    <div class="flex justify-between border-t border-surface-700 pt-4 shrink-0">
+    <div class="flex justify-between border-t border-surface-700 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-0 shrink-0">
       <button
         class="btn btn-secondary flex items-center gap-1"
         onclick={prevStep}
