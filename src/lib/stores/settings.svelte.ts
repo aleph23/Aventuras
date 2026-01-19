@@ -172,9 +172,6 @@ export interface MemorySettings {
   profileId: string | null;  // API profile to use (null = use default profile)
   model: string;
   temperature: number;
-  chapterAnalysisPrompt: string;
-  chapterSummarizationPrompt: string;
-  retrievalDecisionPrompt: string;
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
@@ -186,9 +183,6 @@ export function getDefaultMemorySettings(): MemorySettings {
     profileId: DEFAULT_OPENROUTER_PROFILE_ID,
     model: 'x-ai/grok-4.1-fast',
     temperature: 0.3,
-    chapterAnalysisPrompt: '',
-    chapterSummarizationPrompt: '',
-    retrievalDecisionPrompt: '',
     reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
@@ -209,9 +203,6 @@ export function getDefaultMemorySettingsForProvider(provider: ProviderPreset, cu
     profileId: provider === 'custom' ? null : profileId,
     model,
     temperature: 0.3,
-    chapterAnalysisPrompt: '',
-    chapterSummarizationPrompt: '',
-    retrievalDecisionPrompt: '',
     reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
@@ -888,11 +879,6 @@ export interface LorebookClassifierSpecificSettings {
   maxConcurrent: number;
 }
 
-export interface MemorySpecificSettings {
-  chapterAnalysisPrompt: string;
-  chapterSummarizationPrompt: string;
-  retrievalDecisionPrompt: string;
-}
 
 export interface SuggestionsSpecificSettings {
 }
@@ -947,7 +933,6 @@ export interface CharacterCardImportSpecificSettings {
 export interface ServiceSpecificSettings {
   classifier: ClassifierSpecificSettings;
   lorebookClassifier: LorebookClassifierSpecificSettings;
-  memory: MemorySpecificSettings;
   suggestions: SuggestionsSpecificSettings;
   actionChoices: ActionChoicesSpecificSettings;
   styleReviewer: StyleReviewerSpecificSettings;
@@ -966,7 +951,6 @@ export function getDefaultServiceSpecificSettings(): ServiceSpecificSettings {
   return {
     classifier: getDefaultClassifierSpecificSettings(),
     lorebookClassifier: getDefaultLorebookClassifierSpecificSettings(),
-    memory: getDefaultMemorySpecificSettings(),
     suggestions: getDefaultSuggestionsSpecificSettings(),
     actionChoices: getDefaultActionChoicesSpecificSettings(),
     styleReviewer: getDefaultStyleReviewerSpecificSettings(),
@@ -995,13 +979,6 @@ export function getDefaultLorebookClassifierSpecificSettings(): LorebookClassifi
   };
 }
 
-export function getDefaultMemorySpecificSettings(): MemorySpecificSettings {
-  return {
-    chapterAnalysisPrompt: '',
-    chapterSummarizationPrompt: '',
-    retrievalDecisionPrompt: '',
-  };
-}
 
 export function getDefaultSuggestionsSpecificSettings(): SuggestionsSpecificSettings {
   return {};
@@ -1725,7 +1702,6 @@ class SettingsStore {
           this.serviceSpecificSettings = {
             classifier: { ...getDefaultClassifierSpecificSettings(), ...loaded.classifier },
             lorebookClassifier: { ...getDefaultLorebookClassifierSpecificSettings(), ...loaded.lorebookClassifier },
-            memory: { ...getDefaultMemorySpecificSettings(), ...loaded.memory },
             suggestions: getDefaultSuggestionsSpecificSettings(),
             actionChoices: getDefaultActionChoicesSpecificSettings(),
             styleReviewer: getDefaultStyleReviewerSpecificSettings(),
@@ -1881,9 +1857,6 @@ class SettingsStore {
         addOverride('timeline-fill', this.systemServicesSettings.timelineFill?.systemPrompt, defaultSystemServices.timelineFill?.systemPrompt);
         addOverride('timeline-fill-answer', this.systemServicesSettings.timelineFill?.queryAnswerPrompt, defaultSystemServices.timelineFill?.queryAnswerPrompt);
         addOverride('lorebook-classifier', this.systemServicesSettings.lorebookClassifier.systemPrompt, defaultSystemServices.lorebookClassifier.systemPrompt);
-        addOverride('chapter-analysis', this.systemServicesSettings.memory.chapterAnalysisPrompt, defaultSystemServices.memory.chapterAnalysisPrompt);
-        addOverride('chapter-summarization', this.systemServicesSettings.memory.chapterSummarizationPrompt, defaultSystemServices.memory.chapterSummarizationPrompt);
-        addOverride('retrieval-decision', this.systemServicesSettings.memory.retrievalDecisionPrompt, defaultSystemServices.memory.retrievalDecisionPrompt);
 
         // Wizard prompts
         addOverride('setting-expansion', this.wizardSettings.settingExpansion.systemPrompt, defaultWizardSettings.settingExpansion.systemPrompt);
@@ -2592,11 +2565,6 @@ class SettingsStore {
     await this.saveServiceSpecificSettings();
   }
 
-  async resetMemorySettings() {
-    const customModel = this.providerPreset === 'custom' ? this.getFirstModelFromDefaultProfile() : null;
-    this.systemServicesSettings.memory = getDefaultMemorySettingsForProvider(this.providerPreset, customModel);
-    await this.saveSystemServicesSettings();
-  }
 
   async resetSuggestionsSettings() {
     const customModel = this.providerPreset === 'custom' ? this.getFirstModelFromDefaultProfile() : null;

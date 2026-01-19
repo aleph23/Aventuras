@@ -1,12 +1,11 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings.svelte';
-  import { ChevronDown, ChevronUp, RotateCcw, FolderOpen, BookOpen, Brain, Database, Search } from 'lucide-svelte';
+  import { ChevronDown, ChevronUp, RotateCcw, FolderOpen, BookOpen, Brain, Search } from 'lucide-svelte';
 
   // Section visibility state
   let showLorebookImportSection = $state(false);
   let showLoreManagementSection = $state(false);
   let showClassifierSection = $state(false);
-  let showMemorySection = $state(false);
   let showEntryRetrievalSection = $state(false);
 
   // Manual mode toggle handler
@@ -268,90 +267,6 @@
             <span>No limit (0)</span>
             <span>500 words max</span>
           </div>
-        </div>
-      </div>
-    {/if}
-  </div>
-
-  <!-- Memory Settings (prompts) -->
-  <div class="border-b border-surface-700 pb-3">
-    <div class="flex items-center justify-between">
-      <button
-        class="flex items-center gap-2 text-left flex-1"
-        onclick={() => showMemorySection = !showMemorySection}
-      >
-        <Database class="h-4 w-4 text-blue-400" />
-        <div>
-          <h3 class="text-sm font-medium text-surface-200">Memory Service</h3>
-          <p class="text-xs text-surface-500">Custom prompts for memory operations</p>
-        </div>
-      </button>
-      <div class="flex items-center gap-2">
-        <button
-          class="text-xs text-surface-400 hover:text-surface-200"
-          onclick={() => settings.resetMemorySettings()}
-          title="Reset to default"
-        >
-          <RotateCcw class="h-3 w-3" />
-        </button>
-        <button onclick={() => showMemorySection = !showMemorySection}>
-          {#if showMemorySection}
-            <ChevronUp class="h-4 w-4 text-surface-400" />
-          {:else}
-            <ChevronDown class="h-4 w-4 text-surface-400" />
-          {/if}
-        </button>
-      </div>
-    </div>
-
-    {#if showMemorySection}
-      <div class="mt-3 space-y-3 pl-6">
-        <!-- Chapter Analysis Prompt -->
-        <div>
-          <label class="mb-1 block text-xs font-medium text-surface-400">
-            Chapter Analysis Prompt
-          </label>
-          <textarea
-            class="textarea textarea-sm w-full bg-surface-800 border-surface-600 text-surface-100 min-h-24"
-            value={settings.systemServicesSettings.memory?.chapterAnalysisPrompt ?? ''}
-            oninput={(e) => {
-              settings.systemServicesSettings.memory.chapterAnalysisPrompt = e.currentTarget.value;
-              settings.saveSystemServicesSettings();
-            }}
-            placeholder="Enter custom chapter analysis prompt"
-          />
-        </div>
-
-        <!-- Chapter Summarization Prompt -->
-        <div>
-          <label class="mb-1 block text-xs font-medium text-surface-400">
-            Chapter Summarization Prompt
-          </label>
-          <textarea
-            class="textarea textarea-sm w-full bg-surface-800 border-surface-600 text-surface-100 min-h-24"
-            value={settings.systemServicesSettings.memory?.chapterSummarizationPrompt ?? ''}
-            oninput={(e) => {
-              settings.systemServicesSettings.memory.chapterSummarizationPrompt = e.currentTarget.value;
-              settings.saveSystemServicesSettings();
-            }}
-            placeholder="Enter custom chapter summarization prompt"
-          />
-        </div>
-
-        <!-- Retrieval Decision Prompt -->
-        <div>
-          <label class="mb-1 block text-xs font-medium text-surface-400">
-            Retrieval Decision Prompt
-          </label>
-          <textarea
-            class="textarea textarea-sm w-full bg-surface-800 border-surface-600 text-surface-100 min-h-24"
-            value={settings.systemServicesSettings.memory?.retrievalDecisionPrompt ?? ''}
-            oninput={(e) => {
-              settings.systemServicesSettings.memory.retrievalDecisionPrompt = e.currentTarget.value;
-              settings.saveSystemServicesSettings();
-            }}
-            placeholder="Enter custom retrieval decision prompt"
-          />
         </div>
       </div>
     {/if}
