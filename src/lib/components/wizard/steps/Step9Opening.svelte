@@ -299,7 +299,7 @@
       </div>
       {#if isEditingOpening}
         <textarea
-          value={openingDraft}
+          value={openingDraft ?? ''}
           oninput={(e) => onDraftChange(e.currentTarget.value)}
           class="input min-h-[140px] resize-y text-sm"
           rows="6"
@@ -314,7 +314,7 @@
           <button
             class="btn btn-primary btn-sm"
             onclick={onSaveEdit}
-            disabled={!openingDraft.trim()}
+            disabled={!openingDraft?.trim()}
           >
             Save Changes
           </button>

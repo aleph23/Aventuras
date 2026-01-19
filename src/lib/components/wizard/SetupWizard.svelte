@@ -836,7 +836,7 @@
 
   function saveOpeningEdit() {
     if (!generatedOpening) return;
-    if (!openingDraft.trim()) {
+    if (!openingDraft?.trim()) {
       openingError = "Opening text cannot be empty";
       return;
     }

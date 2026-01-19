@@ -431,8 +431,8 @@
         </div>
 
         <ModelSelector
-          profileId={tempPreset.profileId}
-          model={tempPreset.model}
+          profileId={tempPreset?.profileId ?? null}
+          model={tempPreset?.model ?? ''}
           onProfileChange={(id) => {
             if (tempPreset) tempPreset.profileId = id;
           }}
