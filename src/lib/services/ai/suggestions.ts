@@ -3,6 +3,7 @@ import type { StoryEntry, StoryBeat, Entry, GenerationPreset } from '$lib/types'
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -139,33 +140,26 @@ export class SuggestionsService {
   }
 
   private parseSuggestions(content: string): SuggestionsResult {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-      if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-      if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-      jsonStr = jsonStr.trim();
-
-      const parsed = JSON.parse(jsonStr);
-      const suggestions: StorySuggestion[] = [];
-
-      if (Array.isArray(parsed.suggestions)) {
-        for (const s of parsed.suggestions.slice(0, 3)) {
-          if (s.text) {
-            suggestions.push({
-              text: s.text,
-              type: ['action', 'dialogue', 'revelation', 'twist'].includes(s.type)
-                ? s.type
-                : 'action',
-            });
-          }
-        }
-      }
-
-      return { suggestions };
-    } catch (e) {
-      log('Failed to parse suggestions:', e);
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse suggestions');
       return { suggestions: [] };
     }
+
+    const suggestions: StorySuggestion[] = [];
+    if (Array.isArray(parsed.suggestions)) {
+      for (const s of parsed.suggestions.slice(0, 3)) {
+        if (s.text) {
+          suggestions.push({
+            text: s.text,
+            type: ['action', 'dialogue', 'revelation', 'twist'].includes(s.type)
+              ? s.type
+              : 'action',
+          });
+        }
+      }
+    }
+
+    return { suggestions };
   }
 }

@@ -13,6 +13,7 @@ import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 /**
  * Live world state - the actively tracked entities that should always be Tier 1
@@ -604,17 +605,10 @@ export class EntryRetrievalService {
       // Parse response - look for JSON array of numbers
       let selectedIndices: number[] = [];
 
-      // Try to extract JSON array
-      const jsonMatch = response.content.match(/\[[\d,\s]*\]/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (Array.isArray(parsed)) {
-            selectedIndices = parsed.filter(n => typeof n === 'number' && n > 0);
-          }
-        } catch {
-          log('Failed to parse JSON array');
-        }
+      // Try to parse with JSON healing
+      const parsed = tryParseJsonWithHealing<number[]>(response.content);
+      if (parsed && Array.isArray(parsed)) {
+        selectedIndices = parsed.filter(n => typeof n === 'number' && n > 0);
       }
 
       // Fallback: extract any numbers from the response

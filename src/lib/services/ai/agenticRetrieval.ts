@@ -14,6 +14,7 @@ import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import type { ReasoningEffort } from '$lib/types';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
+import { parseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -304,7 +305,7 @@ export class AgenticRetrievalService {
 
           if (toolCall.function.name === 'finish_retrieval') {
             complete = true;
-            const args = JSON.parse(toolCall.function.arguments);
+            const args = parseJsonWithHealing<Record<string, any>>(toolCall.function.arguments);
             retrievedContext = args.summary;
           }
 
@@ -390,7 +391,7 @@ export class AgenticRetrievalService {
     onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>,
     onQueryChapters?: (startChapter: number, endChapter: number, question: string) => Promise<string>
   ): Promise<string> {
-    const args = JSON.parse(toolCall.function.arguments);
+    const args = parseJsonWithHealing<Record<string, any>>(toolCall.function.arguments);
     log('Executing retrieval tool:', toolCall.function.name, args);
 
     switch (toolCall.function.name) {

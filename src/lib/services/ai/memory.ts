@@ -3,6 +3,7 @@ import type { Chapter, StoryEntry, MemoryConfig, TimeTracker, GenerationPreset }
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 // Format time tracker for display in context (always shows full format)
 function formatTime(time: TimeTracker | null): string {
@@ -424,74 +425,51 @@ NOTE: Only use for reference. This is NOT what you will be summarizing.
     startIndex: number,
     entryCount: number
   ): ChapterAnalysis {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-      if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-      if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-      jsonStr = jsonStr.trim();
-
-      const parsed = JSON.parse(jsonStr);
-
-      // Handle both old format (optimalEndIndex) and new format (chapterEnd)
-      // chapterEnd is 1-based message ID, optimalEndIndex is relative to startIndex
-      let endIndex: number;
-      if (parsed.chapterEnd !== undefined) {
-        // New format: chapterEnd is absolute 1-based message ID
-        // Convert to 0-based array index
-        endIndex = Math.min(Math.max(startIndex + 1, parsed.chapterEnd), startIndex + entryCount);
-      } else if (parsed.optimalEndIndex !== undefined) {
-        // Old format: relative index within the chunk
-        const relativeIndex = Math.min(Math.max(1, parsed.optimalEndIndex), entryCount);
-        endIndex = startIndex + relativeIndex;
-      } else {
-        // Fallback: use end of range
-        endIndex = startIndex + entryCount;
-      }
-
-      log('Parsed chapter endpoint', {
-        chapterEnd: parsed.chapterEnd,
-        optimalEndIndex: parsed.optimalEndIndex,
-        startIndex,
-        entryCount,
-        finalEndIndex: endIndex,
-      });
-
-      return {
-        shouldCreateChapter: true,
-        optimalEndIndex: endIndex,
-        suggestedTitle: parsed.suggestedTitle || null,
-      };
-    } catch (e) {
-      log('Failed to parse chapter analysis:', e);
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse chapter analysis');
       return {
         shouldCreateChapter: true,
         optimalEndIndex: startIndex + entryCount,
         suggestedTitle: null,
       };
     }
+
+    // Handle both old format (optimalEndIndex) and new format (chapterEnd)
+    // chapterEnd is 1-based message ID, optimalEndIndex is relative to startIndex
+    let endIndex: number;
+    if (parsed.chapterEnd !== undefined) {
+      // New format: chapterEnd is absolute 1-based message ID
+      // Convert to 0-based array index
+      endIndex = Math.min(Math.max(startIndex + 1, parsed.chapterEnd), startIndex + entryCount);
+    } else if (parsed.optimalEndIndex !== undefined) {
+      // Old format: relative index within the chunk
+      const relativeIndex = Math.min(Math.max(1, parsed.optimalEndIndex), entryCount);
+      endIndex = startIndex + relativeIndex;
+    } else {
+      // Fallback: use end of range
+      endIndex = startIndex + entryCount;
+    }
+
+    log('Parsed chapter endpoint', {
+      chapterEnd: parsed.chapterEnd,
+      optimalEndIndex: parsed.optimalEndIndex,
+      startIndex,
+      entryCount,
+      finalEndIndex: endIndex,
+    });
+
+    return {
+      shouldCreateChapter: true,
+      optimalEndIndex: endIndex,
+      suggestedTitle: parsed.suggestedTitle || null,
+    };
   }
 
   private parseChapterSummary(content: string): ChapterSummary {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-      if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-      if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-      jsonStr = jsonStr.trim();
-
-      const parsed = JSON.parse(jsonStr);
-      return {
-        summary: parsed.summary || 'Summary unavailable.',
-        title: parsed.title || 'Untitled Chapter',
-        keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
-        characters: Array.isArray(parsed.characters) ? parsed.characters : [],
-        locations: Array.isArray(parsed.locations) ? parsed.locations : [],
-        plotThreads: Array.isArray(parsed.plotThreads) ? parsed.plotThreads : [],
-        emotionalTone: parsed.emotionalTone || 'neutral',
-      };
-    } catch (e) {
-      log('Failed to parse chapter summary:', e);
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse chapter summary');
       return {
         summary: 'Summary unavailable.',
         title: 'Untitled Chapter',
@@ -502,28 +480,32 @@ NOTE: Only use for reference. This is NOT what you will be summarizing.
         emotionalTone: 'neutral',
       };
     }
+
+    return {
+      summary: parsed.summary || 'Summary unavailable.',
+      title: parsed.title || 'Untitled Chapter',
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+      characters: Array.isArray(parsed.characters) ? parsed.characters : [],
+      locations: Array.isArray(parsed.locations) ? parsed.locations : [],
+      plotThreads: Array.isArray(parsed.plotThreads) ? parsed.plotThreads : [],
+      emotionalTone: parsed.emotionalTone || 'neutral',
+    };
   }
 
   private parseRetrievalDecision(content: string, maxChapters: number): RetrievalDecision {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-      if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-      if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-      jsonStr = jsonStr.trim();
-
-      const parsed = JSON.parse(jsonStr);
-      const ids = Array.isArray(parsed.relevantChapterIds)
-        ? parsed.relevantChapterIds.slice(0, maxChapters)
-        : [];
-      const queries = Array.isArray(parsed.queries)
-        ? parsed.queries.slice(0, maxChapters)
-        : [];
-
-      return { relevantChapterIds: ids, queries };
-    } catch (e) {
-      log('Failed to parse retrieval decision:', e);
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse retrieval decision');
       return { relevantChapterIds: [], queries: [] };
     }
+
+    const ids = Array.isArray(parsed.relevantChapterIds)
+      ? parsed.relevantChapterIds.slice(0, maxChapters)
+      : [];
+    const queries = Array.isArray(parsed.queries)
+      ? parsed.queries.slice(0, maxChapters)
+      : [];
+
+    return { relevantChapterIds: ids, queries };
   }
 }

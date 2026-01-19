@@ -8,6 +8,7 @@ import type { VaultLorebookEntry, EntryType, EntryInjectionMode } from '$lib/typ
 import { settings, getDefaultInteractiveLorebookSettings, type InteractiveLorebookSettings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 // Event types for progress updates
 export type StreamEvent =
@@ -629,11 +630,9 @@ export class InteractiveLorebookService {
     toolCall: ToolCall,
     entries: VaultLorebookEntry[]
   ): { result: string; pendingChange?: PendingChange; parsedArgs: Record<string, unknown> } {
-    let args: Record<string, unknown>;
-    try {
-      args = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      log('Failed to parse tool call arguments:', toolCall.function.arguments, e);
+    const args = tryParseJsonWithHealing<Record<string, unknown>>(toolCall.function.arguments);
+    if (!args) {
+      log('Failed to parse tool call arguments:', toolCall.function.arguments);
       return {
         result: JSON.stringify({ error: 'Invalid tool call arguments - malformed JSON' }),
         parsedArgs: {},

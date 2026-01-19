@@ -10,6 +10,7 @@ import type { OpenAIProvider } from './openrouter';
 import type { Character } from '$lib/types';
 import { buildExtraBody } from './requestOverrides';
 import { settings } from '$lib/stores/settings.svelte';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 /**
  * Represents a scene identified as suitable for image generation.
@@ -201,39 +202,25 @@ export class ImagePromptService {
    * Parse the AI response into structured imageable scenes.
    */
   private parseResponse(content: string): ImageableScene[] {
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        if (this.debug) {
-          console.log('[ImagePrompt] No JSON array found in response');
-        }
-        return [];
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      // Validate and filter the parsed data
-      return parsed
-        .filter(item => this.isValidScene(item))
-        .map(item => ({
-          prompt: String(item.prompt),
-          sourceText: String(item.sourceText),
-          sceneType: this.normalizeSceneType(item.sceneType),
-          priority: Math.min(10, Math.max(1, Number(item.priority) || 5)),
-          characters: this.normalizeCharacters(item.characters),
-          generatePortrait: Boolean(item.generatePortrait),
-        }));
-    } catch (error) {
+    const parsed = tryParseJsonWithHealing<unknown[]>(content);
+    if (!parsed || !Array.isArray(parsed)) {
       if (this.debug) {
-        console.log('[ImagePrompt] Failed to parse response:', error);
+        console.log('[ImagePrompt] Failed to parse response as array');
       }
       return [];
     }
+
+    // Validate and filter the parsed data
+    return parsed
+      .filter(item => this.isValidScene(item))
+      .map(item => ({
+        prompt: String((item as any).prompt),
+        sourceText: String((item as any).sourceText),
+        sceneType: this.normalizeSceneType((item as any).sceneType),
+        priority: Math.min(10, Math.max(1, Number((item as any).priority) || 5)),
+        characters: this.normalizeCharacters((item as any).characters),
+        generatePortrait: Boolean((item as any).generatePortrait),
+      }));
   }
 
   /**

@@ -12,6 +12,7 @@ import type { Character, Location, Item, StoryBeat, StoryEntry, Chapter } from '
 import { settings } from '$lib/stores/settings.svelte';
 import type { OpenAIProvider as OpenAIProvider } from './openrouter';
 import { promptService } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -353,13 +354,13 @@ export class ContextBuilder {
       });
 
       // Parse response as JSON array
-      const match = response.content.match(/\[[\d,\s]*\]/);
-      if (!match) {
+      const parsed = tryParseJsonWithHealing<number[]>(response.content);
+      if (!parsed || !Array.isArray(parsed)) {
         log('Failed to parse LLM selection response');
         return [];
       }
 
-      const selectedIndices: number[] = JSON.parse(match[0]);
+      const selectedIndices: number[] = parsed.filter(n => typeof n === 'number');
       const selectedEntries: RelevantEntry[] = [];
 
       for (const idx of selectedIndices) {

@@ -3,6 +3,7 @@ import type { Character, Location, Item, StoryBeat, StoryEntry, TimeTracker, Gen
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -354,54 +355,39 @@ ${formattedEntries}
   }
 
   private parseClassificationResponse(content: string): ClassificationResult {
-    // Try to extract JSON from the response
-    let jsonStr = content.trim();
-
-    // Handle markdown code blocks
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.slice(7);
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.slice(3);
-    }
-    if (jsonStr.endsWith('```')) {
-      jsonStr = jsonStr.slice(0, -3);
-    }
-    jsonStr = jsonStr.trim();
-
-    try {
-      const parsed = JSON.parse(jsonStr);
-
-      // Validate and normalize the structure
-      return {
-        entryUpdates: {
-          characterUpdates: Array.isArray(parsed.entryUpdates?.characterUpdates)
-            ? parsed.entryUpdates.characterUpdates : [],
-          locationUpdates: Array.isArray(parsed.entryUpdates?.locationUpdates)
-            ? parsed.entryUpdates.locationUpdates : [],
-          itemUpdates: Array.isArray(parsed.entryUpdates?.itemUpdates)
-            ? parsed.entryUpdates.itemUpdates : [],
-          storyBeatUpdates: Array.isArray(parsed.entryUpdates?.storyBeatUpdates)
-            ? parsed.entryUpdates.storyBeatUpdates : [],
-          newCharacters: Array.isArray(parsed.entryUpdates?.newCharacters)
-            ? parsed.entryUpdates.newCharacters : [],
-          newLocations: Array.isArray(parsed.entryUpdates?.newLocations)
-            ? parsed.entryUpdates.newLocations : [],
-          newItems: Array.isArray(parsed.entryUpdates?.newItems)
-            ? parsed.entryUpdates.newItems : [],
-          newStoryBeats: Array.isArray(parsed.entryUpdates?.newStoryBeats)
-            ? parsed.entryUpdates.newStoryBeats : [],
-        },
-        scene: {
-          currentLocationName: parsed.scene?.currentLocationName ?? null,
-          presentCharacterNames: Array.isArray(parsed.scene?.presentCharacterNames)
-            ? parsed.scene.presentCharacterNames : [],
-          timeProgression: parsed.scene?.timeProgression ?? 'none',
-        },
-      };
-    } catch (e) {
-      log('Failed to parse classification JSON', e, 'Content:', jsonStr.substring(0, 200));
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse classification JSON, Content:', content.substring(0, 200));
       return this.getEmptyResult();
     }
+
+    // Validate and normalize the structure
+    return {
+      entryUpdates: {
+        characterUpdates: Array.isArray(parsed.entryUpdates?.characterUpdates)
+          ? parsed.entryUpdates.characterUpdates : [],
+        locationUpdates: Array.isArray(parsed.entryUpdates?.locationUpdates)
+          ? parsed.entryUpdates.locationUpdates : [],
+        itemUpdates: Array.isArray(parsed.entryUpdates?.itemUpdates)
+          ? parsed.entryUpdates.itemUpdates : [],
+        storyBeatUpdates: Array.isArray(parsed.entryUpdates?.storyBeatUpdates)
+          ? parsed.entryUpdates.storyBeatUpdates : [],
+        newCharacters: Array.isArray(parsed.entryUpdates?.newCharacters)
+          ? parsed.entryUpdates.newCharacters : [],
+        newLocations: Array.isArray(parsed.entryUpdates?.newLocations)
+          ? parsed.entryUpdates.newLocations : [],
+        newItems: Array.isArray(parsed.entryUpdates?.newItems)
+          ? parsed.entryUpdates.newItems : [],
+        newStoryBeats: Array.isArray(parsed.entryUpdates?.newStoryBeats)
+          ? parsed.entryUpdates.newStoryBeats : [],
+      },
+      scene: {
+        currentLocationName: parsed.scene?.currentLocationName ?? null,
+        presentCharacterNames: Array.isArray(parsed.scene?.presentCharacterNames)
+          ? parsed.scene.presentCharacterNames : [],
+        timeProgression: parsed.scene?.timeProgression ?? 'none',
+      },
+    };
   }
 
   private getEmptyResult(): ClassificationResult {

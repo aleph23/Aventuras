@@ -27,6 +27,7 @@ import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import type { ReasoningEffort } from '$lib/types';
 import { promptService, type PromptContext, type StoryMode, type POV, type Tense } from '$lib/services/prompts';
+import { parseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -636,7 +637,7 @@ export class LoreManagementService {
   }
 
   private async executeTool(toolCall: ToolCall, context: ToolExecutionContext): Promise<string> {
-    const args = JSON.parse(toolCall.function.arguments);
+    const args = parseJsonWithHealing<Record<string, any>>(toolCall.function.arguments);
     log('Executing tool:', toolCall.function.name, args);
 
     switch (toolCall.function.name) {
@@ -663,7 +664,7 @@ export class LoreManagementService {
       }
 
       case 'create_entry': {
-        const newEntry = this.createEntry(context.storyId, context.branchId, args);
+        const newEntry = this.createEntry(context.storyId, context.branchId, args as any);
         context.entries.push(newEntry);
         await context.onCreateEntry(newEntry);
         this.changes.push({ type: 'create', entry: newEntry });

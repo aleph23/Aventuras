@@ -3,6 +3,7 @@ import type { StoryEntry, Character, Location, Item, StoryBeat, Entry, Generatio
 import { settings } from '$lib/stores/settings.svelte';
 import { buildExtraBody } from './requestOverrides';
 import { promptService, type PromptContext } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -209,33 +210,26 @@ Match their vocabulary, tone, and phrasing patterns.`;
   }
 
   private parseChoices(content: string): ActionChoicesResult {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-      if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-      if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-      jsonStr = jsonStr.trim();
-
-      const parsed = JSON.parse(jsonStr);
-      const choices: ActionChoice[] = [];
-
-      if (Array.isArray(parsed.choices)) {
-        for (const c of parsed.choices.slice(0, 4)) {
-          if (c.text) {
-            choices.push({
-              text: c.text,
-              type: ['action', 'dialogue', 'examine', 'move'].includes(c.type)
-                ? c.type
-                : 'action',
-            });
-          }
-        }
-      }
-
-      return { choices };
-    } catch (e) {
-      log('Failed to parse choices:', e);
+    const parsed = tryParseJsonWithHealing<Record<string, any>>(content);
+    if (!parsed) {
+      log('Failed to parse choices');
       return { choices: [] };
     }
+
+    const choices: ActionChoice[] = [];
+    if (Array.isArray(parsed.choices)) {
+      for (const c of parsed.choices.slice(0, 4)) {
+        if (c.text) {
+          choices.push({
+            text: c.text,
+            type: ['action', 'dialogue', 'examine', 'move'].includes(c.type)
+              ? c.type
+              : 'action',
+          });
+        }
+      }
+    }
+
+    return { choices };
   }
 }

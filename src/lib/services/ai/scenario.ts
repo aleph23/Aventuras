@@ -5,6 +5,7 @@ import { buildExtraBody } from './requestOverrides';
 import type { Message } from './types';
 import type { StoryMode, POV, Character, Location, Item } from '$lib/types';
 import { promptService, type PromptContext } from '$lib/services/prompts';
+import { tryParseJsonWithHealing } from './jsonHealing';
 
 const DEBUG = true;
 
@@ -348,49 +349,14 @@ class ScenarioService {
   }
 
   /**
-   * Robust JSON parsing that handles various markdown code block formats.
+   * Robust JSON parsing using jsonrepair for automatic healing of malformed JSON.
    */
   private parseJsonResponse<T>(content: string): T | null {
-    let jsonStr = content.trim();
-
-    // Method 1: Strip markdown code blocks if the response is wrapped in them
-    if (jsonStr.startsWith('```')) {
-      // Remove opening ``` with optional language identifier
-      jsonStr = jsonStr.replace(/^```(?:json|JSON)?\s*\n?/, '');
-      // Remove closing ```
-      jsonStr = jsonStr.replace(/\n?```\s*$/, '');
-      jsonStr = jsonStr.trim();
+    const result = tryParseJsonWithHealing<T>(content);
+    if (!result) {
+      log('JSON parsing failed for:', content.substring(0, 200));
     }
-
-    // Method 2: Try to parse as-is
-    try {
-      return JSON.parse(jsonStr) as T;
-    } catch {
-      // Continue to other methods
-    }
-
-    // Method 3: Extract JSON object {...} from anywhere in the string
-    const objectMatch = content.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
-      try {
-        return JSON.parse(objectMatch[0]) as T;
-      } catch {
-        // Continue
-      }
-    }
-
-    // Method 4: Extract JSON array [...] from anywhere in the string
-    const arrayMatch = content.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
-      try {
-        return JSON.parse(arrayMatch[0]) as T;
-      } catch {
-        // Continue
-      }
-    }
-
-    log('All JSON parsing methods failed for:', content.substring(0, 200));
-    return null;
+    return result;
   }
 
   private buildSettingLorebookContext(
