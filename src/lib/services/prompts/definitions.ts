@@ -121,6 +121,17 @@ const inlineImageBlockMacro: SimpleMacro = {
   defaultValue: '',
 };
 
+const responseLengthMacro: SimpleMacro = {
+  id: 'response-length',
+  name: 'Response Length',
+  token: 'responseLength',
+  type: 'simple',
+  builtin: true,
+  dynamic: false,
+  description: 'Target word count for AI responses',
+  defaultValue: '500',
+};
+
 // ============================================================================
 // BUILTIN COMPLEX MACROS
 // ============================================================================
@@ -635,6 +646,7 @@ export const BUILTIN_MACROS: Macro[] = [
   inlineImageInstructionsMacro,
   visualProseBlockMacro,
   inlineImageBlockMacro,
+  responseLengthMacro,
   // Complex macros
   styleInstructionMacro,
   responseInstructionMacro,
