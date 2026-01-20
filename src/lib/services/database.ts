@@ -23,6 +23,8 @@ import type {
   VaultCharacterType,
   VaultLorebook,
   VaultScenario,
+  VaultTag,
+  VaultType,
 } from '$lib/types';
 
 class DatabaseService {
@@ -1967,7 +1969,210 @@ private mapEmbeddedImage(row: any): EmbeddedImage {
     return results.map(this.mapVaultScenario);
   }
 
+  // ===== Vault Tag Operations =====
+
+  async getVaultTags(type?: VaultType): Promise<VaultTag[]> {
+    const db = await this.getDb();
+    const query = type 
+      ? 'SELECT * FROM vault_tags WHERE type = ? ORDER BY name ASC'
+      : 'SELECT * FROM vault_tags ORDER BY type ASC, name ASC';
+    const params = type ? [type] : [];
+    
+    const results = await db.select<any[]>(query, params);
+    return results.map(this.mapVaultTag);
+  }
+
+  async addVaultTag(tag: VaultTag): Promise<void> {
+    const db = await this.getDb();
+    await db.execute(
+      'INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)',
+      [tag.id, tag.name, tag.type, tag.color, tag.createdAt]
+    );
+  }
+
+  async updateVaultTag(id: string, updates: Partial<VaultTag>): Promise<void> {
+    const db = await this.getDb();
+    const setClauses: string[] = [];
+    const values: any[] = [];
+
+    // Get current tag first if we're updating the name
+    let oldName: string | null = null;
+    let type: VaultType | null = null;
+
+    if (updates.name !== undefined) {
+      const currentTag = await this.getDb().then(d => d.select<any[]>('SELECT name, type FROM vault_tags WHERE id = ?', [id]));
+      if (currentTag.length > 0) {
+        oldName = currentTag[0].name;
+        type = currentTag[0].type as VaultType;
+      }
+    }
+
+    if (updates.name !== undefined) { setClauses.push('name = ?'); values.push(updates.name); }
+    if (updates.color !== undefined) { setClauses.push('color = ?'); values.push(updates.color); }
+    
+    if (setClauses.length === 0) return;
+    
+    values.push(id);
+    await db.execute(`UPDATE vault_tags SET ${setClauses.join(', ')} WHERE id = ?`, values);
+
+    // If name changed, we must update all vault items that use this tag
+    // This is a heavy operation but safe because we use transactions implicitly or just sequence it
+    if (oldName && updates.name && type && oldName !== updates.name) {
+      await this.migrateTagInVaultItems(type, oldName, updates.name);
+    }
+  }
+
+  async deleteVaultTag(id: string): Promise<void> {
+    const db = await this.getDb();
+    
+    // Get the tag first to know its name and type
+    const tagResult = await db.select<any[]>('SELECT name, type FROM vault_tags WHERE id = ?', [id]);
+    if (tagResult.length === 0) return;
+    
+    const { name, type } = tagResult[0];
+    
+    // Delete definition
+    await db.execute('DELETE FROM vault_tags WHERE id = ?', [id]);
+    
+    // Remove from all vault items
+    await this.removeTagFromVaultItems(type, name);
+  }
+
+  // Helper to rename a tag across all vault items
+  private async migrateTagInVaultItems(type: VaultType, oldName: string, newName: string): Promise<void> {
+    const db = await this.getDb();
+    let table = '';
+    
+    if (type === 'character') table = 'character_vault';
+    else if (type === 'lorebook') table = 'lorebook_vault';
+    else if (type === 'scenario') table = 'scenario_vault';
+    
+    if (!table) return;
+
+    // We have to read all rows that might contain the tag, update JSON, and write back
+    // A simple REPLACE string might be dangerous if tag name is a substring of another tag
+    const rows = await db.select<{id: string, tags: string}[]>(
+      `SELECT id, tags FROM ${table} WHERE tags LIKE ?`, 
+      [`%${oldName}%`]
+    );
+
+    for (const row of rows) {
+      try {
+        const tags = JSON.parse(row.tags) as string[];
+        const index = tags.indexOf(oldName);
+        if (index !== -1) {
+          tags[index] = newName;
+          await db.execute(
+            `UPDATE ${table} SET tags = ? WHERE id = ?`,
+            [JSON.stringify(tags), row.id]
+          );
+        }
+      } catch (e) {
+        console.error(`[Database] Failed to migrate tag for ${table} row ${row.id}`, e);
+      }
+    }
+  }
+
+  // Helper to remove a tag from all vault items
+  private async removeTagFromVaultItems(type: VaultType, tagName: string): Promise<void> {
+    const db = await this.getDb();
+    let table = '';
+    
+    if (type === 'character') table = 'character_vault';
+    else if (type === 'lorebook') table = 'lorebook_vault';
+    else if (type === 'scenario') table = 'scenario_vault';
+    
+    if (!table) return;
+
+    const rows = await db.select<{id: string, tags: string}[]>(
+      `SELECT id, tags FROM ${table} WHERE tags LIKE ?`, 
+      [`%${tagName}%`]
+    );
+
+    for (const row of rows) {
+      try {
+        let tags = JSON.parse(row.tags) as string[];
+        if (tags.includes(tagName)) {
+          tags = tags.filter(t => t !== tagName);
+          await db.execute(
+            `UPDATE ${table} SET tags = ? WHERE id = ?`,
+            [JSON.stringify(tags), row.id]
+          );
+        }
+      } catch (e) {
+        console.error(`[Database] Failed to remove tag for ${table} row ${row.id}`, e);
+      }
+    }
+  }
+
+  // Migration: Populate vault_tags from existing vault data
+  async ensureTagsMigrated(): Promise<void> {
+    const db = await this.getDb();
+    
+    // Check if we have any tags
+    const count = await db.select<{c: number}[]>('SELECT COUNT(*) as c FROM vault_tags');
+    // If we already have tags, we assume migration is done or in progress
+    // But we might want to check for new tags that appeared from imports? 
+    // For now, let's just do it if empty to seed the system
+    if (count[0].c > 0) return;
+
+    console.log('[Database] Migrating existing tags to vault_tags table...');
+
+    const colors = [
+      'red-500', 'orange-500', 'amber-500', 'yellow-500', 'lime-500', 
+      'green-500', 'emerald-500', 'teal-500', 'cyan-500', 'sky-500', 
+      'blue-500', 'indigo-500', 'violet-500', 'purple-500', 'fuchsia-500', 
+      'pink-500', 'rose-500'
+    ];
+
+    const processTable = async (table: string, type: VaultType) => {
+      const rows = await db.select<{tags: string}[]>(`SELECT tags FROM ${table}`);
+      const uniqueTags = new Set<string>();
+      
+      for (const row of rows) {
+        try {
+          const tags = JSON.parse(row.tags) as string[];
+          tags.forEach(t => uniqueTags.add(t.trim()));
+        } catch {}
+      }
+
+      for (const tagName of uniqueTags) {
+        if (!tagName) continue;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        // Use crypto.randomUUID() if available, otherwise simple random
+        const id = crypto.randomUUID();
+        
+        try {
+          await db.execute(
+            'INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)',
+            [id, tagName, type, color, Date.now()]
+          );
+        } catch (e) {
+          // Ignore unique constraint errors
+          console.warn(`[Database] Skipped duplicate tag ${tagName} during migration`);
+        }
+      }
+    };
+
+    await processTable('character_vault', 'character');
+    await processTable('lorebook_vault', 'lorebook');
+    await processTable('scenario_vault', 'scenario');
+    
+    console.log('[Database] Tag migration complete');
+  }
+
+  private mapVaultTag(row: any): VaultTag {
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type as VaultType,
+      color: row.color,
+      createdAt: row.created_at,
+    };
+  }
+
   private mapVaultScenario(row: any): VaultScenario {
+
     return {
       id: row.id,
       name: row.name,

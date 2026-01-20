@@ -7,6 +7,7 @@
     FileText, MapPin, User, ChevronDown, ChevronRight, Search
   } from 'lucide-svelte';
   import { fade, slide } from 'svelte/transition';
+  import TagInput from '$lib/components/tags/TagInput.svelte';
 
   interface Props {
     scenario: VaultScenario;
@@ -28,7 +29,6 @@
   let activeTab = $state<'general' | 'npcs' | 'opening'>('general');
   let saving = $state(false);
   let error = $state<string | null>(null);
-  let tagInput = $state('');
   
   // Character Selector State
   let showCharacterSelector = $state(false);
@@ -87,19 +87,6 @@
       error = e instanceof Error ? e.message : 'Failed to save scenario';
       saving = false;
     });
-  }
-
-  // Tag Management
-  function addTag() {
-    const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      tags = [...tags, tag];
-      tagInput = '';
-    }
-  }
-
-  function removeTag(tag: string) {
-    tags = tags.filter(t => t !== tag);
   }
 
   // NPC Management
@@ -282,32 +269,12 @@
 
               <div>
                 <label class="block text-sm font-medium text-surface-300 mb-1">Tags</label>
-                <div class="flex flex-wrap gap-2 mb-2">
-                  {#each tags as tag}
-                    <span class="flex items-center gap-1 rounded-full bg-surface-700 px-2 py-0.5 text-xs text-surface-200">
-                      {tag}
-                      <button onclick={() => removeTag(tag)} class="hover:text-white">
-                        <X class="h-3 w-3" />
-                      </button>
-                    </span>
-                  {/each}
-                </div>
-                <div class="flex gap-2">
-                  <input
-                    type="text"
-                    bind:value={tagInput}
-                    onkeydown={(e) => e.key === 'Enter' && addTag()}
-                    class="flex-1 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-100 focus:border-accent-500 focus:outline-none"
-                    placeholder="Add a tag..."
-                  />
-                  <button
-                    onclick={addTag}
-                    disabled={!tagInput.trim()}
-                    class="rounded-lg bg-surface-700 px-3 py-2 text-surface-200 hover:bg-surface-600 hover:text-white disabled:opacity-50"
-                  >
-                    Add
-                  </button>
-                </div>
+                <TagInput
+                  value={tags}
+                  type="scenario"
+                  onChange={(newTags) => tags = newTags}
+                  placeholder="Add tags..."
+                />
               </div>
             </div>
           </div>

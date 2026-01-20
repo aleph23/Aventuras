@@ -3,6 +3,7 @@
   import { characterVault } from '$lib/stores/characterVault.svelte';
   import { X, User, Users, ImageUp, Loader2 } from 'lucide-svelte';
   import { normalizeImageDataUrl } from '$lib/utils/image';
+  import TagInput from '$lib/components/tags/TagInput.svelte';
 
   interface Props {
     character?: VaultCharacter | null;
@@ -23,7 +24,7 @@
   let relationshipTemplate = $state(character?.relationshipTemplate ?? '');
   let traits = $state(character?.traits.join(', ') ?? '');
   let visualDescriptors = $state(character?.visualDescriptors.join(', ') ?? '');
-  let tags = $state(character?.tags.join(', ') ?? '');
+  let tags = $state<string[]>(character?.tags ?? []);
   let portrait = $state<string | null>(character?.portrait ?? null);
 
   let saving = $state(false);
@@ -44,8 +45,7 @@
     try {
       const traitsArray = traits.split(',').map(t => t.trim()).filter(Boolean);
       const visualDescriptorsArray = visualDescriptors.split(',').map(d => d.trim()).filter(Boolean);
-      const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
-
+      
       if (isEditing && character) {
         // Update existing
         await characterVault.update(character.id, {
@@ -58,7 +58,7 @@
           relationshipTemplate: relationshipTemplate.trim() || null,
           traits: traitsArray,
           visualDescriptors: visualDescriptorsArray,
-          tags: tagsArray,
+          tags,
           portrait,
         });
         onSaved?.(characterVault.getById(character.id)!);
@@ -74,7 +74,7 @@
           relationshipTemplate: relationshipTemplate.trim() || null,
           traits: traitsArray,
           visualDescriptors: visualDescriptorsArray,
-          tags: tagsArray,
+          tags,
           portrait,
           favorite: false,
           source: 'manual',
@@ -330,12 +330,11 @@
       <!-- Tags -->
       <div>
         <label for="tags" class="block text-sm font-medium text-surface-300 mb-1">Tags</label>
-        <input
-          id="tags"
-          type="text"
-          bind:value={tags}
-          placeholder="Fantasy, Hero, Original (comma-separated)"
-          class="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
+        <TagInput
+          value={tags}
+          type="character"
+          onChange={(newTags) => tags = newTags}
+          placeholder="Add tags..."
         />
         <p class="mt-1 text-xs text-surface-500">For organizing your vault</p>
       </div>

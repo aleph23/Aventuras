@@ -2,6 +2,8 @@
   import type { VaultCharacter } from '$lib/types';
   import { Star, Pencil, Trash2, User, Users, Loader2 } from 'lucide-svelte';
   import { normalizeImageDataUrl } from '$lib/utils/image';
+  import { tagStore } from '$lib/stores/tags.svelte';
+  import TagBadge from '$lib/components/tags/TagBadge.svelte';
 
   interface Props {
     character: VaultCharacter;
@@ -102,6 +104,17 @@
           {/each}
           {#if character.traits.length > 3}
             <span class="text-xs text-surface-500">+{character.traits.length - 3}</span>
+          {/if}
+        </div>
+      {/if}
+
+      {#if character.tags.length > 0}
+        <div class="mt-2 flex flex-wrap gap-1">
+          {#each character.tags.slice(0, 3) as tag}
+            <TagBadge name={tag} color={tagStore.getColor(tag, 'character')} />
+          {/each}
+          {#if character.tags.length > 3}
+            <span class="text-xs text-surface-500">+{character.tags.length - 3}</span>
           {/if}
         </div>
       {/if}

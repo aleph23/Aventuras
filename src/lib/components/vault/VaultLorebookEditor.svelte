@@ -8,6 +8,7 @@
   } from 'lucide-svelte';
   import { fade, slide } from 'svelte/transition';
   import InteractiveLorebookChat from './InteractiveLorebookChat.svelte';
+  import TagInput from '$lib/components/tags/TagInput.svelte';
 
   interface Props {
     lorebook: VaultLorebook;
@@ -19,6 +20,7 @@
   // Local state for editing
   let name = $state(lorebook.name);
   let description = $state(lorebook.description ?? '');
+  let tags = $state<string[]>([...lorebook.tags]);
   let entries = $state<VaultLorebookEntry[]>(JSON.parse(JSON.stringify(lorebook.entries))); // Deep copy
   
   // UI State
@@ -78,6 +80,7 @@
       name,
       description: description || null,
       entries,
+      tags,
       metadata: {
         ...lorebook.metadata,
         format: lorebook.metadata?.format ?? 'aventura',
@@ -110,6 +113,7 @@
       name,
       description: description || null,
       entries,
+      tags,
       metadata: {
         ...lorebook.metadata,
         format: lorebook.metadata?.format ?? 'aventura',
@@ -254,6 +258,16 @@
                   class="w-full rounded-lg border border-surface-600 bg-surface-800 px-4 py-3 text-surface-100 placeholder-surface-500 focus:border-accent-500 focus:outline-none"
                   placeholder="Describe what this lorebook contains..."
                 ></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-surface-300 mb-1">Tags</label>
+                <TagInput
+                  value={tags}
+                  type="lorebook"
+                  onChange={(newTags) => tags = newTags}
+                  placeholder="Add tags..."
+                />
               </div>
 
               <div class="rounded-lg bg-surface-800 p-4 border border-surface-700">

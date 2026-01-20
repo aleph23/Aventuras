@@ -840,3 +840,14 @@ export interface TranslationSettings {
   translateWorldState: boolean;  // Translate world state UI elements
 }
 
+export type VaultType = 'character' | 'lorebook' | 'scenario';
+
+export interface VaultTag {
+  id: string;
+  name: string;
+  type: VaultType;
+  color: string;
+  createdAt: number;
+}
+
+

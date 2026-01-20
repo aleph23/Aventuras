@@ -22,6 +22,7 @@
     Book,
     Globe,
     MapPin,
+    Tags,
   } from "lucide-svelte";
   import VaultCharacterCard from "./VaultCharacterCard.svelte";
   import VaultCharacterForm from "./VaultCharacterForm.svelte";
@@ -30,6 +31,9 @@
   import VaultScenarioCard from "./VaultScenarioCard.svelte";
   import VaultScenarioEditor from "./VaultScenarioEditor.svelte";
   import DiscoveryModal from "$lib/components/discovery/DiscoveryModal.svelte";
+  import TagFilter from "./TagFilter.svelte";
+  import TagManager from "$lib/components/tags/TagManager.svelte";
+  import { tagStore } from "$lib/stores/tags.svelte";
   import { fade } from "svelte/transition";
 
   // Types
@@ -39,6 +43,9 @@
   let activeTab = $state<VaultTab>(ui.vaultTab);
   let searchQuery = $state("");
   let showFavoritesOnly = $state(false);
+  let selectedTags = $state<string[]>([]);
+  let filterLogic = $state<"AND" | "OR">("OR");
+  let showTagManager = $state(false);
 
   // Character State
   let charFilterType = $state<VaultCharacterType | "all">("all");
@@ -73,6 +80,14 @@
       chars = chars.filter((c) => c.favorite);
     }
 
+    if (selectedTags.length > 0) {
+      if (filterLogic === 'AND') {
+        chars = chars.filter(c => selectedTags.every(tag => c.tags.includes(tag)));
+      } else {
+        chars = chars.filter(c => selectedTags.some(tag => c.tags.includes(tag)));
+      }
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       chars = chars.filter(
@@ -93,6 +108,14 @@
 
     if (showFavoritesOnly) {
       books = books.filter((b) => b.favorite);
+    }
+
+    if (selectedTags.length > 0) {
+      if (filterLogic === 'AND') {
+        books = books.filter(b => selectedTags.every(tag => b.tags.includes(tag)));
+      } else {
+        books = books.filter(b => selectedTags.some(tag => b.tags.includes(tag)));
+      }
     }
 
     if (searchQuery.trim()) {
@@ -116,6 +139,14 @@
       items = items.filter((s) => s.favorite);
     }
 
+    if (selectedTags.length > 0) {
+      if (filterLogic === 'AND') {
+        items = items.filter(s => selectedTags.every(tag => s.tags.includes(tag)));
+      } else {
+        items = items.filter(s => selectedTags.some(tag => s.tags.includes(tag)));
+      }
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       items = items.filter(
@@ -134,16 +165,19 @@
     if (!characterVault.isLoaded) characterVault.load();
     if (!lorebookVault.isLoaded) lorebookVault.load();
     if (!scenarioVault.isLoaded) scenarioVault.load();
+    if (!tagStore.isLoaded) tagStore.load();
   });
 
   // Sync with UI store
   $effect(() => {
     activeTab = ui.vaultTab;
+    selectedTags = []; // Reset tags when tab changes externally
   });
 
   // Update UI store when tab changes
   $effect(() => {
     ui.setVaultTab(activeTab);
+    selectedTags = []; // Reset tags when tab changes internally
   });
 
   // Character Handlers
@@ -298,6 +332,15 @@
 
       <!-- Right Side Actions (Context Sensitive) -->
       <div class="flex items-center gap-2 -mr-1 sm:mr-0">
+        <button
+          class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500 hover:bg-surface-600"
+          onclick={() => (showTagManager = true)}
+          title="Manage Tags"
+        >
+          <Tags class="h-4 w-4" />
+          <span class="hidden sm:inline">Tags</span>
+        </button>
+
         {#if activeTab === "characters"}
           <button
             class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-700 px-3 py-1.5 text-sm text-surface-300 hover:border-surface-500 hover:bg-surface-600"
@@ -540,6 +583,16 @@
           </div>
         {/if}
 
+        <TagFilter
+          selectedTags={selectedTags}
+          logic={filterLogic}
+          type={activeTab === "characters" ? "character" : activeTab === "lorebooks" ? "lorebook" : "scenario"}
+          onUpdate={(tags, logic) => {
+            selectedTags = tags;
+            filterLogic = logic;
+          }}
+        />
+
         <button
           class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors shrink-0 {showFavoritesOnly
             ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
@@ -547,7 +600,7 @@
           onclick={() => (showFavoritesOnly = !showFavoritesOnly)}
         >
           <Star class="h-3 w-3 {showFavoritesOnly ? 'fill-yellow-400' : ''}" />
-          Favorites
+          <span class="hidden sm:inline">Favorites</span>
         </button>
       </div>
     </div>
@@ -730,3 +783,8 @@
   mode={discoveryMode}
   onClose={() => (showDiscoveryModal = false)}
 />
+
+<!-- Tag Manager Modal -->
+{#if showTagManager}
+  <TagManager onClose={() => (showTagManager = false)} />
+{/if}

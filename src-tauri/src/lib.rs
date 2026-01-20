@@ -135,6 +135,12 @@ pub fn run() {
             description: "translation",
             sql: include_str!("../migrations/021_translation.sql"),
             kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 22,
+            description: "vault_tags",
+            sql: include_str!("../migrations/022_vault_tags.sql"),
+            kind: MigrationKind::Up,
         }
     ];
 
