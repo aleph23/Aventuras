@@ -10,18 +10,18 @@
     items: T[];
     isLoading?: boolean;
     searchPlaceholder?: string;
-    
+
     // Empty State configuration
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     emptyIcon: any;
     emptyTitle: string;
     emptyDescription?: string;
     onNavigateToVault?: () => void;
-    
+
     // Logic
     filterItem: (item: T, query: string) => boolean;
     sortItems?: (a: T, b: T) => number;
-    
+
     // Render
     renderItem: Snippet<[T]>;
     key: (item: T) => string;
@@ -38,7 +38,7 @@
     filterItem,
     sortItems,
     renderItem,
-    key
+    key,
   }: Props = $props();
 
   let searchQuery = $state("");
@@ -48,13 +48,13 @@
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(item => filterItem(item, query));
+      result = result.filter((item) => filterItem(item, query));
     }
 
     if (sortItems) {
       return [...result].sort(sortItems);
     }
-    
+
     return result;
   });
 
@@ -65,15 +65,13 @@
   <!-- Search -->
   {#if hasItems || isLoading}
     <div class="relative">
-      <Search
-        class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-      />
       <Input
         type="text"
         bind:value={searchQuery}
         placeholder={searchPlaceholder}
         class="pl-9 bg-background"
         disabled={isLoading}
+        leftIcon={Search}
       />
     </div>
   {/if}
@@ -95,14 +93,20 @@
         </div>
       {:else if filteredItems.length === 0}
         <div class="flex h-full flex-col items-center justify-center py-8">
-           <EmptyState
-             icon={emptyIcon}
-             title={searchQuery ? "No matches found" : emptyTitle}
-             description={searchQuery ? "Try adjusting your search query" : emptyDescription}
-             actionLabel={(!searchQuery && onNavigateToVault) ? "Go to Vault" : undefined}
-             onAction={(!searchQuery && onNavigateToVault) ? onNavigateToVault : undefined}
-             class="py-2"
-           />
+          <EmptyState
+            icon={emptyIcon}
+            title={searchQuery ? "No matches found" : emptyTitle}
+            description={searchQuery
+              ? "Try adjusting your search query"
+              : emptyDescription}
+            actionLabel={!searchQuery && onNavigateToVault
+              ? "Go to Vault"
+              : undefined}
+            onAction={!searchQuery && onNavigateToVault
+              ? onNavigateToVault
+              : undefined}
+            class="py-2"
+          />
         </div>
       {:else}
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
