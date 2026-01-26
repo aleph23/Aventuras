@@ -106,7 +106,7 @@
                                                      </div>
                                                      {#if retrieved.matchReason}
                                                          <div class="text-xs bg-background/40 rounded px-2 py-1 inline-block border border-black/5 dark:border-white/5">
-                                                            <span class="opacity-70 font-medium">Match:</span> {retrieved.matchReason}
+                                                            <span class="opacity-70 font-medium">Match:</span> {retrieved.matchReason.replace(/^matched:\s*/i, '')}
                                                          </div>
                                                      {/if}
                                                      <p class="text-xs opacity-80 line-clamp-2 leading-relaxed">
