@@ -613,8 +613,8 @@ export class ImageGenerationService {
       model,
       status: 'generating',
       errorMessage: undefined,
-      width: size === '1024x1024' || size === '2048x2048' ? 1024 : 512,
-      height: size === '1024x1024' || size === '2048x2048' ? 1024 : 512,
+      width: size === '2048x2048' ? 2048 : (size === '1024x1024' ? 1024 : 512),
+      height: size === '2048x2048' ? 2048 : (size === '1024x1024' ? 1024 : 512),
     });
 
     log('Retrying image generation with current settings', {
