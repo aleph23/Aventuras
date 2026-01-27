@@ -16,3 +16,4 @@ export {
 export { ChutesImageProvider, createChutesProvider } from './ChutesProvider';
 export { NanoGPTImageProvider, createNanoGPTProvider } from './NanoGPTProvider';
 export { OpenAICompatibleImageProvider, createOpenAICompatibleProvider } from './OpenAIProvider';
+export { PollinationsImageProvider, createPollinationsProvider } from './PollinationsProvider';

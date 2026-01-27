@@ -34,6 +34,10 @@ export interface ImageModelInfo {
   supportsSizes: string[];
   supportsImg2Img: boolean;
   costPerImage?: number;
+  costPerTextToken?: number;      // Cost calculation for providers with pricing API (e.g., Pollinations)
+  costPerImageToken?: number;      // Cost calculation for providers with pricing API (e.g., Pollinations)
+  inputModalities?: string[];      // Filter by input type (e.g., "text", "image")
+  outputModalities?: string[];     // Filter by output type (e.g., "image", "video")
 }
 
 /**

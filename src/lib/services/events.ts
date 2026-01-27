@@ -23,6 +23,7 @@ export type EventType =
   | 'ChapterCreated'         // New chapter summarized
   | 'ImageAnalysisStarted'   // Started analyzing narrative for imageable scenes
   | 'ImageAnalysisComplete'  // Finished analyzing narrative for imageable scenes
+  | 'ImageAnalysisFailed'    // Image analysis or generation failed
   | 'ImageQueued'            // Image generation requested
   | 'ImageReady'             // Image generation complete
   | 'TTSQueued'              // TTS generation requested for entry
@@ -136,6 +137,12 @@ export interface ImageAnalysisCompleteEvent {
   portraitCount: number;
 }
 
+export interface ImageAnalysisFailedEvent {
+  type: 'ImageAnalysisFailed';
+  entryId: string;
+  error: string;
+}
+
 export interface ImageQueuedEvent {
   type: 'ImageQueued';
   imageId: string;
@@ -179,6 +186,7 @@ export type AventuraEvent =
   | SaveCompleteEvent
   | ImageAnalysisStartedEvent
   | ImageAnalysisCompleteEvent
+  | ImageAnalysisFailedEvent
   | ImageQueuedEvent
   | ImageReadyEvent
   | GenericEvent;
@@ -331,6 +339,10 @@ export function emitImageAnalysisStarted(entryId: string): void {
 
 export function emitImageAnalysisComplete(entryId: string, sceneCount: number, portraitCount: number): void {
   eventBus.emit<ImageAnalysisCompleteEvent>({ type: 'ImageAnalysisComplete', entryId, sceneCount, portraitCount });
+}
+
+export function emitImageAnalysisFailed(entryId: string, error: string): void {
+  eventBus.emit<ImageAnalysisFailedEvent>({ type: 'ImageAnalysisFailed', entryId, error });
 }
 
 export function emitImageQueued(imageId: string, entryId: string): void {

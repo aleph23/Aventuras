@@ -508,16 +508,17 @@ export function getDefaultUpdateSettings(): UpdateSettings {
 }
 
 // Image Generation settings (automatic image generation for narrative)
-export type ImageProviderType = 'nanogpt' | 'chutes';
+export type ImageProviderType = 'nanogpt' | 'chutes' | 'pollinations';
 
 export interface ImageGenerationServiceSettings {
   enabled: boolean;               // Toggle for image generation (default: false)
   imageProvider: ImageProviderType; // Selected image provider (default: 'nanogpt')
   nanoGptApiKey: string;          // NanoGPT API key for image generation
   chutesApiKey: string;           // Chutes API key for image generation
+  pollinationsApiKey: string;     // Pollinations API key for image generation
   model: string;                  // Image model (default: 'z-image-turbo')
   styleId: string;                // Selected image style template
-  size: '512x512' | '1024x1024';  // Image size
+  size: '512x512' | '1024x1024' | '2048x2048';  // Image size
   maxImagesPerMessage: number;    // Max images per narrative (0 = unlimited, default: 3)
   autoGenerate: boolean;          // Generate automatically after narration
 
@@ -542,6 +543,7 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     imageProvider: 'nanogpt',
     nanoGptApiKey: '',
     chutesApiKey: '',
+    pollinationsApiKey: '',
     model: 'z-image-turbo',
     styleId: 'image-style-soft-anime',
     size: '1024x1024',
@@ -576,6 +578,7 @@ export function getDefaultImageGenerationSettingsForProvider(provider: ProviderP
     imageProvider: 'nanogpt',
     nanoGptApiKey: '',  // Will be autofilled from NanoGPT profile if available
     chutesApiKey: '',
+    pollinationsApiKey: '',
     model: 'z-image-turbo',
     styleId: 'image-style-soft-anime',
     size: '1024x1024',

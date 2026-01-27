@@ -1405,6 +1405,15 @@ async createEmbeddedImage(image: Omit<EmbeddedImage, 'createdAt'>): Promise<Embe
     return { ...image, createdAt: now };
   }
 
+  async getEmbeddedImage(id: string): Promise<EmbeddedImage | null> {
+    const db = await this.getDb();
+    const result = await db.select<any[]>(
+      'SELECT * FROM embedded_images WHERE id = ?',
+      [id]
+    );
+    return result.length > 0 ? this.mapEmbeddedImage(result[0]) : null;
+  }
+
   async updateEmbeddedImage(id: string, updates: Partial<EmbeddedImage>): Promise<void> {
     const db = await this.getDb();
     const setClauses: string[] = [];

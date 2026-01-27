@@ -11,17 +11,19 @@
 
 import type { EmbeddedImage, Character } from '$lib/types';
 import type { OpenAIProvider } from '../core/OpenAIProvider';
-import type { ImageProvider } from './providers/base';
+import type { ImageProvider, ImageModelInfo } from './providers/base';
 import { ImagePromptService, type ImagePromptContext, type ImageableScene } from './ImagePromptService';
 import { NanoGPTImageProvider } from './providers/NanoGPTProvider';
 import { ChutesImageProvider } from './providers/ChutesProvider';
+import { PollinationsImageProvider } from './providers/PollinationsProvider';
 import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
 import { story } from '$lib/stores/story.svelte';
-import { emitImageQueued, emitImageReady, emitImageAnalysisStarted, emitImageAnalysisComplete } from '$lib/services/events';
+import { emitImageQueued, emitImageReady, emitImageAnalysisStarted, emitImageAnalysisComplete, emitImageAnalysisFailed } from '$lib/services/events';
 import { normalizeImageDataUrl } from '$lib/utils/image';
-import { createLogger } from '../core/config';
+import { createLogger, DEBUG } from '../core/config';
+import { DEFAULT_FALLBACK_STYLE_PROMPT } from './constants';
 
 const log = createLogger('ImageGeneration');
 
@@ -71,6 +73,9 @@ export class ImageGenerationService {
     if (provider === 'chutes') {
       return !!imageSettings.chutesApiKey;
     }
+    if (provider === 'pollinations') {
+      return !!imageSettings.pollinationsApiKey;
+    }
     return !!imageSettings.nanoGptApiKey;
   }
 
@@ -83,21 +88,50 @@ export class ImageGenerationService {
     if (provider === 'chutes') {
       return imageSettings.chutesApiKey;
     }
+    if (provider === 'pollinations') {
+      return imageSettings.pollinationsApiKey;
+    }
     return imageSettings.nanoGptApiKey;
   }
 
   /**
    * Create the appropriate image provider based on settings
    */
-  private createImageProvider(): ImageProvider {
+  private static createProviderInstance(provider?: string, apiKey?: string): ImageProvider {
     const imageSettings = settings.systemServicesSettings.imageGeneration;
-    const provider = imageSettings.imageProvider ?? 'nanogpt';
-    const apiKey = ImageGenerationService.getApiKey();
+    const effectiveProvider = provider ?? imageSettings.imageProvider ?? 'nanogpt';
+    const effectiveApiKey = apiKey ?? this.getApiKey();
 
-    if (provider === 'chutes') {
-      return new ChutesImageProvider(apiKey, DEBUG);
+    if (effectiveProvider === 'chutes') {
+      return new ChutesImageProvider(effectiveApiKey, DEBUG.enabled);
     }
-    return new NanoGPTImageProvider(apiKey, DEBUG);
+    if (effectiveProvider === 'pollinations') {
+      return new PollinationsImageProvider(effectiveApiKey, DEBUG.enabled);
+    }
+    return new NanoGPTImageProvider(effectiveApiKey, DEBUG.enabled);
+  }
+
+  /**
+   * List available models for a given provider.
+   */
+  static async listModels(providerId: string, apiKey?: string): Promise<ImageModelInfo[]> {
+    try {
+      const provider = this.createProviderInstance(providerId, apiKey);
+      return await provider.listModels();
+    } catch (error) {
+      log(`Failed to list models for provider ${providerId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Create the instance-level provider using current settings
+   */
+  private getOrCreateImageProvider(): ImageProvider {
+    if (!this.imageProvider) {
+      this.imageProvider = ImageGenerationService.createProviderInstance();
+    }
+    return this.imageProvider;
   }
 
   /**
@@ -311,7 +345,7 @@ export class ImageGenerationService {
 
     // Fallback to default styles
     const defaultStyles: Record<string, string> = {
-      'image-style-soft-anime': `Soft cel-shaded anime illustration. Muted pastel color palette with low saturation. Diffused ambient lighting, subtle linework blending into colors. Smooth gradients, slight bloom effect on highlights. Dreamy, airy atmosphere. Studio Ghibli-inspired. Soft shadows, watercolor texture hints in background.`,
+      'image-style-soft-anime': DEFAULT_FALLBACK_STYLE_PROMPT,
       'image-style-semi-realistic': `Semi-realistic anime art with refined, detailed rendering. Realistic proportions with anime influence. Detailed hair strands, subtle skin tones, fabric folds. Naturalistic lighting with clear direction and soft falloff. Cinematic composition with depth of field. Rich, slightly desaturated colors with intentional color grading. Painterly quality with polished edges. Atmospheric and grounded mood.`,
       'image-style-photorealistic': `Photorealistic digital art. True-to-life rendering with natural lighting. Detailed textures, accurate proportions. Professional photography aesthetic. Cinematic depth of field. High dynamic range. Realistic materials and surfaces.`,
     };
@@ -461,14 +495,12 @@ export class ImageGenerationService {
       }
 
       // Create provider if needed
-      if (!this.imageProvider) {
-        this.imageProvider = this.createImageProvider();
-      }
+      const provider = this.getOrCreateImageProvider();
 
       log('Generating portrait', { characterName, model: imageSettings.portraitModel, provider: imageSettings.imageProvider ?? 'nanogpt' });
 
       // Generate portrait using portrait model
-      const response = await this.imageProvider.generateImage({
+      const response = await provider.generateImage({
         prompt,
         model: imageSettings.portraitModel || 'z-image-turbo',
         size: '1024x1024',
@@ -505,36 +537,25 @@ export class ImageGenerationService {
   }
 
   /**
-   * Generate a single image (runs asynchronously)
+   * Centralized image generation logic to avoid duplication.
+   * Used by both initial generation and retry operations.
+   * @private
    */
-  private async generateImage(
+  private static async performImageGeneration(
     imageId: string,
-    prompt: string,
-    imageSettings: typeof settings.systemServicesSettings.imageGeneration,
     entryId: string,
-    modelOverride?: string,
+    prompt: string,
+    model: string,
+    size: string,
+    provider: ImageProvider,
     referenceImageUrls?: string[]
   ): Promise<void> {
     try {
-      // Update status to generating
-      await database.updateEmbeddedImage(imageId, { status: 'generating' });
-
-      // Get API key from settings
-      const apiKey = ImageGenerationService.getApiKey();
-      if (!apiKey) {
-        throw new Error('No API key configured for image generation');
-      }
-
-      // Create provider if needed
-      if (!this.imageProvider) {
-        this.imageProvider = this.createImageProvider();
-      }
-
       // Generate image
-      const response = await this.imageProvider.generateImage({
+      const response = await provider.generateImage({
         prompt,
-        model: modelOverride || imageSettings.model,
-        size: imageSettings.size,
+        model,
+        size,
         response_format: 'b64_json',
         imageDataUrls: referenceImageUrls,
       });
@@ -549,22 +570,108 @@ export class ImageGenerationService {
         status: 'complete',
       });
 
-      log('Image generated successfully', { imageId, hasReference: !!referenceImageUrls });
-
-      // Emit ready event
+      log('Image generation successful', { imageId, hasReference: !!referenceImageUrls });
       emitImageReady(imageId, entryId, true);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       log('Image generation failed', { imageId, error: errorMessage });
 
-      // Update record with error
       await database.updateEmbeddedImage(imageId, {
         status: 'failed',
         errorMessage,
       });
 
-      // Emit ready event (with failure)
       emitImageReady(imageId, entryId, false);
+      emitImageAnalysisFailed(entryId, errorMessage);
     }
+  }
+
+  /**
+   * Retry image generation for a failed/existing image using CURRENT settings.
+   * This allows the user to change the model/settings and try again.
+   * @public
+   */
+  static async retryImageGeneration(imageId: string, prompt: string): Promise<void> {
+    if (!this.isEnabled()) {
+      log('Cannot retry - image generation not enabled');
+      return;
+    }
+
+    // Get current image record
+    const image = await database.getEmbeddedImage(imageId);
+    if (!image) {
+      log('Cannot retry - image not found', { imageId });
+      return;
+    }
+
+    const imageSettings = settings.systemServicesSettings.imageGeneration;
+    const provider = imageSettings.imageProvider ?? 'nanogpt';
+    const model = imageSettings.model;
+    const size = imageSettings.size;
+
+    // Update image record with current settings
+    await database.updateEmbeddedImage(imageId, {
+      model,
+      status: 'generating',
+      errorMessage: undefined,
+      width: size === '2048x2048' ? 2048 : (size === '1024x1024' ? 1024 : 512),
+      height: size === '2048x2048' ? 2048 : (size === '1024x1024' ? 1024 : 512),
+    });
+
+    log('Retrying image generation with current settings', {
+      imageId,
+      provider,
+      model,
+      size,
+    });
+
+    // Create provider and perform generation
+    const apiKey = this.getApiKey();
+    const imageProvider = this.createProviderInstance(provider, apiKey);
+
+    await this.performImageGeneration(
+      imageId,
+      image.entryId,
+      prompt,
+      model,
+      size,
+      imageProvider
+    );
+  }
+
+
+  /**
+   * Generate a single image (runs asynchronously)
+   */
+  private async generateImage(
+    imageId: string,
+    prompt: string,
+    imageSettings: typeof settings.systemServicesSettings.imageGeneration,
+    entryId: string,
+    modelOverride?: string,
+    referenceImageUrls?: string[]
+  ): Promise<void> {
+    // Update status to generating
+    await database.updateEmbeddedImage(imageId, { status: 'generating' });
+
+    // Get API key from settings
+    const apiKey = ImageGenerationService.getApiKey();
+    if (!apiKey) {
+      throw new Error('No API key configured for image generation');
+    }
+
+    // Create provider if needed
+    const provider = this.getOrCreateImageProvider();
+
+    // Use centralized generation logic
+    await ImageGenerationService.performImageGeneration(
+      imageId,
+      entryId,
+      prompt,
+      modelOverride || imageSettings.model,
+      imageSettings.size,
+      provider,
+      referenceImageUrls
+    );
   }
 }

@@ -15,6 +15,7 @@ import type { Character, EmbeddedImage } from '$lib/types';
 import type { ImageProvider } from './providers/base';
 import { NanoGPTImageProvider } from './providers/NanoGPTProvider';
 import { ChutesImageProvider } from './providers/ChutesProvider';
+import { PollinationsImageProvider } from './providers/PollinationsProvider';
 import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
@@ -22,6 +23,7 @@ import { story } from '$lib/stores/story.svelte';
 import { emitImageQueued, emitImageReady } from '$lib/services/events';
 import { normalizeImageDataUrl } from '$lib/utils/image';
 import { extractPicTags, type ParsedPicTag } from '$lib/utils/inlineImageParser';
+import { DEFAULT_FALLBACK_STYLE_PROMPT } from './constants';
 
 const DEBUG = false;
 
@@ -39,7 +41,6 @@ export interface InlineImageContext {
 }
 
 export class InlineImageGenerationService {
-  private imageProvider: ImageProvider | null = null;
 
   /**
    * Check if inline image generation is enabled and configured
@@ -65,6 +66,9 @@ export class InlineImageGenerationService {
     if (provider === 'chutes') {
       return imageSettings.chutesApiKey;
     }
+    if (provider === 'pollinations') {
+      return imageSettings.pollinationsApiKey;
+    }
     return imageSettings.nanoGptApiKey;
   }
 
@@ -78,6 +82,9 @@ export class InlineImageGenerationService {
 
     if (provider === 'chutes') {
       return new ChutesImageProvider(apiKey, DEBUG);
+    }
+    if (provider === 'pollinations') {
+      return new PollinationsImageProvider(apiKey, DEBUG);
     }
     return new NanoGPTImageProvider(apiKey, DEBUG);
   }
@@ -252,7 +259,7 @@ export class InlineImageGenerationService {
 
     // Fallback to default styles
     const defaultStyles: Record<string, string> = {
-      'image-style-soft-anime': `Soft cel-shaded anime illustration. Muted pastel color palette with low saturation. Diffused ambient lighting, subtle linework blending into colors. Smooth gradients, slight bloom effect on highlights. Dreamy, airy atmosphere. Studio Ghibli-inspired. Soft shadows, watercolor texture hints in background.`,
+      'image-style-soft-anime': DEFAULT_FALLBACK_STYLE_PROMPT,
       'image-style-semi-realistic': `Semi-realistic anime art with refined, detailed rendering. Realistic proportions with anime influence. Detailed hair strands, subtle skin tones, fabric folds. Naturalistic lighting with clear direction and soft falloff. Cinematic composition with depth of field. Rich, slightly desaturated colors with intentional color grading. Painterly quality with polished edges. Atmospheric and grounded mood.`,
       'image-style-photorealistic': `Photorealistic digital art. True-to-life rendering with natural lighting. Detailed textures, accurate proportions. Professional photography aesthetic. Cinematic depth of field. High dynamic range. Realistic materials and surfaces.`,
     };
@@ -281,10 +288,8 @@ export class InlineImageGenerationService {
         throw new Error('No API key configured for image generation');
       }
 
-      // Create provider if needed
-      if (!this.imageProvider) {
-        this.imageProvider = this.createImageProvider();
-      }
+      // Create provider (always create fresh to ensure latest settings/key)
+      const imageProvider = this.createImageProvider();
 
       log('Generating inline image', {
         imageId,
@@ -293,7 +298,7 @@ export class InlineImageGenerationService {
       });
 
       // Generate image
-      const response = await this.imageProvider.generateImage({
+      const response = await imageProvider.generateImage({
         prompt,
         model: modelOverride || imageSettings.model,
         size: imageSettings.size,

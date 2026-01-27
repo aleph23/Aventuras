@@ -33,10 +33,13 @@
   import {
     eventBus,
     type ImageReadyEvent,
+    type ImageAnalysisFailedEvent,
     type TTSQueuedEvent,
   } from "$lib/services/events";
   import { NanoGPTImageProvider } from "$lib/services/ai/image/providers/NanoGPTProvider";
   import { ChutesImageProvider } from "$lib/services/ai/image/providers/ChutesProvider";
+  import { ImageGenerationService } from "$lib/services/ai/image/ImageGenerationService";
+  import { inlineImageService } from "$lib/services/ai/image/InlineImageService";
   import { promptService } from "$lib/services/prompts";
   import { onMount } from "svelte";
   import ReasoningBlock from "./ReasoningBlock.svelte";
@@ -44,6 +47,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Input } from "$lib/components/ui/input";
+  import { IMAGE_STUCK_THRESHOLD_MS, DEFAULT_FALLBACK_STYLE_PROMPT } from "$lib/services/ai/image/constants";
 
   let { entry }: { entry: StoryEntry } = $props();
 
@@ -178,6 +182,16 @@
   let isEditingImage = $state(false);
   let editingImageId = $state<string | null>(null);
   let editingImagePrompt = $state("");
+
+  // Timer for checking stuck images
+  let now = $state(Date.now());
+
+  onMount(() => {
+    const interval = setInterval(() => {
+      now = Date.now();
+    }, 1000);
+    return () => clearInterval(interval);
+  });
 
   // Helper to get which branch a checkpoint belongs to (by checking its last entry's branchId)
   function getCheckpointBranchId(checkpoint: {
@@ -475,8 +489,25 @@
     return sanitizeVisualProse(processedContent, entryId);
   }
 
+  // Handle creating missing inline images (stuck/lost records)
+  async function handleCreateMissingImage() {
+    if (!story.currentStory) return;
+
+    // Trigger scanning of this entry
+    // We pass the full content, the service will find tags and create missing records
+    const context = {
+      storyId: story.currentStory.id,
+      entryId: entry.id,
+      narrativeContent: entry.translatedContent ?? entry.content,
+      presentCharacters: story.characters, // Use all story characters for lookup
+    };
+
+    await inlineImageService.processNarrativeForInlineImages(context);
+    await loadEmbeddedImages();
+  }
+
   // Handle click on embedded image link
-  function handleContentClick(event: MouseEvent) {
+  function handleContentClick(event: MouseEvent | KeyboardEvent) {
     const target = event.target as HTMLElement;
 
     // Check for inline image action buttons
@@ -486,6 +517,12 @@
       event.stopPropagation();
       const action = actionBtn.getAttribute("data-action");
       const imageId = actionBtn.getAttribute("data-image-id");
+      const prompt = actionBtn.getAttribute("data-prompt");
+
+      if (action === "create-missing" && prompt) {
+        handleCreateMissingImage();
+        return;
+      }
 
       if (action && imageId) {
         handleInlineImageAction(action, imageId);
@@ -535,63 +572,50 @@
     const image = embeddedImages.find((img) => img.id === imageId);
     if (!image) return;
 
-    try {
-      // Update status to generating
-      await database.updateEmbeddedImage(imageId, {
-        status: "generating",
-        errorMessage: undefined,
-      });
+    let finalPrompt = prompt;
 
-      // Reload images to show generating state
-      await loadEmbeddedImages();
+    // If it's an inline image, try to reconstruct prompt with CURRENT style
+    // This allows style changes in settings to apply when retrying/regenerating
+    if (
+      image.generationMode === "inline" &&
+      image.sourceText &&
+      image.sourceText.startsWith("<pic")
+    ) {
+      // Extract raw prompt from sourceText
+      const match = image.sourceText.match(/prompt=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        const rawPrompt = match[1];
 
-      // Get image settings
-      const imageSettings = settings.systemServicesSettings.imageGeneration;
-      const apiKey =
-        imageSettings.imageProvider === "chutes"
-          ? imageSettings.chutesApiKey
-          : imageSettings.nanoGptApiKey;
+        // Get CURRENT style
+        const imageSettings = settings.systemServicesSettings.imageGeneration;
+        const styleId = imageSettings.styleId;
+        let stylePrompt = "";
+        try {
+          const promptContext = {
+            mode: "adventure" as const,
+            pov: "second" as const,
+            tense: "present" as const,
+            protagonistName: "",
+          };
+          stylePrompt = promptService.getPrompt(styleId, promptContext) || "";
+        } catch {
+          stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT;
+        }
 
-      if (!apiKey) {
-        throw new Error("No API key configured");
+        // Reconstruct full prompt
+        finalPrompt = `${rawPrompt}. ${stylePrompt}`;
+        console.log(
+          "[StoryEntry] Reconstructed prompt with new style:",
+          finalPrompt,
+        );
       }
-
-      // Create provider
-      const provider =
-        imageSettings.imageProvider === "chutes"
-          ? new ChutesImageProvider(apiKey, false)
-          : new NanoGPTImageProvider(apiKey, false);
-
-      // Generate new image
-      const response = await provider.generateImage({
-        prompt,
-        model: image.model || imageSettings.model,
-        size: imageSettings.size,
-        response_format: "b64_json",
-      });
-
-      if (response.images.length === 0 || !response.images[0].b64_json) {
-        throw new Error("No image data returned");
-      }
-
-      // Update with new image data
-      await database.updateEmbeddedImage(imageId, {
-        imageData: response.images[0].b64_json,
-        prompt,
-        status: "complete",
-      });
-
-      // Reload to show new image
-      await loadEmbeddedImages();
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Regeneration failed";
-      await database.updateEmbeddedImage(imageId, {
-        status: "failed",
-        errorMessage,
-      });
-      await loadEmbeddedImages();
     }
+
+    // Use centralized retry logic from ImageGenerationService
+    await ImageGenerationService.retryImageGeneration(imageId, finalPrompt);
+
+    // Reload images to show updated state
+    await loadEmbeddedImages();
   }
 
   // Handle edit modal submission
@@ -614,7 +638,7 @@
       };
       stylePrompt = promptService.getPrompt(styleId, promptContext) || "";
     } catch {
-      stylePrompt = "Soft cel-shaded anime illustration.";
+      stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT;
     }
 
     const fullPrompt = `${editingImagePrompt.trim()}. ${stylePrompt}`;
@@ -659,20 +683,25 @@
     if (expandedImage.status === "complete" && expandedImage.imageData) {
       innerHtml += `<img src="data:image/png;base64,${expandedImage.imageData}" alt="${expandedImage.sourceText}" class="inline-image-content" />`;
     } else if (expandedImage.status === "generating") {
+      const isStuck = now - expandedImage.createdAt > IMAGE_STUCK_THRESHOLD_MS;
       innerHtml += `<div class="inline-image-placeholder generating">
         <div class="placeholder-spinner"></div>
         <span class="placeholder-status">Generating...</span>
+        ${isStuck ? `<button class="inline-image-retry" data-image-id="${expandedImage.id}">Force Retry</button>` : ''}
       </div>`;
     } else if (expandedImage.status === "pending") {
+      const isStuck = now - expandedImage.createdAt > IMAGE_STUCK_THRESHOLD_MS;
       innerHtml += `<div class="inline-image-placeholder pending">
         <div class="placeholder-icon">⏳</div>
         <span class="placeholder-status">Queued...</span>
+        ${isStuck ? `<button class="inline-image-retry" data-image-id="${expandedImage.id}">Force Retry</button>` : ''}
       </div>`;
     } else if (expandedImage.status === "failed") {
       innerHtml += `<div class="inline-image-placeholder failed">
         <div class="placeholder-icon">⚠️</div>
         <span class="placeholder-status">Generation Failed</span>
         ${expandedImage.errorMessage ? `<span class="placeholder-text">${expandedImage.errorMessage}</span>` : ""}
+        <button class="inline-image-retry" data-image-id="${expandedImage.id}">Retry Generation</button>
       </div>`;
     }
 
@@ -684,6 +713,19 @@
       closeBtn.addEventListener("click", () => {
         expandedImageId = null;
         clickedElement = null;
+      });
+    }
+    // Add retry button handler
+    const retryBtn = container.querySelector(".inline-image-retry");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", async () => {
+        const imageId = retryBtn.getAttribute("data-image-id");
+        if (imageId && expandedImage) {
+          await regenerateInlineImage(imageId, expandedImage.prompt);
+          // The image will reload via the ImageReady subscription or manual reload
+          expandedImageId = null;
+          clickedElement = null;
+        }
       });
     }
 
@@ -720,6 +762,21 @@
       },
     );
 
+    // Subscribe to ImageAnalysisFailed events to show error toast
+    const unsubImageAnalysisFailed =
+      eventBus.subscribe<ImageAnalysisFailedEvent>(
+        "ImageAnalysisFailed",
+        (event) => {
+          if (event.entryId === entry.id) {
+            ui.showToast(
+              `Image generation failed: ${event.error}`,
+              "error",
+              10000,
+            );
+          }
+        },
+      );
+
     // Subscribe to TTSQueued events to auto-play TTS when triggered from ActionInput
     const unsubTTSQueued = eventBus.subscribe<TTSQueuedEvent>(
       "TTSQueued",
@@ -742,6 +799,7 @@
 
     return () => {
       unsubImageReady();
+      unsubImageAnalysisFailed();
       unsubTTSQueued();
     };
   });
@@ -1467,6 +1525,35 @@
 
   :global(.failed .placeholder-status) {
     color: var(--color-red-400, #f87171);
+  }
+
+  :global(.inline-image-retry) {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-600);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  :global(.inline-image-retry:hover) {
+    background-color: var(--accent-500);
+  }
+
+  :global(.inline-image-stuck-notice) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background-color: var(--surface-700);
+    border-top: 1px solid var(--surface-600);
+    font-size: 0.875rem;
+    color: var(--surface-300);
   }
 
   /* Inline Image Actions (Overlay) */
