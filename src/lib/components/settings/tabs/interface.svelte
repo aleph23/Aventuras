@@ -5,8 +5,31 @@
   import { Label } from "$lib/components/ui/label";
   import * as Select from "$lib/components/ui/select";
   import { Button } from "$lib/components/ui/button";
+  import { Separator } from "$lib/components/ui/separator";
   import { getSupportedLanguages } from "$lib/services/ai/utils/TranslationService";
+  import { updaterService } from "$lib/services/updater";
   import { Download, RefreshCw, Loader2, Languages } from "lucide-svelte";
+
+  let isCheckingUpdates = $state(false);
+  let updateMessage = $state<string | null>(null);
+
+  async function handleCheckForUpdates() {
+    isCheckingUpdates = true;
+    updateMessage = null;
+    try {
+      const info = await updaterService.checkForUpdates();
+      if (info.available) {
+        updateMessage = `Update available: v${info.version}`;
+      } else {
+        updateMessage = "You're up to date!";
+      }
+    } catch (error) {
+      updateMessage = "Failed to check for updates";
+      console.error("[Interface] Update check failed:", error);
+    } finally {
+      isCheckingUpdates = false;
+    }
+  }
 
   const fontSizes = [
     { value: "small", label: "Small" },
@@ -133,5 +156,79 @@
       checked={settings.uiSettings.showReasoning}
       onCheckedChange={(v) => settings.setShowReasoning(v)}
     />
+  </div>
+
+  <!-- Translation Section -->
+  <div class="flex items-center justify-between">
+    <div>
+      <Label>Enable Translation</Label>
+      <p class="text-xs text-muted-foreground">
+        Translate AI responses and world state to your language while keeping
+        English prompts for optimal LLM performance
+      </p>
+    </div>
+    <Switch
+      checked={settings.translationSettings.enabled}
+      onCheckedChange={(v) => {
+        settings.translationSettings.enabled = v;
+        settings.saveTranslationSettings();
+      }}
+    />
+  </div>
+
+  <Separator class="my-4" />
+
+  <!-- Updates Section -->
+  <div class="space-y-4">
+    <Label class="text-base font-medium">Updates</Label>
+
+    <!-- Check for Updates Button -->
+    <div class="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onclick={handleCheckForUpdates}
+        disabled={isCheckingUpdates}
+      >
+        {#if isCheckingUpdates}
+          <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+          Checking...
+        {:else}
+          <RefreshCw class="mr-2 h-4 w-4" />
+          Check for Updates
+        {/if}
+      </Button>
+      {#if updateMessage}
+        <span class="text-sm text-muted-foreground">{updateMessage}</span>
+      {/if}
+    </div>
+
+    <!-- Check on Startup Toggle -->
+    <div class="flex items-center justify-between">
+      <div>
+        <Label>Check on Startup</Label>
+        <p class="text-xs text-muted-foreground">
+          Automatically check for updates when the app starts
+        </p>
+      </div>
+      <Switch
+        checked={settings.updateSettings.autoCheck}
+        onCheckedChange={(v) => settings.setAutoCheck(v)}
+      />
+    </div>
+
+    <!-- Auto-download Updates Toggle -->
+    <div class="flex items-center justify-between">
+      <div>
+        <Label>Auto-download Updates</Label>
+        <p class="text-xs text-muted-foreground">
+          Automatically download updates in the background
+        </p>
+      </div>
+      <Switch
+        checked={settings.updateSettings.autoDownload}
+        onCheckedChange={(v) => settings.setAutoDownload(v)}
+      />
+    </div>
   </div>
 </div>
