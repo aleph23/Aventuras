@@ -38,6 +38,13 @@
   import IconRow from "$lib/components/ui/icon-row.svelte";
   import X from "@lucide/svelte/icons/x";
   import { isMobileDevice } from "$lib/utils/swipe";
+  import {
+    LLM_TIMEOUT_MIN,
+    LLM_TIMEOUT_MAX,
+    LLM_TIMEOUT_STEP,
+    LLM_TIMEOUT_MIN_SECONDS,
+    LLM_TIMEOUT_MAX_SECONDS,
+  } from "$lib/constants/timeout";
 
   interface Props {
     providerOptions: ProviderInfo[];
@@ -310,14 +317,14 @@
           <div class="flex-1 flex flex-col gap-4">
             <Slider
               bind:value={timeoutValue}
-              min={30000}
-              max={600000}
-              step={30000}
+              min={LLM_TIMEOUT_MIN}
+              max={LLM_TIMEOUT_MAX}
+              step={LLM_TIMEOUT_STEP}
               onValueChange={updateTimeout}
             />
             <div class="flex justify-between text-xs text-muted-foreground">
-              <span>30s</span>
-              <span>10min</span>
+              <span>{LLM_TIMEOUT_MIN_SECONDS}s</span>
+              <span>{Math.floor(LLM_TIMEOUT_MAX_SECONDS / 60)}min</span>
             </div>
           </div>
           <div>
@@ -327,16 +334,16 @@
               value={Math.round(settings.apiSettings.llmTimeoutMs / 1000)}
               oninput={(e) => {
                 const seconds = parseInt(e.currentTarget.value, 10);
-                if (!isNaN(seconds) && seconds >= 30 && seconds <= 600) {
+                if (!isNaN(seconds) && seconds >= LLM_TIMEOUT_MIN_SECONDS && seconds <= LLM_TIMEOUT_MAX_SECONDS) {
                   settings.setLlmTimeout(seconds * 1000);
                 }
               }}
               onchange={(e) => {
                 const seconds = parseInt(e.currentTarget.value, 10);
-                if (isNaN(seconds) || seconds < 30) {
-                  settings.setLlmTimeout(30000);
-                } else if (seconds > 600) {
-                  settings.setLlmTimeout(600000);
+                if (isNaN(seconds) || seconds < LLM_TIMEOUT_MIN_SECONDS) {
+                  settings.setLlmTimeout(LLM_TIMEOUT_MIN);
+                } else if (seconds > LLM_TIMEOUT_MAX_SECONDS) {
+                  settings.setLlmTimeout(LLM_TIMEOUT_MAX);
                 }
               }}
             />

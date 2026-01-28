@@ -10,6 +10,7 @@ import { promptService, type PromptSettings, getDefaultPromptSettings } from '$l
 import type { ReasoningEffort } from '$lib/types';
 import { ui } from '$lib/stores/ui.svelte';
 import { getTheme } from '../../themes/themes';
+import { LLM_TIMEOUT_DEFAULT, LLM_TIMEOUT_MIN, LLM_TIMEOUT_MAX } from '$lib/constants/timeout';
 
 // Provider preset types
 // 'custom' uses OpenRouter defaults but allows user to configure their own API endpoint
@@ -1263,7 +1264,7 @@ class SettingsStore {
     providerOnly: [],
     manualBody: '',
     enableThinking: false,
-    llmTimeoutMs: 180000, // 3 minutes default
+    llmTimeoutMs: LLM_TIMEOUT_DEFAULT,
   });
 
   uiSettings = $state<UISettings>({
@@ -1496,7 +1497,7 @@ class SettingsStore {
       const llmTimeoutMs = await database.getSetting('llm_timeout_ms');
       if (llmTimeoutMs) {
         const parsed = parseInt(llmTimeoutMs, 10);
-        if (!isNaN(parsed) && parsed >= 30000) {
+        if (!isNaN(parsed) && parsed >= LLM_TIMEOUT_MIN && parsed <= LLM_TIMEOUT_MAX) {
           this.apiSettings.llmTimeoutMs = parsed;
         }
       }
@@ -2758,7 +2759,7 @@ class SettingsStore {
       providerOnly: [],
       manualBody: '',
       enableThinking: false,
-      llmTimeoutMs: 180000,
+      llmTimeoutMs: LLM_TIMEOUT_DEFAULT,
     };
 
     // Reset UI settings

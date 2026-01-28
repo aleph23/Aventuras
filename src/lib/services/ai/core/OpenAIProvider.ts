@@ -16,6 +16,7 @@ import { settings } from '$lib/stores/settings.svelte';
 import { ui } from '$lib/stores/ui.svelte';
 import { fetch } from '@tauri-apps/plugin-http';
 import { createLogger } from './config';
+import { LLM_TIMEOUT_MIN, LLM_TIMEOUT_MAX, LLM_TIMEOUT_DEFAULT } from '$lib/constants/timeout';
 
 export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/'; //Used as the default.
 
@@ -71,8 +72,8 @@ export class OpenAIProvider implements AIProvider {
 
     const timeoutController = new AbortController();
     // Ensure timeout is within reasonable bounds (30s to 10min)
-    const rawTimeout = this.settings.llmTimeoutMs ?? 180000;
-    const timeoutMs = Math.max(30000, Math.min(600000, rawTimeout));
+    const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
+    const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
     const timeoutId = setTimeout(() => {
       log(`Request timeout triggered (${timeoutMs / 1000}s)`);
       timeoutController.abort();
@@ -134,7 +135,7 @@ export class OpenAIProvider implements AIProvider {
         if (request.signal?.aborted) {
           throw error;
         }
-        throw new Error('Request timed out after 3 minutes');
+        throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
       }
       throw error;
     }
@@ -177,8 +178,8 @@ export class OpenAIProvider implements AIProvider {
 
     const timeoutController = new AbortController();
     // Ensure timeout is within reasonable bounds (30s to 10min)
-    const rawTimeout = this.settings.llmTimeoutMs ?? 180000;
-    const timeoutMs = Math.max(30000, Math.min(600000, rawTimeout));
+    const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
+    const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
     const timeoutId = setTimeout(() => {
       log(`Tool request timeout triggered (${timeoutMs / 1000}s)`);
       timeoutController.abort();
@@ -272,7 +273,7 @@ export class OpenAIProvider implements AIProvider {
         if (request.signal?.aborted) {
           throw error;
         }
-        throw new Error('Request timed out after 3 minutes');
+        throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
       }
       throw error;
     }
@@ -316,8 +317,8 @@ export class OpenAIProvider implements AIProvider {
 
     const timeoutController = new AbortController();
     // Ensure timeout is within reasonable bounds (30s to 10min)
-    const rawTimeout = this.settings.llmTimeoutMs ?? 180000;
-    const timeoutMs = Math.max(30000, Math.min(600000, rawTimeout));
+    const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
+    const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
     const timeoutId = setTimeout(() => {
       log(`Stream connection timeout triggered (${timeoutMs / 1000}s)`);
       timeoutController.abort();
@@ -346,7 +347,7 @@ export class OpenAIProvider implements AIProvider {
         if (request.signal?.aborted) {
           throw error;
         }
-        throw new Error('Stream connection timed out after 3 minutes');
+        throw new Error(`Stream connection timed out after ${timeoutMs / 1000} seconds`);
       }
       throw error;
     }
@@ -600,8 +601,8 @@ export class OpenAIProvider implements AIProvider {
 
     const timeoutController = new AbortController();
     // Ensure timeout is within reasonable bounds (30s to 10min)
-    const rawTimeout = this.settings.llmTimeoutMs ?? 180000;
-    const timeoutMs = Math.max(30000, Math.min(600000, rawTimeout));
+    const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
+    const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
     const timeoutId = setTimeout(() => {
       log(`Stream connection timeout triggered (${timeoutMs / 1000}s)`);
       timeoutController.abort();
@@ -630,7 +631,7 @@ export class OpenAIProvider implements AIProvider {
         if (request.signal?.aborted) {
           throw error;
         }
-        throw new Error('Stream connection timed out after 3 minutes');
+        throw new Error(`Stream connection timed out after ${timeoutMs / 1000} seconds`);
       }
       throw error;
     }
