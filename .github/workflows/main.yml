@@ -1,0 +1,74 @@
+name: "DeepWiki Documentation Generator"
+description: "Extract your project's documentation from DeepWiki and save it to your repository's docs/ directory"
+author: he1senbrg
+branding:
+  icon: book-open
+  color: orange
+
+inputs:
+  branch:
+    description: 'The branch to save docs to'
+    required: false
+    default: 'main'
+
+  message:
+    description: 'The commit message to use'
+    required: false
+    default: 'Updated DeepWiki docs'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout this repo
+      uses: actions/checkout@v4.2.2
+      with:
+        ref: ${{ inputs.branch }}
+
+    - name: Set up python
+      uses: actions/setup-python@v5.6.0
+      with:
+        python-version: '3.13'
+
+    - name: Clone deepwiki-md and run conversion
+      run: |
+        echo "Cloning deepwiki-md"
+        git clone https://github.com/he1senbrg/deepwiki-md /tmp/deepwiki-md
+        
+        echo "Installing dependencies"
+        pip install -r /tmp/deepwiki-md/requirements.txt
+        
+        echo "Running conversion"
+        python /tmp/deepwiki-md/main.py ${{ github.repository }} /tmp/deepwiki-md/out
+        
+        echo "Checking output dir"
+        if [ ! -d /tmp/deepwiki-md/out ]; then
+          echo "DeepWiki output dir was not created"
+          exit 1
+        fi
+        
+        echo "Generated doc files"
+        ls /tmp/deepwiki-md/out
+      shell: bash
+
+    - name: Clean docs directory
+      run: |
+        echo "Cleaning docs/ directory"
+        rm -rf docs
+        mkdir docs
+      shell: bash
+
+    - name: Copy new docs into repo
+      run: |
+        echo "Copying new docs into docs/ directory"
+        cp -r /tmp/deepwiki-md/out/* docs/
+      shell: bash
+
+    - name: Commit and push docs
+      run: |
+        echo "Committing and pushing updated docs"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/
+        git commit -m "${{ inputs.message }}" || echo "No changes to commit"
+        git push origin ${{ inputs.branch }}
+      shell: bash
