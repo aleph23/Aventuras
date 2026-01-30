@@ -135,23 +135,11 @@ export class ServiceFactory {
 
   /**
    * Create a timeline fill service for chapter queries.
-   * Uses dedicated chapterQuery settings.
    */
   createChapterQueryService(): TimelineFillService {
     const presetId = settings.getServicePresetId('chapterQuery');
-    const chapterQuerySettings = settings.systemServicesSettings.chapterQuery;
     const timelineFillSettings = settings.systemServicesSettings.timelineFill;
-    return new TimelineFillService(
-      presetId,
-      timelineFillSettings.maxQueries,
-      {
-        model: chapterQuerySettings.model,
-        temperature: chapterQuerySettings.temperature,
-        reasoningEffort: chapterQuerySettings.reasoningEffort,
-        providerOnly: chapterQuerySettings.providerOnly,
-        manualBody: chapterQuerySettings.manualBody,
-      }
-    );
+    return new TimelineFillService(presetId, timelineFillSettings.maxQueries);
   }
 
   /**

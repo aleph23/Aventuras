@@ -765,9 +765,6 @@
                       chapterNumber,
                       question,
                       branchChapters,
-                      story.entries,
-                      activeAbortController?.signal,
-                      storyMode,
                     ),
                   (startChapter, endChapter, question) =>
                     aiService.answerChapterRangeQuestion(
@@ -775,9 +772,6 @@
                       endChapter,
                       question,
                       branchChapters,
-                      story.entries,
-                      activeAbortController?.signal,
-                      storyMode,
                     ),
                   activeAbortController?.signal,
                   storyMode,
@@ -803,14 +797,8 @@
 
                 // Timeline fill: generates queries and executes them in one go
                 const timelineResult = await aiService.runTimelineFill(
-                  userActionContent,
                   story.visibleEntries,
                   branchChapters,
-                  story.entries, // All entries for querying chapter content
-                  activeAbortController?.signal,
-                  storyMode,
-                  story.pov,
-                  story.tense,
                 );
 
                 // Store raw result - formatting is now done in buildChapterSummariesBlock

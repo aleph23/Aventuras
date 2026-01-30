@@ -470,17 +470,10 @@ class AIService {
    * Run timeline fill to gather context from past chapters.
    */
   async runTimelineFill(
-    userInput: string,
     visibleEntries: StoryEntry[],
-    chapters: Chapter[],
-    allEntries: StoryEntry[],
-    signal?: AbortSignal,
-    mode: StoryMode = 'adventure',
-    pov?: POV,
-    tense?: Tense
+    chapters: Chapter[]
   ): Promise<TimelineFillResult> {
     log('runTimelineFill called', {
-      userInputLength: userInput.length,
       visibleEntriesCount: visibleEntries.length,
       chaptersCount: chapters.length,
     });
@@ -495,10 +488,7 @@ class AIService {
   async answerChapterQuestion(
     chapterNumber: number,
     question: string,
-    chapters: Chapter[],
-    allEntries: StoryEntry[],
-    signal?: AbortSignal,
-    mode: StoryMode = 'adventure'
+    chapters: Chapter[]
   ): Promise<string> {
     log('answerChapterQuestion called', {
       chapterNumber,
@@ -518,10 +508,7 @@ class AIService {
     startChapter: number,
     endChapter: number,
     question: string,
-    chapters: Chapter[],
-    allEntries: StoryEntry[],
-    signal?: AbortSignal,
-    mode: StoryMode = 'adventure'
+    chapters: Chapter[]
   ): Promise<string> {
     log('answerChapterRangeQuestion called', {
       startChapter,

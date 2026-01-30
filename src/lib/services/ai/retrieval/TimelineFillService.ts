@@ -5,7 +5,7 @@
  * Uses the Vercel AI SDK for structured output with Zod schema validation.
  */
 
-import type { Chapter, GenerationPreset, StoryEntry } from '$lib/types';
+import type { Chapter, StoryEntry } from '$lib/types';
 import { promptService, type PromptContext } from '$lib/services/prompts';
 import { createLogger } from '../core/config';
 import { generateStructured, generatePlainText } from '../sdk/generate';
@@ -63,16 +63,10 @@ export interface TimelineFillResult {
 export class TimelineFillService {
   private presetId: string;
   private maxQueries: number;
-  private settingsOverride?: Partial<GenerationPreset>;
 
-  constructor(
-    presetId: string = 'timelineFill',
-    maxQueries: number = 5,
-    settingsOverride?: Partial<GenerationPreset>
-  ) {
+  constructor(presetId: string = 'timelineFill', maxQueries: number = 5) {
     this.presetId = presetId;
     this.maxQueries = maxQueries;
-    this.settingsOverride = settingsOverride;
   }
 
   /**
