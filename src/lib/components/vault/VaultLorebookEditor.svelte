@@ -27,6 +27,8 @@
     BookOpen,
     Settings,
     List,
+    Maximize2,
+    Minimize2,
   } from "lucide-svelte";
   import { fade } from "svelte/transition";
   import InteractiveLorebookChat from "./InteractiveLorebookChat.svelte";
@@ -63,6 +65,7 @@
   let error = $state<string | null>(null);
   let activeTab = $state("editor");
   let showInteractiveChat = $state(false);
+  let isMaximized = $state(false);
 
   // Filtered entries
   const filteredEntries = $derived.by(() => {
@@ -231,11 +234,32 @@
   }}
 >
   <ResponsiveModal.Content
-    class="sm:max-w-6xl w-full h-[100dvh] sm:h-[90vh] flex flex-col overflow-hidden p-0 rounded-none sm:rounded-lg"
+    class={cn(
+      "w-full h-[100dvh] sm:h-[90vh] flex flex-col overflow-hidden p-0 transition-all duration-200 rounded-none sm:rounded-lg",
+      isMaximized
+        ? "max-w-[90vw]"
+        : "sm:max-w-6xl",
+    )}
   >
     <ResponsiveModal.Header
       class="px-6 py-4 border-b flex-shrink-0 flex items-center justify-center relative"
     >
+      <div class="absolute left-4 top-1/2 -translate-y-1/2">
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onclick={() => (isMaximized = !isMaximized)}
+        >
+          {#if isMaximized}
+            <Minimize2 class="h-4 w-4" />
+          {:else}
+            <Maximize2 class="h-4 w-4" />
+          {/if}
+          <span class="sr-only">{isMaximized ? "Minimize" : "Maximize"}</span
+          >
+        </Button>
+      </div>
       <ResponsiveModal.Title class="text-center"
         >Edit Lorebook</ResponsiveModal.Title
       >
@@ -589,11 +613,16 @@
         <!-- Interactive Chat Sidebar -->
         {#if showInteractiveChat && name.trim()}
           <div
-            class="absolute inset-0 z-50 bg-background md:static md:w-[400px] md:border-l md:border-border flex flex-col"
+              class={cn(
+              "absolute inset-0 z-50 bg-background md:static  md:border-l md:border-border flex flex-col transition-all duration-200",
+              isMaximized
+                ? "md:w-[50%]"
+                : "md:w-[400px]",
+            )}
           >
             <InteractiveLorebookChat
-              {lorebook}
               {entries}
+              lorebookName={name}
               onEntriesChange={(newEntries) => {
                 entries = newEntries;
               }}
