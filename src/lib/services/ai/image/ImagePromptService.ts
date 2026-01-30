@@ -41,7 +41,7 @@ export interface ImagePromptContext {
   /** Characters present in the scene with their visual descriptors */
   presentCharacters: Array<{
     name: string;
-    visualDescriptors: string[];
+    visualDescriptors: import('$lib/types').VisualDescriptors;
   }>;
   /** Current location name */
   currentLocation?: string;

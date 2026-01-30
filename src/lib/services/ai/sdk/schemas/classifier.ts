@@ -2,35 +2,85 @@
  * Classifier Schema
  *
  * Zod schema for validating world state extraction from narrative responses.
- * Matches the JSON format expected by the classifier prompt template.
+ * The .describe() calls provide semantic guidance to LLMs via schema introspection.
  */
 
 import { z } from 'zod';
+
+// ============================================================================
+// Visual Descriptors Schema
+// ============================================================================
+
+export const visualDescriptorsSchema = z.object({
+  face: z.string()
+    .describe('Skin tone, facial features, expression, age indicators')
+    .optional(),
+  hair: z.string()
+    .describe('Color, length, style, texture (e.g., "wavy auburn hair to shoulders")')
+    .optional(),
+  eyes: z.string()
+    .describe('Color, shape, notable features (e.g., "sharp green eyes")')
+    .optional(),
+  build: z.string()
+    .describe('Height, body type, posture (e.g., "tall and lean", "broad-shouldered")')
+    .optional(),
+  clothing: z.string()
+    .describe('Full outfit description (e.g., "worn leather armor over gray tunic")')
+    .optional(),
+  accessories: z.string()
+    .describe('Jewelry, weapons, bags, distinctive items (e.g., "silver pendant, sword at hip")')
+    .optional(),
+  distinguishing: z.string()
+    .describe('Scars, tattoos, birthmarks if any (e.g., "scar across left cheek")')
+    .optional(),
+}).describe('Visual appearance details for image generation - invent plausible details if not explicitly described');
+
+export type VisualDescriptors = z.infer<typeof visualDescriptorsSchema>;
 
 // ============================================================================
 // Character Schemas
 // ============================================================================
 
 export const characterUpdateSchema = z.object({
-  name: z.string(),
+  name: z.string()
+    .describe('Exact name of existing character to update'),
   changes: z.object({
-    status: z.enum(['active', 'inactive', 'deceased']).optional(),
-    relationship: z.string().optional(),
-    newTraits: z.array(z.string()).optional(),
-    removeTraits: z.array(z.string()).optional(),
-    replaceVisualDescriptors: z.array(z.string()).optional(),
-    addVisualDescriptors: z.array(z.string()).optional(),
-    removeVisualDescriptors: z.array(z.string()).optional(),
+    status: z.enum(['active', 'inactive', 'deceased'])
+      .describe('active=present, inactive=away, deceased=dead')
+      .optional(),
+    relationship: z.string()
+      .describe('New relationship to protagonist')
+      .optional(),
+    newTraits: z.array(z.string())
+      .describe('Personality traits to add')
+      .optional(),
+    removeTraits: z.array(z.string())
+      .describe('Traits no longer applicable')
+      .optional(),
+    visualDescriptors: visualDescriptorsSchema
+      .describe('Complete visual appearance - replaces existing descriptors')
+      .optional(),
   }),
 });
 
 export const newCharacterSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  relationship: z.string().optional(),
-  traits: z.array(z.string()).optional(),
-  visualDescriptors: z.array(z.string()).optional(),
-  status: z.enum(['active', 'inactive', 'deceased']).optional(),
+  name: z.string()
+    .describe("Character's proper name"),
+  description: z.string()
+    .describe('One sentence description')
+    .optional(),
+  relationship: z.string()
+    .describe('friend, enemy, ally, neutral, or unknown')
+    .optional(),
+  traits: z.array(z.string())
+    .describe('Personality traits')
+    .optional(),
+  visualDescriptors: visualDescriptorsSchema
+    .describe('Complete visual appearance - ALL categories should be filled')
+    .optional(),
+  status: z.enum(['active', 'inactive', 'deceased'])
+    .describe('active if present in scene')
+    .optional(),
 });
 
 // ============================================================================
@@ -38,20 +88,36 @@ export const newCharacterSchema = z.object({
 // ============================================================================
 
 export const locationUpdateSchema = z.object({
-  name: z.string(),
+  name: z.string()
+    .describe('Exact name of existing location'),
   changes: z.object({
-    visited: z.boolean().optional(),
-    current: z.boolean().optional(),
-    description: z.string().optional(),
-    descriptionAddition: z.string().optional(),
+    visited: z.boolean()
+      .describe('true if protagonist has been here')
+      .optional(),
+    current: z.boolean()
+      .describe('true if this is the current scene location')
+      .optional(),
+    description: z.string()
+      .describe('Complete replacement description')
+      .optional(),
+    descriptionAddition: z.string()
+      .describe('New details learned about location')
+      .optional(),
   }),
 });
 
 export const newLocationSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  visited: z.boolean().optional(),
-  current: z.boolean().optional(),
+  name: z.string()
+    .describe("Location's proper name"),
+  description: z.string()
+    .describe('One sentence description')
+    .optional(),
+  visited: z.boolean()
+    .describe('true if protagonist has been here')
+    .optional(),
+  current: z.boolean()
+    .describe('true if this is the current scene location')
+    .optional(),
 });
 
 // ============================================================================
@@ -59,20 +125,36 @@ export const newLocationSchema = z.object({
 // ============================================================================
 
 export const itemUpdateSchema = z.object({
-  name: z.string(),
+  name: z.string()
+    .describe('Exact name of existing item'),
   changes: z.object({
-    quantity: z.number().optional(),
-    location: z.string().optional(),
-    equipped: z.boolean().optional(),
+    quantity: z.number()
+      .describe('New quantity')
+      .optional(),
+    location: z.string()
+      .describe('inventory, worn, or location name')
+      .optional(),
+    equipped: z.boolean()
+      .describe('true if currently worn/wielded')
+      .optional(),
   }),
 });
 
 export const newItemSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  quantity: z.number().optional(),
-  location: z.string().optional(),
-  equipped: z.boolean().optional(),
+  name: z.string()
+    .describe('Item name'),
+  description: z.string()
+    .describe('One sentence description')
+    .optional(),
+  quantity: z.number()
+    .describe('How many (default 1)')
+    .optional(),
+  location: z.string()
+    .describe('inventory, worn, or location name')
+    .optional(),
+  equipped: z.boolean()
+    .describe('true if currently worn/wielded')
+    .optional(),
 });
 
 // ============================================================================
@@ -80,18 +162,30 @@ export const newItemSchema = z.object({
 // ============================================================================
 
 export const storyBeatUpdateSchema = z.object({
-  title: z.string(),
+  title: z.string()
+    .describe('Exact title of existing beat'),
   changes: z.object({
-    status: z.enum(['pending', 'active', 'completed', 'failed']).optional(),
-    description: z.string().optional(),
+    status: z.enum(['pending', 'active', 'completed', 'failed'])
+      .describe('completed when resolved, failed if impossible')
+      .optional(),
+    description: z.string()
+      .describe('Updated description')
+      .optional(),
   }),
 });
 
 export const newStoryBeatSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
-  type: z.enum(['milestone', 'quest', 'revelation', 'event', 'plot_point']).optional(),
-  status: z.enum(['pending', 'active', 'completed', 'failed']).optional(),
+  title: z.string()
+    .describe('Short title (3-6 words)'),
+  description: z.string()
+    .describe('What happened or needs to happen')
+    .optional(),
+  type: z.enum(['milestone', 'quest', 'revelation', 'event', 'plot_point'])
+    .describe('milestone, quest, revelation, event, or plot_point')
+    .optional(),
+  status: z.enum(['pending', 'active', 'completed', 'failed'])
+    .describe('pending=upcoming, active=in-progress, completed=done')
+    .optional(),
 });
 
 // ============================================================================
@@ -114,9 +208,15 @@ export const entryUpdatesSchema = z.object({
 // ============================================================================
 
 export const sceneSchema = z.object({
-  currentLocationName: z.string().nullable().optional(),
-  presentCharacterNames: z.array(z.string()).default([]),
-  timeProgression: z.enum(['none', 'minutes', 'hours', 'days']).default('none'),
+  currentLocationName: z.string().nullable()
+    .describe('Name of current scene location, or null')
+    .optional(),
+  presentCharacterNames: z.array(z.string())
+    .describe('Names of characters physically present')
+    .default([]),
+  timeProgression: z.enum(['none', 'minutes', 'hours', 'days'])
+    .describe('none=instant, minutes=conversations, hours=travel, days=sleep')
+    .default('none'),
 });
 
 // ============================================================================

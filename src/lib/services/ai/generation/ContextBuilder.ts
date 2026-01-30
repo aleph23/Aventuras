@@ -381,8 +381,24 @@ export class ContextBuilder {
         if (char.metadata?.traits && char.metadata.traits.length > 0) {
           block += ` [${char.metadata.traits.join(', ')}]`;
         }
-        if (char.metadata?.visualDescriptors && char.metadata.visualDescriptors.length > 0) {
-          block += ` {Appearance: ${char.metadata.visualDescriptors.join(', ')}}`;
+        if (char.metadata?.visualDescriptors) {
+          const vd = char.metadata.visualDescriptors;
+          // Handle both old array format and new object format
+          if (Array.isArray(vd) && vd.length > 0) {
+            block += ` {Appearance: ${vd.join(', ')}}`;
+          } else if (typeof vd === 'object' && Object.keys(vd).length > 0) {
+            const parts: string[] = [];
+            if (vd.face) parts.push(vd.face);
+            if (vd.hair) parts.push(vd.hair);
+            if (vd.eyes) parts.push(vd.eyes);
+            if (vd.build) parts.push(vd.build);
+            if (vd.clothing) parts.push(vd.clothing);
+            if (vd.accessories) parts.push(vd.accessories);
+            if (vd.distinguishing) parts.push(vd.distinguishing);
+            if (parts.length > 0) {
+              block += ` {Appearance: ${parts.join(', ')}}`;
+            }
+          }
         }
       }
     }

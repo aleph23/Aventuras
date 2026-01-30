@@ -77,114 +77,56 @@
       "current",
   );
 
-  // Color palette for descriptor categories (cycles through these)
-  const CATEGORY_COLORS = [
-    "text-amber-600 dark:text-amber-400",
-    "text-purple-600 dark:text-purple-400",
-    "text-sky-600 dark:text-sky-400",
-    "text-emerald-600 dark:text-emerald-400",
-    "text-rose-600 dark:text-rose-400",
-    "text-orange-600 dark:text-orange-400",
-    "text-teal-600 dark:text-teal-400",
-    "text-indigo-600 dark:text-indigo-400",
-  ];
+  import type { VisualDescriptors } from "$lib/types";
+  import {
+    descriptorsToString,
+    stringToDescriptors,
+    hasDescriptors as hasVisualDescriptors,
+  } from "$lib/utils/visualDescriptors";
+
+  // Color palette for descriptor categories
+  const CATEGORY_COLORS: Record<keyof VisualDescriptors, string> = {
+    face: "text-amber-600 dark:text-amber-400",
+    hair: "text-purple-600 dark:text-purple-400",
+    eyes: "text-sky-600 dark:text-sky-400",
+    build: "text-emerald-600 dark:text-emerald-400",
+    clothing: "text-rose-600 dark:text-rose-400",
+    accessories: "text-orange-600 dark:text-orange-400",
+    distinguishing: "text-teal-600 dark:text-teal-400",
+  };
+
+  // Labels for descriptor categories (displayed in UI)
+  const CATEGORY_LABELS: Record<keyof VisualDescriptors, string> = {
+    face: "Face",
+    hair: "Hair",
+    eyes: "Eyes",
+    build: "Build",
+    clothing: "Clothing",
+    accessories: "Accessories",
+    distinguishing: "Distinguishing",
+  };
 
   interface CategorizedDescriptor {
+    key: keyof VisualDescriptors;
     label: string;
     color: string;
-    values: string[];
+    value: string;
   }
 
-  // Parse visual descriptors into categorized groups
-  // Dynamically detects any "Category:" prefix pattern
-  function parseVisualDescriptors(
-    descriptors: string[],
-  ): CategorizedDescriptor[] {
-    const categoryMap = new Map<string, string[]>();
-    const categoryOrder: string[] = [];
+  // Convert visual descriptors object to display format
+  function getVisualDescriptorsList(descriptors: VisualDescriptors): CategorizedDescriptor[] {
+    const order: (keyof VisualDescriptors)[] = [
+      "face", "hair", "eyes", "build", "clothing", "accessories", "distinguishing"
+    ];
 
-    // Pattern to find any category prefix (word(s) followed by colon)
-    const categoryPattern = /([A-Za-z][A-Za-z\s]*):\s*/g;
-
-    // Track current category for items without prefixes
-    let currentCategory = "";
-
-    for (const desc of descriptors) {
-      // Find all category matches in this string
-      const matches = [...desc.matchAll(categoryPattern)];
-
-      if (matches.length > 1) {
-        // Multiple categories in one string
-        for (let i = 0; i < matches.length; i++) {
-          const match = matches[i];
-          const label = match[1].trim();
-          const startIndex = match.index! + match[0].length;
-          const endIndex =
-            i < matches.length - 1 ? matches[i + 1].index! : desc.length;
-
-          const content = desc
-            .slice(startIndex, endIndex)
-            .replace(/,\s*$/, "")
-            .trim();
-
-          const values = content
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean);
-
-          if (!categoryMap.has(label)) {
-            categoryOrder.push(label);
-          }
-          const existing = categoryMap.get(label) ?? [];
-          categoryMap.set(label, [...existing, ...values]);
-          currentCategory = label;
-        }
-      } else if (matches.length === 1) {
-        // Single category prefix
-        const match = matches[0];
-        const label = match[1].trim();
-        const content = desc.slice(match.index! + match[0].length).trim();
-
-        const values = content
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean);
-
-        if (!categoryMap.has(label)) {
-          categoryOrder.push(label);
-        }
-        const existing = categoryMap.get(label) ?? [];
-        categoryMap.set(label, [...existing, ...values]);
-        currentCategory = label;
-      } else {
-        // No category prefix - belongs to the most recent category or uncategorized
-        const values = desc
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean);
-
-        if (currentCategory) {
-          const existing = categoryMap.get(currentCategory) ?? [];
-          categoryMap.set(currentCategory, [...existing, ...values]);
-        } else {
-          // No category yet, store as uncategorized
-          if (!categoryMap.has("")) {
-            categoryOrder.push("");
-          }
-          const existing = categoryMap.get("") ?? [];
-          categoryMap.set("", [...existing, ...values]);
-        }
-      }
-    }
-
-    // Convert to array with colors assigned sequentially
-    return categoryOrder.map((label, index) => ({
-      label,
-      color: label
-        ? CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-        : "text-muted-foreground",
-      values: categoryMap.get(label)!,
-    }));
+    return order
+      .filter(key => descriptors[key])
+      .map(key => ({
+        key,
+        label: CATEGORY_LABELS[key],
+        color: CATEGORY_COLORS[key],
+        value: descriptors[key]!,
+      }));
   }
 
   async function addCharacter() {
@@ -221,7 +163,7 @@
     editRelationship = character.relationship ?? "";
     editStatus = character.status;
     editTraits = character.traits.join(", ");
-    editVisualDescriptors = (character.visualDescriptors ?? []).join(", ");
+    editVisualDescriptors = descriptorsToString(character.visualDescriptors);
     editPortrait = character.portrait;
     portraitError = null;
   }
@@ -247,10 +189,7 @@
       .split(",")
       .map((trait) => trait.trim())
       .filter(Boolean);
-    const visualDescriptors = editVisualDescriptors
-      .split(",")
-      .map((desc) => desc.trim())
-      .filter(Boolean);
+    const visualDescriptors = stringToDescriptors(editVisualDescriptors);
 
     await story.updateCharacter(character.id, {
       name,
@@ -520,7 +459,7 @@
   function hasDetails(character: Character): boolean {
     return (
       character.traits.length > 0 ||
-      (character.visualDescriptors && character.visualDescriptors.length > 0) ||
+      hasVisualDescriptors(character.visualDescriptors) ||
       !!character.description
     );
   }
@@ -965,15 +904,9 @@
                 character.traits.length > 0 ||
                 (character.translatedTraits &&
                   character.translatedTraits.length > 0)}
-              {@const hasDescriptors =
-                character.visualDescriptors.length > 0 ||
-                (character.translatedVisualDescriptors &&
-                  character.translatedVisualDescriptors.length > 0)}
-              {@const parsedDescriptors = hasDescriptors
-                ? parseVisualDescriptors(
-                    character.translatedVisualDescriptors ??
-                      character.visualDescriptors,
-                  )
+              {@const displayDescriptors = character.translatedVisualDescriptors ?? character.visualDescriptors}
+              {@const descriptorsList = hasVisualDescriptors(displayDescriptors)
+                ? getVisualDescriptorsList(displayDescriptors)
                 : []}
               {@const descriptorsExpanded = expandedDescriptors.has(
                 character.id,
@@ -990,7 +923,7 @@
                     {/each}
                   </div>
                 {/if}
-                {#if hasDescriptors}
+                {#if descriptorsList.length > 0}
                   <div class="text-[10px]">
                     <button
                       type="button"
@@ -1007,25 +940,20 @@
                     </button>
                     {#if descriptorsExpanded}
                       <div class="flex flex-col gap-1">
-                        {#each parsedDescriptors as { label, color, values }}
+                        {#each descriptorsList as { label, color, value }}
                           <div
                             class="flex flex-col gap-0.5 rounded bg-muted/40 px-2 py-1"
                           >
-                            {#if label}
-                              <span class={cn("font-medium", color)}
-                                >{label}</span
-                              >
-                            {/if}
-                            <span class="text-muted-foreground"
-                              >{values.join(", ")}</span
-                            >
+                            <span class={cn("font-medium", color)}>{label}</span>
+                            <span class="text-muted-foreground">{value}</span>
                           </div>
                         {/each}
                       </div>
                     {:else}
                       <p class="text-muted-foreground pl-4 line-clamp-2">
-                        {parsedDescriptors
-                          .map((d) => d.values.slice(0, 2).join(", "))
+                        {descriptorsList
+                          .slice(0, 3)
+                          .map((d) => d.value)
                           .join(" · ")}
                       </p>
                     {/if}

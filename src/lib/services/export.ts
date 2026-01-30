@@ -440,7 +440,7 @@ class ExportService {
             traits: char.traits,
             status: char.status,
             metadata: char.metadata,
-            visualDescriptors: char.visualDescriptors ?? [],
+            visualDescriptors: char.visualDescriptors ?? {},
             portrait: char.portrait ?? null,
             branchId: mapBranchId(char.branchId ?? null),
             // Translation fields

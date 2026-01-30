@@ -163,11 +163,29 @@ export class ClassifierService {
       let entry = `- ${c.name}`;
       if (c.relationship) entry += ` (${c.relationship})`;
       if (c.status && c.status !== 'active') entry += ` [${c.status}]`;
-      if (c.visualDescriptors?.length) {
-        entry += `\n  Appearance: ${c.visualDescriptors.join(', ')}`;
+      if (c.visualDescriptors && Object.keys(c.visualDescriptors).length > 0) {
+        entry += `\n  Appearance: ${this.formatVisualDescriptors(c.visualDescriptors)}`;
       }
       return entry;
     }).join('\n');
+  }
+
+  /**
+   * Format visual descriptors object into a readable string.
+   */
+  private formatVisualDescriptors(descriptors: Character['visualDescriptors']): string {
+    if (!descriptors) return '';
+
+    const parts: string[] = [];
+    if (descriptors.face) parts.push(`Face: ${descriptors.face}`);
+    if (descriptors.hair) parts.push(`Hair: ${descriptors.hair}`);
+    if (descriptors.eyes) parts.push(`Eyes: ${descriptors.eyes}`);
+    if (descriptors.build) parts.push(`Build: ${descriptors.build}`);
+    if (descriptors.clothing) parts.push(`Clothing: ${descriptors.clothing}`);
+    if (descriptors.accessories) parts.push(`Accessories: ${descriptors.accessories}`);
+    if (descriptors.distinguishing) parts.push(`Distinguishing: ${descriptors.distinguishing}`);
+
+    return parts.join(', ');
   }
 
   /**

@@ -3,6 +3,17 @@ export type StoryMode = 'adventure' | 'creative-writing';
 export type POV = 'first' | 'second' | 'third';
 export type Tense = 'past' | 'present';
 
+// Visual descriptors for character appearance (used for image generation)
+export interface VisualDescriptors {
+  face?: string;           // Skin tone, facial features, expression, age indicators
+  hair?: string;           // Color, length, style, texture
+  eyes?: string;           // Color, shape, notable features
+  build?: string;          // Height, body type, posture
+  clothing?: string;       // Full outfit description
+  accessories?: string;    // Jewelry, weapons, bags, distinctive items
+  distinguishing?: string; // Scars, tattoos, birthmarks
+}
+
 // Time tracking for story progression
 export interface TimeTracker {
   years: number;
@@ -57,7 +68,7 @@ export interface PersistentCharacterSnapshot {
   traits: string[];
   status: 'active' | 'inactive' | 'deceased';
   relationship: string | null;
-  visualDescriptors: string[];
+  visualDescriptors: VisualDescriptors;
   portrait: string | null;  // Data URL (data:image/...) or legacy base64
 }
 
@@ -139,7 +150,7 @@ export interface Character {
   description: string | null;
   relationship: string | null;
   traits: string[];
-  visualDescriptors: string[];  // Visual appearance details for image generation (hair, clothing, features)
+  visualDescriptors: VisualDescriptors;  // Visual appearance details for image generation
   portrait: string | null;  // Data URL (data:image/...) for reference in image generation
   status: 'active' | 'inactive' | 'deceased';
   metadata: Record<string, unknown> | null;
@@ -149,7 +160,7 @@ export interface Character {
   translatedDescription?: string | null;
   translatedRelationship?: string | null;
   translatedTraits?: string[] | null;
-  translatedVisualDescriptors?: string[] | null;
+  translatedVisualDescriptors?: VisualDescriptors | null;
   translationLanguage?: string | null;
 }
 
@@ -168,7 +179,7 @@ export interface VaultCharacter {
 
   // Common fields (same as Character)
   traits: string[];
-  visualDescriptors: string[];
+  visualDescriptors: VisualDescriptors;
   portrait: string | null;  // Data URL
 
   // Organization

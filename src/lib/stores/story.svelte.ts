@@ -1,4 +1,4 @@
-import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Chapter, Checkpoint, Branch, MemoryConfig, StoryMode, StorySettings, Entry, TimeTracker, EmbeddedImage, PersistentCharacterSnapshot } from '$lib/types';
+import type { Story, StoryEntry, Character, Location, Item, StoryBeat, Chapter, Checkpoint, Branch, MemoryConfig, StoryMode, StorySettings, Entry, TimeTracker, EmbeddedImage, PersistentCharacterSnapshot, VisualDescriptors } from '$lib/types';
 import { database } from '$lib/services/database';
 import { ui } from './ui.svelte';
 import type { ClassificationResult } from '$lib/services/ai/sdk/schemas/classifier';
@@ -873,7 +873,7 @@ class StoryStore {
       traits: [],
       status: 'active',
       metadata: null,
-      visualDescriptors: [],
+      visualDescriptors: {},
       portrait: null,
       branchId: this.currentStory.currentBranchId,
     };
@@ -1268,25 +1268,9 @@ class StoryStore {
           changes.traits = Array.from(traitMap.values());
         }
         // Handle visual descriptor updates for image generation
-        // replaceVisualDescriptors takes priority - it's a complete replacement
-        if (update.changes.replaceVisualDescriptors?.length) {
-          changes.visualDescriptors = update.changes.replaceVisualDescriptors;
-        } else if (update.changes.addVisualDescriptors?.length || update.changes.removeVisualDescriptors?.length) {
-          let visualDescriptors = [...(existing.visualDescriptors || [])];
-          if (update.changes.removeVisualDescriptors?.length) {
-            const toRemove = new Set(update.changes.removeVisualDescriptors.map(d => d.toLowerCase()));
-            visualDescriptors = visualDescriptors.filter(d => !toRemove.has(d.toLowerCase()));
-          }
-          if (update.changes.addVisualDescriptors?.length) {
-            // Add only descriptors that don't already exist (case-insensitive)
-            const existingLower = new Set(visualDescriptors.map(d => d.toLowerCase()));
-            for (const desc of update.changes.addVisualDescriptors) {
-              if (!existingLower.has(desc.toLowerCase())) {
-                visualDescriptors.push(desc);
-              }
-            }
-          }
-          changes.visualDescriptors = visualDescriptors;
+        // New format: visualDescriptors is a structured object that replaces entirely
+        if (update.changes.visualDescriptors && Object.keys(update.changes.visualDescriptors).length > 0) {
+          changes.visualDescriptors = update.changes.visualDescriptors;
         }
         await database.updateCharacter(existing.id, changes);
         this.characters = this.characters.map(c =>
@@ -1392,7 +1376,7 @@ class StoryStore {
           description: newChar.description ?? null,
           relationship: newChar.relationship ?? null,
           traits: newChar.traits ?? [],
-          visualDescriptors: newChar.visualDescriptors ?? [],
+          visualDescriptors: newChar.visualDescriptors ?? {},
           status: 'active',
           metadata: { source: 'classifier' },
           portrait: null,
@@ -2421,11 +2405,11 @@ const newConfig = { ...this.memoryConfig, ...updates };
       // Debug: Log character visual descriptors before restore
       const currentCharDescriptors = this.characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       const backupCharDescriptors = backup.characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       log('RESTORE DEBUG - Before restore:', {
         currentCharDescriptors,
@@ -2462,7 +2446,7 @@ const newConfig = { ...this.memoryConfig, ...updates };
       // Debug: Log what we got back from database
       const dbCharDescriptors = characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       log('RESTORE DEBUG - After DB reload:', {
         dbCharDescriptors,
@@ -2483,7 +2467,7 @@ const newConfig = { ...this.memoryConfig, ...updates };
       // Debug: Verify memory state matches
       const finalCharDescriptors = this.characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       log('RESTORE DEBUG - Final state:', {
         finalCharDescriptors,
@@ -2558,7 +2542,7 @@ const newConfig = { ...this.memoryConfig, ...updates };
           traits: snapshot.traits ?? [],
           status: snapshot.status ?? character.status,
           relationship,
-          visualDescriptors: snapshot.visualDescriptors ?? [],
+          visualDescriptors: snapshot.visualDescriptors ?? {},
           portrait: snapshot.portrait,
         },
       });
@@ -2679,13 +2663,13 @@ settings: {
         traits: data.protagonist.traits ?? [],
         status: 'active',
         metadata: { source: 'wizard' },
-        visualDescriptors: data.protagonist.visualDescriptors ?? [],
+        visualDescriptors: data.protagonist.visualDescriptors ?? {},
         portrait: data.protagonist.portrait ?? null,
         branchId: null, // New stories start on main branch
         translatedName: protagonistTranslation?.name ?? null,
         translatedDescription: protagonistTranslation?.description ?? null,
         translatedTraits: protagonistTranslation?.traits ?? null,
-        translatedVisualDescriptors: protagonistTranslation?.visualDescriptors ?? null,
+        translatedVisualDescriptors: undefined, // Translations not supported for structured visual descriptors yet
         translationLanguage: protagonistTranslation ? data.translations?.language ?? null : null,
       };
       await database.addCharacter(protagonist);
@@ -2755,14 +2739,14 @@ settings: {
         traits: charData.traits ?? [],
         status: 'active',
         metadata: { source: 'wizard' },
-        visualDescriptors: charData.visualDescriptors ?? [],
+        visualDescriptors: charData.visualDescriptors ?? {},
         portrait: charData.portrait ?? null,
         branchId: null, // New stories start on main branch
         translatedName: charTranslation?.name ?? null,
         translatedDescription: charTranslation?.description ?? null,
         translatedRelationship: charTranslation?.relationship ?? null,
         translatedTraits: charTranslation?.traits ?? null,
-        translatedVisualDescriptors: charTranslation?.visualDescriptors ?? null,
+        translatedVisualDescriptors: undefined, // Translations not supported for structured visual descriptors yet
         translationLanguage: charTranslation ? data.translations?.language ?? null : null,
       };
       await database.addCharacter(character);

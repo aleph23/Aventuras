@@ -2,40 +2,64 @@
  * Memory Service Schemas
  *
  * Zod schemas for chapter analysis, summarization, and retrieval decisions.
+ * The .describe() calls provide semantic guidance to LLMs via schema introspection.
  */
 
 import { z } from 'zod';
 
 export const chapterAnalysisSchema = z.object({
-  shouldCreateChapter: z.boolean(),
-  optimalEndIndex: z.number(),
-  suggestedTitle: z.string().nullable().optional(),
-  keywords: z.array(z.string()),
-  characters: z.array(z.string()),
-  locations: z.array(z.string()),
-  plotThreads: z.array(z.string()),
-  emotionalTone: z.string(),
-  significantEvents: z.array(z.string()),
+  shouldCreateChapter: z.boolean()
+    .describe('true if content forms a complete narrative arc'),
+  optimalEndIndex: z.number()
+    .describe('Message index where chapter should end'),
+  suggestedTitle: z.string().nullable()
+    .describe('Evocative chapter title (3-6 words)')
+    .optional(),
+  keywords: z.array(z.string())
+    .describe('Key terms for search'),
+  characters: z.array(z.string())
+    .describe('Character names mentioned'),
+  locations: z.array(z.string())
+    .describe('Location names mentioned'),
+  plotThreads: z.array(z.string())
+    .describe('Active plot threads or quests'),
+  emotionalTone: z.string()
+    .describe('Overall emotional tone (tense, hopeful, mysterious, etc.)'),
+  significantEvents: z.array(z.string())
+    .describe('Major events that occurred'),
 });
 
 export type ChapterAnalysis = z.infer<typeof chapterAnalysisSchema>;
 
 export const chapterSummaryResultSchema = z.object({
-  title: z.string().nullable().optional(),
-  summary: z.string(),
-  keywords: z.array(z.string()),
-  characters: z.array(z.string()),
-  locations: z.array(z.string()),
-  plotThreads: z.array(z.string()),
-  emotionalTone: z.string().nullable().optional(),
+  title: z.string().nullable()
+    .describe('Short evocative chapter title')
+    .optional(),
+  summary: z.string()
+    .describe('Concise 2-3 sentence summary of what happened'),
+  keywords: z.array(z.string())
+    .describe('Key words for search'),
+  characters: z.array(z.string())
+    .describe('Character names mentioned'),
+  locations: z.array(z.string())
+    .describe('Location names mentioned'),
+  plotThreads: z.array(z.string())
+    .describe('Active plot threads or quests'),
+  emotionalTone: z.string().nullable()
+    .describe('Overall emotional tone')
+    .optional(),
 });
 
 export type ChapterSummaryResult = z.infer<typeof chapterSummaryResultSchema>;
 
 export const retrievalDecisionSchema = z.object({
-  shouldRetrieve: z.boolean(),
-  relevantChapterIds: z.array(z.string()),
-  reasoning: z.string().optional(),
+  shouldRetrieve: z.boolean()
+    .describe('true if past chapters are relevant to current context'),
+  relevantChapterIds: z.array(z.string())
+    .describe('IDs of chapters relevant to current scene'),
+  reasoning: z.string()
+    .describe('Brief explanation of relevance')
+    .optional(),
 });
 
 export type RetrievalDecision = z.infer<typeof retrievalDecisionSchema>;

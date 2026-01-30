@@ -1157,8 +1157,7 @@ Determine how much narrative time elapsed during this passage. Consider what act
 2. Only extract what ACTUALLY HAPPENED, not what might happen
 3. Use the exact names from the text, don't invent or embellish
 4. ALWAYS check if active story beats should be marked completed or failed
-5. ALWAYS assess timeProgression - prefer incrementing time over "none" when activities occur
-6. Respond with valid JSON only - no markdown, no explanation`,
+5. ALWAYS assess timeProgression - prefer incrementing time over "none" when activities occur`,
   userContent: `Analyze this narrative passage and extract world state changes.
 
 ## Context
@@ -1189,49 +1188,7 @@ Items: {{existingItems}}
 3. Identify any NEW significant entities introduced (apply the extraction rules strictly)
 4. Determine the current scene state
 
-## Response Format (JSON only)
-{
-  "entryUpdates": {
-    "characterUpdates": [],
-    "locationUpdates": [],
-    "itemUpdates": [],
-    "storyBeatUpdates": [],
-    "newCharacters": [],
-    "newLocations": [],
-    "newItems": [],
-    "newStoryBeats": []
-  },
-  "scene": {
-    "currentLocationName": null,
-    "presentCharacterNames": [],
-    "timeProgression": "none"
-  }
-}
-
-### Field Specifications
-
-characterUpdates: [{"name": "ExistingName", "changes": {"status": "active|inactive|deceased", "relationship": "new relationship", "newTraits": ["trait"], "removeTraits": ["trait"], "replaceVisualDescriptors": ["Face: ...", "Hair: ...", "Eyes: ...", "Build: ...", "Clothing: ...", "Accessories: ...", "Distinguishing marks: ..."]}}]
-NOTE: Use replaceVisualDescriptors (preferred) to output the COMPLETE cleaned-up appearance list. This replaces all existing descriptors.
-
-locationUpdates: [{"name": "ExistingName", "changes": {"visited": true, "current": true, "descriptionAddition": "new detail learned"}}]
-
-itemUpdates: [{"name": "ExistingName", "changes": {"quantity": 1, "equipped": true, "location": "{{itemLocationOptions}}"}}]
-
-storyBeatUpdates: [{"title": "ExistingBeatTitle", "changes": {"status": "completed|failed", "description": "optional updated description"}}]
-
-newCharacters: [{"name": "ProperName", "description": "one sentence", "relationship": "friend|enemy|ally|neutral|unknown", "traits": ["trait1"], "visualDescriptors": ["MUST include: face/skin, hair, eyes, build, full clothing, accessories - invent plausible details if not described"]}]
-
-newLocations: [{"name": "ProperName", "description": "one sentence", "visited": true, "current": false}]
-
-newItems: [{"name": "ItemName", "description": "one sentence", "quantity": 1, "location": "{{defaultItemLocation}}"}]
-
-newStoryBeats: [{"title": "Short Title", "description": "what happened or was learned", "type": "{{storyBeatTypes}}", "status": "pending|active|completed"}]
-
-scene.currentLocationName: {{sceneLocationDesc}}
-scene.presentCharacterNames: Names of characters physically present in the scene
-scene.timeProgression: Time elapsed based on activities - "none" (instant actions/brief dialogue), "minutes" (conversations/searches/short walks), "hours" (travel/lengthy tasks), "days" (sleep/long journeys/time skips). When in doubt, increment.
-
-Return valid JSON only. Empty arrays are fine - don't invent entities that aren't clearly in the text.`,
+Empty arrays are fine - don't invent entities that aren't clearly in the text.`,
 };
 
 const chapterAnalysisPromptTemplate: PromptTemplate = {
@@ -1244,10 +1201,6 @@ You are Auto Summarize Endpoint Selector. Your task is to identify the single be
 
 ## Task
 Select the message ID that represents the longest self-contained narrative arc within the given range. The endpoint should be at a natural narrative beat: resolution, decision, scene change, or clear transition.
-
-## Output Format
-Return ONLY a JSON object with a single field:
-{ "chapterEnd": <integer message ID> }
 
 ## Rules
 - Select exactly ONE endpoint
@@ -1286,27 +1239,13 @@ For each chapter, create a concise summary that includes ONLY:
 - Minor details or descriptive passages
 - Dialogue excerpts (unless pivotal)
 - Stylistic or thematic analysis
-- Personal interpretations or opinions
-
-## Output Format
-Respond with JSON only.`,
+- Personal interpretations or opinions`,
   userContent: `{{previousContext}}Summarize this story chapter and extract metadata.
 
 CHAPTER CONTENT:
 """
 {{chapterContent}}
-"""
-
-Respond with JSON:
-{
-  "summary": "A concise 2-3 sentence summary of what happened in this chapter",
-  "title": "A short evocative chapter title (3-6 words)",
-  "keywords": ["key", "words", "for", "search"],
-  "characters": ["Character names mentioned"],
-  "locations": ["Location names mentioned"],
-  "plotThreads": ["Active plot threads or quests"],
-  "emotionalTone": "The overall emotional tone (e.g., tense, hopeful, mysterious)"
-}`,
+"""`,
 };
 
 const retrievalDecisionPromptTemplate: PromptTemplate = {
@@ -1314,7 +1253,12 @@ const retrievalDecisionPromptTemplate: PromptTemplate = {
   name: 'Retrieval Decision',
   category: 'service',
   description: 'Decides which past chapters are relevant for current context',
-  content: `You decide which story chapters are relevant for the current context. Respond with valid JSON only.`,
+  content: `You decide which story chapters are relevant for the current context.
+
+Guidelines:
+- Only include chapters that are ACTUALLY relevant to the current context
+- Often, no chapters need to be queried - return empty arrays if nothing is relevant
+- Consider: characters mentioned, locations being revisited, plot threads referenced`,
   userContent: `Based on the user's input and current scene, decide which past chapters are relevant.
 
 USER INPUT:
@@ -1328,13 +1272,6 @@ CURRENT SCENE (last few messages):
 CHAPTER SUMMARIES:
 {{chapterSummaries}}
 
-Respond with JSON:
-{
-  "relevantChapterIds": ["id1", "id2"],
-  "queries": [
-    {"chapterId": "id1", "question": "What was X?"}
-  ]
-}
 
 Guidelines:
 - Only include chapters that are ACTUALLY relevant to the current context
@@ -1354,12 +1291,6 @@ You are selecting which story entries are relevant for the next narrative respon
 ## Task
 Analyze the current scene, user input, and available entries to identify which entries are ACTUALLY relevant to this specific moment in the story.
 
-## Output Format
-Return ONLY a JSON array of numbers representing relevant entries.
-Example: [1, 3, 7]
-
-If no entries are relevant, return: []
-
 ## Selection Criteria
 Consider:
 - Characters who might be referenced or affected
@@ -1377,7 +1308,7 @@ Only include entries that have a clear connection to the current scene or user's
 # Available Entries
 {{entrySummaries}}
 
-Which entries (by number) are relevant to the current scene and user input? Return a JSON array of numbers.`,
+Which entries (by number) are relevant to the current scene and user input?`,
 };
 
 const suggestionsPromptTemplate: PromptTemplate = {
@@ -1394,9 +1325,7 @@ Examples:
 - "Continue with the group discovering the abandoned cabin, but something feels wrong about it"
 - "Have the protagonist finally reveal their secret to their companion, leading to an unexpected reaction"
 
-These should read like instructions an author gives to guide the next part of the story.
-
-Respond with valid JSON only.`,
+These should read like instructions an author gives to guide the next part of the story.`,
   userContent: `Based on the current story moment, suggest 3 distinct directions the overall narrative could develop.
 
 ## Recent Story Content
@@ -1439,16 +1368,7 @@ Each suggestion should be:
 - A narrative direction or plot beat, not a character micro-action
 - Grounded in the current story context and tone
 - Specific enough to write toward, vague enough to allow creativity
-- Appropriate to the established tone and genre
-
-Respond with JSON only:
-{
-  "suggestions": [
-    {"text": "Direction 1...", "type": "action|dialogue|revelation|twist"},
-    {"text": "Direction 2...", "type": "action|dialogue|revelation|twist"},
-    {"text": "Direction 3...", "type": "action|dialogue|revelation|twist"}
-  ]
-}`,
+- Appropriate to the established tone and genre`,
 };
 
 const styleReviewerPromptTemplate: PromptTemplate = {
@@ -1531,12 +1451,7 @@ Query based ONLY on the information visible in the chapter summaries or things t
 Existing chapter timeline:
 {{timeline}}
 
-Provide a JSON array where each item describes a question to ask about the timeline. Each item MUST be an object with:
-- "query": the question string.
-- EITHER "chapters": an array of chapter numbers to query,
-  OR both "startChapter" and "endChapter" integers defining an inclusive range.
-You may include both styles in the same array. The maximum number of chapters per query is 3.
-Return ONLY the JSON array, no code fences or commentary.`,
+Identify what information from past chapters would help understand the current scene. Generate queries about specific chapters or chapter ranges. The maximum number of chapters per query is 3.`,
 };
 
 const timelineFillAnswerPromptTemplate: PromptTemplate = {
@@ -1764,7 +1679,7 @@ Note: Include ALL significant characters mentioned in the card as NPCs. The prim
 
 The {{user}} will be the protagonist (their name will be filled in later) interacting with the NPCs in an interactive story.
 
-IMPORTANT: 
+IMPORTANT:
 - Identify who "{{char}}" refers to based on the content (NOT the card title "{{title}}")
 - Replace all {{char}} with the actual character name
 - KEEP all {{user}} placeholders as-is (they will be replaced with the player's character name later)
@@ -2675,7 +2590,7 @@ const actionChoicesPromptTemplate: PromptTemplate = {
   name: 'Action Choices',
   category: 'service',
   description: 'Generates RPG-style action choices for the player based on current narrative',
-  content: `You are an RPG game master generating action choices for a player. The player has a character/persona that represents THEM in the story - when you generate choices, these are suggestions for what the PLAYER (the real person) might want their character to do next. Generate action options that fit the current narrative moment and MATCH THE PLAYER'S WRITING STYLE - if they write verbose actions, generate verbose choices; if they write terse commands, generate terse choices. Mimic their vocabulary, phrasing, and tone. Always respond with valid JSON only.`,
+  content: `You are an RPG game master generating action choices for a player. The player has a character/persona that represents THEM in the story - when you generate choices, these are suggestions for what the PLAYER (the real person) might want their character to do next. Generate action options that fit the current narrative moment and MATCH THE PLAYER'S WRITING STYLE - if they write verbose actions, generate verbose choices; if they write terse commands, generate terse choices. Mimic their vocabulary, phrasing, and tone.`,
   userContent: `Based on the current story moment, generate 3-4 RPG-style action choices.
 
 ## CRITICAL: Who is the Player?
@@ -2712,16 +2627,7 @@ Avoid choices like "Wait and see" or "Do nothing" - each option should lead to m
 
 {{lengthInstruction}}
 
-## Response Format (JSON only)
-{
-  "choices": [
-    {"text": "Action text here", "type": "action|dialogue|examine|move"},
-    {"text": "Action text here", "type": "action|dialogue|examine|move"},
-    {"text": "Action text here", "type": "action|dialogue|examine|move"}
-  ]
-}
-
-Types:
+## Choice Types
 - action: Physical actions (fight, take, use, give, etc.)
 - dialogue: Speaking to someone
 - examine: Looking at or investigating something

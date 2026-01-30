@@ -311,7 +311,7 @@ export interface SanitizedCharacter {
   name: string;
   description: string;
   traits: string[];
-  visualDescriptors: string[];
+  visualDescriptors: import('$lib/types').VisualDescriptors;
 }
 
 /**
@@ -335,6 +335,6 @@ export async function sanitizeCharacterCard(
     name: card.name,
     description: card.description || card.personality || '',
     traits: [],
-    visualDescriptors: [],
+    visualDescriptors: {},
   };
 }

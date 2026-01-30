@@ -1,6 +1,6 @@
 import type { ActivePanel, SidebarTab, UIState, EntryType, StoryEntry, Character, Location, Item, StoryBeat, Entry, ActionInputType, PersistentStyleReviewState, PersistentStyleReviewResult, TimeTracker, EmbeddedImage, PersistentCharacterSnapshot } from '$lib/types';
-import type { ActionChoice } from '$lib/services/ai/generation/ActionChoicesService';
-import type { StorySuggestion } from '$lib/services/ai/generation/SuggestionsService';
+import type { ActionChoice } from '$lib/services/ai/sdk/schemas/actionchoices';
+import type { Suggestion } from '$lib/services/ai/sdk/schemas/suggestions';
 import type { StyleReviewResult } from '$lib/services/ai/generation/StyleReviewerService';
 import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService';
 import type { SyncMode } from '$lib/types/sync';
@@ -77,7 +77,7 @@ interface PersistedActionChoices {
 // Persisted suggestions structure
 interface PersistedSuggestions {
   storyId: string;
-  suggestions: StorySuggestion[];
+  suggestions: Suggestion[];
 }
 
 // Persisted activation data structure (for lorebook stickiness)
@@ -174,7 +174,7 @@ class UIStore {
   pendingActionChoice = $state<string | null>(null);
 
   // Creative writing suggestions (displayed after narration)
-  suggestions = $state<StorySuggestion[]>([]);
+  suggestions = $state<Suggestion[]>([]);
   suggestionsLoading = $state(false);
 
   // Style reviewer state
@@ -491,7 +491,7 @@ class UIStore {
       traits: [...(c.traits ?? [])],
       status: c.status,
       relationship: c.relationship ?? null,
-      visualDescriptors: [...(c.visualDescriptors ?? [])],
+      visualDescriptors: { ...(c.visualDescriptors ?? {}) },
       portrait: c.portrait,
     }));
 
@@ -512,12 +512,12 @@ class UIStore {
     const shallowCopyArray = <T extends object>(arr: T[]): T[] =>
       arr.map(item => ({ ...item }));
 
-    // For characters, also copy nested arrays (traits, visualDescriptors)
+    // For characters, also copy nested arrays/objects (traits, visualDescriptors)
     const copyCharacters = (chars: Character[]): Character[] =>
       chars.map(c => ({
         ...c,
         traits: [...(c.traits || [])],
-        visualDescriptors: [...(c.visualDescriptors || [])],
+        visualDescriptors: { ...(c.visualDescriptors || {}) },
       }));
 
     // For locations, copy connections array
@@ -563,11 +563,11 @@ class UIStore {
     // Debug: Log character visual descriptors at backup time (before storing)
     const charDescriptorsAtBackup = characters.map(c => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: c.visualDescriptors,
     }));
     const charDescriptorsInBackup = backup.characters.map(c => ({
       name: c.name,
-      visualDescriptors: [...c.visualDescriptors],
+      visualDescriptors: c.visualDescriptors,
     }));
     console.log('[UI] BACKUP DEBUG - Character descriptors at creation:', {
       charDescriptorsAtBackup,
@@ -583,7 +583,7 @@ class UIStore {
     if (storedBackup) {
       const storedCharDescriptors = storedBackup.characters.map(c => ({
         name: c.name,
-        visualDescriptors: [...c.visualDescriptors],
+        visualDescriptors: c.visualDescriptors,
       }));
       console.log('[UI] BACKUP DEBUG - Verification after store:', {
         storedCharDescriptors,
@@ -907,7 +907,7 @@ class UIStore {
     return `story_suggestions:${storyId}`;
   }
 
-  setSuggestions(suggestions: StorySuggestion[], storyId?: string) {
+  setSuggestions(suggestions: Suggestion[], storyId?: string) {
     this.suggestions = suggestions;
     // Persist to database if we have a story ID
     if (storyId && suggestions.length > 0) {
