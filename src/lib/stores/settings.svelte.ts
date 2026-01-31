@@ -1269,7 +1269,13 @@ class SettingsStore {
       const profilesJson = await database.getSetting('api_profiles');
       if (profilesJson) {
         try {
-          this.apiSettings.profiles = JSON.parse(profilesJson);
+          const parsed = JSON.parse(profilesJson) as import('$lib/types').APIProfile[];
+          // Ensure new fields have defaults for profiles saved before these fields existed
+          this.apiSettings.profiles = parsed.map(p => ({
+            ...p,
+            hiddenModels: p.hiddenModels ?? [],
+            favoriteModels: p.favoriteModels ?? [],
+          }));
         } catch {
           this.apiSettings.profiles = [];
         }
@@ -1894,6 +1900,19 @@ class SettingsStore {
     return [...new Set([...profile.fetchedModels, ...profile.customModels])];
   }
 
+  getAvailableModels(profileId: string | null): string[] {
+    if (!profileId) return [];
+    const profile = this.getProfile(profileId);
+    if (!profile) return [];
+    const hidden = new Set(profile.hiddenModels ?? []);
+    const favSet = new Set(profile.favoriteModels ?? []);
+    const all = [...new Set([...profile.fetchedModels, ...profile.customModels])]
+      .filter(m => !hidden.has(m));
+    const favorites = all.filter(m => favSet.has(m));
+    const rest = all.filter(m => !favSet.has(m));
+    return [...favorites, ...rest];
+  }
+
   /**
    * Collect all models currently in use across all services.
    * This is used for migration to ensure the default profile has all needed models.
@@ -2000,6 +2019,8 @@ class SettingsStore {
         apiKey: existingApiKey || '', // Migrate existing key if present
         customModels: allModels, // Include all models in use plus defaults
         fetchedModels: [], // Will be populated when user fetches from API
+        hiddenModels: [],
+        favoriteModels: [],
         createdAt: Date.now(),
       };
 
@@ -2660,6 +2681,8 @@ class SettingsStore {
       apiKey: apiKey,
       customModels: [],
       fetchedModels: [],
+      hiddenModels: [],
+      favoriteModels: [],
       createdAt: Date.now(),
     };
 

@@ -646,6 +646,8 @@ export interface APIProfile {
   apiKey: string;             // API key for this endpoint
   customModels: string[];     // Manually added models
   fetchedModels: string[];    // Auto-fetched from /models endpoint
+  hiddenModels: string[];     // Models hidden from selection lists
+  favoriteModels: string[];   // Models shown at the top of selection lists
   createdAt: number;          // Timestamp
 }
 

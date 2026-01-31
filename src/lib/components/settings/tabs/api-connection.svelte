@@ -2,7 +2,7 @@
   import { settings } from "$lib/stores/settings.svelte";
   import type { APIProfile, ProviderType } from "$lib/types";
   import type { ProviderInfo } from "$lib/services/ai/core/types";
-  import { fetch } from "@tauri-apps/plugin-http";
+  import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
   import ProviderTypeSelector from "$lib/components/settings/ProviderTypeSelector.svelte";
   import {
     Plus,
@@ -17,6 +17,9 @@
     Box,
     AlertCircle,
     Star,
+    Zap,
+    RotateCcw,
+    Search,
   } from "lucide-svelte";
 
   import { Button } from "$lib/components/ui/button";
@@ -35,6 +38,7 @@
   import { ScrollArea } from "$lib/components/ui/scroll-area";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Alert, AlertDescription } from "$lib/components/ui/alert";
+  import * as Dialog from "$lib/components/ui/dialog";
   import IconRow from "$lib/components/ui/icon-row.svelte";
   import X from "@lucide/svelte/icons/x";
   import { isMobileDevice } from "$lib/utils/swipe";
@@ -58,6 +62,13 @@
   let formSetAsDefault = $state(false);
   let formNewModelInput = $state("");
   let formShowApiKey = $state(false);
+  let formHiddenModels = $state<string[]>([]);
+  let formFavoriteModels = $state<string[]>([]);
+  let showCustomModelDialog = $state(false);
+  let customModelDialogInput = $state("");
+  let showHiddenModels = $state(false);
+  let modelFilterInput = $state("");
+  let showBaseUrlCollapsible = $state(false);
 
   // Provider defaults for base URLs
   const providerDefaults: Record<ProviderType, string> = {
@@ -70,6 +81,27 @@
     pollinations: "",
   };
 
+  // Providers that have a built-in default API endpoint and can fetch models without a custom baseUrl
+  const providerHasDefaultEndpoint: Record<ProviderType, boolean> = {
+    openrouter: true,
+    openai: false,
+    anthropic: true,
+    google: true,
+    nanogpt: true,
+    chutes: true,
+    pollinations: true,
+  };
+
+  const providerDisplayNames: Record<ProviderType, string> = {
+    openrouter: "OpenRouter",
+    openai: "OpenAI Compatible",
+    anthropic: "Anthropic",
+    google: "Google AI",
+    nanogpt: "NanoGPT",
+    chutes: "Chutes",
+    pollinations: "Pollinations",
+  };
+
   // Auto-save debounce state
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -78,6 +110,32 @@
   let fetchError = $state<string | null>(null);
   let openCollapsibles = $state<Set<string>>(new Set());
 
+  function isSelfHostedUrl(url: string): boolean {
+    if (!url) return false;
+    try {
+      const u = new URL(url);
+      const host = u.hostname;
+      return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.startsWith('192.168.');
+    } catch {
+      return false;
+    }
+  }
+
+
+  // Sort models: favorites first, then rest alphabetically
+  function sortedModels(models: string[]): string[] {
+    const favSet = new Set(formFavoriteModels);
+    const favs = models.filter((m) => favSet.has(m));
+    const rest = models.filter((m) => !favSet.has(m));
+    return [...favs, ...rest];
+  }
+
+  // Filter models by search input
+  function filterModels(models: string[]): string[] {
+    if (!modelFilterInput.trim()) return models;
+    const search = modelFilterInput.toLowerCase();
+    return models.filter((m) => m.toLowerCase().includes(search));
+  }
 
   function startEdit(profile: APIProfile) {
     if (editingProfileId && editingProfileId !== profile.id && !isNewProfile) {
@@ -93,8 +151,13 @@
     formApiKey = profile.apiKey;
     formCustomModels = [...profile.customModels];
     formFetchedModels = [...profile.fetchedModels];
+    formHiddenModels = [...(profile.hiddenModels ?? [])];
+    formFavoriteModels = [...(profile.favoriteModels ?? [])];
     formSetAsDefault = false;
     formShowApiKey = false;
+    showHiddenModels = false;
+    modelFilterInput = "";
+    showBaseUrlCollapsible = false;
     fetchError = null;
     openCollapsibles = new Set([...openCollapsibles, profile.id]);
   }
@@ -108,6 +171,8 @@
     formApiKey = "";
     formCustomModels = [];
     formFetchedModels = [];
+    formHiddenModels = [];
+    formFavoriteModels = [];
     formSetAsDefault = settings.apiSettings.profiles.length === 0;
     formShowApiKey = false;
     fetchError = null;
@@ -130,6 +195,8 @@
       apiKey: formApiKey,
       customModels: formCustomModels,
       fetchedModels: formFetchedModels,
+      hiddenModels: formHiddenModels,
+      favoriteModels: formFavoriteModels,
       createdAt: isNewProfile
         ? Date.now()
         : settings.apiSettings.profiles.find((p) => p.id === editingProfileId)
@@ -155,39 +222,17 @@
   }
 
   async function handleFetchModels() {
-    const baseUrl = formBaseUrl || providerDefaults[formProviderType];
-    if (!baseUrl) {
-      fetchError = "No base URL available for this provider";
-      return;
-    }
-
     isFetchingModels = true;
     fetchError = null;
     formFetchedModels = [];
 
     try {
-      const modelsUrl = baseUrl.replace(/\/$/, "") + "/models";
-      const response = await fetch(modelsUrl, {
-        headers: formApiKey ? { Authorization: `Bearer ${formApiKey}` } : {},
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch models: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-
-      if (data.data && Array.isArray(data.data)) {
-        formFetchedModels = data.data.map((m: { id: string }) => m.id);
-      } else if (Array.isArray(data)) {
-        formFetchedModels = data
-          .map((m: { id?: string; name?: string }) => m.id || m.name || "")
-          .filter(Boolean);
-      } else {
-        throw new Error("Unexpected response format");
-      }
+      const models = await fetchModelsFromProvider(
+        formProviderType,
+        formBaseUrl,
+        formApiKey
+      );
+      formFetchedModels = models;
     } catch (err) {
       fetchError =
         err instanceof Error ? err.message : "Failed to fetch models";
@@ -200,6 +245,10 @@
     const model = formNewModelInput.trim();
     if (model && !formCustomModels.includes(model)) {
       formCustomModels = [...formCustomModels, model];
+      // Custom models are favorites by default
+      if (!formFavoriteModels.includes(model)) {
+        formFavoriteModels = [...formFavoriteModels, model];
+      }
       formNewModelInput = "";
     }
   }
@@ -210,6 +259,39 @@
 
   function handleRemoveFetchedModel(model: string) {
     formFetchedModels = formFetchedModels.filter((m) => m !== model);
+    if (!formHiddenModels.includes(model)) {
+      formHiddenModels = [...formHiddenModels, model];
+    }
+    // Also remove from favorites if hidden
+    formFavoriteModels = formFavoriteModels.filter((m) => m !== model);
+  }
+
+  function handleRestoreHiddenModel(model: string) {
+    formHiddenModels = formHiddenModels.filter((m) => m !== model);
+    if (!formFetchedModels.includes(model) && !formCustomModels.includes(model)) {
+      formFetchedModels = [...formFetchedModels, model];
+    }
+  }
+
+  function handleToggleFavorite(model: string) {
+    if (formFavoriteModels.includes(model)) {
+      formFavoriteModels = formFavoriteModels.filter((m) => m !== model);
+    } else {
+      formFavoriteModels = [...formFavoriteModels, model];
+    }
+  }
+
+  function handleAddCustomModelFromDialog() {
+    const model = customModelDialogInput.trim();
+    if (model && !formCustomModels.includes(model)) {
+      formCustomModels = [...formCustomModels, model];
+      // Custom models are favorites by default
+      if (!formFavoriteModels.includes(model)) {
+        formFavoriteModels = [...formFavoriteModels, model];
+      }
+      customModelDialogInput = "";
+      showCustomModelDialog = false;
+    }
   }
 
   function handleSetDefault(profileId: string) {
@@ -218,6 +300,22 @@
     if (currentDefault !== profileId) {
       settings.setDefaultProfile(profileId);
     }
+  }
+
+  // Quick-fill presets for OpenAI-compatible endpoints
+  function quickFillOpenai() {
+    formName = "OpenAI";
+    formBaseUrl = "https://api.openai.com/v1";
+  }
+
+  function quickFillNvidianim() {
+    formName = "NVIDIA NIM";
+    formBaseUrl = "https://integrate.api.nvidia.com/v1";
+  }
+
+  function quickFillSelfHosted(port: string, name: string) {
+    formName = name;
+    formBaseUrl = `http://127.0.0.1:${port}/v1`;
   }
 
   function handleOpenChange(open: boolean, profile: APIProfile) {
@@ -256,6 +354,8 @@
       apiKey: formApiKey,
       customModels: formCustomModels,
       fetchedModels: formFetchedModels,
+      hiddenModels: formHiddenModels,
+      favoriteModels: formFavoriteModels,
       createdAt: existingProfile.createdAt,
     };
 
@@ -278,6 +378,8 @@
       formApiKey;
       formCustomModels;
       formFetchedModels;
+      formHiddenModels;
+      formFavoriteModels;
       triggerAutoSave();
     }
   });
@@ -319,28 +421,107 @@
             value={formProviderType}
             onchange={(v) => {
               formProviderType = v;
+              formName = providerDisplayNames[v];
               formBaseUrl = "";
               formFetchedModels = [];
+              formCustomModels = [];
+              formHiddenModels = [];
+              formFavoriteModels = [];
               fetchError = null;
+              modelFilterInput = "";
+              showBaseUrlCollapsible = false;
             }}
           />
 
-          <div class="space-y-2">
-            <Label for="new-url">Custom Base URL <span class="text-muted-foreground">(optional)</span></Label>
-            <Input
-              id="new-url"
-              placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
-              bind:value={formBaseUrl}
-              class="font-mono text-xs"
-            />
-            <p class="text-xs text-muted-foreground">
-              Leave empty to use the default endpoint. Set for Azure, local LLMs, or custom deployments.
-            </p>
-          </div>
+          {#if formProviderType === "openai"}
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                <Zap class="h-3 w-3" />
+                <span>Quick fill:</span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onclick={quickFillOpenai}
+                  class="text-xs h-8"
+                >
+                  OpenAI
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onclick={quickFillNvidianim}
+                  class="text-xs h-8"
+                >
+                  NVIDIA NIM
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onclick={() => quickFillSelfHosted("11434", "Ollama")}
+                  class="text-xs h-8"
+                >
+                  Ollama
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onclick={() => quickFillSelfHosted("1234", "LM Studio")}
+                  class="text-xs h-8"
+                >
+                  LM Studio
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onclick={() => quickFillSelfHosted("8080", "llama.cpp")}
+                  class="text-xs h-8"
+                >
+                  llama.cpp
+                </Button>
+              </div>
+            </div>
+          {/if}
+
+          {#if formProviderType === "openai"}
+            <div class="space-y-2">
+              <Label for="new-url">
+                Base URL <span class="text-muted-foreground">(required)</span>
+              </Label>
+              <Input
+                id="new-url"
+                placeholder="https://api.example.com/v1"
+                bind:value={formBaseUrl}
+                class="font-mono text-xs"
+              />
+            </div>
+          {:else}
+            <div class="space-y-1">
+              <button
+                class="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onclick={() => showBaseUrlCollapsible = !showBaseUrlCollapsible}
+              >
+                <ChevronRight class="h-3 w-3 transition-transform {showBaseUrlCollapsible || formBaseUrl ? 'rotate-90' : ''}" />
+                Custom Base URL <span class="text-muted-foreground">(optional)</span>
+              </button>
+              {#if showBaseUrlCollapsible || formBaseUrl}
+                <Input
+                  id="new-url"
+                  placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
+                  bind:value={formBaseUrl}
+                  class="font-mono text-xs"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Leave empty for default endpoint.
+                </p>
+              {/if}
+            </div>
+          {/if}
 
           <div class="space-y-2">
             <Input
-              label="API Key"
+              label={isSelfHostedUrl(formBaseUrl) ? "API Key (optional)" : "API Key"}
               id="new-key"
               type="password"
               placeholder="sk-..."
@@ -358,6 +539,30 @@
               <Box class="h-4 w-4" />
               Models
             </Label>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onclick={() => { showCustomModelDialog = true; customModelDialogInput = ""; }}
+              >
+                <Plus class="h-3 w-3" />
+                {isMobileDevice() ? "" : "Custom"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onclick={handleFetchModels}
+                disabled={isFetchingModels || (!formBaseUrl && !providerHasDefaultEndpoint[formProviderType])}
+              >
+                {#if isFetchingModels}
+                  <RefreshCw class="h-4 w-4 animate-spin" />
+                  Fetching...
+                {:else}
+                  <RefreshCw class="h-4 w-4" />
+                  {isMobileDevice() ? "" : "Fetch Models"}
+                {/if}
+              </Button>
+            </div>
           </div>
 
           {#if fetchError}
@@ -368,37 +573,6 @@
           {/if}
 
           <div class="space-y-2 mb-2">
-            <div class="flex gap-2">
-              <Input
-                placeholder={isMobileDevice()
-                  ? "Add custom or fetch..."
-                  : "Add custom model or fetch available"}
-                bind:value={formNewModelInput}
-                class="flex-1 w-full"
-                onkeydown={(e) => e.key === "Enter" && handleAddCustomModel()}
-              />
-              <Button
-                variant="outline"
-                onclick={handleAddCustomModel}
-                disabled={!formNewModelInput.trim()}
-              >
-                <Plus class="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onclick={handleFetchModels}
-                disabled={isFetchingModels || (!formBaseUrl && !providerDefaults[formProviderType])}
-              >
-                {#if isFetchingModels}
-                  <RefreshCw class=" h-4 w-4 animate-spin" />
-                  Fetching...
-                {:else}
-                  <RefreshCw class=" h-4 w-4" />
-                  {isMobileDevice() ? "" : "Fetch Models"}
-                {/if}
-              </Button>
-            </div>
-
             {#if formFetchedModels.length > 0}
               <div class="space-y-2">
                 <p class="text-xs font-medium text-muted-foreground">
@@ -457,7 +631,7 @@
           >
           <Button
             onclick={handleSave}
-            disabled={!formName.trim() || !formBaseUrl.trim()}
+            disabled={!formName.trim() || (formProviderType === "openai" && !formBaseUrl.trim())}
             class="flex-1"
           >
             <Check class="h-4 w-4" />
@@ -498,9 +672,10 @@
                     <Badge
                       variant="default"
                       class="hidden shrink-0 md:flex items-center justify-center"
+                      title="Used when agent profiles don't specify an API profile"
                     >
                       <Star class="h-3 w-3 mr-1" />
-                      Default
+                      Fallback
                     </Badge>
                   {/if}
                 </div>
@@ -512,7 +687,7 @@
                     variant="outline"
                     class="text-xs text-muted-foreground"
                   >
-                    {profile.customModels.length + profile.fetchedModels.length}
+                    {profile.customModels.length + profile.fetchedModels.length - (profile.hiddenModels?.length ?? 0)}
                     models
                   </Badge>
                 </div>
@@ -525,8 +700,8 @@
                 showDelete={settings.canDeleteProfile(profile.id)}
               >
                 {#if profile.id === settings.getDefaultProfileIdForProvider()}
-                  <Badge variant="default" class="shrink-0 text-xs md:hidden">
-                    Default
+                  <Badge variant="default" class="shrink-0 text-xs md:hidden" title="Used when agent profiles don't specify an API profile">
+                    Fallback
                   </Badge>
                 {/if}
                 {#if settings.apiSettings.profiles.length > 1 && profile.id !== settings.apiSettings.defaultProfileId}
@@ -535,7 +710,7 @@
                     size="icon"
                     class="w-5"
                     onclick={() => handleSetDefault(profile.id)}
-                    title="Set as default"
+                    title="Set as fallback profile"
                   >
                     <Star class="h-4 w-4" />
                   </Button>
@@ -570,27 +745,105 @@
                   value={formProviderType}
                   onchange={(v) => {
                     formProviderType = v;
+                    formName = providerDisplayNames[v];
                     formBaseUrl = "";
                     formFetchedModels = [];
+                    formCustomModels = [];
+                    formHiddenModels = [];
+                    formFavoriteModels = [];
                     fetchError = null;
+                    modelFilterInput = "";
+                    showBaseUrlCollapsible = false;
                   }}
                 />
 
-                <div class="flex flex-col">
-                  <Label class="mb-2">Custom Base URL <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                  <Input
-                    bind:value={formBaseUrl}
-                    placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
-                    class="font-mono text-xs"
-                  />
-                  <p class="text-xs text-muted-foreground mt-1">
-                    Leave empty for default endpoint.
-                  </p>
-                </div>
+                {#if formProviderType === "openai"}
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Zap class="h-3 w-3" />
+                      <span>Quick fill:</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={quickFillOpenai}
+                        class="text-xs h-8"
+                      >
+                        OpenAI
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={quickFillNvidianim}
+                        class="text-xs h-8"
+                      >
+                        NVIDIA NIM
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => quickFillSelfHosted("11434", "Ollama")}
+                        class="text-xs h-8"
+                      >
+                        Ollama
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => quickFillSelfHosted("1234", "LM Studio")}
+                        class="text-xs h-8"
+                      >
+                        LM Studio
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => quickFillSelfHosted("8080", "llama.cpp")}
+                        class="text-xs h-8"
+                      >
+                        llama.cpp
+                      </Button>
+                    </div>
+                  </div>
+                {/if}
+
+                {#if formProviderType === "openai"}
+                  <div class="flex flex-col">
+                    <Label class="mb-2">
+                      Base URL <span class="text-muted-foreground text-xs">(required)</span>
+                    </Label>
+                    <Input
+                      bind:value={formBaseUrl}
+                      placeholder="https://api.example.com/v1"
+                      class="font-mono text-xs"
+                    />
+                  </div>
+                {:else}
+                  <div class="flex flex-col">
+                    <button
+                      class="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-1"
+                      onclick={() => showBaseUrlCollapsible = !showBaseUrlCollapsible}
+                    >
+                      <ChevronRight class="h-3 w-3 transition-transform {showBaseUrlCollapsible || formBaseUrl ? 'rotate-90' : ''}" />
+                      Custom Base URL <span class="text-muted-foreground">(optional)</span>
+                    </button>
+                    {#if showBaseUrlCollapsible || formBaseUrl}
+                      <Input
+                        bind:value={formBaseUrl}
+                        placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
+                        class="font-mono text-xs"
+                      />
+                      <p class="text-xs text-muted-foreground mt-1">
+                        Leave empty for default endpoint.
+                      </p>
+                    {/if}
+                  </div>
+                {/if}
 
                 <div class="space-y-2">
                   <Input
-                    label="API Key"
+                    label={isSelfHostedUrl(formBaseUrl) ? "API Key (optional)" : "API Key"}
                     type="password"
                     placeholder="sk-..."
                     bind:value={formApiKey}
@@ -604,20 +857,30 @@
                       <Box class="h-4 w-4" />
                       Models
                     </Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onclick={handleFetchModels}
-                      disabled={isFetchingModels || (!formBaseUrl && !providerDefaults[formProviderType])}
-                    >
-                      {#if isFetchingModels}
-                        <RefreshCw class=" h-3 w-3 animate-spin" />
-                        Fetching...
-                      {:else}
-                        <RefreshCw class=" h-3 w-3" />
-                        {isMobileDevice() ? "Fetch" : "Fetch Models"}
-                      {/if}
-                    </Button>
+                    <div class="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => { showCustomModelDialog = true; customModelDialogInput = ""; }}
+                      >
+                        <Plus class="h-3 w-3" />
+                        {isMobileDevice() ? "" : "Custom"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={handleFetchModels}
+                        disabled={isFetchingModels || (!formBaseUrl && !providerHasDefaultEndpoint[formProviderType])}
+                      >
+                        {#if isFetchingModels}
+                          <RefreshCw class="h-3 w-3 animate-spin" />
+                          Fetching...
+                        {:else}
+                          <RefreshCw class="h-3 w-3" />
+                          {isMobileDevice() ? "Fetch" : "Fetch Models"}
+                        {/if}
+                      </Button>
+                    </div>
                   </div>
 
                   {#if fetchError}
@@ -629,6 +892,18 @@
                     </Alert>
                   {/if}
 
+                  <!-- Model filter -->
+                  {#if formFetchedModels.length + formCustomModels.length > 10}
+                    <div class="relative mt-2">
+                      <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        placeholder="Filter models..."
+                        bind:value={modelFilterInput}
+                        class="pl-7 h-7 text-xs"
+                      />
+                    </div>
+                  {/if}
+
                   {#if formFetchedModels.length > 0}
                     <div class="space-y-1 mb-2">
                       <p class="text-xs font-medium text-muted-foreground">
@@ -636,17 +911,26 @@
                       </p>
                       <ScrollArea class="h-32 w-full rounded-md border">
                         <div class="flex flex-wrap gap-1 p-2">
-                          {#each formFetchedModels as model}
-                            <Badge variant="secondary" class="gap-1 pr-1">
-                              <span class="max-w-37.5 truncate">{model}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                class="h-4 w-4 p-0 hover:text-destructive"
-                                onclick={() => handleRemoveFetchedModel(model)}
+                          {#each filterModels(sortedModels(formFetchedModels)) as model}
+                            {@const isFav = formFavoriteModels.includes(model)}
+                            <Badge variant="secondary" class="gap-1 pr-0.5">
+                              <button
+                                class="p-0 hover:text-yellow-500 transition-colors {isFav ? 'text-yellow-500' : 'text-muted-foreground'}"
+                                onclick={() => handleToggleFavorite(model)}
+                                title={isFav ? "Remove from favorites" : "Add to favorites"}
                               >
-                                <X class="h-3 w-3" />
-                              </Button>
+                                <Star class="h-3 w-3" fill={isFav ? "currentColor" : "none"} />
+                              </button>
+                              <span class="max-w-48 truncate">{model}</span>
+                              {#if !isFav}
+                                <button
+                                  class="p-0 hover:text-destructive transition-colors text-muted-foreground"
+                                  onclick={() => handleRemoveFetchedModel(model)}
+                                  title="Hide model"
+                                >
+                                  <X class="h-3 w-3" />
+                                </button>
+                              {/if}
                             </Badge>
                           {/each}
                         </div>
@@ -654,47 +938,101 @@
                     </div>
                   {/if}
 
-                  <div class="space-y-1">
-                    <p class="text-xs font-medium text-muted-foreground">
-                      Custom Models
-                    </p>
-                    <div class="flex gap-2">
-                      <Input
-                        placeholder="model-name or provider/model"
-                        bind:value={formNewModelInput}
-                        class="flex-1 pr-20"
-                        onkeydown={(e) =>
-                          e.key === "Enter" && handleAddCustomModel()}
-                      />
-                      <Button
-                        size="icon"
-                        onclick={handleAddCustomModel}
-                        disabled={!formNewModelInput.trim()}
-                      >
-                        <Plus class="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {#if formCustomModels.length > 0}
+                  {#if formCustomModels.length > 0}
+                    <div class="space-y-1 mb-2">
+                      <p class="text-xs font-medium text-muted-foreground">
+                        Custom Models ({formCustomModels.length})
+                      </p>
                       <ScrollArea class="h-24 w-full rounded-md border">
                         <div class="flex flex-wrap gap-1 p-2">
-                          {#each formCustomModels as model}
-                            <Badge variant="outline" class="gap-1 pr-1">
-                              <span class="max-w-[150px] truncate">{model}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                class="h-4 w-4 p-0 hover:text-destructive"
-                                onclick={() => handleRemoveCustomModel(model)}
+                          {#each filterModels(sortedModels(formCustomModels)) as model}
+                            {@const isFav = formFavoriteModels.includes(model)}
+                            <Badge variant="outline" class="gap-1 pr-0.5">
+                              <button
+                                class="p-0 hover:text-yellow-500 transition-colors {isFav ? 'text-yellow-500' : 'text-muted-foreground'}"
+                                onclick={() => handleToggleFavorite(model)}
+                                title={isFav ? "Remove from favorites" : "Add to favorites"}
                               >
-                                <X class="h-3 w-3" />
-                              </Button>
+                                <Star class="h-3 w-3" fill={isFav ? "currentColor" : "none"} />
+                              </button>
+                              <span class="max-w-48 truncate">{model}</span>
+                              {#if !isFav}
+                                <button
+                                  class="p-0 hover:text-destructive transition-colors text-muted-foreground"
+                                  onclick={() => handleRemoveCustomModel(model)}
+                                  title="Delete model"
+                                >
+                                  <X class="h-3 w-3" />
+                                </button>
+                              {/if}
                             </Badge>
                           {/each}
                         </div>
                       </ScrollArea>
-                    {/if}
-                  </div>
+                    </div>
+                  {/if}
+
+                  {#if formHiddenModels.length > 0}
+                    <div class="space-y-1">
+                      <button
+                        class="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        onclick={() => showHiddenModels = !showHiddenModels}
+                      >
+                        <ChevronRight class="h-3 w-3 transition-transform {showHiddenModels ? 'rotate-90' : ''}" />
+                        Hidden Models ({formHiddenModels.length})
+                      </button>
+                      {#if showHiddenModels}
+                        <ScrollArea class="h-24 w-full rounded-md border border-dashed">
+                          <div class="flex flex-wrap gap-1 p-2">
+                            {#each filterModels(formHiddenModels) as model}
+                              <Badge variant="outline" class="gap-1 pr-1 opacity-60">
+                                <span class="max-w-48 truncate">{model}</span>
+                                <button
+                                  class="p-0 hover:text-primary transition-colors text-muted-foreground"
+                                  onclick={() => handleRestoreHiddenModel(model)}
+                                  title="Restore model"
+                                >
+                                  <RotateCcw class="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            {/each}
+                          </div>
+                        </ScrollArea>
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
+
+                <!-- Custom Model Dialog -->
+                <Dialog.Root open={showCustomModelDialog} onOpenChange={(open) => showCustomModelDialog = open}>
+                  <Dialog.Content class="sm:max-w-md">
+                    <Dialog.Header>
+                      <Dialog.Title>Add Custom Model</Dialog.Title>
+                      <Dialog.Description>
+                        Enter the model identifier (e.g., provider/model-name)
+                      </Dialog.Description>
+                    </Dialog.Header>
+                    <div class="flex gap-2 py-4">
+                      <Input
+                        placeholder="model-name or provider/model"
+                        bind:value={customModelDialogInput}
+                        class="flex-1"
+                        onkeydown={(e) => e.key === "Enter" && handleAddCustomModelFromDialog()}
+                      />
+                    </div>
+                    <Dialog.Footer>
+                      <Button variant="outline" onclick={() => showCustomModelDialog = false}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onclick={handleAddCustomModelFromDialog}
+                        disabled={!customModelDialogInput.trim()}
+                      >
+                        Add
+                      </Button>
+                    </Dialog.Footer>
+                  </Dialog.Content>
+                </Dialog.Root>
               </div>
             {:else}
               <!-- Read-only View -->
