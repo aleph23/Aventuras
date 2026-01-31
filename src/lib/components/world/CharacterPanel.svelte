@@ -378,7 +378,9 @@
       characterName: character.name,
       provider: imageSettings.imageProvider,
       portraitMode: imageSettings.portraitMode,
-      model: imageSettings.portraitMode ? imageSettings.portraitModel : imageSettings.model,
+      model: imageSettings.portraitMode
+        ? imageSettings.portraitModel
+        : imageSettings.model,
       styleId: imageSettings.styleId,
     });
 
@@ -447,13 +449,15 @@
 
       if (!modelToUse) {
         log("No model configured for portrait generation");
-        portraitError = "No image model configured. Please select a model in Settings > Images.";
+        portraitError =
+          "No image model configured. Please select a model in Settings > Images.";
         return;
       }
 
       if (!imageSettings.imageProvider) {
         log("No image provider configured");
-        portraitError = "No image provider configured. Please select a provider in Settings > Images.";
+        portraitError =
+          "No image provider configured. Please select a provider in Settings > Images.";
         return;
       }
 
@@ -491,7 +495,8 @@
 
       editPortrait = `data:image/png;base64,${response.images[0].b64_json}`;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to generate portrait";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to generate portrait";
       log("Portrait generation failed", {
         characterName: character.name,
         error: errorMessage,
@@ -906,7 +911,7 @@
                 {:else if character.relationship || character.translatedRelationship}
                   <Badge
                     variant="secondary"
-                    class="px-1.5 py-0 text-[10px] font-normal text-muted-foreground h-4 w-fit"
+                    class="px-2 py-0.5 text-[10px] font-normal text-muted-foreground w-fit"
                   >
                     {character.translatedRelationship ?? character.relationship}
                   </Badge>

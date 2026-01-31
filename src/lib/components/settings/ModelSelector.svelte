@@ -7,6 +7,7 @@
     Plus,
     RefreshCw,
   } from "lucide-svelte";
+  import VirtualList from "@tutorlatin/svelte-tiny-virtual-list";
   import * as Select from "$lib/components/ui/select";
   import * as Command from "$lib/components/ui/command";
   import * as Popover from "$lib/components/ui/popover";
@@ -14,9 +15,8 @@
   import { Label } from "$lib/components/ui/label";
   import { cn } from "$lib/utils/cn";
 
-  // Lazy loading config
-  const INITIAL_BATCH = 50;
-  const LOAD_MORE_BATCH = 50;
+  const ITEM_HEIGHT = 32;
+  const MAX_LIST_HEIGHT = 300;
 
   interface Props {
     profileId: string | null;
@@ -49,11 +49,8 @@
   // Local state for model search/input
   let open = $state(false);
   let inputValue = $state("");
-  let visibleCount = $state(INITIAL_BATCH);
-  let sentinelEl: HTMLDivElement | null = $state(null);
 
   // Resolve the effective profile ID (with fallback to default)
-  // This ensures models are available even if profileId is null
   let effectiveProfileId = $derived(
     profileId || settings.getDefaultProfileIdForProvider(),
   );
@@ -63,46 +60,35 @@
     if (!effectiveProfileId) return [];
     const profile = settings.getProfile(effectiveProfileId);
     if (!profile) return [];
-    // Combine fetched and custom models, removing duplicates
     return [...new Set([...profile.fetchedModels, ...profile.customModels])];
   });
 
-  // Visible models for lazy loading (slice based on current visible count)
-  let visibleModels = $derived(availableModels.slice(0, visibleCount));
-  let hasMoreModels = $derived(visibleCount < availableModels.length);
-
-  // Reset visible count when dropdown opens or search changes
-  $effect(() => {
-    if (open) {
-      visibleCount = INITIAL_BATCH;
-    }
+  // Filter models based on search input
+  let filteredModels = $derived.by(() => {
+    if (!inputValue.trim()) return availableModels;
+    const search = inputValue.toLowerCase();
+    return availableModels.filter((m) => m.toLowerCase().includes(search));
   });
 
-  // Reset visible count when search input changes
-  $effect(() => {
-    inputValue; // Track dependency
-    visibleCount = INITIAL_BATCH;
-  });
+  // Check if input matches an existing model exactly
+  let inputMatchesExisting = $derived(
+    availableModels.some((m) => m.toLowerCase() === inputValue.toLowerCase()),
+  );
 
-  // IntersectionObserver for lazy loading more models
-  $effect(() => {
-    if (!sentinelEl || !open) return;
+  // Should show "Use custom" option
+  let showCustomOption = $derived(
+    inputValue.length > 0 && !inputMatchesExisting,
+  );
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMoreModels) {
-          visibleCount = Math.min(
-            visibleCount + LOAD_MORE_BATCH,
-            availableModels.length
-          );
-        }
-      },
-      { threshold: 0.1 }
-    );
+  // Total item count for virtual list
+  let totalItemCount = $derived(
+    filteredModels.length + (showCustomOption ? 1 : 0),
+  );
 
-    observer.observe(sentinelEl);
-    return () => observer.disconnect();
-  });
+  // Calculate list height (cap at MAX_LIST_HEIGHT)
+  let listHeight = $derived(
+    Math.min(totalItemCount * ITEM_HEIGHT, MAX_LIST_HEIGHT),
+  );
 
   // Get selected profile name
   let selectedProfileName = $derived.by(() => {
@@ -123,6 +109,12 @@
 
   function handleSelectProfile(val: string) {
     onProfileChange(val);
+  }
+
+  function handleSelectModel(modelName: string) {
+    onModelChange(modelName);
+    open = false;
+    inputValue = "";
   }
 </script>
 
@@ -194,75 +186,58 @@
         {/snippet}
       </Popover.Trigger>
       <Popover.Content class="w-[var(--bits-popover-anchor-width)] p-0">
-        <Command.Root>
+        <Command.Root shouldFilter={false}>
           <Command.Input
             bind:value={inputValue}
             placeholder="Search or type model..."
           />
           <Command.List>
-            <Command.Empty>
-              {#if inputValue.length > 0}
-                <div class="p-1">
-                  <Button
-                    variant="ghost"
-                    class="w-full justify-start text-xs"
-                    onclick={() => {
-                      onModelChange(inputValue);
-                      open = false;
-                    }}
+            {#if totalItemCount === 0}
+              <Command.Empty>No models found.</Command.Empty>
+            {:else}
+              <Command.Group>
+                <div class="virtual-list-container">
+                  <VirtualList
+                    height={listHeight}
+                    itemCount={totalItemCount}
+                    itemSize={ITEM_HEIGHT}
                   >
-                    <Plus class="mr-2 h-4 w-4" />
-                    Use "{inputValue}"
-                  </Button>
+                    {#snippet item({ style, index })}
+                      {#if showCustomOption && index === 0}
+                        <div {style}>
+                          <Command.Item
+                            value={`__custom__${inputValue}`}
+                            onSelect={() => handleSelectModel(inputValue)}
+                          >
+                            <Plus class="mr-2 h-4 w-4" />
+                            Use "{inputValue}"
+                          </Command.Item>
+                        </div>
+                      {:else}
+                        {@const modelIndex = showCustomOption ? index - 1 : index}
+                        {@const modelOption = filteredModels[modelIndex]}
+                        <div {style}>
+                          <Command.Item
+                            value={modelOption}
+                            onSelect={() => handleSelectModel(modelOption)}
+                          >
+                            <Check
+                              class={cn(
+                                "mr-2 h-4 w-4",
+                                model === modelOption
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {modelOption}
+                          </Command.Item>
+                        </div>
+                      {/if}
+                    {/snippet}
+                  </VirtualList>
                 </div>
-              {:else}
-                <div class="p-2 text-sm text-muted-foreground text-center">
-                  No models found.
-                </div>
-              {/if}
-            </Command.Empty>
-            <Command.Group>
-              {#each visibleModels as modelOption}
-                <Command.Item
-                  value={modelOption}
-                  onSelect={() => {
-                    onModelChange(modelOption);
-                    open = false;
-                  }}
-                >
-                  <Check
-                    class={cn(
-                      "mr-2 h-4 w-4",
-                      model === modelOption ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  {modelOption}
-                </Command.Item>
-              {/each}
-
-              {#if inputValue.length > 0 && !availableModels.some((m) => m.toLowerCase() === inputValue.toLowerCase())}
-                <Command.Item
-                  value={inputValue}
-                  onSelect={() => {
-                    onModelChange(inputValue);
-                    open = false;
-                  }}
-                >
-                  <Plus class="mr-2 h-4 w-4" />
-                  Use "{inputValue}"
-                </Command.Item>
-              {/if}
-
-              <!-- Sentinel for lazy loading -->
-              {#if hasMoreModels}
-                <div
-                  bind:this={sentinelEl}
-                  class="h-8 flex items-center justify-center text-xs text-muted-foreground"
-                >
-                  {availableModels.length - visibleCount} more...
-                </div>
-              {/if}
-            </Command.Group>
+              </Command.Group>
+            {/if}
           </Command.List>
         </Command.Root>
       </Popover.Content>
@@ -274,3 +249,13 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .virtual-list-container :global(.virtual-list-wrapper) {
+    overflow-y: auto;
+  }
+
+  .virtual-list-container :global(.virtual-list-inner) {
+    position: relative;
+  }
+</style>

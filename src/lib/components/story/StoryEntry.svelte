@@ -47,6 +47,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Input } from "$lib/components/ui/input";
+  import * as ResponsiveModal from "$lib/components/ui/responsive-modal";
   import { IMAGE_STUCK_THRESHOLD_MS, DEFAULT_FALLBACK_STYLE_PROMPT } from "$lib/services/ai/image/constants";
 
   let { entry }: { entry: StoryEntry } = $props();
@@ -346,8 +347,10 @@
     // Apply markers from end to start to preserve positions
     for (const marker of markers) {
       const originalText = processed.slice(marker.start, marker.end);
-      const statusClass =
-        marker.status === "complete"
+      const isRegenerating = regeneratingImageIds.has(marker.imageId);
+      const statusClass = isRegenerating
+        ? "regenerating"
+        : marker.status === "complete"
           ? "complete"
           : marker.status === "generating"
             ? "generating"
@@ -418,8 +421,10 @@
     // Apply markers from end to start to preserve positions
     for (const marker of markers) {
       const originalText = processed.slice(marker.start, marker.end);
-      const statusClass =
-        marker.status === "complete"
+      const isRegenerating = regeneratingImageIds.has(marker.imageId);
+      const statusClass = isRegenerating
+        ? "regenerating"
+        : marker.status === "complete"
           ? "complete"
           : marker.status === "generating"
             ? "generating"
@@ -456,7 +461,7 @@
     }
 
     // Replace <pic> tags with actual images
-    const processedContent = replacePicTagsWithImages(content, imageMap);
+    const processedContent = replacePicTagsWithImages(content, imageMap, regeneratingImageIds);
 
     // Parse markdown for any remaining content
     return parseMarkdown(processedContent);
@@ -483,7 +488,7 @@
     }
 
     // Replace <pic> tags with actual images first
-    const processedContent = replacePicTagsWithImages(content, imageMap);
+    const processedContent = replacePicTagsWithImages(content, imageMap, regeneratingImageIds);
 
     // Then sanitize as Visual Prose
     return sanitizeVisualProse(processedContent, entryId);
@@ -506,9 +511,40 @@
     await loadEmbeddedImages();
   }
 
+  // State for inline image view modal
+  let isViewingImage = $state(false);
+  let viewingImage = $state<typeof embeddedImages[0] | null>(null);
+  let viewingImagePrompt = $state("");
+
+  // Track images currently being regenerated (for loading overlay)
+  let regeneratingImageIds = $state<Set<string>>(new Set());
+
+  // Open the image view/edit modal
+  function openImageViewModal(image: typeof embeddedImages[0]) {
+    viewingImage = image;
+    // Extract original prompt (remove style suffix)
+    viewingImagePrompt = image.prompt.split(". ").slice(0, -1).join(". ") || image.prompt;
+    isViewingImage = true;
+  }
+
   // Handle click on embedded image link
   function handleContentClick(event: MouseEvent | KeyboardEvent) {
     const target = event.target as HTMLElement;
+
+    // Check for clicking on inline generated image (opens view modal)
+    const inlineImage = target.closest(".inline-generated-image") as HTMLElement | null;
+    if (inlineImage) {
+      event.preventDefault();
+      event.stopPropagation();
+      const imageId = inlineImage.getAttribute("data-image-id");
+      if (imageId) {
+        const image = embeddedImages.find((img) => img.id === imageId);
+        if (image) {
+          openImageViewModal(image);
+        }
+      }
+      return;
+    }
 
     // Check for inline image action buttons
     const actionBtn = target.closest(".inline-image-btn") as HTMLElement | null;
@@ -530,14 +566,14 @@
       return;
     }
 
-    // Check for embedded image link (analyzed mode)
+    // Check for embedded image link (analyzed/agent mode) - toggle inline expansion
     const imageLink = target.closest(
       ".embedded-image-link",
     ) as HTMLElement | null;
     if (imageLink) {
       const imageId = imageLink.getAttribute("data-image-id");
       if (imageId) {
-        // Toggle expanded state
+        // Toggle expanded view for all statuses
         if (expandedImageId === imageId) {
           expandedImageId = null;
           clickedElement = null;
@@ -571,6 +607,9 @@
   async function regenerateInlineImage(imageId: string, prompt: string) {
     const image = embeddedImages.find((img) => img.id === imageId);
     if (!image) return;
+
+    // Mark as regenerating (shows loading overlay)
+    regeneratingImageIds = new Set([...regeneratingImageIds, imageId]);
 
     let finalPrompt = prompt;
 
@@ -611,11 +650,18 @@
       }
     }
 
-    // Use centralized retry logic from ImageGenerationService
-    await ImageGenerationService.retryImageGeneration(imageId, finalPrompt);
+    try {
+      // Use centralized retry logic from ImageGenerationService
+      await ImageGenerationService.retryImageGeneration(imageId, finalPrompt);
 
-    // Reload images to show updated state
-    await loadEmbeddedImages();
+      // Reload images to show updated state
+      await loadEmbeddedImages();
+    } finally {
+      // Remove from regenerating set
+      const newSet = new Set(regeneratingImageIds);
+      newSet.delete(imageId);
+      regeneratingImageIds = newSet;
+    }
   }
 
   // Handle edit modal submission
@@ -671,17 +717,31 @@
     container.setAttribute("data-image-id", expandedImageId);
 
     // Build the HTML content based on image status
-    let innerHtml = `
-      <div class="inline-image-header">
-        <div class="inline-image-title">
-          <span class="inline-image-source">${expandedImage.sourceText}</span>
-        </div>
-        <button class="inline-image-close" aria-label="Close image">×</button>
-      </div>
-    `;
+    let innerHtml = ``;
 
     if (expandedImage.status === "complete" && expandedImage.imageData) {
-      innerHtml += `<img src="data:image/png;base64,${expandedImage.imageData}" alt="${expandedImage.sourceText}" class="inline-image-content" />`;
+      // Check if regenerating
+      const isRegenerating = regeneratingImageIds.has(expandedImage.id);
+      if (isRegenerating) {
+        innerHtml += `
+          <div class="inline-image-content-wrapper">
+            <img src="data:image/png;base64,${expandedImage.imageData}" alt="${expandedImage.sourceText}" class="inline-image-content regenerating-image" />
+            <div class="regenerating-overlay">
+              <div class="regenerating-content">
+                <svg class="regenerating-spinner" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="80, 200" stroke-dashoffset="0"></circle>
+                </svg>
+                <span class="regenerating-text">Regenerating...</span>
+              </div>
+            </div>
+          </div>`;
+      } else {
+        // Clickable image - opens modal
+        innerHtml += `
+          <div class="inline-image-content-wrapper clickable-image" data-image-id="${expandedImage.id}">
+            <img src="data:image/png;base64,${expandedImage.imageData}" alt="${expandedImage.sourceText}" class="inline-image-content" />
+          </div>`;
+      }
     } else if (expandedImage.status === "generating") {
       const isStuck = now - expandedImage.createdAt > IMAGE_STUCK_THRESHOLD_MS;
       innerHtml += `<div class="inline-image-placeholder generating">
@@ -707,22 +767,25 @@
 
     container.innerHTML = innerHtml;
 
-    // Add close button handler
-    const closeBtn = container.querySelector(".inline-image-close");
-    if (closeBtn) {
-      closeBtn.addEventListener("click", () => {
-        expandedImageId = null;
-        clickedElement = null;
-      });
-    }
-    // Add retry button handler
+    // Add retry button handler (for pending/generating/failed)
     const retryBtn = container.querySelector(".inline-image-retry");
     if (retryBtn) {
       retryBtn.addEventListener("click", async () => {
         const imageId = retryBtn.getAttribute("data-image-id");
         if (imageId && expandedImage) {
           await regenerateInlineImage(imageId, expandedImage.prompt);
-          // The image will reload via the ImageReady subscription or manual reload
+          expandedImageId = null;
+          clickedElement = null;
+        }
+      });
+    }
+
+    // Add click handler for complete image - opens modal
+    const clickableImage = container.querySelector(".clickable-image");
+    if (clickableImage) {
+      clickableImage.addEventListener("click", () => {
+        if (expandedImage) {
+          openImageViewModal(expandedImage);
           expandedImageId = null;
           clickedElement = null;
         }
@@ -1299,44 +1362,58 @@
   </div>
 </div>
 
-{#if isEditingImage}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div
-    class="inline-image-edit-overlay"
-    onclick={handleEditImageCancel}
-    role="presentation"
-  >
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div
-      class="inline-image-edit-modal"
-      onclick={(e) => e.stopPropagation()}
-      role="dialog"
-      aria-modal="true"
-      tabindex="0"
-    >
-      <h3>Edit Image Prompt</h3>
-      <textarea
-        bind:value={editingImagePrompt}
-        placeholder="Describe the image you want to generate..."
-        onkeydown={(e) => {
-          if (e.key === "Escape") handleEditImageCancel();
-        }}
-      ></textarea>
-      <div class="inline-image-edit-actions">
-        <button class="cancel-btn" onclick={handleEditImageCancel}
-          >Cancel</button
-        >
-        <button
-          class="generate-btn"
-          onclick={handleEditImageSubmit}
-          disabled={!editingImagePrompt.trim()}
-        >
-          Generate
-        </button>
-      </div>
+<!-- View/Edit Image Modal -->
+<ResponsiveModal.Root bind:open={isViewingImage}>
+  <ResponsiveModal.Content class="sm:max-w-3xl p-0 gap-0 overflow-hidden">
+    <!-- Image area -->
+    <div class="relative bg-surface-950 flex items-center justify-center p-4">
+      {#if viewingImage}
+        <img
+          src="data:image/png;base64,{viewingImage.imageData}"
+          alt={viewingImage.prompt}
+          class="max-w-full max-h-[40vh] sm:max-h-[50vh] object-contain rounded"
+        />
+      {/if}
     </div>
-  </div>
-{/if}
+
+    <!-- Edit area -->
+    <div class="px-4 py-3 bg-surface-900 border-t border-surface-800">
+      <label class="block text-xs text-surface-400 mb-1.5">Image Prompt</label>
+      <Textarea
+        bind:value={viewingImagePrompt}
+        placeholder="Describe the image you want to generate..."
+        rows={3}
+        class="resize-none text-sm"
+      />
+    </div>
+
+    <!-- Footer toolbar -->
+    <div class="flex items-center justify-end gap-2 px-4 py-3 bg-surface-900 border-t border-surface-800">
+      <Button variant="outline" size="sm" onclick={() => isViewingImage = false} class="h-8 text-xs">
+        Close
+      </Button>
+      <Button
+        size="sm"
+        onclick={async () => {
+          if (viewingImage && viewingImagePrompt.trim()) {
+            const imageId = viewingImage.id;
+            // Close modal immediately - loading will show on inline image
+            isViewingImage = false;
+            // Regenerate with the prompt from the textarea
+            editingImageId = imageId;
+            editingImagePrompt = viewingImagePrompt;
+            await handleEditImageSubmit();
+          }
+        }}
+        disabled={!viewingImagePrompt.trim()}
+        class="h-8 gap-1.5 text-xs"
+      >
+        <RefreshCw class="h-3.5 w-3.5" />
+        Regenerate
+      </Button>
+    </div>
+  </ResponsiveModal.Content>
+</ResponsiveModal.Root>
 
 <style>
   /* Entry action button base style */
@@ -1387,6 +1464,18 @@
   :global(.embedded-image-link.pending) {
     color: var(--surface-400);
     text-decoration-style: dashed;
+  }
+
+  :global(.embedded-image-link.regenerating) {
+    color: var(--accent-400);
+    animation: pulse-glow 1s ease-in-out infinite;
+    cursor: wait;
+  }
+
+  :global(.embedded-image-link.regenerating)::after {
+    content: " ⟳";
+    display: inline;
+    animation: spin 1s linear infinite;
   }
 
   @keyframes pulse-glow {
@@ -1455,93 +1544,174 @@
     margin: 0 auto;
   }
 
-  /* Inline Image Placeholders (Loading/Pending/Failed) */
-  :global(.inline-image-placeholder) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 2rem;
-    margin: 1rem 0;
-    border-radius: 0.75rem;
-    background-color: var(--surface-800);
-    border: 2px dashed var(--surface-600);
-    color: var(--surface-400);
-    text-align: center;
-    min-height: 150px;
-    transition: all 0.2s ease;
+  /* Clickable image wrapper (agent mode) */
+  :global(.inline-image-content-wrapper) {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
   }
 
-  :global(.inline-image-placeholder.generating) {
-    border-color: var(--accent-500);
-    background-color: var(--surface-850);
+  :global(.inline-image-content-wrapper.clickable-image .inline-image-content) {
+    transition: filter 0.2s ease, transform 0.2s ease;
+  }
+
+  :global(.inline-image-content-wrapper.clickable-image:hover .inline-image-content) {
+    filter: brightness(0.85);
+    transform: scale(1.01);
+  }
+
+  /* Inline Image Placeholders (Loading/Pending/Failed) */
+  :global(.inline-image-placeholder) {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1rem 0;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--surface-800) 0%, var(--surface-850) 100%);
+    border: 1px solid var(--surface-700);
+    overflow: hidden;
+    min-height: 200px;
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+  }
+
+  :global(.inline-image-placeholder.generating),
+  :global(.inline-image-placeholder.pending) {
+    border-color: var(--accent-600);
   }
 
   :global(.inline-image-placeholder.failed) {
     border-color: var(--color-red-500, #ef4444);
-    border-style: solid;
+    background: linear-gradient(135deg, var(--surface-800) 0%, rgba(239, 68, 68, 0.1) 100%);
   }
 
-  :global(.placeholder-spinner) {
-    width: 2rem;
-    height: 2rem;
-    border: 3px solid var(--surface-700);
-    border-top-color: var(--accent-500);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 0.5rem;
+  /* Shimmer effect */
+  :global(.placeholder-shimmer) {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s ease-in-out infinite;
   }
 
-  :global(.placeholder-icon) {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 
-  :global(.placeholder-text) {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--surface-200);
-    max-width: 80%;
-    margin-top: 0.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  /* Content container */
+  :global(.placeholder-content) {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    text-align: center;
   }
 
-  :global(.placeholder-status) {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  /* Loader with spinner and image icon */
+  :global(.placeholder-loader) {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :global(.placeholder-spinner-svg) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--accent-500);
+    animation: spinner-rotate 1.5s linear infinite;
+  }
+
+  :global(.placeholder-spinner-svg.pending) {
+    animation-duration: 3s;
+    color: var(--surface-500);
+  }
+
+  :global(.placeholder-spinner-svg circle) {
+    animation: spinner-dash 1.5s ease-in-out infinite;
+  }
+
+  @keyframes spinner-rotate {
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes spinner-dash {
+    0% {
+      stroke-dasharray: 1, 200;
+      stroke-dashoffset: 0;
+    }
+    50% {
+      stroke-dasharray: 100, 200;
+      stroke-dashoffset: -35;
+    }
+    100% {
+      stroke-dasharray: 100, 200;
+      stroke-dashoffset: -124;
+    }
+  }
+
+  :global(.placeholder-image-icon) {
+    width: 1.75rem;
+    height: 1.75rem;
     color: var(--surface-400);
   }
 
-  :global(.generating .placeholder-status) {
-    color: var(--accent-400);
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
-
-  :global(.failed .placeholder-status) {
+  :global(.placeholder-error-icon) {
+    width: 3rem;
+    height: 3rem;
     color: var(--color-red-400, #f87171);
   }
 
-  :global(.inline-image-retry) {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background-color: var(--accent-600);
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
+  :global(.placeholder-error-icon svg) {
+    width: 100%;
+    height: 100%;
   }
 
-  :global(.inline-image-retry:hover) {
-    background-color: var(--accent-500);
+  /* Info text */
+  :global(.placeholder-info) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    max-width: 280px;
+  }
+
+  :global(.placeholder-status) {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-400);
+    letter-spacing: 0.01em;
+  }
+
+  :global(.pending .placeholder-status) {
+    color: var(--surface-400);
+  }
+
+  :global(.placeholder-status.error) {
+    color: var(--color-red-400, #f87171);
+  }
+
+  :global(.placeholder-prompt) {
+    font-size: 0.75rem;
+    color: var(--surface-500);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   :global(.inline-image-stuck-notice) {
@@ -1556,28 +1726,78 @@
     color: var(--surface-300);
   }
 
-  /* Inline Image Actions (Overlay) */
+  /* Inline Generated Image - Clickable */
   :global(.inline-generated-image) {
     position: relative;
-    display: block; /* Change to block for better layout in prose */
+    display: block;
     margin: 1rem 0;
     border-radius: 0.75rem;
     overflow: hidden;
+    cursor: pointer;
   }
 
-  :global(.inline-image-actions) {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    gap: 0.5rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 10;
+  :global(.inline-generated-image img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: filter 0.2s ease, transform 0.2s ease;
   }
 
-  :global(.inline-generated-image:hover .inline-image-actions) {
+  :global(.inline-generated-image:hover img) {
+    filter: brightness(0.85);
+    transform: scale(1.01);
+  }
+
+  /* Regenerating overlay */
+  :global(.inline-generated-image.regenerating) {
+    cursor: default;
+  }
+
+  :global(.inline-generated-image.regenerating:hover) {
     opacity: 1;
+  }
+
+  :global(.inline-generated-image .regenerating-image) {
+    filter: brightness(0.5);
+    transition: filter 0.3s ease;
+  }
+
+  :global(.regenerating-overlay) {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  :global(.regenerating-content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 2rem;
+    background: var(--surface-900);
+    border-radius: 0.75rem;
+    border: 1px solid var(--surface-700);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  :global(.regenerating-spinner) {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--accent-500);
+    animation: spinner-rotate 1.5s linear infinite;
+  }
+
+  :global(.regenerating-spinner circle) {
+    animation: spinner-dash 1.5s ease-in-out infinite;
+  }
+
+  :global(.regenerating-text) {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--surface-300);
   }
 
   /* Shared Inline Image Button Styles */
@@ -1630,5 +1850,49 @@
     to {
       transform: rotate(360deg);
     }
+  }
+
+  /* Expanded image display action buttons (agent/auto mode) */
+  :global(.inline-image-display-actions) {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 0.75rem;
+    background-color: var(--surface-700);
+    border-top: 1px solid var(--surface-600);
+  }
+
+  :global(.inline-image-edit-btn),
+  :global(.inline-image-regenerate-btn) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--surface-200);
+    background-color: var(--surface-600);
+    border: 1px solid var(--surface-500);
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+
+  :global(.inline-image-edit-btn:hover),
+  :global(.inline-image-regenerate-btn:hover) {
+    background-color: var(--surface-500);
+    border-color: var(--surface-400);
+    transform: translateY(-1px);
+  }
+
+  :global(.inline-image-edit-btn:active),
+  :global(.inline-image-regenerate-btn:active) {
+    transform: translateY(0);
+  }
+
+  :global(.inline-image-edit-btn svg),
+  :global(.inline-image-regenerate-btn svg) {
+    width: 14px;
+    height: 14px;
   }
 </style>

@@ -21,10 +21,12 @@
     PenLine,
     Square,
     ImageIcon,
+    Loader2,
   } from "lucide-svelte";
   import type { Chapter } from "$lib/types";
   import Suggestions from "./Suggestions.svelte";
   import GrammarCheck from "./GrammarCheck.svelte";
+  import { Button } from "$lib/components/ui/button";
   import {
     emitUserInput,
     emitNarrativeResponse,
@@ -2102,6 +2104,12 @@
     </div>
   {/if}
 
+  <!-- Grammar Check (shown in both modes) -->
+  <GrammarCheck
+    text={inputValue}
+    onApplySuggestion={(newText) => (inputValue = newText)}
+  />
+
   {#if isCreativeMode}
     <!-- Creative Writing Mode: Direction Input -->
     <div
@@ -2176,12 +2184,6 @@
       </div>
     </div>
   {:else}
-    <!-- Grammar Check -->
-    <GrammarCheck
-      text={inputValue}
-      onApplySuggestion={(newText) => (inputValue = newText)}
-    />
-
     <!-- Adventure Mode: Redesigned Input -->
     <div
       class="rounded-lg sm:border sm:border-border border-l-0 sm:border-l-4 sm:shadow-sm {ui.isGenerating
@@ -2281,18 +2283,24 @@
 
   {#if canShowManualImageGen}
     <div class="flex justify-end">
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
         onclick={handleManualImageGeneration}
         disabled={manualImageGenDisabled}
-        class="btn btn-secondary text-xs flex items-center gap-1.5"
         title={manualImageGenDisabled &&
         !ImageGenerationService.hasRequiredCredentials()
           ? `Add a ${ImageGenerationService.getProviderDisplayName()} API key in Settings to generate images`
           : "Generate images for the last narration"}
+        class="text-xs gap-1.5"
       >
-        <ImageIcon class="h-4 w-4" />
+        {#if isManualImageGenRunning}
+          <Loader2 class="h-4 w-4 animate-spin" />
+        {:else}
+          <ImageIcon class="h-4 w-4" />
+        {/if}
         {isManualImageGenRunning ? "Generating..." : "Generate Images"}
-      </button>
+      </Button>
     </div>
   {/if}
 </div>

@@ -1,16 +1,25 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
   import { ui } from '$lib/stores/ui.svelte';
+  import { settings } from '$lib/stores/settings.svelte';
   import { database } from '$lib/services/database';
   import { imageExportService } from '$lib/services/imageExport';
+  import { ImageGenerationService } from '$lib/services/ai/image/ImageGenerationService';
+  import { promptService } from '$lib/services/prompts';
+  import { DEFAULT_FALLBACK_STYLE_PROMPT } from '$lib/services/ai/image/constants';
   import type { EmbeddedImage } from '$lib/types';
-  import { Download, ImageIcon, AlertCircle, X, RefreshCw } from 'lucide-svelte';
+  import { Download, ImageIcon, AlertCircle, X, RefreshCw, ChevronLeft, ChevronRight, Pencil, RotateCcw } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Textarea } from '$lib/components/ui/textarea';
+  import * as ResponsiveModal from '$lib/components/ui/responsive-modal';
 
   const SWIPE_THRESHOLD = 50;
 
   let images = $state<EmbeddedImage[]>([]);
   let isLoading = $state(false);
   let isSaving = $state(false);
+  let isRegenerating = $state(false);
 
   let selectedImageIds = $state<Set<string>>(new Set());
   let selectAllChecked = $state(false);
@@ -125,6 +134,11 @@
 
   function openLightbox(index: number) {
     lightboxImageIndex = index;
+    // Pre-fill the prompt (remove style suffix)
+    const image = images[index];
+    if (image) {
+      editingImagePrompt = image.prompt.split('. ').slice(0, -1).join('. ') || image.prompt;
+    }
     lightboxOpen = true;
   }
 
@@ -159,6 +173,10 @@
 
   $effect(() => {
     function handleKeydown(e: KeyboardEvent) {
+      if (isEditingImage) {
+        if (e.key === 'Escape') handleEditImageCancel();
+        return;
+      }
       if (lightboxOpen) {
         if (e.key === 'Escape') closeLightbox();
         if (e.key === 'ArrowLeft') previousImage();
@@ -171,6 +189,106 @@
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
   });
+
+  // Edit modal state
+  let isEditingImage = $state(false);
+  let editingImageId = $state<string | null>(null);
+  let editingImagePrompt = $state('');
+
+  // Get the current lightbox image
+  const lightboxImage = $derived(
+    lightboxOpen && images.length > 0 ? images[lightboxImageIndex] : null
+  );
+
+  // Open edit modal for an image
+  function openEditModal(image: EmbeddedImage) {
+    editingImageId = image.id;
+    // Extract the original prompt from the stored prompt (remove style suffix)
+    editingImagePrompt = image.prompt.split('. ').slice(0, -1).join('. ') || image.prompt;
+    isEditingImage = true;
+  }
+
+  // Cancel edit modal
+  function handleEditImageCancel() {
+    isEditingImage = false;
+    editingImageId = null;
+    editingImagePrompt = '';
+  }
+
+  // Submit edit modal - regenerate with new prompt
+  async function handleEditImageSubmit() {
+    if (!editingImageId || !editingImagePrompt.trim()) return;
+
+    const image = images.find(img => img.id === editingImageId);
+    if (!image) return;
+
+    // Get style prompt and append it
+    const imageSettings = settings.systemServicesSettings.imageGeneration;
+    const styleId = imageSettings.styleId;
+    let stylePrompt = '';
+    try {
+      const promptContext = {
+        mode: 'adventure' as const,
+        pov: 'second' as const,
+        tense: 'present' as const,
+        protagonistName: '',
+      };
+      stylePrompt = promptService.getPrompt(styleId, promptContext) || '';
+    } catch {
+      stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT;
+    }
+
+    const fullPrompt = `${editingImagePrompt.trim()}. ${stylePrompt}`;
+
+    // Close modal and regenerate
+    isEditingImage = false;
+    closeLightbox();
+
+    // Use centralized retry logic from ImageGenerationService
+    await ImageGenerationService.retryImageGeneration(editingImageId, fullPrompt);
+
+    editingImageId = null;
+    editingImagePrompt = '';
+
+    // Refresh gallery images
+    await refreshImages();
+  }
+
+  // Regenerate image with same prompt
+  async function handleRegenerateImage(image: EmbeddedImage) {
+    let finalPrompt = image.prompt;
+
+    // Try to reconstruct prompt with CURRENT style for inline images
+    if (image.generationMode === 'inline' && image.sourceText?.startsWith('<pic')) {
+      const match = image.sourceText.match(/prompt=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        const rawPrompt = match[1];
+        const imageSettings = settings.systemServicesSettings.imageGeneration;
+        const styleId = imageSettings.styleId;
+        let stylePrompt = '';
+        try {
+          const promptContext = {
+            mode: 'adventure' as const,
+            pov: 'second' as const,
+            tense: 'present' as const,
+            protagonistName: '',
+          };
+          stylePrompt = promptService.getPrompt(styleId, promptContext) || '';
+        } catch {
+          stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT;
+        }
+        finalPrompt = `${rawPrompt}. ${stylePrompt}`;
+      }
+    }
+
+    closeLightbox();
+
+    // Use centralized retry logic
+    await ImageGenerationService.retryImageGeneration(image.id, finalPrompt);
+
+    // Refresh gallery images
+    await refreshImages();
+  }
 </script>
 
 <div class="flex h-full flex-col bg-surface-900">
@@ -186,42 +304,48 @@
       </div>
 
       {#if images.length > 0 && !isLoading}
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
           <!-- Refresh button -->
-          <button
-            class="flex items-center justify-center rounded p-2 hover:bg-surface-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[44px]"
+          <Button
+            variant="ghost"
+            size="icon"
             onclick={refreshImages}
             disabled={isLoading || !story.currentStory}
             title="Refresh gallery"
+            class="h-8 w-8"
           >
-            <RefreshCw class="h-4 w-4 text-surface-300 {isLoading ? 'animate-spin' : ''}" />
-          </button>
+            <RefreshCw class="h-3.5 w-3.5 {isLoading ? 'animate-spin' : ''}" />
+          </Button>
 
           <!-- Save button -->
-          <button
-            class="flex items-center gap-2 rounded-lg bg-accent-600 hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-white transition-colors min-h-[44px]"
+          <Button
+            variant="default"
+            size="sm"
             onclick={handleSaveImages}
             disabled={isSaving}
             title={isSaving ? 'Saving images...' : selectedImageIds.size > 0 ? `Save ${selectedImageIds.size} selected` : 'Save all images'}
+            class="h-8 gap-1.5 text-xs px-2.5"
           >
-            <Download class="h-4 w-4 flex-shrink-0" />
+            <Download class="h-3.5 w-3.5" />
             <span class="hidden sm:inline">
               {isSaving ? 'Saving...' : selectedImageIds.size > 0 ? `Save ${selectedImageIds.size}` : 'Save All'}
             </span>
             <span class="sm:hidden">
               {isSaving ? '...' : selectedImageIds.size > 0 ? selectedImageIds.size : 'All'}
             </span>
-          </button>
+          </Button>
 
           <!-- Close/Back button -->
-          <button
-            class="flex items-center gap-1.5 rounded-lg border border-surface-600 hover:bg-surface-700 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-surface-300 hover:text-surface-100 transition-colors min-h-[44px]"
+          <Button
+            variant="outline"
+            size="sm"
             onclick={closeGallery}
             title="Close gallery (Esc)"
+            class="h-8 gap-1 text-xs px-2.5"
           >
-            <X class="h-4 w-4 flex-shrink-0" />
+            <X class="h-3.5 w-3.5" />
             <span class="hidden sm:inline">Close</span>
-          </button>
+          </Button>
         </div>
       {/if}
     </div>
@@ -230,12 +354,10 @@
   <!-- Selection toolbar (shown when images exist) -->
   {#if images.length > 0 && !isLoading}
     <div class="border-b border-surface-700 bg-surface-800 px-4 sm:px-6 py-2.5 flex items-center gap-3">
-      <input
-        type="checkbox"
+      <Checkbox
         checked={selectAllChecked}
-        onchange={toggleSelectAll}
-        class="h-5 w-5 cursor-pointer rounded border-surface-600 text-accent-600 min-h-[44px] min-w-[44px] p-2"
-        title="Select all images"
+        onCheckedChange={toggleSelectAll}
+        aria-label="Select all images"
       />
       <span class="text-xs sm:text-sm text-surface-400">
         {selectedImageIds.size === 0
@@ -276,18 +398,18 @@
             class:hover:border-accent-400={!selectedImageIds.has(image.id)}
           >
             <!-- Checkbox overlay (top-left) -->
-            <div class="absolute top-2 left-2 z-20 flex items-center pointer-events-none">
-              <input
-                type="checkbox"
+            <div class="absolute top-2 left-2 z-20 pointer-events-auto">
+              <Checkbox
                 checked={selectedImageIds.has(image.id)}
-                onchange={() => toggleImageSelection(image.id)}
-                class="h-5 w-5 cursor-pointer rounded border-surface-500 text-accent-600 pointer-events-auto"
-                style="min-height: 44px; min-width: 44px; padding: 6px;"
+                onCheckedChange={() => toggleImageSelection(image.id)}
+                aria-label="Select image"
+                class="bg-surface-900/80 border-surface-500"
               />
             </div>
 
-            <!-- Image container with proper scaling -->
-            <div class="relative bg-surface-700 aspect-video flex items-center justify-center cursor-pointer hover:bg-surface-600 transition-colors"
+            <!-- Image container - click opens lightbox -->
+            <div
+              class="relative bg-surface-700 aspect-video cursor-pointer"
               onclick={() => openLightbox(index)}
             >
               <img
@@ -295,16 +417,12 @@
                 alt={`Generated image ${index + 1}`}
                 class="w-full h-full object-contain"
               />
-            </div>
-
-            <!-- Hover overlay with view button -->
-            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-              <button
-                class="pointer-events-auto px-3 py-1.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded transition-colors"
-                onclick={() => openLightbox(index)}
-              >
-                View
-              </button>
+              <!-- Hover overlay - desktop only -->
+              <div class="hidden sm:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center justify-center">
+                <Button variant="default" size="sm">
+                  View
+                </Button>
+              </div>
             </div>
 
             <!-- Image metadata (shown below) -->
@@ -357,76 +475,111 @@
   {/if}
 </div>
 
-<!-- Lightbox Modal -->
-{#if lightboxOpen && images.length > 0}
-  <div
-    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4"
-    onclick={() => closeLightbox()}
-    role="dialog"
-    aria-modal="true"
-  >
-    <!-- Close button -->
-    <button
-      class="absolute top-4 right-4 p-2 hover:bg-surface-700/50 rounded-lg transition-colors z-[10000]"
-      onclick={(e) => {
-        e.stopPropagation();
-        closeLightbox();
-      }}
-      title="Close (Esc)"
-    >
-      <X class="h-6 w-6 text-white" />
-    </button>
-
-    <!-- Image container -->
+<!-- Lightbox Modal using ResponsiveModal -->
+<ResponsiveModal.Root bind:open={lightboxOpen}>
+  <ResponsiveModal.Content class="sm:max-w-3xl p-0 gap-0 overflow-hidden">
+    <!-- Image area with navigation -->
     <div
-      class="flex items-center justify-center max-w-5xl max-h-[80vh]"
-      onclick={(e) => e.stopPropagation()}
+      class="relative bg-surface-950 flex items-center justify-center p-4"
       ontouchstart={handleTouchStart}
       ontouchend={handleTouchEnd}
     >
-      <img
-        src={getImagePreview(images[lightboxImageIndex].imageData)}
-        alt={`Generated image ${lightboxImageIndex + 1}`}
-        class="max-w-full max-h-full object-contain rounded-lg"
+      <!-- Navigation: Previous -->
+      {#if images.length > 1}
+        <button
+          onclick={previousImage}
+          disabled={lightboxImageIndex === 0}
+          class="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-surface-800/80 hover:bg-surface-700 text-surface-300 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Previous (←)"
+        >
+          <ChevronLeft class="h-5 w-5" />
+        </button>
+      {/if}
+
+      <!-- Image with loading overlay -->
+      {#if images.length > 0}
+        <div class="relative">
+          <img
+            src={getImagePreview(images[lightboxImageIndex].imageData)}
+            alt={`Generated image ${lightboxImageIndex + 1}`}
+            class="max-w-full max-h-[40vh] sm:max-h-[50vh] object-contain rounded"
+            class:opacity-50={isRegenerating}
+          />
+          {#if isRegenerating}
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="flex flex-col items-center gap-2 bg-surface-900/80 px-4 py-3 rounded-lg">
+                <div class="h-6 w-6 animate-spin rounded-full border-2 border-surface-400 border-t-accent-400"></div>
+                <span class="text-sm text-surface-300">Regenerating...</span>
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- Navigation: Next -->
+      {#if images.length > 1}
+        <button
+          onclick={nextImage}
+          disabled={lightboxImageIndex === images.length - 1}
+          class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-surface-800/80 hover:bg-surface-700 text-surface-300 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Next (→)"
+        >
+          <ChevronRight class="h-5 w-5" />
+        </button>
+      {/if}
+    </div>
+
+    <!-- Edit area -->
+    <div class="px-4 py-3 bg-surface-900 border-t border-surface-800">
+      <label class="block text-xs text-surface-400 mb-1.5">Image Prompt</label>
+      <Textarea
+        bind:value={editingImagePrompt}
+        placeholder="Describe the image you want to generate..."
+        rows={3}
+        class="resize-none text-sm"
       />
     </div>
 
-    <!-- Navigation buttons -->
-    {#if images.length > 1}
-      <!-- Previous button -->
-      <button
-        class="absolute left-3 sm:left-8 top-1/2 -translate-y-1/2 p-2.5 sm:p-3 bg-black/40 hover:bg-black/60 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-[10000] min-h-[44px] min-w-[44px] flex items-center justify-center"
-        onclick={(e) => {
-          e.stopPropagation();
-          previousImage();
-        }}
-        disabled={lightboxImageIndex === 0}
-        title="Previous image (← or swipe right)"
-      >
-        <svg class="h-6 w-6 sm:h-8 sm:w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      <!-- Next button -->
-      <button
-        class="absolute right-3 sm:right-8 top-1/2 -translate-y-1/2 p-2.5 sm:p-3 bg-black/40 hover:bg-black/60 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed z-[10000] min-h-[44px] min-w-[44px] flex items-center justify-center"
-        onclick={(e) => {
-          e.stopPropagation();
-          nextImage();
-        }}
-        disabled={lightboxImageIndex === images.length - 1}
-        title="Next image (→ or swipe left)"
-      >
-        <svg class="h-6 w-6 sm:h-8 sm:w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      <!-- Image counter -->
-      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 sm:px-4 sm:py-2 bg-black/60 rounded-lg text-white text-xs sm:text-sm font-medium z-[10000]">
-        {lightboxImageIndex + 1} / {images.length}
+    <!-- Footer toolbar -->
+    <div class="flex items-center justify-between gap-3 px-4 py-3 bg-surface-900 border-t border-surface-800">
+      <!-- Counter -->
+      <div class="text-sm text-surface-400 tabular-nums">
+        {#if images.length > 1}
+          {lightboxImageIndex + 1} of {images.length}
+        {:else}
+          1 image
+        {/if}
       </div>
-    {/if}
-  </div>
-{/if}
+
+      <!-- Actions -->
+      <div class="flex items-center gap-2">
+        <Button variant="outline" size="sm" onclick={closeLightbox} class="h-8 text-xs">
+          Close
+        </Button>
+        {#if lightboxImage}
+          <Button
+            size="sm"
+            onclick={async () => {
+              if (lightboxImage && editingImagePrompt.trim()) {
+                isRegenerating = true;
+                editingImageId = lightboxImage.id;
+                await handleEditImageSubmit();
+                isRegenerating = false;
+              }
+            }}
+            disabled={!editingImagePrompt.trim() || isRegenerating}
+            class="h-8 gap-1.5 text-xs"
+          >
+            {#if isRegenerating}
+              <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+            {:else}
+              <RotateCcw class="h-3.5 w-3.5" />
+            {/if}
+            Regenerate
+          </Button>
+        {/if}
+      </div>
+    </div>
+  </ResponsiveModal.Content>
+</ResponsiveModal.Root>
+

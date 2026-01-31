@@ -326,16 +326,20 @@
   <!-- Context Inclusion Mode -->
   <div class="space-y-3">
     <Label>Context Inclusion</Label>
-    <RadioGroup value={injectionMode} onValueChange={(v) => injectionMode = v as EntryInjectionMode} class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+    <RadioGroup value={injectionMode} onValueChange={(v) => injectionMode = v as EntryInjectionMode} class="grid grid-cols-1 sm:grid-cols-3 gap-2 h-full">
       {#each injectionModes as mode}
         <div class={cn(
-          "flex items-start space-x-2 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors h-full",
+          "flex items-start space-x-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors h-full",
           injectionMode === mode.value && "border-primary bg-primary/5"
         )}>
-          <RadioGroupItem value={mode.value} id={`mode-${mode.value}`} class="mt-1" />
-          <Label for={`mode-${mode.value}`} class="cursor-pointer flex flex-col gap-1 font-normal">
-            <span class="font-medium text-sm">{mode.label}</span>
-            <span class="text-xs text-muted-foreground">{mode.description}</span>
+          <Label for={`mode-${mode.value}`} class="cursor-pointer flex flex-col gap-1 font-normal w-full">
+            <div class="flex flex-row items-center gap-3 p-3">
+              <RadioGroupItem value={mode.value} id={`mode-${mode.value}`} class="mt-1" />
+              <div class="flex flex-col">
+                <span class="font-medium text-sm">{mode.label}</span>
+                <span class="text-xs text-muted-foreground">{mode.description}</span>
+              </div>
+            </div>
           </Label>
         </div>
       {/each}
