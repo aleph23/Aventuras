@@ -65,6 +65,9 @@
     openai: "",
     anthropic: "",
     google: "",
+    nanogpt: "https://nano-gpt.com/api/v1",
+    chutes: "",
+    pollinations: "",
   };
 
   // Auto-save debounce state
@@ -780,28 +783,4 @@
     {/if}
   </div>
 
-  <!-- Footer Links -->
-  <Card class="bg-muted/30 -mt-3">
-    <CardContent class="p-4">
-      <p class="text-sm text-muted-foreground">
-        Use
-        <a
-          href="https://openrouter.ai/keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-primary hover:underline"
-        >
-          OpenRouter
-        </a>,
-        <a
-          href="https://nano-gpt.com/subscription"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-primary hover:underline"
-        >
-          NanoGPT
-        </a>, or bring your own LLM!
-      </p>
-    </CardContent>
-  </Card>
 </div>
