@@ -1503,6 +1503,12 @@ class SettingsStore {
         }
       }
 
+      // Load native timeout setting
+      const useNativeTimeout = await database.getSetting('use_native_timeout');
+      if (useNativeTimeout !== null) {
+        this.apiSettings.useNativeTimeout = useNativeTimeout === 'true';
+      }
+
       // Load provider preset (which provider's defaults to use)
       const providerPreset = await database.getSetting('provider_preset');
       if (providerPreset) {

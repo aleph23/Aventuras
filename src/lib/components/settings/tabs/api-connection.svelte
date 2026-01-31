@@ -31,7 +31,6 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Separator } from "$lib/components/ui/separator";
   import { Slider } from "$lib/components/ui/slider";
-  import { Switch } from "$lib/components/ui/switch";
   import * as Collapsible from "$lib/components/ui/collapsible";
   import { ScrollArea } from "$lib/components/ui/scroll-area";
   import { Textarea } from "$lib/components/ui/textarea";
@@ -39,13 +38,6 @@
   import IconRow from "$lib/components/ui/icon-row.svelte";
   import X from "@lucide/svelte/icons/x";
   import { isMobileDevice } from "$lib/utils/swipe";
-  import {
-    LLM_TIMEOUT_MIN,
-    LLM_TIMEOUT_MAX,
-    LLM_TIMEOUT_STEP,
-    LLM_TIMEOUT_MIN_SECONDS,
-    LLM_TIMEOUT_MAX_SECONDS,
-  } from "$lib/constants/timeout";
 
   interface Props {
     providerOptions: ProviderInfo[];
@@ -55,17 +47,6 @@
 
   let editingProfileId = $state<string | null>(null);
   let isNewProfile = $state(false);
-
-  // Timeout slider state
-  let timeoutValue = $state([settings.apiSettings.llmTimeoutMs]);
-
-  $effect(() => {
-    timeoutValue = [settings.apiSettings.llmTimeoutMs];
-  });
-
-  function updateTimeout(v: number[]) {
-    settings.setLlmTimeout(v[0]);
-  }
 
   // Form state
   let formName = $state("");
@@ -292,85 +273,6 @@
 </script>
 
 <div class="space-y-6">
-  <!-- Global API Settings -->
-  <Card>
-    <CardHeader>
-      <CardTitle>Global API Settings</CardTitle>
-      <CardDescription>
-        Settings that apply to all API requests
-      </CardDescription>
-    </CardHeader>
-    <CardContent class="space-y-4">
-      <!-- Request Timeout -->
-      <div class="space-y-4">
-        <div class="flex justify-between items-center">
-          <div class="space-y-1">
-            <Label>Request Timeout</Label>
-            <p class="text-xs text-muted-foreground">
-              Maximum time to wait for any LLM response (applies to all services)
-            </p>
-          </div>
-          <span class="text-xs text-muted-foreground font-medium">
-            {(settings.apiSettings.llmTimeoutMs / 1000).toFixed(0)}s
-          </span>
-        </div>
-        <div class="flex gap-4 items-center">
-          <div class="flex-1 flex flex-col gap-4">
-            <Slider
-              value={timeoutValue}
-              min={LLM_TIMEOUT_MIN}
-              max={LLM_TIMEOUT_MAX}
-              step={LLM_TIMEOUT_STEP}
-              onValueChange={updateTimeout}
-            />
-            <div class="flex justify-between text-xs text-muted-foreground">
-              <span>{LLM_TIMEOUT_MIN_SECONDS}s</span>
-              <span>{Math.floor(LLM_TIMEOUT_MAX_SECONDS / 60)}min</span>
-            </div>
-          </div>
-          <div>
-            <Input
-              type="number"
-              class="w-24 h-9 text-left"
-              value={Math.round(settings.apiSettings.llmTimeoutMs / 1000)}
-              oninput={(e) => {
-                const seconds = parseInt(e.currentTarget.value, 10);
-                if (!isNaN(seconds) && seconds >= LLM_TIMEOUT_MIN_SECONDS && seconds <= LLM_TIMEOUT_MAX_SECONDS) {
-                  settings.setLlmTimeout(seconds * 1000);
-                }
-              }}
-              onchange={(e) => {
-                const seconds = parseInt(e.currentTarget.value, 10);
-                if (isNaN(seconds) || seconds < LLM_TIMEOUT_MIN_SECONDS) {
-                  settings.setLlmTimeout(LLM_TIMEOUT_MIN);
-                } else if (seconds > LLM_TIMEOUT_MAX_SECONDS) {
-                  settings.setLlmTimeout(LLM_TIMEOUT_MAX);
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Native Timeout Support -->
-      <div class="flex items-center justify-between space-x-2">
-        <div class="space-y-1 flex-1">
-          <Label for="native-timeout">Use Native Timeout (SDK compatible endpoints)</Label>
-          <p class="text-xs text-muted-foreground">
-            If enabled, passes timeout to the API's native parameter instead of using manual timeout. Enable this for modern SDK-compatible endpoints (Vercel AI SDK, OpenAI SDK v4+, etc.).
-          </p>
-        </div>
-        <Switch
-          id="native-timeout"
-          checked={settings.apiSettings.useNativeTimeout}
-          onCheckedChange={(checked) => {
-            settings.setUseNativeTimeout(checked);
-          }}
-        />
-      </div>
-    </CardContent>
-  </Card>
-
   <!-- Header -->
   <div>
     <div class="flex items-center justify-between">

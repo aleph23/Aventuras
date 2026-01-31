@@ -184,15 +184,7 @@ export class OpenAIProvider implements AIProvider {
       };
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        if (request.signal?.aborted) {
-          throw error;
-        }
-        const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
-        const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
-        throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
-      }
-      throw error;
+      this.handleTimeoutError(error, request.signal);
     }
   }
 
@@ -320,15 +312,7 @@ export class OpenAIProvider implements AIProvider {
       };
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        if (request.signal?.aborted) {
-          throw error;
-        }
-        const rawTimeout = this.settings.llmTimeoutMs ?? LLM_TIMEOUT_DEFAULT;
-        const timeoutMs = Math.max(LLM_TIMEOUT_MIN, Math.min(LLM_TIMEOUT_MAX, rawTimeout));
-        throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
-      }
-      throw error;
+      this.handleTimeoutError(error, request.signal);
     }
   }
 
@@ -821,7 +805,7 @@ export class OpenAIProvider implements AIProvider {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        log('Request timed out after 15 seconds');
+        log('Models list request timed out after 15 seconds');
         throw new Error('Request timed out');
       }
       log('listModels error', error);
@@ -883,7 +867,7 @@ export class OpenAIProvider implements AIProvider {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        log('Request timed out after 15 seconds');
+        log('Providers list request timed out after 15 seconds');
         throw new Error('Request timed out');
       }
       log('listProviders error', error);
