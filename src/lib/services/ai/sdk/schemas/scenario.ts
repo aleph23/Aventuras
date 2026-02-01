@@ -29,6 +29,7 @@ export const generatedCharacterSchema = z.object({
     traits: z.array(z.string()).describe('2-4 personality traits'),
     vaultId: z.string().optional(),
 })
+export const generatedCharactersSchema = z.array(generatedCharacterSchema)
 
 export const generatedOpeningSchema = z.object({
     scene: z.string().describe('2-3 paragraphs describing the opening scene'),
@@ -42,4 +43,5 @@ export const generatedOpeningSchema = z.object({
 export type ExpandedSetting = z.infer<typeof expandedSettingSchema>;
 export type GeneratedProtagonist = z.infer<typeof generatedProtagonistSchema>;
 export type GeneratedCharacter = z.infer<typeof generatedCharacterSchema>;
+export type GeneratedCharacters = z.infer<typeof generatedCharactersSchema>;
 export type GeneratedOpening = z.infer<typeof generatedOpeningSchema>;
