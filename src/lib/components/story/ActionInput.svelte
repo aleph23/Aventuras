@@ -40,6 +40,7 @@
     retryService,
     BackgroundTaskCoordinator,
     WorldStateTranslationService,
+    SuggestionsRefreshService,
     type PipelineDependencies,
     type PipelineConfig,
     type GenerationContext,
@@ -50,6 +51,8 @@
     type BackgroundTaskInput,
     type WorldStateTranslationDependencies,
     type WorldStateTranslationCallbacks,
+    type SuggestionsRefreshDependencies,
+    type SuggestionsRefreshInput,
   } from "$lib/services/generation";
   import { InlineImageTracker } from "$lib/services/ai/image";
 
@@ -178,6 +181,38 @@
   });
 
   /**
+   * Build dependencies for SuggestionsRefreshService.
+   */
+  function buildSuggestionsRefreshDependencies(): SuggestionsRefreshDependencies {
+    return {
+      generateSuggestions: aiService.generateSuggestions.bind(aiService),
+      translateSuggestions: aiService.translateSuggestions.bind(aiService),
+    };
+  }
+
+  /**
+   * Build input for SuggestionsRefreshService.
+   */
+  function buildSuggestionsRefreshInput(): SuggestionsRefreshInput {
+    const protagonist = story.characters.find((c) => c.relationship === "self");
+    return {
+      storyId: story.currentStory?.id ?? '',
+      entries: story.entries,
+      pendingQuests: story.pendingQuests,
+      storyMode: story.storyMode,
+      pov: story.pov,
+      tense: story.tense,
+      protagonistName: protagonist?.name || "the protagonist",
+      genre: story.currentStory?.genre ?? undefined,
+      settingDescription: story.currentStory?.description ?? undefined,
+      tone: story.currentStory?.settings?.tone ?? undefined,
+      themes: story.currentStory?.settings?.themes ?? undefined,
+      lastLorebookRetrieval: ui.lastLorebookRetrieval?.all ?? null,
+      translationSettings: settings.translationSettings,
+    };
+  }
+
+  /**
    * Generate story direction suggestions for creative writing mode.
    */
   async function refreshSuggestions() {
@@ -188,61 +223,14 @@
 
     ui.setSuggestionsLoading(true);
     try {
-      // Use only the lorebook entries that were activated for the previous response
-      // Extract the Entry objects from RetrievedEntry wrappers
-      const activeLorebookEntries = (ui.lastLorebookRetrieval?.all ?? []).map(
-        (r) => r.entry,
-      );
+      const service = new SuggestionsRefreshService(buildSuggestionsRefreshDependencies());
+      const result = await service.refresh(buildSuggestionsRefreshInput());
 
-      // Build complete context for macro expansion
-      const protagonist = story.characters.find(
-        (c) => c.relationship === "self",
-      );
-      const promptContext = {
-        mode: story.storyMode,
-        pov: story.pov,
-        tense: story.tense,
-        protagonistName: protagonist?.name || "the protagonist",
-        genre: story.currentStory?.genre ?? undefined,
-        settingDescription: story.currentStory?.description ?? undefined,
-        tone: story.currentStory?.settings?.tone ?? undefined,
-        themes: story.currentStory?.settings?.themes ?? undefined,
-      };
-
-      const result = await aiService.generateSuggestions(
-        story.entries,
-        story.pendingQuests,
-        activeLorebookEntries,
-        promptContext,
-      );
-
-      // Translate suggestions if enabled
-      let finalSuggestions = result.suggestions;
-      const translationSettings = settings.translationSettings;
-      if (TranslationService.shouldTranslate(translationSettings)) {
-        try {
-          finalSuggestions = await aiService.translateSuggestions(
-            result.suggestions,
-            translationSettings.targetLanguage,
-          );
-          log("Suggestions translated");
-        } catch (error) {
-          log("Suggestion translation failed (non-fatal):", error);
-        }
-      }
-
-      ui.setSuggestions(finalSuggestions, story.currentStory?.id);
-      log(
-        "Suggestions refreshed:",
-        finalSuggestions.length,
-        "with",
-        activeLorebookEntries.length,
-        "active lorebook entries",
-      );
+      ui.setSuggestions(result.suggestions, story.currentStory?.id);
 
       // Emit SuggestionsReady event
       emitSuggestionsReady(
-        finalSuggestions.map((s) => ({ text: s.text, type: s.type })),
+        result.suggestions.map((s) => ({ text: s.text, type: s.type })),
       );
     } catch (error) {
       log("Failed to generate suggestions:", error);
