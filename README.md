@@ -87,7 +87,7 @@ AI-powered interactive fiction and creative writing application built with Tauri
 
 ## Tech Stack
 
-- **Frontend**: SvelteKit 5, TypeScript, Tailwind CSS
+- **Frontend**: SvelteKit 2 (Svelte 5), TypeScript, Tailwind CSS
 - **Backend**: Tauri 2 (Rust)
 - **Database**: SQLite (via tauri-plugin-sql)
 - **AI**: OpenRouter API
@@ -98,7 +98,7 @@ AI-powered interactive fiction and creative writing application built with Tauri
 
 ### Download Pre-built Binaries
 
-Pre-compiled binaries are available on the [Releases](https://github.com/unkarelian/Aventura/releases) page:
+Pre-compiled binaries are available on the [Releases](https://github.com/aleph23/Aventuras/releases) page:
 
 | Platform | Download |
 |----------|----------|
@@ -124,8 +124,8 @@ Simply download the appropriate file for your platform and install.
 
 ```bash
 # Clone the repository
-git clone https://github.com/unkarelian/Aventura.git
-cd aventura
+git clone https://github.com/aleph23/Aventuras.git
+cd Aventuras
 
 # Install dependencies
 npm install
@@ -134,7 +134,7 @@ npm install
 npm run dev
 
 # Or run with Tauri (desktop app)
-npm run tauri dev
+npm run tauri -- dev
 ```
 
 #### Building Desktop
@@ -188,10 +188,10 @@ aventura/
 │   │   ├── services/       # Business logic
 │   │   │   ├── ai/         # AI services (OpenRouter, context, memory)
 │   │   │   ├── database.ts # SQLite operations
-│   │   │   └── grammar.ts  # Harper grammar checking
+│   │   │   	└── grammar.ts  # Harper grammar checking
 │   │   ├── stores/         # Svelte stores (state management)
-│   │   └── types/          # TypeScript interfaces
-│   └── routes/             # SvelteKit routes
+│   │   	└── types/          # TypeScript interfaces
+│   	└── routes/             # SvelteKit routes
 ├── src-tauri/              # Rust backend
 │   ├── src/
 │   └── Cargo.toml
@@ -229,7 +229,6 @@ npm run build
 # Preview built frontend
 npm run preview
 ```
-
 
 ## Acknowledgments
 
