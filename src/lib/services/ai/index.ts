@@ -3,7 +3,7 @@
  *
  * Coordinates AI services for narrative generation, classification, memory, and more.
  *
- * STATUS: Tier 0 & Tier 1 Complete
+ * STATUS: Tier 0, 1, 3 Complete
  * WORKING (SDK-migrated):
  * - streamNarrative(), generateNarrative() - NarrativeService
  * - classifyResponse() - ClassifierService
@@ -15,9 +15,9 @@
  * - analyzeStyle() - StyleReviewerService
  * - runLoreManagement() - LoreManagementService
  * - generateImagesForNarrative() (both inline and analyzed modes) - ImageAnalysisService
+ * - runAgenticRetrieval() - AgenticRetrievalService
  *
  * STUBBED (awaiting migration):
- * - runAgenticRetrieval() - AgenticRetrievalService
  * - translate*() - TranslationService
  */
 
@@ -31,7 +31,7 @@ import type { ChapterAnalysis, ChapterSummaryResult, RetrievalDecision } from '.
 import type { SuggestionsResult } from './sdk/schemas/suggestions';
 import type { ActionChoicesResult } from './sdk/schemas/actionchoices';
 import type { StyleReviewResult } from './generation/StyleReviewerService';
-import type { AgenticRetrievalResult } from './retrieval/AgenticRetrievalService';
+import { AgenticRetrievalService, type AgenticRetrievalResult, type RetrievalContext as AgenticRetrievalContext } from './retrieval/AgenticRetrievalService';
 import type { TimelineFillResult } from './retrieval/TimelineFillService';
 import { ContextBuilder, type ContextResult, type ContextConfig } from './generation/ContextBuilder';
 import { EntryRetrievalService, type EntryRetrievalResult, type ActivationTracker, getEntryRetrievalConfigFromSettings } from './retrieval/EntryRetrievalService';
@@ -501,8 +501,8 @@ class AIService {
   }
 
   /**
-   * Run agentic retrieval.
-   * @throws Error - Service not implemented during SDK migration
+   * Run agentic retrieval to find relevant lorebook entries and chapter context.
+   * Uses an LLM agent with tools to intelligently search and select entries.
    */
   async runAgenticRetrieval(
     userInput: string,
@@ -516,7 +516,44 @@ class AIService {
     pov?: POV,
     tense?: Tense
   ): Promise<AgenticRetrievalResult> {
-    throw new Error('AIService.runAgenticRetrieval() not implemented - awaiting SDK migration');
+    log('runAgenticRetrieval called', {
+      userInputLength: userInput.length,
+      recentEntriesCount: recentEntries.length,
+      chaptersCount: chapters.length,
+      entriesCount: entries.length,
+    });
+
+    const service = serviceFactory.createAgenticRetrievalService();
+
+    // Build recent narrative from entries
+    const recentNarrative = recentEntries
+      .map(e => e.content)
+      .join('\n\n');
+
+    // Build context for the service
+    const context: AgenticRetrievalContext = {
+      userInput,
+      recentNarrative,
+      availableEntries: entries,
+      chapters,
+      // Adapt the chapter query callback if provided
+      getChapterContent: onQueryChapter
+        ? async (chapterId: string) => {
+            const chapter = chapters.find(c => c.id === chapterId);
+            if (!chapter) return 'Chapter not found';
+            return onQueryChapter(chapter.number, 'Provide the full content of this chapter');
+          }
+        : undefined,
+    };
+
+    const result = await service.runRetrieval(context, signal);
+
+    log('runAgenticRetrieval complete', {
+      entriesFound: result.entries.length,
+      hasReasoning: !!result.reasoning,
+    });
+
+    return result;
   }
 
   /**
@@ -533,11 +570,10 @@ class AIService {
 
   /**
    * Format agentic retrieval result for prompt injection.
-   * NOTE: This is just string formatting - works without SDK.
    */
   formatAgenticRetrievalForPrompt(result: AgenticRetrievalResult): string {
-    // Return empty since service is stubbed
-    return '';
+    // The service now builds the context string internally
+    return result.context || '';
   }
 
   /**

@@ -17,8 +17,17 @@ const log = createLogger('AgenticRetrieval');
  * Result from an agentic retrieval session.
  */
 export interface RetrievalResult {
+  /** Selected lorebook entries */
   entries: Entry[];
+  /** Formatted context string for prompt injection */
+  context: string;
+  /** Agent's reasoning/synthesis */
   reasoning?: string;
+  /** Number of agent iterations */
+  iterations: number;
+  /** IDs of chapters that were queried */
+  queriedChapters: string[];
+  /** History of queries made */
   queryHistory?: string[];
 }
 
@@ -95,11 +104,12 @@ export class AgenticRetrievalService {
       maxIterations: this.maxIterations,
     });
 
-    // Track selected entries
+    // Track selected entries and queried chapters
     const selectedIndices = new Set<number>();
+    const queriedChapterIds = new Set<string>();
     const queryHistory: string[] = [];
 
-    // Create tool context
+    // Create tool context with chapter tracking
     const toolContext: RetrievalToolContext = {
       entries: context.availableEntries,
       chapters: context.chapters ?? [],
@@ -107,7 +117,13 @@ export class AgenticRetrievalService {
         selectedIndices.add(index);
         log('Entry selected', { index, name: context.availableEntries[index]?.name });
       },
-      getChapterContent: context.getChapterContent,
+      getChapterContent: context.getChapterContent
+        ? async (chapterId: string) => {
+            queriedChapterIds.add(chapterId);
+            queryHistory.push(`Queried chapter: ${chapterId}`);
+            return context.getChapterContent!(chapterId);
+          }
+        : undefined,
     };
 
     // Create tools
@@ -163,9 +179,12 @@ export class AgenticRetrievalService {
       'finish_retrieval'
     );
 
+    const iterations = result.steps.length;
+
     log('Agentic retrieval completed', {
-      steps: result.steps.length,
+      iterations,
       selectedCount: selectedIndices.size,
+      queriedChapters: queriedChapterIds.size,
       terminalResult,
     });
 
@@ -182,9 +201,22 @@ export class AgenticRetrievalService {
         : terminalResult.additionalContext;
     }
 
+    // Build context string from selected entries
+    const contextParts: string[] = [];
+    if (reasoning) {
+      contextParts.push(`[Retrieved Context - ${reasoning}]`);
+    }
+    for (const entry of selectedEntries) {
+      contextParts.push(`## ${entry.name} (${entry.type})\n${entry.description}`);
+    }
+    const contextString = contextParts.join('\n\n');
+
     return {
       entries: selectedEntries,
+      context: contextString,
       reasoning,
+      iterations,
+      queriedChapters: Array.from(queriedChapterIds),
       queryHistory: queryHistory.length > 0 ? queryHistory : undefined,
     };
   }
