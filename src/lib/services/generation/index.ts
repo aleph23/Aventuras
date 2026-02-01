@@ -26,3 +26,7 @@ export type {
   AbortedEvent,
   GenerationEvent,
 } from './types';
+
+// Phase services
+export { PreGenerationPhase } from './phases';
+export type { RetryBackupData, PreGenerationResult, PreGenerationInput } from './phases';
