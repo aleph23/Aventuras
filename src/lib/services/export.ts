@@ -738,3 +738,6 @@ class ExportService {
 }
 
 export const exportService = new ExportService();
+
+// Re-export coordination service
+export { gatherStoryData, type StoryExportData } from './export/ExportCoordinationService';
