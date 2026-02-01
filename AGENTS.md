@@ -9,7 +9,7 @@ This file contains guidelines for agentic coding assistants working on the Avent
 npm run dev              # Start dev server (Vite)
 npm run build            # Build for production
 npm run preview          # Preview production build
-npm run tauri dev        # Start Tauri development window
+npm run tauri -- dev     # Start Tauri development window (forward args to the tauri CLI)
 ```
 
 ### Type Checking
