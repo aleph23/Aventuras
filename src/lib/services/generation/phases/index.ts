@@ -14,3 +14,6 @@ export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './N
 
 export { ClassificationPhase } from './ClassificationPhase';
 export type { ClassificationDependencies, ClassificationInput, ClassificationPhaseResult } from './ClassificationPhase';
+
+export { TranslationPhase } from './TranslationPhase';
+export type { TranslationDependencies, TranslationInput, TranslationResult2 } from './TranslationPhase';
