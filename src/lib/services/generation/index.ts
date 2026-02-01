@@ -28,6 +28,7 @@ export type {
 } from './types';
 
 // Phase services
-export { PreGenerationPhase, RetrievalPhase } from './phases';
+export { PreGenerationPhase, RetrievalPhase, NarrativePhase } from './phases';
 export type { RetryBackupData, PreGenerationResult, PreGenerationInput } from './phases';
 export type { RetrievalDependencies, RetrievalInput } from './phases';
+export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './phases';
