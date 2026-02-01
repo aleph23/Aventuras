@@ -520,7 +520,9 @@ class StoryStore {
   }
 
   // Add a new story entry
-  async addEntry(type: StoryEntry['type'], content: string, metadata?: StoryEntry['metadata'], reasoning?: string): Promise<StoryEntry> {
+  // The optional id parameter allows pre-generating the entry ID before streaming starts,
+  // which is needed for inline image generation during streaming
+  async addEntry(type: StoryEntry['type'], content: string, metadata?: StoryEntry['metadata'], reasoning?: string, id?: string): Promise<StoryEntry> {
     if (!this.currentStory) {
       throw new Error('No story loaded');
     }
@@ -537,7 +539,7 @@ class StoryStore {
 
     const position = await database.getNextEntryPosition(this.currentStory.id, this.currentStory.currentBranchId);
     const entry = await database.addStoryEntry({
-      id: crypto.randomUUID(),
+      id: id ?? crypto.randomUUID(),
       storyId: this.currentStory.id,
       type,
       content,

@@ -394,29 +394,27 @@ export interface GenerateImageResult {
 
 /**
  * Get image model from provider.
- * Handles provider-specific method names:
- * - OpenAI/NanoGPT: provider.image(modelId)
- * - Chutes/Pollinations: provider.imageModel(modelId)
+ *
+ * Detects available methods at runtime:
+ * - .imageModel(modelId) - OpenAI-compatible, Chutes, Pollinations
+ * - .image(modelId) - OpenAI SDK
  */
 function getImageModel(
   provider: ReturnType<typeof createProviderFromProfile>,
   providerType: ProviderType,
   modelId: string
 ) {
-  switch (providerType) {
-    case 'openai':
-    case 'nanogpt':
-      // OpenAI-compatible providers use .image()
-      return (provider as ReturnType<typeof createOpenAI>).image(modelId);
-    case 'chutes':
-      // Chutes uses .imageModel()
-      return (provider as ReturnType<typeof createChutes>).imageModel(modelId);
-    case 'pollinations':
-      // Pollinations uses .imageModel()
-      return (provider as ReturnType<typeof createPollinations>).imageModel(modelId);
-    default:
-      throw new Error(`Provider ${providerType} does not support image generation`);
+  // Check for .imageModel() method (OpenAI-compatible, Chutes, Pollinations)
+  if ('imageModel' in provider && typeof provider.imageModel === 'function') {
+    return (provider as ReturnType<typeof createChutes>).imageModel(modelId);
   }
+
+  // Check for .image() method (OpenAI SDK)
+  if ('image' in provider && typeof provider.image === 'function') {
+    return (provider as ReturnType<typeof createOpenAI>).image(modelId);
+  }
+
+  throw new Error(`Provider ${providerType} does not support image generation`);
 }
 
 /**

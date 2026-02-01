@@ -21,6 +21,8 @@ export interface ImageDependencies {
 export interface ImageSettings {
   enabled: boolean;
   autoGenerate: boolean;
+  /** When true, inline images are handled during streaming, not in this phase */
+  inlineMode?: boolean;
 }
 
 /** Input for the image phase */
@@ -42,7 +44,7 @@ export interface ImageInput {
 /** Result from image phase */
 export interface ImageResult {
   started: boolean;
-  skippedReason?: 'disabled' | 'auto_generate_off' | 'not_configured' | 'aborted';
+  skippedReason?: 'disabled' | 'auto_generate_off' | 'not_configured' | 'aborted' | 'inline_mode';
 }
 
 /** Coordinates image generation. Errors are non-fatal. */
@@ -67,6 +69,13 @@ export class ImagePhase {
       imageSettings,
       abortSignal,
     } = input;
+
+    // Check if inline mode is enabled - inline images are processed during streaming, not here
+    if (imageSettings.inlineMode) {
+      const result: ImageResult = { started: false, skippedReason: 'inline_mode' };
+      yield { type: 'phase_complete', phase: 'image', result } satisfies PhaseCompleteEvent;
+      return result;
+    }
 
     // Check if image generation is disabled
     if (!imageSettings.enabled) {

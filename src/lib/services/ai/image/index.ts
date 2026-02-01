@@ -14,6 +14,9 @@ export {
   type InlineImageContext,
 } from './InlineImageService';
 
+// Inline image tracker for streaming
+export { InlineImageTracker } from './InlineImageTracker';
+
 // Image analysis service (analyzed/agent mode)
 export {
   ImageAnalysisService,

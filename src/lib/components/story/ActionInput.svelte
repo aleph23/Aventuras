@@ -50,6 +50,7 @@
     type RetryStoreCallbacks,
     type RetryBackupData,
   } from "$lib/services/generation";
+  import { InlineImageTracker } from "$lib/services/ai/image";
 
   function log(...args: any[]) {
     console.log("[ActionInput]", ...args);
@@ -655,7 +656,11 @@
     activeAbortController = new AbortController();
 
     const visualProseMode = story.currentStory?.settings?.visualProseMode ?? false;
+    const inlineImageMode = story.currentStory?.settings?.inlineImageMode ?? false;
     const streamingEntryId = crypto.randomUUID();
+
+    // Pre-generate the narration entry ID so we can use it for inline image generation during streaming
+    const narrationEntryId = crypto.randomUUID();
 
     ui.setGenerating(true);
     ui.clearGenerationError();
@@ -664,6 +669,17 @@
 
     // Capture story reference
     const currentStoryRef = story.currentStory;
+
+    // Create inline image tracker if inline mode is enabled
+    let inlineImageTracker: InlineImageTracker | null = null;
+    if (inlineImageMode && settings.systemServicesSettings.imageGeneration.enabled) {
+      inlineImageTracker = new InlineImageTracker(
+        currentStoryRef.id,
+        narrationEntryId,
+        () => story.characters
+      );
+      log("Inline image tracker created", { narrationEntryId });
+    }
 
     try {
       // Build world state for AI context
@@ -716,6 +732,7 @@
         imageSettings: {
           enabled: settings.systemServicesSettings.imageGeneration.enabled,
           autoGenerate: settings.systemServicesSettings.imageGeneration.autoGenerate,
+          inlineMode: inlineImageMode,
         },
         promptContext: {
           mode: story.storyMode,
@@ -760,14 +777,26 @@
         if (event.type === "narrative_chunk") {
           fullResponse += event.content;
           if (event.reasoning) fullReasoning += event.reasoning;
+
+          // Process for inline images during streaming - triggers generation as soon as complete <pic> tags are detected
+          if (inlineImageTracker) {
+            inlineImageTracker.processChunk(fullResponse);
+          }
         }
 
         // After narrative completes, save entry and store lorebook retrieval
         if (event.type === "phase_complete" && event.phase === "narrative" && fullResponse.trim()) {
           ui.endStreaming();
-          narrationEntry = await story.addEntry("narration", fullResponse, undefined, fullReasoning || undefined);
+          // Use pre-generated ID so inline images (which may have started during streaming) are linked correctly
+          narrationEntry = await story.addEntry("narration", fullResponse, undefined, fullReasoning || undefined, narrationEntryId);
           log("Narration entry saved", { entryId: narrationEntry.id });
           emitNarrativeResponse(narrationEntry.id, fullResponse);
+
+          // Flush any pending inline images to database now that the entry exists
+          if (inlineImageTracker?.hasPendingImages) {
+            log("Flushing inline images to database");
+            await inlineImageTracker.flushToDatabase();
+          }
         }
 
         // After classification, apply results
@@ -908,6 +937,8 @@
       case "phase_start":
         if (event.phase === "narrative") {
           ui.startStreaming(state.visualProseMode, state.streamingEntryId);
+        } else if (event.phase === "classification") {
+          ui.setGenerationStatus("Classifying world state...");
         } else if (event.phase === "post") {
           if (isCreativeMode) {
             ui.setSuggestionsLoading(true);

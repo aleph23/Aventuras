@@ -32,6 +32,7 @@
   import {
     eventBus,
     type ImageReadyEvent,
+    type ImageQueuedEvent,
     type ImageAnalysisFailedEvent,
     type TTSQueuedEvent,
   } from "$lib/services/events";
@@ -607,8 +608,18 @@
       : null,
   );
 
-  // Subscribe to ImageReady and TTS events
+  // Subscribe to ImageReady, ImageQueued, and TTS events
   onMount(() => {
+    // Subscribe to ImageQueued events to reload images when new records are created during streaming
+    const unsubImageQueued = eventBus.subscribe<ImageQueuedEvent>(
+      "ImageQueued",
+      (event) => {
+        if (event.entryId === entry.id) {
+          loadEmbeddedImages();
+        }
+      },
+    );
+
     // Subscribe to ImageReady events to reload images when one completes
     const unsubImageReady = eventBus.subscribe<ImageReadyEvent>(
       "ImageReady",
@@ -655,6 +666,7 @@
     }
 
     return () => {
+      unsubImageQueued();
       unsubImageReady();
       unsubImageAnalysisFailed();
       unsubTTSQueued();
