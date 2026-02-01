@@ -27,6 +27,10 @@ export type {
   GenerationEvent,
 } from './types';
 
+// Pipeline orchestrator
+export { GenerationPipeline } from './GenerationPipeline';
+export type { PipelineDependencies, PipelineConfig, PipelineResult } from './GenerationPipeline';
+
 // Phase services
 export { PreGenerationPhase, RetrievalPhase, NarrativePhase, ClassificationPhase, TranslationPhase, ImagePhase, PostGenerationPhase } from './phases';
 export type { RetryBackupData, PreGenerationResult, PreGenerationInput } from './phases';
