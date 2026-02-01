@@ -530,10 +530,8 @@
             messageId: narrationEntry.id,
             result: event.result,
           });
-          ui.setGenerationStatus("Updating world...");
           await story.applyClassificationResult(event.result);
           await story.updateEntryTimeEnd(narrationEntry.id);
-          ui.setGenerationStatus("Saving...");
 
           if (settings.systemServicesSettings.imageGeneration.enabled) {
             const presentCharacters = story.characters.filter(

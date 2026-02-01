@@ -36,8 +36,9 @@ export function handleEvent(
       if (event.phase === 'narrative') {
         callbacks.startStreaming(state.visualProseMode, state.streamingEntryId);
       } else if (event.phase === 'classification') {
-        callbacks.setGenerationStatus('Classifying world state...');
+        callbacks.setGenerationStatus('Updating world...');
       } else if (event.phase === 'post') {
+        callbacks.setGenerationStatus(state.isCreativeMode ? 'Generating suggestions...' : 'Generating actions...');
         state.isCreativeMode ? callbacks.setSuggestionsLoading(true) : callbacks.setActionChoicesLoading(true);
       }
       break;
