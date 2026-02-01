@@ -68,7 +68,6 @@ export interface ClassifierSettings {
   maxTokens: number;
   systemPrompt: string;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
   chatHistoryTruncation: number;  // Max words per chat history entry (0 = no truncation, up to 500)
 }
@@ -87,7 +86,6 @@ export function getDefaultClassifierSettingsForProvider(provider: ProviderType):
     maxTokens: 8192,
     systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
     chatHistoryTruncation: 0,
   };
@@ -104,7 +102,6 @@ export interface LorebookClassifierSettings {
   batchSize: number;         // Entries per batch for LLM classification
   maxConcurrent: number;     // Max concurrent batch requests
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -126,7 +123,6 @@ export function getDefaultLorebookClassifierSettingsForProvider(provider: Provid
     batchSize: 50,
     maxConcurrent: 5,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -138,7 +134,6 @@ export interface MemorySettings {
   model: string;
   temperature: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -154,7 +149,6 @@ export function getDefaultMemorySettingsForProvider(provider: ProviderType): Mem
     model: preset.model,
     temperature: 0.3,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -168,7 +162,6 @@ export interface SuggestionsSettings {
   maxTokens: number;
   systemPrompt: string;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -186,7 +179,6 @@ export function getDefaultSuggestionsSettingsForProvider(provider: ProviderType)
     maxTokens: 8192,
     systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -199,7 +191,6 @@ export interface ActionChoicesSettings {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -216,7 +207,6 @@ export function getDefaultActionChoicesSettingsForProvider(provider: ProviderTyp
     temperature: 0.8,
     maxTokens: 8192,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -232,7 +222,6 @@ export interface StyleReviewerSettings {
   triggerInterval: number;
   systemPrompt: string;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -252,7 +241,6 @@ export function getDefaultStyleReviewerSettingsForProvider(provider: ProviderTyp
     triggerInterval: 5,
     systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -266,7 +254,6 @@ export interface LoreManagementSettings {
   maxIterations: number;
   systemPrompt: string;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -301,7 +288,6 @@ export function getDefaultLoreManagementSettingsForProvider(provider: ProviderTy
     maxIterations: 50,
     systemPrompt: DEFAULT_LORE_MANAGEMENT_PROMPT,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: preset.providerOnly,
     manualBody: '',
   };
 }
@@ -314,7 +300,6 @@ export interface InteractiveLorebookSettings {
   model: string;
   temperature: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -330,7 +315,6 @@ export function getDefaultInteractiveLorebookSettingsForProvider(provider: Provi
     model: preset.model,
     temperature: 0.7,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -346,7 +330,6 @@ export interface AgenticRetrievalSettings {
   systemPrompt: string;
   agenticThreshold: number; // Use agentic if chapters > N
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -382,7 +365,6 @@ export function getDefaultAgenticRetrievalSettingsForProvider(provider: Provider
     systemPrompt: DEFAULT_AGENTIC_RETRIEVAL_PROMPT,
     agenticThreshold: 30,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: preset.providerOnly,
     manualBody: '',
   };
 }
@@ -399,7 +381,6 @@ export interface TimelineFillSettings {
   systemPrompt: string;
   queryAnswerPrompt: string;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -420,7 +401,6 @@ export function getDefaultTimelineFillSettingsForProvider(provider: ProviderType
     systemPrompt: '',
     queryAnswerPrompt: '',
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -432,7 +412,6 @@ export interface ChapterQuerySettings {
   model: string;
   temperature: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -448,7 +427,6 @@ export function getDefaultChapterQuerySettingsForProvider(provider: ProviderType
     model: preset.model,
     temperature: 0.2,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -463,7 +441,6 @@ export interface EntryRetrievalSettings {
   maxWordsPerEntry: number; // 0 = unlimited
   enableLLMSelection: boolean;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -482,7 +459,6 @@ export function getDefaultEntryRetrievalSettingsForProvider(provider: ProviderTy
     maxWordsPerEntry: 0,
     enableLLMSelection: true,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -522,7 +498,6 @@ export interface ImageGenerationServiceSettings {
   promptTemperature: number;
   promptMaxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -545,7 +520,6 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     promptTemperature: 0.3,
     promptMaxTokens: 16384,
     reasoningEffort: 'high',
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -626,7 +600,6 @@ export interface CharacterCardImportSettings {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -643,7 +616,6 @@ export function getDefaultCharacterCardImportSettingsForProvider(provider: Provi
     temperature: 0.3,
     maxTokens: 16384,
     reasoningEffort: preset.reasoningEffort,
-    providerOnly: [],
     manualBody: '',
   };
 }
@@ -963,7 +935,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.classification.temperature,
       maxTokens: defaults.classification.maxTokens,
       reasoningEffort: defaults.classification.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -975,7 +946,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.memory.temperature,
       maxTokens: defaults.memory.maxTokens,
       reasoningEffort: defaults.memory.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -987,7 +957,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.suggestions.temperature,
       maxTokens: defaults.suggestions.maxTokens,
       reasoningEffort: defaults.suggestions.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -999,7 +968,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.agentic.temperature,
       maxTokens: defaults.agentic.maxTokens,
       reasoningEffort: defaults.agentic.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1011,7 +979,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.wizard.temperature,
       maxTokens: defaults.wizard.maxTokens,
       reasoningEffort: defaults.wizard.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1023,7 +990,6 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       temperature: defaults.translation.temperature,
       maxTokens: defaults.translation.maxTokens,
       reasoningEffort: defaults.translation.reasoningEffort,
-      providerOnly: [],
       manualBody: ''
     }
   ];
@@ -1061,7 +1027,6 @@ class SettingsStore {
     temperature: 0.8,
     maxTokens: 8192,
     reasoningEffort: 'off',
-    providerOnly: [],
     manualBody: '',
     enableThinking: false,
   });
@@ -1145,7 +1110,6 @@ class SettingsStore {
       temperature: 0.3,
       maxTokens: 8192,
       reasoningEffort: 'high',
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1157,7 +1121,6 @@ class SettingsStore {
       temperature: 0.3,
       maxTokens: 8192,
       reasoningEffort: 'high',
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1169,7 +1132,6 @@ class SettingsStore {
       temperature: 0.7,
       maxTokens: 8192,
       reasoningEffort: 'off',
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1181,7 +1143,6 @@ class SettingsStore {
       temperature: 0.3,
       maxTokens: 8192,
       reasoningEffort: 'high',
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1193,7 +1154,6 @@ class SettingsStore {
       temperature: 0.7,
       maxTokens: 8192,
       reasoningEffort: 'off',
-      providerOnly: [],
       manualBody: ''
     },
     {
@@ -1205,7 +1165,6 @@ class SettingsStore {
       temperature: 0.3,
       maxTokens: 4096,
       reasoningEffort: 'off',
-      providerOnly: [],
       manualBody: ''
     }
   ]);
@@ -1246,18 +1205,6 @@ class SettingsStore {
         this.apiSettings.reasoningEffort = reasoningEffort as ReasoningEffort;
       } else if (this.apiSettings.enableThinking) {
         this.apiSettings.reasoningEffort = 'high';
-      }
-
-      const providerOnlyJson = await database.getSetting('main_provider_only');
-      if (providerOnlyJson) {
-        try {
-          const parsed = JSON.parse(providerOnlyJson);
-          if (Array.isArray(parsed)) {
-            this.apiSettings.providerOnly = parsed.filter(item => typeof item === 'string');
-          }
-        } catch {
-          this.apiSettings.providerOnly = [];
-        }
       }
 
       const manualBody = await database.getSetting('main_manual_body');
@@ -1534,7 +1481,6 @@ class SettingsStore {
               model: tf.model ?? defaults.chapterQuery.model,
               temperature: tf.temperature ?? defaults.chapterQuery.temperature,
               reasoningEffort: tf.reasoningEffort ?? defaults.chapterQuery.reasoningEffort,
-              providerOnly: tf.providerOnly ?? defaults.chapterQuery.providerOnly,
               manualBody: tf.manualBody ?? defaults.chapterQuery.manualBody,
             };
           }
@@ -1703,11 +1649,6 @@ class SettingsStore {
     this.apiSettings.enableThinking = effort !== 'off';
     await database.setSetting('main_reasoning_effort', effort);
     await database.setSetting('enable_thinking', this.apiSettings.enableThinking.toString());
-  }
-
-  async setMainProviderOnly(providers: string[]) {
-    this.apiSettings.providerOnly = providers;
-    await database.setSetting('main_provider_only', JSON.stringify(providers));
   }
 
   async setMainManualBody(body: string) {
@@ -2572,7 +2513,6 @@ class SettingsStore {
       temperature: 0.8,
       maxTokens: 8192,
       reasoningEffort: defaultReasoningEffort,
-      providerOnly: [],
       manualBody: '',
       enableThinking: false,
     };
@@ -2618,7 +2558,6 @@ class SettingsStore {
     await database.setSetting('max_tokens', this.apiSettings.maxTokens.toString());
     await database.setSetting('enable_thinking', this.apiSettings.enableThinking.toString());
     await database.setSetting('main_reasoning_effort', this.apiSettings.reasoningEffort);
-    await database.setSetting('main_provider_only', JSON.stringify(this.apiSettings.providerOnly));
     await database.setSetting('main_manual_body', this.apiSettings.manualBody);
     await database.setSetting('theme', this.uiSettings.theme);
     await database.setSetting('font_size', this.uiSettings.fontSize);
@@ -2705,14 +2644,12 @@ class SettingsStore {
     this.apiSettings.temperature = defaults.narrative.temperature;
     this.apiSettings.maxTokens = defaults.narrative.maxTokens;
     this.apiSettings.reasoningEffort = defaults.narrative.reasoningEffort;
-    this.apiSettings.providerOnly = [];
     this.apiSettings.manualBody = '';
     this.apiSettings.enableThinking = false;
     await database.setSetting('default_model', this.apiSettings.defaultModel);
     await database.setSetting('temperature', this.apiSettings.temperature.toString());
     await database.setSetting('max_tokens', this.apiSettings.maxTokens.toString());
     await database.setSetting('main_reasoning_effort', this.apiSettings.reasoningEffort);
-    await database.setSetting('main_provider_only', JSON.stringify(this.apiSettings.providerOnly));
     await database.setSetting('main_manual_body', this.apiSettings.manualBody);
     await database.setSetting('enable_thinking', this.apiSettings.enableThinking.toString());
 
@@ -2789,7 +2726,6 @@ class SettingsStore {
       preset.temperature === defaultPreset.temperature &&
       preset.maxTokens === defaultPreset.maxTokens &&
       preset.reasoningEffort === defaultPreset.reasoningEffort &&
-      JSON.stringify(preset.providerOnly) === JSON.stringify(defaultPreset.providerOnly) &&
       preset.manualBody === defaultPreset.manualBody
     );
   }
@@ -2854,21 +2790,20 @@ class SettingsStore {
 
   /**
    * Check if system services settings match their defaults for the current provider.
-   * Compares key generation parameters: model, temperature, reasoningEffort, providerOnly.
+   * Compares key generation parameters: model, temperature, reasoningEffort.
    */
   systemServicesMatchDefaults(): boolean {
     const defaults = getDefaultSystemServicesSettingsForProvider(this.getDefaultProviderType());
 
     // Helper to compare a service's core generation settings
     const settingsMatch = (
-      current: { model: string; temperature: number; reasoningEffort: string; providerOnly: string[] },
-      defaultService: { model: string; temperature: number; reasoningEffort: string; providerOnly: string[] }
+      current: { model: string; temperature: number; reasoningEffort: string },
+      defaultService: { model: string; temperature: number; reasoningEffort: string }
     ): boolean => {
       return (
         current.model === defaultService.model &&
         current.temperature === defaultService.temperature &&
-        current.reasoningEffort === defaultService.reasoningEffort &&
-        JSON.stringify(current.providerOnly) === JSON.stringify(defaultService.providerOnly)
+        current.reasoningEffort === defaultService.reasoningEffort
       );
     };
 

@@ -666,7 +666,6 @@ export interface APISettings {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort; // Reasoning effort for the main narrative model
-  providerOnly: string[]; // Allowed providers for the main narrative model
   manualBody: string; // Manual request body JSON for the main narrative model
   enableThinking: boolean; // Legacy toggle for reasoning (backward compatibility)
 }
@@ -760,7 +759,6 @@ export interface ImageGenerationSettings {
   promptTemperature: number;
   promptMaxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -773,7 +771,6 @@ export interface GenerationPreset {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 
@@ -791,7 +788,6 @@ export interface ExportedGenerationPreset {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
   // profileId is EXCLUDED - will be reconnected on import
 }
@@ -835,7 +831,6 @@ export interface ImportPresetConfig {
   temperature: number;
   maxTokens: number;
   reasoningEffort: ReasoningEffort;
-  providerOnly: string[];
   manualBody: string;
 }
 

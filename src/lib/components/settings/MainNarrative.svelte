@@ -1,18 +1,14 @@
 <script lang="ts">
   import {
     settings,
-    DEFAULT_OPENROUTER_PROFILE_ID,
   } from "$lib/stores/settings.svelte";
-  import { Cpu, RefreshCw, AlertTriangle } from "lucide-svelte";
-  import ProviderOnlySelector from "./ProviderOnlySelector.svelte";
-  import type { ProviderInfo } from "$lib/services/ai/core/types";
+  import { Cpu, AlertTriangle } from "lucide-svelte";
   import type { ReasoningEffort } from "$lib/types";
   import { cn } from "$lib/utils/cn";
   import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
 
   // Shadcn Components
   import * as Card from "$lib/components/ui/card";
-  import * as Select from "$lib/components/ui/select";
   import { Label } from "$lib/components/ui/label";
   import { Button } from "$lib/components/ui/button";
   import { Slider } from "$lib/components/ui/slider";
@@ -21,7 +17,6 @@
   import ModelSelector from "./ModelSelector.svelte";
 
   interface Props {
-    providerOptions: ProviderInfo[];
     onOpenManualBodyEditor: (
       title: string,
       value: string,
@@ -29,7 +24,7 @@
     ) => void;
   }
 
-  let { providerOptions, onOpenManualBodyEditor }: Props = $props();
+  let { onOpenManualBodyEditor }: Props = $props();
 
   const reasoningLevels: ReasoningEffort[] = ["off", "low", "medium", "high"];
   const reasoningLabels: Record<ReasoningEffort, string> = {
@@ -120,18 +115,6 @@
       (p) => p.id === settings.apiSettings.mainNarrativeProfileId,
     )?.name || "Select Profile",
   );
-
-  let isOpenRouter = $derived.by(() => {
-    const p = settings.apiSettings.profiles.find(
-      (p) => p.id === settings.apiSettings.mainNarrativeProfileId,
-    );
-    if (!p) return false;
-    // Check if it's the default OpenRouter profile OR if the base URL contains openrouter.ai
-    return (
-      p.id === DEFAULT_OPENROUTER_PROFILE_ID ||
-      (p.baseUrl && p.baseUrl.toLowerCase().includes("openrouter"))
-    );
-  });
 
   // Proxy states for sliders to ensure correct array type binding
   let tempValue = $state([settings.apiSettings.temperature]);
@@ -268,7 +251,7 @@
       </div>
     </div>
 
-    <!-- Thinking & Provider Row -->
+    <!-- Thinking Row -->
     <div
       class={cn(
         "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t",
@@ -298,19 +281,6 @@
           <span>High</span>
         </div>
       </div>
-
-      {#if isOpenRouter}
-        <div>
-          <ProviderOnlySelector
-            providers={providerOptions}
-            selected={settings.apiSettings.providerOnly}
-            disabled={settings.advancedRequestSettings.manualMode}
-            onChange={(next) => {
-              settings.setMainProviderOnly(next);
-            }}
-          />
-        </div>
-      {/if}
     </div>
 
     {#if settings.advancedRequestSettings.manualMode}

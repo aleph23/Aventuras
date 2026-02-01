@@ -106,11 +106,6 @@ export function buildProviderOptions(
     }
   }
 
-  // Provider routing (OpenRouter only)
-  if (providerType === 'openrouter' && preset.providerOnly?.length) {
-    options.provider = { only: preset.providerOnly };
-  }
-
   // Manual body params (top_p, top_k, penalties, etc.)
   if (preset.manualBody) {
     try {
@@ -206,7 +201,6 @@ function resolveNarrativeConfig(): NarrativeConfig {
     temperature: settings.apiSettings.temperature,
     maxTokens: settings.apiSettings.maxTokens,
     reasoningEffort: settings.apiSettings.reasoningEffort ?? 'off',
-    providerOnly: [],
     manualBody: ''
   };
 

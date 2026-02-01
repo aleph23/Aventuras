@@ -1,7 +1,6 @@
 <script lang="ts">
   import { settings } from "$lib/stores/settings.svelte";
   import type { GenerationPreset } from "$lib/types";
-  import type { ProviderInfo } from "$lib/services/ai/core/types";
   import { ask } from "@tauri-apps/plugin-dialog";
   import {
     X,
@@ -36,12 +35,6 @@
   import { Slider } from "$lib/components/ui/slider";
   import { Textarea } from "$lib/components/ui/textarea";
   import { cn } from "$lib/utils/cn";
-
-  interface Props {
-    providerOptions: ProviderInfo[];
-  }
-
-  let { providerOptions }: Props = $props();
 
   const reasoningLevels = ["off", "low", "medium", "high"] as const;
   const reasoningLabels: Record<string, string> = {
@@ -313,14 +306,13 @@
       temperature: 0.7,
       maxTokens: 4096,
       reasoningEffort: "off",
-      providerOnly: [],
       manualBody: "",
     };
     editingPresetId = newId;
   }
 
   function startEditingPreset(preset: GenerationPreset) {
-    tempPreset = { ...preset, providerOnly: [...preset.providerOnly] };
+    tempPreset = { ...preset };
     editingPresetId = preset.id;
   }
 

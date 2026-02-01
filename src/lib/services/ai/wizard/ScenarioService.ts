@@ -40,7 +40,6 @@ export interface ProcessSettings {
   topP?: number;
   maxTokens?: number;
   reasoningEffort?: ReasoningEffort;
-  providerOnly?: string[];
   manualBody?: string;
 }
 
@@ -72,7 +71,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     settingRefinement: {
@@ -84,7 +82,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     protagonistGeneration: {
@@ -96,7 +93,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     characterElaboration: {
@@ -108,7 +104,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     characterRefinement: {
@@ -120,7 +115,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     supportingCharacters: {
@@ -132,7 +126,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     openingGeneration: {
@@ -144,7 +137,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
     openingRefinement: {
@@ -156,7 +148,6 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): A
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: preset.reasoningEffort,
-      providerOnly: [],
       manualBody: '',
     },
   };

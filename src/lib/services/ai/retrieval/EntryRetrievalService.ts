@@ -142,7 +142,6 @@ export class EntryRetrievalService {
       manualMode: settings.advancedRequestSettings.manualMode,
       manualBody: this.preset.manualBody,
       reasoningEffort: this.preset.reasoningEffort,
-      providerOnly: this.preset.providerOnly,
     });
   }
 

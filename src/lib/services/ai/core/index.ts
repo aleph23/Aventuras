@@ -47,12 +47,8 @@ export {
   buildProviderConfig,
   parseManualBody,
   sanitizeManualBody,
-  normalizeProviderOnly,
   buildManualBodyDefaults,
   serializeManualBody,
   type ExtraBodyOptions,
   type ManualBodyDefaults,
 } from './requestOverrides';
-
-// Provider data
-export { DEFAULT_PROVIDERS } from './providers';

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { settings } from "$lib/stores/settings.svelte";
   import type { APIProfile, ProviderType } from "$lib/types";
-  import type { ProviderInfo } from "$lib/services/ai/core/types";
   import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
   import ProviderTypeSelector from "$lib/components/settings/ProviderTypeSelector.svelte";
   import {
@@ -42,12 +41,6 @@
   import IconRow from "$lib/components/ui/icon-row.svelte";
   import X from "@lucide/svelte/icons/x";
   import { isMobileDevice } from "$lib/utils/swipe";
-
-  interface Props {
-    providerOptions: ProviderInfo[];
-  }
-
-  let { providerOptions }: Props = $props();
 
   let editingProfileId = $state<string | null>(null);
   let isNewProfile = $state(false);
