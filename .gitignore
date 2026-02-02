@@ -228,6 +228,7 @@ sunicon.*
 .claude/
 scripts/ralph/
 tasks/
+.planning/
 
 # -----------------------------------------------------------------------------
 # AUR Package (separate repo)
