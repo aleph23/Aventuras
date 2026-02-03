@@ -148,7 +148,6 @@
         settings.saveSystemServicesSettings();
       },
       "Analyzes writing style match (Default: 5)",
-      5,
     )}
   </div>
 </div>

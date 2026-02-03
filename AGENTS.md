@@ -2,15 +2,15 @@
 
 This file contains guidelines for agentic coding assistants working on the Aventuras codebase.
 
-# OVER-ARCHING PRINCIPLES
+# Overarching Principles
 
 All work on this repo strives toward these goals:
 - Pro Freedom (beer, liberty, and information)
 - Any opportunity to expose an element of configuration to the end user will be taken
 - The end-product will be fully user customizable
 - The end-product will accept plugins / extensions (preferably SillyTavern Extension compatible)
-- The end product will always move toward Rust (svelte to Dioxus or similar)
-- The end-produce will utilize
+- The end-product will always move toward Rust (Svelte to Dioxus or similar)
+- The end-product will utilize / adapt Aceternity style backgrounds
 
 ## Build/Lint/Test Commands
 

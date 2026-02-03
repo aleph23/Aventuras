@@ -42,6 +42,18 @@
     console.log("[ActionInput]", ...args);
   }
 
+  /**
+   * Calculate the current turn number from story entries.
+   * 1 turn = 2 entries (user action + narration), so we divide by 2.
+   * Uses entry position for accurate turn calculation even with branching.
+   */
+  function getCurrentTurn(): number {
+    if (!story.entries.length) return 0;
+    const lastEntry = story.entries[story.entries.length - 1];
+    const position = lastEntry?.position ?? story.entries.length;
+    return Math.ceil(position / 2);
+  }
+
   let inputValue = $state("");
   let actionType = $state<"do" | "say" | "think" | "story" | "free">("do");
   let isRawActionChoice = $state(false); // True when submitting an AI-generated choice (no prefix/suffix)
@@ -711,8 +723,7 @@
       const branchChapters = story.currentBranchChapters;
       const timelineFillInterval =
         settings.systemServicesSettings.timelineFill.triggerInterval ?? 1;
-      // 1 turn = 2 entries (user action + narration), calculate from entries count
-      const currentTurn = Math.ceil(story.entries.length / 2);
+      const currentTurn = getCurrentTurn();
 
       if (
         timelineFillInterval > 0 &&
@@ -823,8 +834,7 @@
       // Also pass activation tracker for stickiness calculations
       const entryRetrievalInterval =
         settings.systemServicesSettings.entryRetrieval.triggerInterval ?? 1;
-      // 1 turn = 2 entries (user action + narration), calculate from entries count
-      const currentTurnForRetrieval = Math.ceil(story.entries.length / 2);
+      const currentTurnForRetrieval = getCurrentTurn();
 
       if (
         entryRetrievalInterval > 0 &&
@@ -1038,10 +1048,8 @@
           entriesCount: story.entries.length,
         });
 
-        // Compute current turn from last entry position
-        // 1 turn = 2 entries (user action + narration), so divide by 2
-        const position = story.entries[story.entries.length - 1]?.position ?? 0;
-        const currentTurn = Math.ceil(position / 2);
+        // Compute current turn using centralized helper
+        const currentTurn = getCurrentTurn();
 
         // Emit NarrativeResponse event
         emitNarrativeResponse(narrationEntry.id, fullResponse);
@@ -1492,7 +1500,7 @@
 
         // Phase 7: Generate RPG action choices for adventure mode (background, non-blocking)
         const actionChoicesInterval = settings.systemServicesSettings.actionChoices.triggerInterval ?? 1;
-        if (currentTurn % actionChoicesInterval === 0 && !isCreativeMode && !settings.uiSettings.disableSuggestions) {
+        if (actionChoicesInterval > 0 && currentTurn % actionChoicesInterval === 0 && !isCreativeMode && !settings.uiSettings.disableSuggestions) {
           generateActionChoices(fullResponse, worldState).catch((err) => {
             log("Action choices generation failed (non-fatal)", err);
           });

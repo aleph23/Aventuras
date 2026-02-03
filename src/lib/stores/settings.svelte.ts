@@ -2339,59 +2339,30 @@ class SettingsStore {
     let needsSave = false;
 
     // Helper to check if triggerInterval needs migration (undefined or null)
-    const needsMigration = (triggerInterval: number | undefined | null): boolean => {
-      return triggerInterval === undefined || triggerInterval === null;
-    };
+    const needsMigration = (value: number | undefined | null): boolean =>
+      value === undefined || value === null;
 
     // Get defaults for comparison
     const defaults = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
 
-    // Migrate classifier
-    if (needsMigration(this.systemServicesSettings.classifier.triggerInterval)) {
-      this.systemServicesSettings.classifier.triggerInterval = defaults.classifier.triggerInterval;
-      needsSave = true;
-    }
+    // Typed list of services that have triggerInterval - adding a new service is a one-line change
+    const TRIGGER_INTERVAL_SERVICES = [
+      'classifier',
+      'suggestions',
+      'actionChoices',
+      'styleReviewer',
+      'agenticRetrieval',
+      'timelineFill',
+      'entryRetrieval',
+      'imageGeneration',
+    ] as const;
 
-    // Migrate suggestions
-    if (needsMigration(this.systemServicesSettings.suggestions.triggerInterval)) {
-      this.systemServicesSettings.suggestions.triggerInterval = defaults.suggestions.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate actionChoices
-    if (needsMigration(this.systemServicesSettings.actionChoices.triggerInterval)) {
-      this.systemServicesSettings.actionChoices.triggerInterval = defaults.actionChoices.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate styleReviewer
-    if (needsMigration(this.systemServicesSettings.styleReviewer.triggerInterval)) {
-      this.systemServicesSettings.styleReviewer.triggerInterval = defaults.styleReviewer.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate agenticRetrieval
-    if (needsMigration(this.systemServicesSettings.agenticRetrieval.triggerInterval)) {
-      this.systemServicesSettings.agenticRetrieval.triggerInterval = defaults.agenticRetrieval.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate timelineFill
-    if (needsMigration(this.systemServicesSettings.timelineFill.triggerInterval)) {
-      this.systemServicesSettings.timelineFill.triggerInterval = defaults.timelineFill.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate entryRetrieval
-    if (needsMigration(this.systemServicesSettings.entryRetrieval.triggerInterval)) {
-      this.systemServicesSettings.entryRetrieval.triggerInterval = defaults.entryRetrieval.triggerInterval;
-      needsSave = true;
-    }
-
-    // Migrate imageGeneration
-    if (needsMigration(this.systemServicesSettings.imageGeneration.triggerInterval)) {
-      this.systemServicesSettings.imageGeneration.triggerInterval = defaults.imageGeneration.triggerInterval;
-      needsSave = true;
+    for (const key of TRIGGER_INTERVAL_SERVICES) {
+      const current = this.systemServicesSettings[key];
+      if (needsMigration(current.triggerInterval)) {
+        current.triggerInterval = defaults[key].triggerInterval;
+        needsSave = true;
+      }
     }
 
     if (needsSave) {
