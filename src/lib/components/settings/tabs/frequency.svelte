@@ -1,5 +1,15 @@
 <script lang="ts">
   import { settings } from "$lib/stores/settings.svelte";
+  import {
+    getDefaultClassifierSettings,
+    getDefaultEntryRetrievalSettings,
+    getDefaultSuggestionsSettings,
+    getDefaultActionChoicesSettings,
+    getDefaultStyleReviewerSettings,
+    getDefaultImageGenerationSettings,
+    getDefaultTimelineFillSettings,
+    getDefaultAgenticRetrievalSettings,
+  } from "$lib/stores/settings.svelte";
   import { Label } from "$lib/components/ui/label";
   import { Slider } from "$lib/components/ui/slider";
   import { Button } from "$lib/components/ui/button";
@@ -19,15 +29,15 @@
       variant="outline"
       size="sm"
       onclick={() => {
-        // Reset all frequencies to defaults
-        settings.systemServicesSettings.classifier.triggerInterval = 1;
-        settings.systemServicesSettings.entryRetrieval.triggerInterval = 1;
-        settings.systemServicesSettings.suggestions.triggerInterval = 1;
-        settings.systemServicesSettings.actionChoices.triggerInterval = 1;
-        settings.systemServicesSettings.styleReviewer.triggerInterval = 5;
-        settings.systemServicesSettings.imageGeneration.triggerInterval = 1;
-        settings.systemServicesSettings.timelineFill.triggerInterval = 1;
-        settings.systemServicesSettings.agenticRetrieval.triggerInterval = 1;
+        // Reset all frequencies to defaults from centralized settings
+        settings.systemServicesSettings.classifier.triggerInterval = getDefaultClassifierSettings().triggerInterval;
+        settings.systemServicesSettings.entryRetrieval.triggerInterval = getDefaultEntryRetrievalSettings().triggerInterval;
+        settings.systemServicesSettings.suggestions.triggerInterval = getDefaultSuggestionsSettings().triggerInterval;
+        settings.systemServicesSettings.actionChoices.triggerInterval = getDefaultActionChoicesSettings().triggerInterval;
+        settings.systemServicesSettings.styleReviewer.triggerInterval = getDefaultStyleReviewerSettings().triggerInterval;
+        settings.systemServicesSettings.imageGeneration.triggerInterval = getDefaultImageGenerationSettings().triggerInterval;
+        settings.systemServicesSettings.timelineFill.triggerInterval = getDefaultTimelineFillSettings().triggerInterval;
+        settings.systemServicesSettings.agenticRetrieval.triggerInterval = getDefaultAgenticRetrievalSettings().triggerInterval;
         settings.saveSystemServicesSettings();
       }}
     >
