@@ -15,6 +15,7 @@
     Volume2,
     Settings as SettingsIcon,
     X,
+    Clock,
   } from "lucide-svelte";
 
   import * as ResponsiveModal from "$lib/components/ui/responsive-modal";
@@ -43,6 +44,7 @@
 
   import ApiConnectionTab from "./tabs/api-connection.svelte";
   import GenerationTab from "./tabs/generation.svelte";
+  import FrequencyTab from "./tabs/frequency.svelte";
   import InterfaceTab from "./tabs/interface.svelte";
   import ImagesTab from "./tabs/images.svelte";
   import PromptsTab from "./tabs/prompts.svelte";
@@ -53,6 +55,7 @@
   const tabs = [
     { id: "api", label: "API", icon: Key },
     { id: "generation", label: "Generation", icon: Cpu },
+    { id: "frequency", label: "Frequency", icon: Clock },
     { id: "interface", label: "Interface", icon: Palette },
     { id: "prompts", label: "Prompts", icon: Scroll },
     { id: "images", label: "Images", icon: Image },
@@ -63,6 +66,7 @@
   let activeTab = $state<
     | "api"
     | "generation"
+    | "frequency"
     | "interface"
     | "prompts"
     | "images"
@@ -264,6 +268,8 @@
                       {providerOptions}
                       onOpenManualBodyEditor={openManualBodyEditor}
                     />
+                  {:else if tab.id === "frequency"}
+                    <FrequencyTab />
                   {:else if tab.id === "interface"}
                     <InterfaceTab />
                   {:else if tab.id === "prompts"}

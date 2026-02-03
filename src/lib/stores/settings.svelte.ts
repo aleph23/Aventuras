@@ -71,6 +71,7 @@ export interface ClassifierSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
   chatHistoryTruncation: number;  // Max words per chat history entry (0 = no truncation, up to 500)
 }
 
@@ -91,6 +92,7 @@ export function getDefaultClassifierSettingsForProvider(provider: ProviderPreset
     reasoningEffort: preset.reasoningEffort,
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
     chatHistoryTruncation: 0,  // No truncation - full chat history for comprehensive visual descriptors
   };
 }
@@ -173,6 +175,7 @@ export interface SuggestionsSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export function getDefaultSuggestionsSettings(): SuggestionsSettings {
@@ -192,6 +195,7 @@ export function getDefaultSuggestionsSettingsForProvider(provider: ProviderPrese
     reasoningEffort: preset.reasoningEffort,
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -205,6 +209,7 @@ export interface ActionChoicesSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export function getDefaultActionChoicesSettings(): ActionChoicesSettings {
@@ -223,6 +228,7 @@ export function getDefaultActionChoicesSettingsForProvider(provider: ProviderPre
     reasoningEffort: preset.reasoningEffort,
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -355,6 +361,7 @@ export interface AgenticRetrievalSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export const DEFAULT_AGENTIC_RETRIEVAL_PROMPT = `You are a context retrieval agent for an interactive story. Your job is to gather relevant past context that will help the narrator respond to the current situation.
@@ -392,6 +399,7 @@ export function getDefaultAgenticRetrievalSettingsForProvider(provider: Provider
     reasoningEffort: preset.reasoningEffort,
     providerOnly: preset.providerOnly,
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -409,6 +417,7 @@ export interface TimelineFillSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export function getDefaultTimelineFillSettings(): TimelineFillSettings {
@@ -431,6 +440,7 @@ export function getDefaultTimelineFillSettingsForProvider(provider: ProviderPres
     reasoningEffort: preset.reasoningEffort,
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -475,6 +485,7 @@ export interface EntryRetrievalSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export function getDefaultEntryRetrievalSettings(): EntryRetrievalSettings {
@@ -495,6 +506,7 @@ export function getDefaultEntryRetrievalSettingsForProvider(provider: ProviderPr
     reasoningEffort: preset.reasoningEffort,
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -536,6 +548,7 @@ export interface ImageGenerationServiceSettings {
   reasoningEffort: ReasoningEffort;
   providerOnly: string[];
   manualBody: string;
+  triggerInterval: number;
 }
 
 export function getDefaultImageGenerationSettings(): ImageGenerationServiceSettings {
@@ -560,6 +573,7 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -595,6 +609,7 @@ export function getDefaultImageGenerationSettingsForProvider(provider: ProviderP
     reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
+    triggerInterval: 1,
   };
 }
 
@@ -1782,6 +1797,9 @@ class SettingsStore {
 
         // Migrate null profileIds to default OpenRouter profile
         await this.migrateNullProfileIds();
+
+        // Migrate triggerInterval fields for all services
+        await this.migrateTriggerIntervals();
       }
 
       // Load translation settings
@@ -2310,6 +2328,75 @@ class SettingsStore {
     if (wizardNeedsSave) {
       await this.saveWizardSettings();
       console.log('[Settings] Migrated wizard null/undefined profileIds to default OpenRouter profile');
+    }
+  }
+
+  /**
+   * Migrate existing settings to include triggerInterval fields.
+   * This backfills default triggerInterval values for all services that need them.
+   */
+  async migrateTriggerIntervals() {
+    let needsSave = false;
+
+    // Helper to check if triggerInterval needs migration (undefined or null)
+    const needsMigration = (triggerInterval: number | undefined | null): boolean => {
+      return triggerInterval === undefined || triggerInterval === null;
+    };
+
+    // Get defaults for comparison
+    const defaults = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
+
+    // Migrate classifier
+    if (needsMigration(this.systemServicesSettings.classifier.triggerInterval)) {
+      this.systemServicesSettings.classifier.triggerInterval = defaults.classifier.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate suggestions
+    if (needsMigration(this.systemServicesSettings.suggestions.triggerInterval)) {
+      this.systemServicesSettings.suggestions.triggerInterval = defaults.suggestions.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate actionChoices
+    if (needsMigration(this.systemServicesSettings.actionChoices.triggerInterval)) {
+      this.systemServicesSettings.actionChoices.triggerInterval = defaults.actionChoices.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate styleReviewer
+    if (needsMigration(this.systemServicesSettings.styleReviewer.triggerInterval)) {
+      this.systemServicesSettings.styleReviewer.triggerInterval = defaults.styleReviewer.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate agenticRetrieval
+    if (needsMigration(this.systemServicesSettings.agenticRetrieval.triggerInterval)) {
+      this.systemServicesSettings.agenticRetrieval.triggerInterval = defaults.agenticRetrieval.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate timelineFill
+    if (needsMigration(this.systemServicesSettings.timelineFill.triggerInterval)) {
+      this.systemServicesSettings.timelineFill.triggerInterval = defaults.timelineFill.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate entryRetrieval
+    if (needsMigration(this.systemServicesSettings.entryRetrieval.triggerInterval)) {
+      this.systemServicesSettings.entryRetrieval.triggerInterval = defaults.entryRetrieval.triggerInterval;
+      needsSave = true;
+    }
+
+    // Migrate imageGeneration
+    if (needsMigration(this.systemServicesSettings.imageGeneration.triggerInterval)) {
+      this.systemServicesSettings.imageGeneration.triggerInterval = defaults.imageGeneration.triggerInterval;
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      await this.saveSystemServicesSettings();
+      console.log('[Settings] Migrated triggerInterval fields for all services');
     }
   }
 

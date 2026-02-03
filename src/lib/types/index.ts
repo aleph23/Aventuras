@@ -78,7 +78,6 @@ export interface PersistentStyleReviewResult {
 }
 
 export interface PersistentStyleReviewState {
-  messagesSinceLastReview: number;
   lastReview: PersistentStyleReviewResult | null;
 }
 
@@ -841,5 +840,3 @@ export interface VaultTag {
   color: string;
   createdAt: number;
 }
-
-

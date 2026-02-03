@@ -290,41 +290,23 @@
       return;
     }
 
-    // Increment counter for new messages only
-    if (shouldIncrement) {
-      ui.incrementStyleReviewCounter();
-    }
+    // Trigger style review (counter check now happens at call site)
+    log("Triggering style review...");
+    ui.setStyleReviewLoading(true, storyId);
 
-    const triggerInterval =
-      settings.systemServicesSettings.styleReviewer.triggerInterval;
-
-    log("Style review counter", {
-      source,
-      storyId,
-      messagesSinceLastReview: ui.messagesSinceLastStyleReview,
-      triggerInterval,
-      incremented: shouldIncrement,
-    });
-
-    // Check if we've hit the interval threshold
-    if (ui.messagesSinceLastStyleReview >= triggerInterval) {
-      log("Triggering style review...");
-      ui.setStyleReviewLoading(true, storyId);
-
-      try {
-        const result = await aiService.analyzeStyle(
-          story.entries,
-          story.currentStory?.mode ?? "adventure",
-          story.pov,
-          story.tense,
-        );
-        ui.setStyleReview(result, storyId);
-        log("Style review complete", { phrasesFound: result.phrases.length });
-      } catch (error) {
-        log("Style review failed (non-fatal)", error);
-      } finally {
-        ui.setStyleReviewLoading(false, storyId);
-      }
+    try {
+      const result = await aiService.analyzeStyle(
+        story.entries,
+        story.currentStory?.mode ?? "adventure",
+        story.pov,
+        story.tense,
+      );
+      ui.setStyleReview(result, storyId);
+      log("Style review complete", { phrasesFound: result.phrases.length });
+    } catch (error) {
+      log("Style review failed (non-fatal)", error);
+    } finally {
+      ui.setStyleReviewLoading(false, storyId);
     }
   }
 
@@ -727,7 +709,17 @@
       // Use timeline fill (default) or basic retrieval depending on settings
       // Use branch-filtered chapters for correct branch awareness
       const branchChapters = story.currentBranchChapters;
-      if (branchChapters.length > 0 && story.memoryConfig.enableRetrieval) {
+      const timelineFillInterval =
+        settings.systemServicesSettings.timelineFill.triggerInterval ?? 1;
+      // 1 turn = 2 entries (user action + narration), calculate from entries count
+      const currentTurn = Math.ceil(story.entries.length / 2);
+
+      if (
+        timelineFillInterval > 0 &&
+        currentTurn % timelineFillInterval === 0 &&
+        branchChapters.length > 0 &&
+        story.memoryConfig.enableRetrieval
+      ) {
         retrievalTasks.push(
           (async () => {
             try {
@@ -829,11 +821,18 @@
       // Task 2: Lorebook entry retrieval (Tier 3 LLM selection runs here)
       // Pass live-tracked entities for Tier 1 injection
       // Also pass activation tracker for stickiness calculations
+      const entryRetrievalInterval =
+        settings.systemServicesSettings.entryRetrieval.triggerInterval ?? 1;
+      // 1 turn = 2 entries (user action + narration), calculate from entries count
+      const currentTurnForRetrieval = Math.ceil(story.entries.length / 2);
+
       if (
-        story.lorebookEntries.length > 0 ||
-        story.characters.length > 0 ||
-        story.locations.length > 0 ||
-        story.items.length > 0
+        entryRetrievalInterval > 0 &&
+        currentTurnForRetrieval % entryRetrievalInterval === 0 &&
+        (story.lorebookEntries.length > 0 ||
+          story.characters.length > 0 ||
+          story.locations.length > 0 ||
+          story.items.length > 0)
       ) {
         retrievalTasks.push(
           (async () => {
@@ -1039,6 +1038,11 @@
           entriesCount: story.entries.length,
         });
 
+        // Compute current turn from last entry position
+        // 1 turn = 2 entries (user action + narration), so divide by 2
+        const position = story.entries[story.entries.length - 1]?.position ?? 0;
+        const currentTurn = Math.ceil(position / 2);
+
         // Emit NarrativeResponse event
         emitNarrativeResponse(narrationEntry.id, fullResponse);
 
@@ -1119,227 +1123,231 @@
         // Phase 3: Classify the response to extract world state changes
         // Pass visible entries so classifier can see full chat history with time data
         // Filter out the current narration entry to avoid sending it twice (once in chatHistory, once as narrativeResponse)
-        log("Starting classification phase...");
-        ui.setGenerationStatus("Updating world...");
+        const classifierInterval = settings.systemServicesSettings.classifier.triggerInterval ?? 1;
+        if (classifierInterval > 0 && currentTurn % classifierInterval === 0) {
+          log("Starting classification phase...");
+          ui.setGenerationStatus("Updating world...");
+        }
         try {
-          const chatHistoryEntries = story.visibleEntries.filter(
-            (e) => e.id !== narrationEntry.id,
-          );
-          const classificationResult = await aiService.classifyResponse(
-            fullResponse,
-            userActionContent,
-            worldState,
-            currentStoryRef,
-            chatHistoryEntries,
-            currentStoryRef?.timeTracker,
-          );
+          if (classifierInterval > 0 && currentTurn % classifierInterval === 0) {
+            const chatHistoryEntries = story.visibleEntries.filter(
+              (e) => e.id !== narrationEntry.id,
+            );
+            const classificationResult = await aiService.classifyResponse(
+              fullResponse,
+              userActionContent,
+              worldState,
+              currentStoryRef,
+              chatHistoryEntries,
+              currentStoryRef?.timeTracker,
+            );
 
-          log("Classification complete", {
-            newCharacters:
-              classificationResult.entryUpdates.newCharacters.length,
+            log("Classification complete", {
+              newCharacters:
+                classificationResult.entryUpdates.newCharacters.length,
             newLocations: classificationResult.entryUpdates.newLocations.length,
-            newItems: classificationResult.entryUpdates.newItems.length,
-            newStoryBeats:
-              classificationResult.entryUpdates.newStoryBeats.length,
-          });
+              newItems: classificationResult.entryUpdates.newItems.length,
+              newStoryBeats:
+                classificationResult.entryUpdates.newStoryBeats.length,
+            });
 
-          // Emit ClassificationComplete event
-          eventBus.emit<ClassificationCompleteEvent>({
-            type: "ClassificationComplete",
-            messageId: narrationEntry.id,
-            result: classificationResult,
-          });
+            // Emit ClassificationComplete event
+            eventBus.emit<ClassificationCompleteEvent>({
+              type: "ClassificationComplete",
+              messageId: narrationEntry.id,
+              result: classificationResult,
+            });
 
-          // Phase 4: Apply classification results to world state
-          await story.applyClassificationResult(classificationResult);
-          log("World state updated from classification");
-          ui.setGenerationStatus("Saving...");
+            // Phase 4: Apply classification results to world state
+            await story.applyClassificationResult(classificationResult);
+            log("World state updated from classification");
+            ui.setGenerationStatus("Saving...");
 
-          // Phase 4.5: Translate world state elements if enabled (background, non-blocking)
-          const translationSettingsForUI = settings.translationSettings;
-          if (
-            TranslationService.shouldTranslateWorldState(
-              translationSettingsForUI,
-            )
-          ) {
-            const targetLangForUI = translationSettingsForUI.targetLanguage;
+            // Phase 4.5: Translate world state elements if enabled (background, non-blocking)
+            const translationSettingsForUI = settings.translationSettings;
+            if (
+              TranslationService.shouldTranslateWorldState(
+                translationSettingsForUI,
+              )
+            ) {
+              const targetLangForUI = translationSettingsForUI.targetLanguage;
 
-            // Run translation async (non-blocking) - don't await
-            (async () => {
-              try {
-                // Collect items to translate from classification result
-                const itemsToTranslate: {
-                  id: string;
-                  text: string;
-                  type: "name" | "description" | "title";
-                  entityType: string;
-                  field: string;
-                  isArray?: boolean;
-                }[] = [];
+              // Run translation async (non-blocking) - don't await
+              (async () => {
+                try {
+                  // Collect items to translate from classification result
+                  const itemsToTranslate: {
+                    id: string;
+                    text: string;
+                    type: "name" | "description" | "title";
+                    entityType: string;
+                    field: string;
+                    isArray?: boolean;
+                  }[] = [];
 
-                // New characters
-                for (const char of classificationResult.entryUpdates
-                  .newCharacters) {
-                  const dbChar = story.characters.find(
-                    (c) => c.name === char.name,
-                  );
-                  if (dbChar) {
-                    itemsToTranslate.push({
-                      id: `${dbChar.id}:name`,
-                      text: char.name,
-                      type: "name",
-                      entityType: "character",
-                      field: "translatedName",
-                    });
-                    if (char.description) {
+                  // New characters
+                  for (const char of classificationResult.entryUpdates
+                    .newCharacters) {
+                    const dbChar = story.characters.find(
+                      (c) => c.name === char.name,
+                    );
+                    if (dbChar) {
                       itemsToTranslate.push({
-                        id: `${dbChar.id}:desc`,
-                        text: char.description,
-                        type: "description",
+                        id: `${dbChar.id}:name`,
+                        text: char.name,
+                        type: "name",
                         entityType: "character",
-                        field: "translatedDescription",
+                        field: "translatedName",
                       });
-                    }
-                    if (char.relationship) {
-                      itemsToTranslate.push({
-                        id: `${dbChar.id}:rel`,
-                        text: char.relationship,
-                        type: "description",
-                        entityType: "character",
-                        field: "translatedRelationship",
-                      });
-                    }
-                    if (char.traits && char.traits.length > 0) {
-                      itemsToTranslate.push({
-                        id: `${dbChar.id}:traits`,
-                        text: char.traits.join(", "),
-                        type: "description",
-                        entityType: "character",
-                        field: "translatedTraits",
-                        isArray: true,
-                      });
-                    }
-                    if (
-                      char.visualDescriptors &&
-                      char.visualDescriptors.length > 0
-                    ) {
-                      itemsToTranslate.push({
-                        id: `${dbChar.id}:visual`,
-                        text: char.visualDescriptors.join(", "),
-                        type: "description",
-                        entityType: "character",
-                        field: "translatedVisualDescriptors",
-                        isArray: true,
-                      });
+                      if (char.description) {
+                        itemsToTranslate.push({
+                          id: `${dbChar.id}:desc`,
+                          text: char.description,
+                          type: "description",
+                          entityType: "character",
+                          field: "translatedDescription",
+                        });
+                      }
+                      if (char.relationship) {
+                        itemsToTranslate.push({
+                          id: `${dbChar.id}:rel`,
+                          text: char.relationship,
+                          type: "description",
+                          entityType: "character",
+                          field: "translatedRelationship",
+                        });
+                      }
+                      if (char.traits && char.traits.length > 0) {
+                        itemsToTranslate.push({
+                          id: `${dbChar.id}:traits`,
+                          text: char.traits.join(", "),
+                          type: "description",
+                          entityType: "character",
+                          field: "translatedTraits",
+                          isArray: true,
+                        });
+                      }
+                      if (
+                        char.visualDescriptors &&
+                        char.visualDescriptors.length > 0
+                      ) {
+                        itemsToTranslate.push({
+                          id: `${dbChar.id}:visual`,
+                          text: char.visualDescriptors.join(", "),
+                          type: "description",
+                          entityType: "character",
+                          field: "translatedVisualDescriptors",
+                          isArray: true,
+                        });
+                      }
                     }
                   }
-                }
 
-                // New locations
-                for (const loc of classificationResult.entryUpdates
-                  .newLocations) {
-                  const dbLoc = story.locations.find(
-                    (l) => l.name === loc.name,
-                  );
-                  if (dbLoc) {
-                    itemsToTranslate.push({
-                      id: `${dbLoc.id}:name`,
-                      text: loc.name,
-                      type: "name",
-                      entityType: "location",
-                      field: "translatedName",
-                    });
-                    if (loc.description) {
+                  // New locations
+                  for (const loc of classificationResult.entryUpdates
+                    .newLocations) {
+                    const dbLoc = story.locations.find(
+                      (l) => l.name === loc.name,
+                    );
+                    if (dbLoc) {
                       itemsToTranslate.push({
-                        id: `${dbLoc.id}:desc`,
-                        text: loc.description,
-                        type: "description",
+                        id: `${dbLoc.id}:name`,
+                        text: loc.name,
+                        type: "name",
                         entityType: "location",
-                        field: "translatedDescription",
+                        field: "translatedName",
                       });
+                      if (loc.description) {
+                        itemsToTranslate.push({
+                          id: `${dbLoc.id}:desc`,
+                          text: loc.description,
+                          type: "description",
+                          entityType: "location",
+                          field: "translatedDescription",
+                        });
+                      }
                     }
                   }
-                }
 
-                // New items
+                  // New items
                 for (const item of classificationResult.entryUpdates.newItems) {
                   const dbItem = story.items.find((i) => i.name === item.name);
-                  if (dbItem) {
-                    itemsToTranslate.push({
-                      id: `${dbItem.id}:name`,
-                      text: item.name,
-                      type: "name",
-                      entityType: "item",
-                      field: "translatedName",
-                    });
-                    if (item.description) {
+                    if (dbItem) {
                       itemsToTranslate.push({
-                        id: `${dbItem.id}:desc`,
-                        text: item.description,
-                        type: "description",
+                        id: `${dbItem.id}:name`,
+                        text: item.name,
+                        type: "name",
                         entityType: "item",
-                        field: "translatedDescription",
+                        field: "translatedName",
                       });
+                      if (item.description) {
+                        itemsToTranslate.push({
+                          id: `${dbItem.id}:desc`,
+                          text: item.description,
+                          type: "description",
+                          entityType: "item",
+                          field: "translatedDescription",
+                        });
+                      }
                     }
                   }
-                }
 
-                // New story beats
-                for (const beat of classificationResult.entryUpdates
-                  .newStoryBeats) {
-                  const dbBeat = story.storyBeats.find(
-                    (b) => b.title === beat.title,
-                  );
-                  if (dbBeat) {
-                    itemsToTranslate.push({
-                      id: `${dbBeat.id}:title`,
-                      text: beat.title,
-                      type: "title",
-                      entityType: "storyBeat",
-                      field: "translatedTitle",
-                    });
-                    if (beat.description) {
-                      itemsToTranslate.push({
-                        id: `${dbBeat.id}:desc`,
-                        text: beat.description,
-                        type: "description",
-                        entityType: "storyBeat",
-                        field: "translatedDescription",
-                      });
-                    }
-                  }
-                }
-
-                if (itemsToTranslate.length > 0) {
-                  log("Translating world state elements", {
-                    count: itemsToTranslate.length,
-                    targetLang: targetLangForUI,
-                  });
-                  const uiItems = itemsToTranslate.map((item) => ({
-                    id: item.id,
-                    text: item.text,
-                    type: item.type,
-                  }));
-                  const translated = await aiService.translateUIElements(
-                    uiItems,
-                    targetLangForUI,
-                  );
-
-                  // Apply translations to database
-                  for (const translatedItem of translated) {
-                    const [entityId, fieldType] = translatedItem.id.split(":");
-                    const originalItem = itemsToTranslate.find(
-                      (i) => i.id === translatedItem.id,
+                  // New story beats
+                  for (const beat of classificationResult.entryUpdates
+                    .newStoryBeats) {
+                    const dbBeat = story.storyBeats.find(
+                      (b) => b.title === beat.title,
                     );
-                    if (!originalItem) continue;
+                    if (dbBeat) {
+                      itemsToTranslate.push({
+                        id: `${dbBeat.id}:title`,
+                        text: beat.title,
+                        type: "title",
+                        entityType: "storyBeat",
+                        field: "translatedTitle",
+                      });
+                      if (beat.description) {
+                        itemsToTranslate.push({
+                          id: `${dbBeat.id}:desc`,
+                          text: beat.description,
+                          type: "description",
+                          entityType: "storyBeat",
+                          field: "translatedDescription",
+                        });
+                      }
+                    }
+                  }
 
-                    // Handle array fields (traits, visualDescriptors) by splitting the translated comma-separated string
-                    const translatedValue = originalItem.isArray
-                      ? translatedItem.text
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                      : translatedItem.text;
+                  if (itemsToTranslate.length > 0) {
+                    log("Translating world state elements", {
+                      count: itemsToTranslate.length,
+                      targetLang: targetLangForUI,
+                    });
+                    const uiItems = itemsToTranslate.map((item) => ({
+                      id: item.id,
+                      text: item.text,
+                      type: item.type,
+                    }));
+                    const translated = await aiService.translateUIElements(
+                      uiItems,
+                      targetLangForUI,
+                    );
+
+                    // Apply translations to database
+                    for (const translatedItem of translated) {
+                    const [entityId, fieldType] = translatedItem.id.split(":");
+                      const originalItem = itemsToTranslate.find(
+                        (i) => i.id === translatedItem.id,
+                      );
+                      if (!originalItem) continue;
+
+                      // Handle array fields (traits, visualDescriptors) by splitting the translated comma-separated string
+                      const translatedValue = originalItem.isArray
+                        ? translatedItem.text
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                        : translatedItem.text;
 
                     const updateData: Record<string, string | string[] | null> =
                       {
@@ -1347,110 +1355,114 @@
                         translationLanguage: targetLangForUI,
                       };
 
-                    if (originalItem.entityType === "character") {
-                      await database.updateCharacter(
-                        entityId,
-                        updateData as any,
-                      );
-                    } else if (originalItem.entityType === "location") {
-                      await database.updateLocation(
-                        entityId,
-                        updateData as any,
-                      );
-                    } else if (originalItem.entityType === "item") {
-                      await database.updateItem(entityId, updateData as any);
-                    } else if (originalItem.entityType === "storyBeat") {
-                      await database.updateStoryBeat(
-                        entityId,
-                        updateData as any,
-                      );
+                      if (originalItem.entityType === "character") {
+                        await database.updateCharacter(
+                          entityId,
+                          updateData as any,
+                        );
+                      } else if (originalItem.entityType === "location") {
+                        await database.updateLocation(
+                          entityId,
+                          updateData as any,
+                        );
+                      } else if (originalItem.entityType === "item") {
+                        await database.updateItem(entityId, updateData as any);
+                      } else if (originalItem.entityType === "storyBeat") {
+                        await database.updateStoryBeat(
+                          entityId,
+                          updateData as any,
+                        );
+                      }
                     }
+
+                    // Refresh story state to show translations in sidebar
+                    await story.refreshWorldState();
+                    log("World state elements translated", {
+                      count: translated.length,
+                    });
                   }
-
-                  // Refresh story state to show translations in sidebar
-                  await story.refreshWorldState();
-                  log("World state elements translated", {
-                    count: translated.length,
-                  });
+                } catch (error) {
+                  log("World state translation failed (non-fatal)", error);
                 }
-              } catch (error) {
-                log("World state translation failed (non-fatal)", error);
-              }
-            })();
-          }
-
-          // Phase 9: Generate images for imageable scenes (background, non-blocking)
-          // This runs inside the classification try block because we need the presentCharacterNames
-          // If translation is enabled, wait for it so we can embed images in translated text
-          if (
-            currentStoryRef &&
-            settings.systemServicesSettings.imageGeneration.enabled
-          ) {
-            // Get updated characters from story (includes visual descriptors updates)
-            const presentCharacters = story.characters.filter(
-              (c) =>
-                classificationResult.scene.presentCharacterNames.includes(
-                  c.name,
-                ) || c.relationship === "self",
-            );
-
-            // Build full chat history for image generation context
-            const imageGenChatHistory = story.visibleEntries
-              .filter((e) => e.type === "user_action" || e.type === "narration")
-              .map(
-                (e) =>
-                  `${e.type === "user_action" ? "USER" : "ASSISTANT"}:\n${e.content}`,
-              )
-              .join("\n\n");
-
-            // Wait for translation if enabled, so image analyzer can embed in translated text
-            let translatedNarrative: string | undefined;
-            let translationLanguage: string | undefined;
-
-            if (translationPromise) {
-              log(
-                "Waiting for translation to complete for image generation...",
-              );
-              const translationResult = await translationPromise;
-              if (translationResult) {
-                translatedNarrative = translationResult.translatedContent;
-                translationLanguage = translationResult.targetLanguage;
-                log(
-                  "Translation complete, will embed images in translated text",
-                  {
-                    targetLanguage: translationLanguage,
-                  },
-                );
-              }
+              })();
             }
 
-            const imageGenContext: ImageGenerationContext = {
-              storyId: currentStoryRef.id,
-              entryId: narrationEntry.id,
-              narrativeResponse: fullResponse,
-              userAction: userActionContent,
-              presentCharacters,
-              currentLocation:
-                classificationResult.scene.currentLocationName ??
-                worldState.currentLocation?.name,
-              chatHistory: imageGenChatHistory,
-              lorebookContext: lorebookContext ?? undefined,
-              translatedNarrative,
-              translationLanguage,
-            };
-
-            // Store for manual generation if auto-generate is disabled
-            lastImageGenContext = imageGenContext;
-
+            // Phase 9: Generate images for imageable scenes (background, non-blocking)
+            // This runs inside the classification try block because we need the presentCharacterNames
+            // If translation is enabled, wait for it so we can embed images in translated text
+            const imageGenInterval = settings.systemServicesSettings.imageGeneration.triggerInterval ?? 1;
             if (
-              settings.systemServicesSettings.imageGeneration.autoGenerate &&
-              aiService.isImageGenerationEnabled()
+              imageGenInterval > 0 &&
+              currentTurn % imageGenInterval === 0 &&
+              currentStoryRef &&
+              settings.systemServicesSettings.imageGeneration.enabled
             ) {
-              aiService
-                .generateImagesForNarrative(imageGenContext)
-                .catch((err) => {
-                  log("Image generation failed (non-fatal)", err);
-                });
+              // Get updated characters from story (includes visual descriptors updates)
+              const presentCharacters = story.characters.filter(
+                (c) =>
+                  classificationResult.scene.presentCharacterNames.includes(
+                    c.name,
+                  ) || c.relationship === "self",
+              );
+
+              // Build full chat history for image generation context
+              const imageGenChatHistory = story.visibleEntries
+              .filter((e) => e.type === "user_action" || e.type === "narration")
+                .map(
+                  (e) =>
+                    `${e.type === "user_action" ? "USER" : "ASSISTANT"}:\n${e.content}`,
+                )
+                .join("\n\n");
+
+              // Wait for translation if enabled, so image analyzer can embed in translated text
+              let translatedNarrative: string | undefined;
+              let translationLanguage: string | undefined;
+
+              if (translationPromise) {
+                log(
+                  "Waiting for translation to complete for image generation...",
+                );
+                const translationResult = await translationPromise;
+                if (translationResult) {
+                  translatedNarrative = translationResult.translatedContent;
+                  translationLanguage = translationResult.targetLanguage;
+                  log(
+                    "Translation complete, will embed images in translated text",
+                    {
+                      targetLanguage: translationLanguage,
+                    },
+                  );
+                }
+              }
+
+              const imageGenContext: ImageGenerationContext = {
+                storyId: currentStoryRef.id,
+                entryId: narrationEntry.id,
+                narrativeResponse: fullResponse,
+                userAction: userActionContent,
+                presentCharacters,
+                currentLocation:
+                  classificationResult.scene.currentLocationName ??
+                  worldState.currentLocation?.name,
+                chatHistory: imageGenChatHistory,
+                lorebookContext: lorebookContext ?? undefined,
+                translatedNarrative,
+                translationLanguage,
+              };
+
+              // Store for manual generation if auto-generate is disabled
+              lastImageGenContext = imageGenContext;
+
+              if (
+                settings.systemServicesSettings.imageGeneration.autoGenerate &&
+                aiService.isImageGenerationEnabled()
+              ) {
+                aiService
+                  .generateImagesForNarrative(imageGenContext)
+                  .catch((err) => {
+                    log("Image generation failed (non-fatal)", err);
+                  });
+              }
             }
           }
         } catch (classifyError) {
@@ -1471,23 +1483,29 @@
         }
 
         // Phase 6: Generate suggestions for creative writing mode (background, non-blocking)
-        if (isCreativeMode && !settings.uiSettings.disableSuggestions) {
+        const suggestionsInterval = settings.systemServicesSettings.suggestions.triggerInterval ?? 1;
+        if (suggestionsInterval > 0 && currentTurn % suggestionsInterval === 0 && isCreativeMode && !settings.uiSettings.disableSuggestions) {
           refreshSuggestions().catch((err) => {
             log("Suggestions generation failed (non-fatal)", err);
           });
         }
 
         // Phase 7: Generate RPG action choices for adventure mode (background, non-blocking)
-        if (!isCreativeMode && !settings.uiSettings.disableSuggestions) {
+        const actionChoicesInterval = settings.systemServicesSettings.actionChoices.triggerInterval ?? 1;
+        if (currentTurn % actionChoicesInterval === 0 && !isCreativeMode && !settings.uiSettings.disableSuggestions) {
           generateActionChoices(fullResponse, worldState).catch((err) => {
             log("Action choices generation failed (non-fatal)", err);
           });
         }
 
         // Phase 8: Check if style review should run (background, non-blocking)
-        checkStyleReview(countStyleReview, styleReviewSource).catch((err) => {
-          log("Style review check failed (non-fatal)", err);
-        });
+        const styleReviewInterval =
+          settings.systemServicesSettings.styleReviewer.triggerInterval ?? 5;
+        if (styleReviewInterval > 0 && currentTurn % styleReviewInterval === 0) {
+          checkStyleReview(countStyleReview, styleReviewSource).catch((err) => {
+            log("Style review check failed (non-fatal)", err);
+          });
+        }
       } else {
         log(
           `No response content after ${MAX_EMPTY_RESPONSE_RETRIES} attempts (fullResponse was empty or whitespace)`,

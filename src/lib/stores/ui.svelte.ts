@@ -178,7 +178,6 @@ class UIStore {
   suggestionsLoading = $state(false);
 
   // Style reviewer state
-  messagesSinceLastStyleReview = $state(0);
   lastStyleReview = $state<StyleReviewResult | null>(null);
   styleReviewLoading = $state(false);
   private currentStyleReviewStoryId = $state<string | null>(null);
@@ -377,9 +376,7 @@ class UIStore {
     }, 500);
   }
 
-  private updateStreamingTokenCount() {
-    const contentToCount = this.htmlRenderer 
-      ? this.htmlRenderer.getRawContent() 
+  private updateStreamingTokenCount() {const contentToCount = this.htmlRenderer ? this.htmlRenderer.getRawContent()
       : this.streamingContent;
     this.streamingReasoningTokens = countTokens(this.streamingReasoning);
     this.streamingContentTokens = countTokens(contentToCount);
@@ -405,7 +402,6 @@ class UIStore {
     }
     // Final token count update
     this.updateStreamingTokenCount();
-    
     let finalContent: string;
     if (this.htmlRenderer) {
       finalContent = this.htmlRenderer.getRawContent();
@@ -1019,17 +1015,14 @@ class UIStore {
     this.currentStyleReviewStoryId = storyId;
     this.styleReviewLoading = false;
     if (state) {
-      this.messagesSinceLastStyleReview = state.messagesSinceLastReview;
       // Convert persistent format to StyleReviewResult (they're compatible)
       this.lastStyleReview = state.lastReview as StyleReviewResult | null;
       console.log('[UI] Restored style review state', {
         storyId,
-        messagesSinceLastReview: state.messagesSinceLastReview,
         hasLastReview: !!state.lastReview,
       });
     } else {
       // Reset to defaults for new stories or stories without style review data
-      this.messagesSinceLastStyleReview = 0;
       this.lastStyleReview = null;
     }
   }
@@ -1039,7 +1032,6 @@ class UIStore {
    * Only clears in-memory state, does not affect DB.
    */
   clearStyleReviewState() {
-    this.messagesSinceLastStyleReview = 0;
     this.lastStyleReview = null;
     this.styleReviewLoading = false;
     this.currentStyleReviewStoryId = null;
@@ -1053,7 +1045,6 @@ class UIStore {
     if (!storyId) return;
 
     const state: PersistentStyleReviewState = {
-      messagesSinceLastReview: this.messagesSinceLastStyleReview,
       lastReview: this.lastStyleReview as PersistentStyleReviewResult | null,
     };
 
@@ -1072,20 +1063,9 @@ class UIStore {
       });
   }
 
-  incrementStyleReviewCounter() {
-    this.messagesSinceLastStyleReview++;
-    this.persistStyleReviewState();
-  }
-
-  resetStyleReviewCounter() {
-    this.messagesSinceLastStyleReview = 0;
-    this.persistStyleReviewState();
-  }
-
   setStyleReview(result: StyleReviewResult, storyId?: string | null) {
     if (storyId && storyId !== this.currentStyleReviewStoryId) {
       const state: PersistentStyleReviewState = {
-        messagesSinceLastReview: 0,
         lastReview: result as PersistentStyleReviewResult,
       };
       this.persistStyleReviewStateForStory(storyId, state);
@@ -1093,7 +1073,6 @@ class UIStore {
     }
 
     this.lastStyleReview = result;
-    this.messagesSinceLastStyleReview = 0;
     this.persistStyleReviewState();
   }
 

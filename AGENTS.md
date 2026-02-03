@@ -2,14 +2,24 @@
 
 This file contains guidelines for agentic coding assistants working on the Aventuras codebase.
 
+# OVER-ARCHING PRINCIPLES
+
+All work on this repo strives toward these goals:
+- Pro Freedom (beer, liberty, and information)
+- Any opportunity to expose an element of configuration to the end user will be taken
+- The end-product will be fully user customizable
+- The end-product will accept plugins / extensions (preferably SillyTavern Extension compatible)
+- The end product will always move toward Rust (svelte to Dioxus or similar)
+- The end-produce will utilize
+
 ## Build/Lint/Test Commands
 
 ### Development & Build
 ```bash
-npm run dev              # Start dev server (Vite)
-npm run build            # Build for production
-npm run preview          # Preview production build
-npm run tauri -- dev     # Start Tauri development window (forward args to the tauri CLI)
+pnpm run dev              # Start dev server (Vite)
+pnpm run build            # Build for production
+pnpm run preview          # Preview production build
+pnpm run tauri -- dev     # Start Tauri development window (forward args to the tauri CLI)
 ```
 
 ### Type Checking
