@@ -5,7 +5,7 @@
  * Uses explicit provider selection from APIProfile.providerType.
  */
 
-import { generateText, streamText, Output, generateImage as sdkGenerateImage } from 'ai';
+import { extractJsonMiddleware, generateText, streamText, Output, generateImage as sdkGenerateImage, wrapLanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createChutes } from '@chutes-ai/ai-sdk-provider';
 import { createPollinations } from 'ai-sdk-pollinations';
@@ -233,7 +233,10 @@ export async function generateStructured<T extends z.ZodType>(
   log('generateStructured', { presetId, model: preset.model, providerType });
 
   const result = await generateText({
+    model: wrapLanguageModel({
     model,
+      middleware: extractJsonMiddleware(),
+    }),
     system,
     prompt,
     output: Output.object({ schema }),
@@ -298,7 +301,10 @@ export function streamStructured<T extends z.ZodType>(options: GenerateObjectOpt
   log('streamStructured', { presetId, model: preset.model, providerType });
 
   return streamText({
+    model: wrapLanguageModel({
     model,
+      middleware: extractJsonMiddleware(),
+    }),
     system,
     prompt,
     output: Output.object({ schema }),
