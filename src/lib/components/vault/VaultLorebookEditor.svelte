@@ -19,16 +19,15 @@
     Flag,
     Brain,
     Calendar,
-    MoreVertical,
-    AlertCircle,
-    Eye,
+
     EyeOff,
     Bot,
-    BookOpen,
+
     Settings,
     List,
+    Maximize2,
+    Minimize2,
   } from "lucide-svelte";
-  import { fade } from "svelte/transition";
   import InteractiveLorebookChat from "./InteractiveLorebookChat.svelte";
   import TagInput from "$lib/components/tags/TagInput.svelte";
 
@@ -39,6 +38,8 @@
   import { Label } from "$lib/components/ui/label";
   import * as Tabs from "$lib/components/ui/tabs";
   import { cn } from "$lib/utils/cn";
+  import SelectTrigger from "../ui/select/select-trigger.svelte";
+  import { Select, SelectContent, SelectItem } from "../ui/select";
 
   interface Props {
     lorebook: VaultLorebook;
@@ -63,6 +64,7 @@
   let error = $state<string | null>(null);
   let activeTab = $state("editor");
   let showInteractiveChat = $state(false);
+  let isMaximized = $state(false);
 
   // Filtered entries
   const filteredEntries = $derived.by(() => {
@@ -231,11 +233,32 @@
   }}
 >
   <ResponsiveModal.Content
-    class="sm:max-w-6xl w-full h-[100dvh] sm:h-[90vh] flex flex-col overflow-hidden p-0 rounded-none sm:rounded-lg"
+    class={cn(
+      "w-full h-[100dvh] sm:h-[90vh] flex flex-col overflow-hidden p-0 transition-all duration-200 rounded-none sm:rounded-lg",
+      isMaximized
+        ? "max-w-[90vw]"
+        : "sm:max-w-6xl",
+    )}
   >
     <ResponsiveModal.Header
       class="px-6 py-4 border-b flex-shrink-0 flex items-center justify-center relative"
     >
+      <div class="absolute left-4 top-1/2 -translate-y-1/2">
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onclick={() => (isMaximized = !isMaximized)}
+        >
+          {#if isMaximized}
+            <Minimize2 class="h-4 w-4" />
+          {:else}
+            <Maximize2 class="h-4 w-4" />
+          {/if}
+          <span class="sr-only">{isMaximized ? "Minimize" : "Maximize"}</span
+          >
+        </Button>
+      </div>
       <ResponsiveModal.Title class="text-center"
         >Edit Lorebook</ResponsiveModal.Title
       >
@@ -476,17 +499,27 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div class="space-y-2">
                         <Label>Entry Type</Label>
-                        <select
-                          bind:value={selectedEntry.type}
-                          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        <Select
+                          type="single"
+                          value={selectedEntry.type}
+                          onValueChange={(v) =>
+                            (selectedEntry.type = v as EntryType)}
                         >
-                          {#each entryTypes as type}
-                            <option value={type}
-                              >{type.charAt(0).toUpperCase() +
-                                type.slice(1)}</option
-                            >
-                          {/each}
-                        </select>
+                          <SelectTrigger id="entry-type">
+                            {`${
+                              selectedEntry.type.charAt(0).toUpperCase() +
+                              selectedEntry.type.slice(1)
+                            }` || "Select type"}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {#each entryTypes as option}
+                              <SelectItem value={option}
+                                >{option.charAt(0).toUpperCase() +
+                                  option.slice(1)}</SelectItem
+                              >
+                            {/each}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div class="space-y-2">
@@ -527,20 +560,35 @@
                     <div class="rounded-lg border bg-muted/30 p-4 space-y-4">
                       <h4 class="text-sm font-medium">Injection Settings</h4>
 
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div
+                        class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
+                      >
                         <div class="space-y-2">
                           <Label class="text-xs">Injection Mode</Label>
-                          <select
-                            bind:value={selectedEntry.injectionMode}
-                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          <Select
+                            type="single"
+                            value={selectedEntry.injectionMode}
+                            onValueChange={(v) =>
+                              (selectedEntry.injectionMode =
+                                v as EntryInjectionMode)}
                           >
-                            {#each injectionModes as mode}
-                              <option value={mode}
-                                >{mode.charAt(0).toUpperCase() +
-                                  mode.slice(1)}</option
-                              >
-                            {/each}
-                          </select>
+                            <SelectTrigger id="injection-mode">
+                              {`${
+                                selectedEntry.injectionMode
+                                  .charAt(0)
+                                  .toUpperCase() +
+                                selectedEntry.injectionMode.slice(1)
+                              }` || "Select mode"}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {#each injectionModes as option}
+                                <SelectItem value={option}
+                                  >{option.charAt(0).toUpperCase() +
+                                    option.slice(1)}</SelectItem
+                                >
+                              {/each}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div class="space-y-2">
@@ -548,24 +596,25 @@
                           <Input
                             type="number"
                             bind:value={selectedEntry.priority}
-                            class="h-9"
                           />
                         </div>
 
-                        <div class="flex items-end pb-1">
-                          <label
-                            class="flex items-center gap-2 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!selectedEntry.disabled}
-                              onchange={() =>
-                                (selectedEntry!.disabled =
-                                  !selectedEntry!.disabled)}
-                              class="h-4 w-4 rounded border-primary text-primary shadow focus:ring-1 focus:ring-ring"
-                            />
-                            <span>Enabled</span>
-                          </label>
+                        <div class="h-4 pt-3">
+                          <div class="flex items-end pb-1">
+                            <label
+                              class="flex items-center gap-2 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!selectedEntry.disabled}
+                                onchange={() =>
+                                  (selectedEntry!.disabled =
+                                    !selectedEntry!.disabled)}
+                                class="h-4 w-4 rounded border-primary text-primary shadow focus:ring-1 focus:ring-ring"
+                              />
+                              <span>Enabled</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -589,11 +638,16 @@
         <!-- Interactive Chat Sidebar -->
         {#if showInteractiveChat && name.trim()}
           <div
-            class="absolute inset-0 z-50 bg-background md:static md:w-[400px] md:border-l md:border-border flex flex-col"
+              class={cn(
+              "absolute inset-0 z-50 bg-background md:static  md:border-l md:border-border flex flex-col transition-all duration-200",
+              isMaximized
+                ? "md:w-[50%]"
+                : "md:w-[400px]",
+            )}
           >
             <InteractiveLorebookChat
-              {lorebook}
               {entries}
+              lorebookName={name}
               onEntriesChange={(newEntries) => {
                 entries = newEntries;
               }}

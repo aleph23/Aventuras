@@ -2,7 +2,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { settings } from '$lib/stores/settings.svelte';
-  import { Loader2, BookOpen } from 'lucide-svelte';
+  import { Loader2, BookOpen, ChevronDown } from 'lucide-svelte';
   import StoryEntry from './StoryEntry.svelte';
   import StreamingEntry from './StreamingEntry.svelte';
   import ActionInput from './ActionInput.svelte';
@@ -11,6 +11,8 @@
   import EmptyState from '$lib/components/ui/empty-state/empty-state.svelte';
 
   let storyContainer: HTMLDivElement;
+  let containerHeight = $state(0);
+  let innerHeight = $state(0);
 
   // Virtualization: Only render recent entries by default for performance
   // This dramatically improves performance with large stories (80k+ words)
@@ -63,21 +65,43 @@
     visibleEntryCount = story.entries.length;
   }
 
+  function scrollToBottom() {
+    if (!storyContainer) return;
+
+    if (scrollRAF !== null) {
+      cancelAnimationFrame(scrollRAF);
+    }
+    
+    // Batch scroll update with requestAnimationFrame for better performance
+    scrollRAF = requestAnimationFrame(() => {
+      if (storyContainer) {
+        storyContainer.scrollTop = storyContainer.scrollHeight;
+      }
+      scrollRAF = null;
+    });
+  }
+
   // Check if container is scrolled near bottom
   function isNearBottom(): boolean {
     if (!storyContainer) return true;
-    const threshold = 100; // pixels from bottom
+    const threshold = 50; // pixels from bottom
     return storyContainer.scrollHeight - storyContainer.scrollTop - storyContainer.clientHeight < threshold;
   }
-
   // Handle scroll events during streaming
   function handleScroll() {
-    // Only track scroll during streaming
-    if (!ui.isStreaming) return;
+    if (!storyContainer) return;
 
-    // If user scrolled away from bottom, break auto-scroll until next user message
-    if (!isNearBottom()) {
-      ui.setScrollBreak(true);
+    // Keep userScrolledUp in sync with actual scroll position
+    // This allows re-engaging auto-scroll when the user scrolls back to bottom
+    const nearBottom = isNearBottom();
+    
+    // Update the break state based on current scroll position
+    // If we are near bottom, we are NOT "scrolled up"
+    // If we are NOT near bottom, we ARE "scrolled up"
+    if (nearBottom) {
+      if (ui.userScrolledUp) ui.setScrollBreak(false);
+    } else {
+      if (!ui.userScrolledUp) ui.setScrollBreak(true);
     }
   }
 
@@ -86,44 +110,32 @@
   let scrollRAF: number | null = null;
   let prevEntryCount = 0;
 
+
   $effect(() => {
-    // Track both entries and streaming state for scroll
+    // Track primary scroll-inducing changes
     const currentCount = story.entries.length;
-    const __ = ui.streamingContent;
+    const _ = innerHeight;
+    const __ = containerHeight;
 
     // Detect if entries were added (vs deleted or unchanged)
     const wasAdded = currentCount > prevEntryCount;
     prevEntryCount = currentCount;
 
-    // Only auto-scroll when entries are added, not when deleted
-    // Also scroll during streaming for real-time updates
-    if (!wasAdded && !ui.isStreaming) return;
+    // Detect if we should scroll: 
+    // 1. We are NOT user-scrolled-up (pinned mode)
+    // 2. OR on user action send message/retry
+    const lastEntry = story.entries[story.entries.length - 1];
+    const shouldScroll = !ui.userScrolledUp || (wasAdded && lastEntry && ['user_action', 'retry'].includes(lastEntry.type));
+    
+    if (!shouldScroll) return;
 
-    // Skip auto-scroll if user has scrolled up (persists until next user message)
-    if (ui.userScrolledUp) return;
-
-    // Cancel any pending scroll to avoid redundant operations
-    if (scrollRAF !== null) {
-      cancelAnimationFrame(scrollRAF);
-    }
-
-    // Batch scroll update with requestAnimationFrame for better performance
-    scrollRAF = requestAnimationFrame(() => {
-      if (storyContainer) {
-        storyContainer.scrollTop = storyContainer.scrollHeight;
-      }
-      scrollRAF = null;
-    });
+    scrollToBottom();
   });
 
   // Scroll to bottom when returning from gallery or other panels
   $effect(() => {
     if (ui.activePanel === 'story' && storyContainer) {
-      requestAnimationFrame(() => {
-        if (storyContainer) {
-          storyContainer.scrollTop = storyContainer.scrollHeight;
-        }
-      });
+      scrollToBottom();
     }
   });
 </script>
@@ -132,10 +144,11 @@
   <!-- Story entries container -->
   <div
     bind:this={storyContainer}
+    bind:clientHeight={containerHeight}
     class="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4"
     onscroll={handleScroll}
   >
-    <div class="mx-auto max-w-3xl space-y-3 sm:space-y-4">
+    <div class="mx-auto max-w-3xl space-y-3 sm:space-y-4" bind:clientHeight={innerHeight}>
       {#if story.entries.length === 0 && !ui.isStreaming}
         <EmptyState
           icon={BookOpen}
@@ -194,10 +207,25 @@
         {/if}
       {/if}
     </div>
+
+    <!-- Scroll to bottom button -->
+    {#if ui.userScrolledUp}
+      <div class="sticky bottom-2 flex justify-center w-full pointer-events-none pb-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          class="h-9 w-9 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm pointer-events-auto hover:bg-accent animate-in fade-in slide-in-from-bottom-2"
+          onclick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown class="h-5 w-5" />
+        </Button>
+      </div>
+    {/if}
   </div>
 
   <!-- Action input area -->
-  <div class="border-t border-border bg-card px-3 sm:pl-6 sm:pr-8 pt-2 pb-1 sm:py-4 pb-safe">
+  <div class="border-t border-border bg-card px-3 sm:pl-6 sm:pr-8 pt-2 pb-1 sm:py-4">
     <div class="mx-auto max-w-3xl">
       <ActionInput />
     </div>
