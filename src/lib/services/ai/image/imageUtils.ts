@@ -7,7 +7,7 @@
 
 import type { EmbeddedImage } from '$lib/types';
 import { generateImage } from '$lib/services/ai/sdk/generate';
-import { PROVIDER_CAPABILITIES } from '$lib/services/ai/sdk/providers/defaults';
+import { PROVIDERS } from '$lib/services/ai/sdk/providers/config';
 import { database } from '$lib/services/database';
 import { settings } from '$lib/stores/settings.svelte';
 import { emitImageReady, emitImageAnalysisFailed } from '$lib/services/events';
@@ -29,7 +29,7 @@ export function isImageGenerationEnabled(): boolean {
   const profile = settings.getProfile(profileId);
   if (!profile) return false;
 
-  const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+  const capabilities = PROVIDERS[profile.providerType].capabilities;
   return capabilities?.supportsImageGeneration ?? false;
 }
 
@@ -46,7 +46,7 @@ export function hasRequiredCredentials(): boolean {
   if (!profile) return false;
 
   // Check if provider supports image generation
-  const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+  const capabilities = PROVIDERS[profile.providerType].capabilities;
   if (!capabilities?.supportsImageGeneration) return false;
 
   // All profile-based providers have credentials if the profile exists

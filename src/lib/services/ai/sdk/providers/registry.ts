@@ -1,40 +1,37 @@
 /**
  * Provider Registry
  *
- * Single entry point for creating Vercel AI SDK providers from APIProfile.
+ * Creates Vercel AI SDK providers from APIProfile.
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createChutes } from '@chutes-ai/ai-sdk-provider';
 import { createPollinations } from 'ai-sdk-pollinations';
+import { createOllama } from 'ollama-ai-provider';
+import { createXai } from '@ai-sdk/xai';
+import { createGroq } from '@ai-sdk/groq';
+import { createZhipu } from 'zhipu-ai-provider';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createMistral } from '@ai-sdk/mistral';
 
-import type { APIProfile, ProviderType } from '$lib/types';
+import type { APIProfile } from '$lib/types';
 import { createTimeoutFetch } from './fetch';
-import { NANOGPT_API_URL } from './defaults';
+import { PROVIDERS, getBaseUrl } from './config';
 
 const DEFAULT_TIMEOUT_MS = 180000;
 
-const DEFAULT_BASE_URLS: Record<ProviderType, string | undefined> = {
-  openrouter: 'https://openrouter.ai/api/v1',
-  openai: undefined,
-  anthropic: undefined,
-  google: undefined,
-  nanogpt: NANOGPT_API_URL,
-  chutes: undefined,
-  pollinations: undefined,
-};
-
 export function createProviderFromProfile(profile: APIProfile) {
   const fetch = createTimeoutFetch(DEFAULT_TIMEOUT_MS);
-  const baseURL = profile.baseUrl || DEFAULT_BASE_URLS[profile.providerType];
+  const baseURL = profile.baseUrl || getBaseUrl(profile.providerType);
 
   switch (profile.providerType) {
     case 'openrouter':
       return createOpenRouter({
         apiKey: profile.apiKey,
-        baseURL: baseURL ?? 'https://openrouter.ai/api/v1',
+        baseURL: baseURL ?? PROVIDERS.openrouter.baseUrl,
         headers: { 'HTTP-Referer': 'https://aventura.camp', 'X-Title': 'Aventura' },
         fetch,
       });
@@ -46,13 +43,13 @@ export function createProviderFromProfile(profile: APIProfile) {
       return createAnthropic({ apiKey: profile.apiKey, baseURL, fetch });
 
     case 'google':
-      throw new Error('Google provider not yet implemented');
+      return createGoogleGenerativeAI({ apiKey: profile.apiKey, baseURL, fetch });
 
     case 'nanogpt':
       return createOpenAI({
         name: 'nanogpt',
         apiKey: profile.apiKey,
-        baseURL: baseURL ?? NANOGPT_API_URL,
+        baseURL: baseURL ?? PROVIDERS.nanogpt.baseUrl,
         fetch,
       });
 
@@ -61,6 +58,59 @@ export function createProviderFromProfile(profile: APIProfile) {
 
     case 'pollinations':
       return createPollinations({ apiKey: profile.apiKey || undefined });
+
+    case 'ollama':
+      return createOllama({ baseURL: baseURL ?? PROVIDERS.ollama.baseUrl });
+
+    case 'lmstudio':
+      return createOpenAI({
+        name: 'lmstudio',
+        apiKey: profile.apiKey || 'lm-studio',
+        baseURL: baseURL ?? PROVIDERS.lmstudio.baseUrl,
+        fetch,
+      });
+
+    case 'llamacpp':
+      return createOpenAI({
+        name: 'llamacpp',
+        apiKey: profile.apiKey || 'llamacpp',
+        baseURL: baseURL ?? PROVIDERS.llamacpp.baseUrl,
+        fetch,
+      });
+
+    case 'nvidia-nim':
+      return createOpenAI({
+        name: 'nvidia-nim',
+        apiKey: profile.apiKey,
+        baseURL: baseURL ?? PROVIDERS['nvidia-nim'].baseUrl,
+        fetch,
+      });
+
+    case 'openai-compatible':
+      if (!baseURL) {
+        throw new Error('OpenAI-compatible provider requires a custom base URL');
+      }
+      return createOpenAI({
+        name: 'openai-compatible',
+        apiKey: profile.apiKey,
+        baseURL,
+        fetch,
+      });
+
+    case 'xai':
+      return createXai({ apiKey: profile.apiKey, baseURL, fetch });
+
+    case 'groq':
+      return createGroq({ apiKey: profile.apiKey, baseURL, fetch });
+
+    case 'zhipu':
+      return createZhipu({ apiKey: profile.apiKey, baseURL, fetch });
+
+    case 'deepseek':
+      return createDeepSeek({ apiKey: profile.apiKey, baseURL, fetch });
+
+    case 'mistral':
+      return createMistral({ apiKey: profile.apiKey, baseURL, fetch });
 
     default: {
       const _exhaustive: never = profile.providerType;

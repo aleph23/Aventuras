@@ -13,7 +13,7 @@
 
 import type { Character, EmbeddedImage } from '$lib/types';
 import { generateImage as sdkGenerateImage } from '$lib/services/ai/sdk/generate';
-import { PROVIDER_CAPABILITIES } from '$lib/services/ai/sdk/providers/defaults';
+import { PROVIDERS } from '$lib/services/ai/sdk/providers/config';
 import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
@@ -50,7 +50,7 @@ export class InlineImageGenerationService {
     if (!profile) return false;
 
     // Check if provider supports image generation
-    const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+    const capabilities = PROVIDERS[profile.providerType].capabilities;
     return capabilities?.supportsImageGeneration ?? false;
   }
 

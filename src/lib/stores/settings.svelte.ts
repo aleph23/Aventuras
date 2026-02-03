@@ -5,7 +5,7 @@ import {
   getDefaultAdvancedSettings,
   getDefaultAdvancedSettingsForProvider,
 } from '$lib/services/ai/wizard/ScenarioService';
-import { PROVIDER_DEFAULTS, OPENROUTER_API_URL } from '$lib/services/ai/sdk/providers/defaults';
+import { PROVIDERS } from '$lib/services/ai/sdk/providers/config';
 import { promptService, type PromptSettings, getDefaultPromptSettings } from '$lib/services/prompts';
 import type { ReasoningEffort } from '$lib/types';
 import { ui } from '$lib/stores/ui.svelte';
@@ -18,9 +18,6 @@ export type ProviderPreset = 'openrouter' | 'nanogpt' | 'custom';
 // Default profile IDs for each provider
 export const DEFAULT_OPENROUTER_PROFILE_ID = 'default-openrouter-profile';
 export const DEFAULT_NANOGPT_PROFILE_ID = 'default-nanogpt-profile';
-
-// Provider URLs
-export const NANOGPT_API_URL = 'https://nano-gpt.com/api/v1';
 
 // NOTE: Default story prompts are now in the centralized prompt system at
 // src/lib/services/prompts/definitions.ts (template ids: 'adventure', 'creative-writing')
@@ -919,11 +916,11 @@ export function getDefaultSystemServicesSettingsForProvider(provider: ProviderTy
 
 /**
  * Get default generation presets (Agent Profiles) for a specific provider.
- * Uses PROVIDER_DEFAULTS from the SDK for model and settings defaults.
+ * Uses PROVIDERS from the SDK for model and settings defaults.
  * @param provider - The provider type to get defaults for
  */
 export function getDefaultGenerationPresetsForProvider(provider: ProviderType): GenerationPreset[] {
-  const defaults = PROVIDER_DEFAULTS[provider];
+  const defaults = PROVIDERS[provider];
 
   return [
     {
@@ -931,10 +928,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Classification',
       description: 'World state, lorebook parsing, entity extraction',
       profileId: null,
-      model: defaults.classification.model,
-      temperature: defaults.classification.temperature,
-      maxTokens: defaults.classification.maxTokens,
-      reasoningEffort: defaults.classification.reasoningEffort,
+      model: defaults.services.classification.model,
+      temperature: defaults.services.classification.temperature,
+      maxTokens: defaults.services.classification.maxTokens,
+      reasoningEffort: defaults.services.classification.reasoningEffort,
       manualBody: ''
     },
     {
@@ -942,10 +939,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Memory & Context',
       description: 'Chapter analysis, timeline, context retrieval',
       profileId: null,
-      model: defaults.memory.model,
-      temperature: defaults.memory.temperature,
-      maxTokens: defaults.memory.maxTokens,
-      reasoningEffort: defaults.memory.reasoningEffort,
+      model: defaults.services.memory.model,
+      temperature: defaults.services.memory.temperature,
+      maxTokens: defaults.services.memory.maxTokens,
+      reasoningEffort: defaults.services.memory.reasoningEffort,
       manualBody: ''
     },
     {
@@ -953,10 +950,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Suggestions',
       description: 'Plot suggestions, action choices, style review',
       profileId: null,
-      model: defaults.suggestions.model,
-      temperature: defaults.suggestions.temperature,
-      maxTokens: defaults.suggestions.maxTokens,
-      reasoningEffort: defaults.suggestions.reasoningEffort,
+      model: defaults.services.suggestions.model,
+      temperature: defaults.services.suggestions.temperature,
+      maxTokens: defaults.services.suggestions.maxTokens,
+      reasoningEffort: defaults.services.suggestions.reasoningEffort,
       manualBody: ''
     },
     {
@@ -964,10 +961,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Agentic',
       description: 'Autonomous lore management and retrieval',
       profileId: null,
-      model: defaults.agentic.model,
-      temperature: defaults.agentic.temperature,
-      maxTokens: defaults.agentic.maxTokens,
-      reasoningEffort: defaults.agentic.reasoningEffort,
+      model: defaults.services.agentic.model,
+      temperature: defaults.services.agentic.temperature,
+      maxTokens: defaults.services.agentic.maxTokens,
+      reasoningEffort: defaults.services.agentic.reasoningEffort,
       manualBody: ''
     },
     {
@@ -975,10 +972,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Story Wizard',
       description: 'Story setup, character and setting generation',
       profileId: null,
-      model: defaults.wizard.model,
-      temperature: defaults.wizard.temperature,
-      maxTokens: defaults.wizard.maxTokens,
-      reasoningEffort: defaults.wizard.reasoningEffort,
+      model: defaults.services.wizard.model,
+      temperature: defaults.services.wizard.temperature,
+      maxTokens: defaults.services.wizard.maxTokens,
+      reasoningEffort: defaults.services.wizard.reasoningEffort,
       manualBody: ''
     },
     {
@@ -986,10 +983,10 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       name: 'Translation',
       description: 'Text translation between languages',
       profileId: null,
-      model: defaults.translation.model,
-      temperature: defaults.translation.temperature,
-      maxTokens: defaults.translation.maxTokens,
-      reasoningEffort: defaults.translation.reasoningEffort,
+      model: defaults.services.translation.model,
+      temperature: defaults.services.translation.temperature,
+      maxTokens: defaults.services.translation.maxTokens,
+      reasoningEffort: defaults.services.translation.reasoningEffort,
       manualBody: ''
     }
   ];
@@ -1018,7 +1015,7 @@ class SettingsStore {
 
   apiSettings = $state<APISettings>({
     openaiApiKey: null,
-    openaiApiURL: OPENROUTER_API_URL,
+    openaiApiURL: PROVIDERS.openrouter.baseUrl,
     profiles: [],
     activeProfileId: null,
     mainNarrativeProfileId: DEFAULT_OPENROUTER_PROFILE_ID,
@@ -1177,7 +1174,7 @@ class SettingsStore {
 
     try {
       // Load API settings
-      const apiURL = await database.getSetting('openai_api_url') ?? OPENROUTER_API_URL; //Default to OpenRouter.
+      const apiURL = await database.getSetting('openai_api_url') ?? PROVIDERS.openrouter.baseUrl; //Default to OpenRouter.
 
       // Load API key - check multiple locations for migration
       // Must handle empty strings explicitly since ?? only checks for null/undefined
@@ -1507,7 +1504,7 @@ class SettingsStore {
       // Only ensure default profile and migrate for existing users (who have completed first run)
       // New users will get their profile created in initializeWithProvider after selecting a provider
       if (this.firstRunComplete) {
-        const isOpenRouterUrl = apiURL === OPENROUTER_API_URL;
+        const isOpenRouterUrl = apiURL === PROVIDERS.openrouter.baseUrl;
         const isOpenRouterKey = !!apiKey && apiKey.startsWith('sk-or-');
         const shouldEnsureOpenRouterProfile = this.providerPreset === 'openrouter' || isOpenRouterUrl || isOpenRouterKey;
         const openRouterApiKey = (isOpenRouterUrl || isOpenRouterKey) ? apiKey : null;
@@ -1716,12 +1713,12 @@ class SettingsStore {
       const defaultProfile = this.getProfile(defaultProfileId);
       if (defaultProfile) {
         this.apiSettings.activeProfileId = defaultProfileId;
-        this.apiSettings.openaiApiURL = defaultProfile.baseUrl ?? OPENROUTER_API_URL;
+        this.apiSettings.openaiApiURL = defaultProfile.baseUrl ?? PROVIDERS.openrouter.baseUrl;
         this.apiSettings.openaiApiKey = defaultProfile.apiKey;
       } else if (this.apiSettings.profiles.length > 0) {
         const fallbackProfile = this.apiSettings.profiles[0];
         this.apiSettings.activeProfileId = fallbackProfile.id;
-        this.apiSettings.openaiApiURL = fallbackProfile.baseUrl ?? OPENROUTER_API_URL;
+        this.apiSettings.openaiApiURL = fallbackProfile.baseUrl ?? PROVIDERS.openrouter.baseUrl;
         this.apiSettings.openaiApiKey = fallbackProfile.apiKey;
       } else {
         this.apiSettings.activeProfileId = null;
@@ -1811,7 +1808,7 @@ class SettingsStore {
       if (defaultProfile) {
         return {
           ...this.apiSettings,
-          openaiApiURL: defaultProfile.baseUrl ?? OPENROUTER_API_URL,
+          openaiApiURL: defaultProfile.baseUrl ?? PROVIDERS.openrouter.baseUrl,
           openaiApiKey: defaultProfile.apiKey,
         };
       }
@@ -1821,7 +1818,7 @@ class SettingsStore {
 
     return {
       ...this.apiSettings,
-      openaiApiURL: profile.baseUrl ?? OPENROUTER_API_URL,
+      openaiApiURL: profile.baseUrl ?? PROVIDERS.openrouter.baseUrl,
       openaiApiKey: profile.apiKey,
     };
   }
@@ -1957,7 +1954,7 @@ class SettingsStore {
         id: DEFAULT_OPENROUTER_PROFILE_ID,
         name: 'OpenRouter',
         providerType: 'openrouter',
-        baseUrl: OPENROUTER_API_URL,
+        baseUrl: PROVIDERS.openrouter.baseUrl,
         apiKey: existingApiKey || '', // Migrate existing key if present
         customModels: allModels, // Include all models in use plus defaults
         fetchedModels: [], // Will be populated when user fetches from API
@@ -1973,7 +1970,7 @@ class SettingsStore {
       if (!this.apiSettings.activeProfileId) {
         this.apiSettings.activeProfileId = DEFAULT_OPENROUTER_PROFILE_ID;
         // Also set the current URL/key to match the profile (legacy fields)
-        this.apiSettings.openaiApiURL = defaultProfile.baseUrl ?? OPENROUTER_API_URL;
+        this.apiSettings.openaiApiURL = defaultProfile.baseUrl ?? PROVIDERS.openrouter.baseUrl;
         this.apiSettings.openaiApiKey = defaultProfile.apiKey;
       }
 
@@ -2247,7 +2244,7 @@ class SettingsStore {
     }
 
     // Fall back to legacy check for pre-profile installations
-    return (!this.apiSettings.openaiApiKey && this.apiSettings.openaiApiURL === OPENROUTER_API_URL);
+    return (!this.apiSettings.openaiApiKey && this.apiSettings.openaiApiURL === PROVIDERS.openrouter.baseUrl);
   }
 
   // Wizard settings methods
@@ -2492,16 +2489,16 @@ class SettingsStore {
    */
   async resetAllSettings(preserveApiSettings = true) {
     const provider = this.getDefaultProviderType();
-    const defaults = PROVIDER_DEFAULTS[provider];
+    const defaults = PROVIDERS[provider];
 
     const apiKey = preserveApiSettings ? this.apiSettings.openaiApiKey : null;
-    const apiURL = preserveApiSettings ? this.apiSettings.openaiApiURL : (defaults.baseUrl || OPENROUTER_API_URL);
+    const apiURL = preserveApiSettings ? this.apiSettings.openaiApiURL : (defaults.baseUrl || PROVIDERS.openrouter.baseUrl);
     const profiles = preserveApiSettings ? this.apiSettings.profiles : [];
     const activeProfileId = preserveApiSettings ? this.apiSettings.activeProfileId : null;
     const mainNarrativeProfileId = preserveApiSettings ? this.apiSettings.mainNarrativeProfileId : null;
 
-    const defaultNarrativeModel = defaults.narrative.model;
-    const defaultReasoningEffort = defaults.narrative.reasoningEffort;
+    const defaultNarrativeModel = defaults.services.narrative.model;
+    const defaultReasoningEffort = defaults.services.narrative.reasoningEffort;
 
     // Reset API settings (except URL/key/profiles if preserving)
     this.apiSettings = {
@@ -2603,7 +2600,7 @@ class SettingsStore {
    * This sets up the default profile and all settings based on the provider.
    */
   async initializeWithProvider(provider: ProviderType, apiKey: string) {
-    const defaults = PROVIDER_DEFAULTS[provider];
+    const defaults = PROVIDERS[provider];
 
     // Set the provider preset
     this.providerPreset = provider;
@@ -2611,7 +2608,7 @@ class SettingsStore {
 
     // Create a unique profile ID
     const defaultProfileId = `default-${provider}-profile`;
-    const defaultApiURL = defaults.baseUrl || OPENROUTER_API_URL;
+    const defaultApiURL = defaults.baseUrl || PROVIDERS.openrouter.baseUrl;
 
     const defaultProfile: APIProfile = {
       id: defaultProfileId,
@@ -2641,10 +2638,10 @@ class SettingsStore {
     this.apiSettings.openaiApiKey = apiKey;
 
     // Set provider-specific defaults
-    this.apiSettings.defaultModel = defaults.narrative.model;
-    this.apiSettings.temperature = defaults.narrative.temperature;
-    this.apiSettings.maxTokens = defaults.narrative.maxTokens;
-    this.apiSettings.reasoningEffort = defaults.narrative.reasoningEffort;
+    this.apiSettings.defaultModel = defaults.services.narrative.model;
+    this.apiSettings.temperature = defaults.services.narrative.temperature;
+    this.apiSettings.maxTokens = defaults.services.narrative.maxTokens;
+    this.apiSettings.reasoningEffort = defaults.services.narrative.reasoningEffort;
     this.apiSettings.manualBody = '';
     this.apiSettings.enableThinking = false;
     await database.setSetting('default_model', this.apiSettings.defaultModel);

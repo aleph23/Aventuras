@@ -7,7 +7,7 @@
   import { Slider } from "$lib/components/ui/slider";
   import { RotateCcw } from "lucide-svelte";
   import { listImageModels, clearModelsCache, type ImageModelInfo } from "$lib/services/ai/image/modelListing";
-  import { PROVIDER_CAPABILITIES } from "$lib/services/ai/sdk/providers/defaults";
+  import { PROVIDERS } from "$lib/services/ai/sdk/providers/config";
   import ImageModelSelect from "$lib/components/settings/ImageModelSelect.svelte";
   import type { APIProfile } from "$lib/types";
 
@@ -26,7 +26,7 @@
   // Get profiles that support image generation
   function getImageCapableProfiles(): APIProfile[] {
     return settings.apiSettings.profiles.filter(p =>
-      PROVIDER_CAPABILITIES[p.providerType]?.supportsImageGeneration
+      PROVIDERS[p.providerType]?.capabilities.imageGeneration
     );
   }
 

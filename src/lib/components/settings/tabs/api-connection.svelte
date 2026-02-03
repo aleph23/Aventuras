@@ -2,6 +2,7 @@
   import { settings } from "$lib/stores/settings.svelte";
   import type { APIProfile, ProviderType } from "$lib/types";
   import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
+  import { PROVIDERS, hasDefaultEndpoint } from "$lib/services/ai/sdk/providers/config";
   import ProviderTypeSelector from "$lib/components/settings/ProviderTypeSelector.svelte";
   import {
     Plus,
@@ -16,7 +17,6 @@
     Box,
     AlertCircle,
     Star,
-    Zap,
     RotateCcw,
     Search,
   } from "lucide-svelte";
@@ -62,38 +62,6 @@
   let showHiddenModels = $state(false);
   let modelFilterInput = $state("");
   let showBaseUrlCollapsible = $state(false);
-
-  // Provider defaults for base URLs
-  const providerDefaults: Record<ProviderType, string> = {
-    openrouter: "https://openrouter.ai/api/v1",
-    openai: "",
-    anthropic: "",
-    google: "",
-    nanogpt: "https://nano-gpt.com/api/v1",
-    chutes: "",
-    pollinations: "",
-  };
-
-  // Providers that have a built-in default API endpoint and can fetch models without a custom baseUrl
-  const providerHasDefaultEndpoint: Record<ProviderType, boolean> = {
-    openrouter: true,
-    openai: false,
-    anthropic: true,
-    google: true,
-    nanogpt: true,
-    chutes: true,
-    pollinations: true,
-  };
-
-  const providerDisplayNames: Record<ProviderType, string> = {
-    openrouter: "OpenRouter",
-    openai: "OpenAI Compatible",
-    anthropic: "Anthropic",
-    google: "Google AI",
-    nanogpt: "NanoGPT",
-    chutes: "Chutes",
-    pollinations: "Pollinations",
-  };
 
   // Auto-save debounce state
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -295,21 +263,6 @@
     }
   }
 
-  // Quick-fill presets for OpenAI-compatible endpoints
-  function quickFillOpenai() {
-    formName = "OpenAI";
-    formBaseUrl = "https://api.openai.com/v1";
-  }
-
-  function quickFillNvidianim() {
-    formName = "NVIDIA NIM";
-    formBaseUrl = "https://integrate.api.nvidia.com/v1";
-  }
-
-  function quickFillSelfHosted(port: string, name: string) {
-    formName = name;
-    formBaseUrl = `http://127.0.0.1:${port}/v1`;
-  }
 
   function handleOpenChange(open: boolean, profile: APIProfile) {
     if (open) {
@@ -414,7 +367,7 @@
             value={formProviderType}
             onchange={(v) => {
               formProviderType = v;
-              formName = providerDisplayNames[v];
+              formName = PROVIDERS[v].name;
               formBaseUrl = "";
               formFetchedModels = [];
               formCustomModels = [];
@@ -426,58 +379,7 @@
             }}
           />
 
-          {#if formProviderType === "openai"}
-            <div class="space-y-2">
-              <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <Zap class="h-3 w-3" />
-                <span>Quick fill:</span>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={quickFillOpenai}
-                  class="text-xs h-8"
-                >
-                  OpenAI
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={quickFillNvidianim}
-                  class="text-xs h-8"
-                >
-                  NVIDIA NIM
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => quickFillSelfHosted("11434", "Ollama")}
-                  class="text-xs h-8"
-                >
-                  Ollama
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => quickFillSelfHosted("1234", "LM Studio")}
-                  class="text-xs h-8"
-                >
-                  LM Studio
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => quickFillSelfHosted("8080", "llama.cpp")}
-                  class="text-xs h-8"
-                >
-                  llama.cpp
-                </Button>
-              </div>
-            </div>
-          {/if}
-
-          {#if formProviderType === "openai"}
+          {#if formProviderType === "openai-compatible"}
             <div class="space-y-2">
               <Label for="new-url">
                 Base URL <span class="text-muted-foreground">(required)</span>
@@ -501,7 +403,7 @@
               {#if showBaseUrlCollapsible || formBaseUrl}
                 <Input
                   id="new-url"
-                  placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
+                  placeholder={PROVIDERS[formProviderType].baseUrl || "https://api.example.com/v1"}
                   bind:value={formBaseUrl}
                   class="font-mono text-xs"
                 />
@@ -545,7 +447,7 @@
                 variant="outline"
                 size="sm"
                 onclick={handleFetchModels}
-                disabled={isFetchingModels || (!formBaseUrl && !providerHasDefaultEndpoint[formProviderType])}
+                disabled={isFetchingModels || (!formBaseUrl && !hasDefaultEndpoint(formProviderType))}
               >
                 {#if isFetchingModels}
                   <RefreshCw class="h-4 w-4 animate-spin" />
@@ -624,7 +526,7 @@
           >
           <Button
             onclick={handleSave}
-            disabled={!formName.trim() || (formProviderType === "openai" && !formBaseUrl.trim())}
+            disabled={!formName.trim() || (formProviderType === "openai-compatible" && !formBaseUrl.trim())}
             class="flex-1"
           >
             <Check class="h-4 w-4" />
@@ -750,58 +652,7 @@
                   }}
                 />
 
-                {#if formProviderType === "openai"}
-                  <div class="space-y-2">
-                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Zap class="h-3 w-3" />
-                      <span>Quick fill:</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={quickFillOpenai}
-                        class="text-xs h-8"
-                      >
-                        OpenAI
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={quickFillNvidianim}
-                        class="text-xs h-8"
-                      >
-                        NVIDIA NIM
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => quickFillSelfHosted("11434", "Ollama")}
-                        class="text-xs h-8"
-                      >
-                        Ollama
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => quickFillSelfHosted("1234", "LM Studio")}
-                        class="text-xs h-8"
-                      >
-                        LM Studio
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => quickFillSelfHosted("8080", "llama.cpp")}
-                        class="text-xs h-8"
-                      >
-                        llama.cpp
-                      </Button>
-                    </div>
-                  </div>
-                {/if}
-
-                {#if formProviderType === "openai"}
+                {#if formProviderType === "openai-compatible"}
                   <div class="flex flex-col">
                     <Label class="mb-2">
                       Base URL <span class="text-muted-foreground text-xs">(required)</span>
@@ -824,7 +675,7 @@
                     {#if showBaseUrlCollapsible || formBaseUrl}
                       <Input
                         bind:value={formBaseUrl}
-                        placeholder={providerDefaults[formProviderType] || "https://api.example.com/v1"}
+                        placeholder={PROVIDERS[formProviderType].baseUrl || "https://api.example.com/v1"}
                         class="font-mono text-xs"
                       />
                       <p class="text-xs text-muted-foreground mt-1">
@@ -863,7 +714,7 @@
                         variant="outline"
                         size="sm"
                         onclick={handleFetchModels}
-                        disabled={isFetchingModels || (!formBaseUrl && !providerHasDefaultEndpoint[formProviderType])}
+                        disabled={isFetchingModels || (!formBaseUrl && !hasDefaultEndpoint(formProviderType))}
                       >
                         {#if isFetchingModels}
                           <RefreshCw class="h-3 w-3 animate-spin" />
@@ -1043,7 +894,7 @@
                 <div class="grid gap-1">
                   <Label class="text-muted-foreground text-xs">Base URL</Label>
                   <div class="font-mono text-sm bg-muted p-2 rounded truncate">
-                    {profile.baseUrl || providerDefaults[profile.providerType] || "(default)"}
+                    {profile.baseUrl || PROVIDERS[profile.providerType].baseUrl || "(default)"}
                   </div>
                 </div>
 

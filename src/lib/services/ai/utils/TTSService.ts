@@ -4,7 +4,7 @@
  * Designed for extensibility to support multiple TTS providers.
  */
 
-import { OPENROUTER_API_URL } from '../sdk/providers/defaults';
+import { PROVIDERS } from '../sdk/providers/config';
 import type { APIProfile } from "$lib/types";
 import { corsFetch } from "$lib/services/discovery/utils";
 
@@ -319,7 +319,7 @@ export class OpenAICompatibleTTSProvider extends TTSProvider {
   private getEndpoint(): string {
     // If no custom endpoint, use OpenRouter default
     if (!this.settings.endpoint) {
-      return `${OPENROUTER_API_URL}/audio/speech`;
+      return `${PROVIDERS.openrouter.baseUrl}/audio/speech`;
     }
     // Ensure endpoint ends with /audio/speech
     const url = this.settings.endpoint.replace(/\/$/, "");

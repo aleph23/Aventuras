@@ -25,7 +25,7 @@ import { settings } from '$lib/stores/settings.svelte';
 import type { ProviderType, GenerationPreset, ReasoningEffort, APIProfile } from '$lib/types';
 import { createLogger } from '../core/config';
 import { createProviderFromProfile } from './providers';
-import { PROVIDER_CAPABILITIES } from './providers/defaults';
+import { PROVIDERS } from './providers/config';
 import { promptSchemaMiddleware, patchResponseMiddleware, loggingMiddleware } from './middleware';
 
 const log = createLogger('Generate');
@@ -54,12 +54,22 @@ interface GenerateObjectOptions<T extends z.ZodType> extends BaseGenerateOptions
 
 const PROVIDER_OPTIONS_KEY: Record<ProviderType, string> = {
   openrouter: 'openrouter',
-  openai: 'openai',
-  anthropic: 'anthropic',
-  google: 'google',
   nanogpt: 'nanogpt',
   chutes: 'chutes',
   pollinations: 'pollinations',
+  ollama: 'ollama',
+  lmstudio: 'lmstudio',
+  llamacpp: 'llamacpp',
+  'nvidia-nim': 'openai',
+  'openai-compatible': 'openai',
+  openai: 'openai',
+  anthropic: 'anthropic',
+  google: 'google',
+  xai: 'xai',
+  groq: 'groq',
+  zhipu: 'zhipu',
+  deepseek: 'deepseek',
+  mistral: 'mistral',
 };
 
 const ANTHROPIC_REASONING_BUDGETS: Record<ReasoningEffort, number> = {
@@ -152,7 +162,7 @@ function resolveConfig(presetId: string): ResolvedConfig {
 
   const provider = createProviderFromProfile(profile);
   const model = provider(preset.model) as LanguageModelV3;
-  const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+  const capabilities = PROVIDERS[profile.providerType].capabilities;
 
   return {
     preset,
@@ -405,7 +415,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
     throw new Error(`Profile not found: ${profileId}`);
   }
 
-  const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+  const capabilities = PROVIDERS[profile.providerType].capabilities;
   if (!capabilities?.supportsImageGeneration) {
     throw new Error(`Provider ${profile.providerType} does not support image generation`);
   }

@@ -16,7 +16,7 @@
 
 import { extractPicTags, type ParsedPicTag } from '$lib/utils/inlineImageParser';
 import { generateImage as sdkGenerateImage } from '$lib/services/ai/sdk/generate';
-import { PROVIDER_CAPABILITIES } from '$lib/services/ai/sdk/providers/defaults';
+import { PROVIDERS } from '$lib/services/ai/sdk/providers/config';
 import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
@@ -122,7 +122,7 @@ export class InlineImageTracker {
     // Check if provider supports image generation
     const profile = settings.getProfile(profileId);
     if (!profile) return;
-    const capabilities = PROVIDER_CAPABILITIES[profile.providerType];
+    const capabilities = PROVIDERS[profile.providerType].capabilities;
     if (!capabilities?.supportsImageGeneration) return;
 
     // Build full prompt with style

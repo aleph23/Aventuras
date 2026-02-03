@@ -629,13 +629,23 @@ export interface UIState {
 
 // Provider types matching Vercel AI SDK providers
 export type ProviderType =
-  | 'openrouter'    // @openrouter/ai-sdk-provider
-  | 'openai'        // @ai-sdk/openai
-  | 'anthropic'     // @ai-sdk/anthropic
-  | 'google'        // @ai-sdk/google
-  | 'nanogpt'       // OpenAI-compatible at nano-gpt.com
-  | 'chutes'        // @chutes-ai/ai-sdk-provider
-  | 'pollinations'; // ai-sdk-pollinations
+  | 'openrouter'        // @openrouter/ai-sdk-provider
+  | 'nanogpt'           // OpenAI-compatible at nano-gpt.com
+  | 'chutes'            // @chutes-ai/ai-sdk-provider
+  | 'pollinations'      // ai-sdk-pollinations
+  | 'ollama'            // ollama-ai-provider (local)
+  | 'lmstudio'          // @ai-sdk/openai (local, default localhost:1234)
+  | 'llamacpp'          // @ai-sdk/openai (local, default localhost:8080)
+  | 'nvidia-nim'        // @ai-sdk/openai (NVIDIA NIM)
+  | 'openai-compatible' // @ai-sdk/openai (requires custom baseUrl)
+  | 'openai'            // @ai-sdk/openai
+  | 'anthropic'         // @ai-sdk/anthropic
+  | 'google'            // @ai-sdk/google
+  | 'xai'               // @ai-sdk/xai (Grok)
+  | 'groq'              // @ai-sdk/groq
+  | 'zhipu'             // zhipu-ai-provider (Z.AI/GLM)
+  | 'deepseek'          // @ai-sdk/deepseek
+  | 'mistral';          // @ai-sdk/mistral
 
 // API Profile for saving OpenAI-compatible endpoint configurations
 export interface APIProfile {

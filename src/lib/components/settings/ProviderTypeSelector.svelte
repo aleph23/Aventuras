@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ProviderType } from "$lib/types";
+  import { getProviderList } from "$lib/services/ai/sdk/providers/config";
   import * as Select from "$lib/components/ui/select";
   import { Label } from "$lib/components/ui/label";
 
@@ -11,48 +12,7 @@
 
   let { value, onchange, label = "Provider" }: Props = $props();
 
-  const providers: Array<{
-    value: ProviderType;
-    label: string;
-    description: string;
-    disabled?: boolean;
-  }> = [
-    {
-      value: "openrouter",
-      label: "OpenRouter",
-      description: "Access 100+ models from one API",
-    },
-    {
-      value: "openai",
-      label: "OpenAI (or compatible)",
-      description: "GPT, Azure, NIM, local LLMs, or any OpenAI-compatible API",
-    },
-    {
-      value: "anthropic",
-      label: "Anthropic",
-      description: "Claude models",
-    },
-    {
-      value: 'google',
-      label: 'Google AI',
-      description: 'Gemini models',
-    },
-    {
-      value: 'nanogpt',
-      label: 'NanoGPT',
-      description: 'Pay-as-you-go LLMs and image generation',
-    },
-    {
-      value: 'chutes',
-      label: 'Chutes',
-      description: 'Text and image generation',
-    },
-    {
-      value: 'pollinations',
-      label: 'Pollinations',
-      description: 'Free image generation (no API key needed)',
-    },
-  ];
+  const providers = getProviderList();
 
   function handleChange(newValue: string | undefined) {
     if (newValue && newValue !== value) {
@@ -60,7 +20,6 @@
     }
   }
 
-  // Find current provider for display
   let currentProvider = $derived(providers.find((p) => p.value === value));
 </script>
 
@@ -78,16 +37,10 @@
     </Select.Trigger>
     <Select.Content>
       {#each providers as provider}
-        <Select.Item
-          value={provider.value}
-          disabled={provider.disabled}
-          label={provider.label}
-        >
+        <Select.Item value={provider.value} label={provider.label}>
           <div class="flex flex-col py-1">
             <span class="font-medium">{provider.label}</span>
-            <span class="text-xs text-muted-foreground"
-              >{provider.description}</span
-            >
+            <span class="text-xs text-muted-foreground">{provider.description}</span>
           </div>
         </Select.Item>
       {/each}
