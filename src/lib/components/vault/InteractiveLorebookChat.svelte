@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { VaultLorebook, VaultLorebookEntry } from '$lib/types';
+  import type { VaultLorebookEntry } from '$lib/types';
   import {
     InteractiveLorebookService,
     type PendingChange,
@@ -26,14 +26,14 @@
   let abortController: AbortController | null = null;
 
   interface Props {
-    lorebook: VaultLorebook;
+    lorebookName: string;
     entries: VaultLorebookEntry[];
     onEntriesChange: (entries: VaultLorebookEntry[]) => void;
     onClose: () => void;
     onSave: () => Promise<void>;
   }
 
-  let { lorebook, entries, onEntriesChange, onClose, onSave }: Props = $props();
+  let { lorebookName, entries, onEntriesChange, onClose, onSave }: Props = $props();
 
   // Service instance
   let service: InteractiveLorebookService | null = $state(null);
@@ -72,14 +72,14 @@
       const presetId = settings.getServicePresetId('interactiveLorebook');
 
       service = new InteractiveLorebookService(presetId);
-      service.initialize(lorebook.name || 'New Lorebook', entries.length);
+      service.initialize(lorebookName || 'New Lorebook', entries.length);
 
       // Add initial greeting message (display-only, not sent to API)
       // Note: The actual AI functionality is stubbed during SDK migration
       messages = [{
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Hello! I'm here to help you create and organize entries for "${lorebook.name || 'your new lorebook'}".\n\n**Note:** Interactive lorebook chat is currently unavailable during SDK migration. Please use manual entry creation for now.`,
+        content: `Hello! I'm here to help you create and organize entries for "${lorebookName || 'your new lorebook'}".\n\n**Note:** Interactive lorebook chat is currently unavailable during SDK migration. Please use manual entry creation for now.`,
         timestamp: Date.now(),
         isGreeting: true,
       }];
