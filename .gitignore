@@ -115,6 +115,7 @@ DerivedData/
 .project
 .classpath
 .settings/
+*.settings
 
 # JetBrains
 *.iws
@@ -246,4 +247,5 @@ aventura-release.keystore.old
 design.md
 prompting_guide.md
 nul
+/docs/workflow
 /Loren.md
