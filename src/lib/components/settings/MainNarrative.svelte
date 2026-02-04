@@ -5,7 +5,7 @@
   import { Cpu, AlertTriangle } from "lucide-svelte";
   import type { ReasoningEffort } from "$lib/types";
   import { cn } from "$lib/utils/cn";
-  import { fetchModelsFromProvider } from "$lib/services/ai/sdk/providers";
+  import { fetchModelsFromProvider, supportsReasoning, modelSupportsReasoning } from "$lib/services/ai/sdk/providers";
 
   // Shadcn Components
   import * as Card from "$lib/components/ui/card";
@@ -115,6 +115,21 @@
       (p) => p.id === settings.apiSettings.mainNarrativeProfileId,
     )?.name || "Select Profile",
   );
+
+  // Check if reasoning is supported for the current profile and model
+  let reasoningSupported = $derived.by(() => {
+    const profile = settings.getMainNarrativeProfile();
+    if (!profile) return false;
+
+    // Check if provider supports reasoning
+    if (!supportsReasoning(profile.providerType)) return false;
+
+    // Check if the specific model supports reasoning
+    const model = settings.apiSettings.defaultModel;
+    if (!model) return false;
+
+    return modelSupportsReasoning(model, profile.providerType);
+  });
 
   // Proxy states for sliders to ensure correct array type binding
   let tempValue = $state([settings.apiSettings.temperature]);
@@ -251,37 +266,39 @@
       </div>
     </div>
 
-    <!-- Thinking Row -->
-    <div
-      class={cn(
-        "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t",
-        settings.advancedRequestSettings.manualMode &&
-          "opacity-50 pointer-events-none",
-      )}
-    >
-      <div class="grid gap-4">
-        <div class="flex justify-between">
-          <Label
-            >Thinking: {reasoningLabels[
-              settings.apiSettings.reasoningEffort
-            ]}</Label
-          >
-        </div>
-        <Slider
-          bind:value={reasoningValue}
-          min={0}
-          max={3}
-          step={1}
-          onValueChange={updateReasoning}
-        />
-        <div class="flex justify-between text-xs text-muted-foreground">
-          <span>Off</span>
-          <span>Low</span>
-          <span>Med</span>
-          <span>High</span>
+    <!-- Thinking Row (only shown if provider/model supports reasoning) -->
+    {#if reasoningSupported}
+      <div
+        class={cn(
+          "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t",
+          settings.advancedRequestSettings.manualMode &&
+            "opacity-50 pointer-events-none",
+        )}
+      >
+        <div class="grid gap-4">
+          <div class="flex justify-between">
+            <Label
+              >Thinking: {reasoningLabels[
+                settings.apiSettings.reasoningEffort
+              ]}</Label
+            >
+          </div>
+          <Slider
+            bind:value={reasoningValue}
+            min={0}
+            max={3}
+            step={1}
+            onValueChange={updateReasoning}
+          />
+          <div class="flex justify-between text-xs text-muted-foreground">
+            <span>Off</span>
+            <span>Low</span>
+            <span>Med</span>
+            <span>High</span>
+          </div>
         </div>
       </div>
-    </div>
+    {/if}
 
     {#if settings.advancedRequestSettings.manualMode}
       <div class="mt-4 pt-4 border-t">

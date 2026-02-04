@@ -7,6 +7,7 @@
 
 import {
   extractJsonMiddleware,
+  extractReasoningMiddleware,
   generateText,
   streamText,
   Output,
@@ -25,7 +26,7 @@ import { settings } from '$lib/stores/settings.svelte';
 import type { ProviderType, GenerationPreset, ReasoningEffort, APIProfile } from '$lib/types';
 import { createLogger } from '../core/config';
 import { createProviderFromProfile } from './providers';
-import { PROVIDERS } from './providers/config';
+import { PROVIDERS, getApiModelName, getReasoningMode } from './providers/config';
 import { promptSchemaMiddleware, patchResponseMiddleware, loggingMiddleware } from './middleware';
 
 const log = createLogger('Generate');
@@ -72,7 +73,7 @@ const PROVIDER_OPTIONS_KEY: Record<ProviderType, string> = {
   mistral: 'mistral',
 };
 
-const ANTHROPIC_REASONING_BUDGETS: Record<ReasoningEffort, number> = {
+const REASONING_TOKEN_BUDGETS: Record<ReasoningEffort, number> = {
   off: 0,
   low: 4000,
   medium: 8000,
@@ -89,9 +90,12 @@ export function buildProviderOptions(
   const options: JSONObject = {};
 
   if (preset.reasoningEffort && preset.reasoningEffort !== 'off') {
+    const budgetTokens = REASONING_TOKEN_BUDGETS[preset.reasoningEffort] ?? 8000;
+
     switch (providerType) {
       case 'openrouter':
-        options.reasoning = { effort: preset.reasoningEffort };
+        // OpenRouter uses max_tokens for reasoning budget
+        options.reasoning = { max_tokens: budgetTokens };
         break;
       case 'openai':
         options.reasoningEffort = preset.reasoningEffort;
@@ -99,7 +103,7 @@ export function buildProviderOptions(
       case 'anthropic':
         options.thinking = {
           type: 'enabled',
-          budgetTokens: ANTHROPIC_REASONING_BUDGETS[preset.reasoningEffort] ?? 8000,
+          budgetTokens,
         };
         break;
     }
@@ -161,7 +165,11 @@ function resolveConfig(presetId: string): ResolvedConfig {
   }
 
   const provider = createProviderFromProfile(profile);
-  const model = provider(preset.model) as LanguageModelV3;
+  const reasoningEnabled = preset.reasoningEffort && preset.reasoningEffort !== 'off';
+
+  // For 'suffix' providers (e.g., NanoGPT), append suffix if reasoning is enabled
+  const modelId = getApiModelName(preset.model, profile.providerType, reasoningEnabled);
+  const model = provider(modelId) as LanguageModelV3;
   const capabilities = PROVIDERS[profile.providerType].capabilities;
 
   return {
@@ -170,7 +178,7 @@ function resolveConfig(presetId: string): ResolvedConfig {
     providerType: profile.providerType,
     model,
     providerOptions: buildProviderOptions(preset, profile.providerType),
-    supportsStructuredOutput: capabilities?.supportsStructuredOutput ?? true,
+    supportsStructuredOutput: capabilities?.structuredOutput ?? true,
   };
 }
 
@@ -182,7 +190,12 @@ function resolveNarrativeConfig(): NarrativeConfig {
   }
 
   const provider = createProviderFromProfile(profile);
-  const modelId = settings.apiSettings.defaultModel;
+  const baseModelId = settings.apiSettings.defaultModel;
+  const reasoningEffort = settings.apiSettings.reasoningEffort ?? 'off';
+  const reasoningEnabled = reasoningEffort !== 'off';
+
+  // For 'suffix' providers (e.g., NanoGPT), append suffix if reasoning is enabled
+  const modelId = getApiModelName(baseModelId, profile.providerType, reasoningEnabled);
   const model = provider(modelId) as LanguageModelV3;
 
   const narrativePreset: GenerationPreset = {
@@ -193,7 +206,7 @@ function resolveNarrativeConfig(): NarrativeConfig {
     model: modelId,
     temperature: settings.apiSettings.temperature,
     maxTokens: settings.apiSettings.maxTokens,
-    reasoningEffort: settings.apiSettings.reasoningEffort ?? 'off',
+    reasoningEffort: reasoningEffort,
     manualBody: '',
   };
 
@@ -238,6 +251,20 @@ function buildStructuredMiddleware(supportsStructuredOutput: boolean): LanguageM
 
 function buildPlainTextMiddleware(): LanguageModelV3Middleware[] {
   return [patchResponseMiddleware(), loggingMiddleware()];
+}
+
+/**
+ * Build middleware for narrative generation with reasoning support.
+ * Includes extractReasoningMiddleware for models that use <think> tags.
+ */
+function buildNarrativeMiddleware(): LanguageModelV3Middleware[] {
+  return [
+    patchResponseMiddleware(),
+    // Extract reasoning from <think> tags for models like DeepSeek R1, Mistral Magistral
+    // For native reasoning providers (Anthropic, OpenAI), reasoning comes through the stream directly
+    extractReasoningMiddleware({ tagName: 'think' }),
+    loggingMiddleware(),
+  ];
 }
 
 // ============================================================================
@@ -339,7 +366,7 @@ export function streamNarrative(options: NarrativeGenerateOptions) {
   log('streamNarrative', { model: settings.apiSettings.defaultModel, providerType });
 
   return streamText({
-    model: wrapLanguageModel({ model, middleware: buildPlainTextMiddleware() }),
+    model: wrapLanguageModel({ model, middleware: buildNarrativeMiddleware() }),
     system,
     prompt,
     temperature,
@@ -416,7 +443,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
   }
 
   const capabilities = PROVIDERS[profile.providerType].capabilities;
-  if (!capabilities?.supportsImageGeneration) {
+  if (!capabilities?.imageGeneration) {
     throw new Error(`Provider ${profile.providerType} does not support image generation`);
   }
 

@@ -26,6 +26,7 @@
     AlertTriangle,
   } from "lucide-svelte";
   import ModelSelector from "./ModelSelector.svelte";
+  import { supportsReasoning, modelSupportsReasoning } from "$lib/services/ai/sdk/providers";
 
   // Shadcn Components
   import * as Card from "$lib/components/ui/card";
@@ -457,6 +458,23 @@
   function updateTempPresetReasoning(v: number[]) {
     if (tempPreset) tempPreset.reasoningEffort = getReasoningValue(v[0]) as any;
   }
+
+  // Check if reasoning is supported for the currently editing preset
+  let tempPresetReasoningSupported = $derived.by(() => {
+    if (!tempPreset) return false;
+    const profileId = tempPreset.profileId ?? settings.getDefaultProfileIdForProvider();
+    const profile = settings.getProfile(profileId);
+    if (!profile) return false;
+
+    // Check if provider supports reasoning
+    if (!supportsReasoning(profile.providerType)) return false;
+
+    // Check if the specific model supports reasoning
+    const model = tempPreset.model;
+    if (!model) return false;
+
+    return modelSupportsReasoning(model, profile.providerType);
+  });
 </script>
 
 <div class="pt-6 border-t">
@@ -613,26 +631,28 @@
           </div>
         </div>
 
-        <div class="grid gap-4">
-          <div class="flex justify-between">
-            <Label
-              >Thinking: {reasoningLabels[tempPreset.reasoningEffort]}</Label
-            >
+        {#if tempPresetReasoningSupported}
+          <div class="grid gap-4">
+            <div class="flex justify-between">
+              <Label
+                >Thinking: {reasoningLabels[tempPreset.reasoningEffort]}</Label
+              >
+            </div>
+            <Slider
+              bind:value={tempPresetReasoning}
+              min={0}
+              max={3}
+              step={1}
+              onValueChange={updateTempPresetReasoning}
+            />
+            <div class="flex justify-between text-xs text-muted-foreground px-1">
+              <span>Off</span>
+              <span>Low</span>
+              <span>Medium</span>
+              <span>High</span>
+            </div>
           </div>
-          <Slider
-            bind:value={tempPresetReasoning}
-            min={0}
-            max={3}
-            step={1}
-            onValueChange={updateTempPresetReasoning}
-          />
-          <div class="flex justify-between text-xs text-muted-foreground px-1">
-            <span>Off</span>
-            <span>Low</span>
-            <span>Medium</span>
-            <span>High</span>
-          </div>
-        </div>
+        {/if}
 
         {#if settings.advancedRequestSettings.manualMode}
           <div class="pt-2 border-t">

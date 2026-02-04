@@ -125,9 +125,18 @@ export class NarrativeService {
 				signal
 			});
 
-			// Yield chunks in the expected format
-			for await (const chunk of stream.textStream) {
-				yield { content: chunk, done: false };
+			// Use fullStream to capture both text and reasoning
+			// - Native reasoning providers (Anthropic, OpenAI) emit reasoning-delta parts
+			// - Models using <think> tags have reasoning extracted by extractReasoningMiddleware
+			for await (const part of stream.fullStream) {
+				if (part.type === 'reasoning-delta') {
+					// Reasoning delta from native providers or extracted from <think> tags
+					yield { content: '', reasoning: (part as { text?: string }).text, done: false };
+				} else if (part.type === 'text-delta') {
+					// Regular text content
+					yield { content: (part as { text?: string }).text || '', done: false };
+				}
+				// Ignore other part types (reasoning-start, reasoning-end, tool calls, finish, etc.)
 			}
 
 			yield { content: '', done: true };

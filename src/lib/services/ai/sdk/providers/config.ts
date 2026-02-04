@@ -21,6 +21,24 @@ export interface ProviderCapabilities {
   textGeneration: boolean;
   imageGeneration: boolean;
   structuredOutput: boolean;
+  /**
+   * Whether the provider supports reasoning/thinking.
+   * - 'native': Provider has native reasoning support (Anthropic thinking, OpenAI reasoning)
+   * - 'openrouter': Uses OpenRouter's reasoning parameter
+   * - 'suffix': Append suffix to model name (e.g., NanoGPT's :thinking)
+   * - false: No reasoning support
+   */
+  reasoning: 'native' | 'openrouter' | 'suffix' | false;
+  /** For 'suffix' reasoning mode, the suffix to append (default: ':thinking') */
+  reasoningSuffix?: string;
+  /**
+   * How reasoning is extracted from the response.
+   * - 'sdk-native': SDK handles it natively (Anthropic, DeepSeek)
+   * - 'api-field': Provider sends reasoning in delta.reasoning field, needs fetch wrapper (NanoGPT)
+   * - 'think-tag': Provider embeds reasoning in <think> tags, use extractReasoningMiddleware
+   * - undefined: No extraction needed
+   */
+  reasoningExtraction?: 'sdk-native' | 'api-field' | 'think-tag';
 }
 
 export interface ImageDefaults {
@@ -61,7 +79,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Access 100+ models from one API',
     baseUrl: 'https://openrouter.ai/api/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: 'openrouter', reasoningExtraction: 'think-tag' },
     fallbackModels: ['moonshotai/kimi-k2.5', 'stepfun/step-3.5-flash:free', 'google/gemini-3-flash-preview', 'deepseek/deepseek-v3.2', 'stepfun/step-3.5-flash:free'],
     services: {
       narrative: { model: 'moonshotai/kimi-k2.5', temperature: 1.0, maxTokens: 8192, reasoningEffort: 'high' },
@@ -79,7 +97,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Subscription-Based LLMs and image generation',
     baseUrl: 'https://nano-gpt.com/api/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: false },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: false, reasoning: 'suffix', reasoningSuffix: ':thinking', reasoningExtraction: 'api-field' },
     imageDefaults: { defaultModel: 'z-image-turbo', referenceModel: 'qwen-image', supportedSizes: ['512x512', '1024x1024', '2048x2048'] },
     fallbackModels: ['deepseek/deepseek-v3.2', 'moonshotai/kimi-k2.5:thinking', 'stepfun-ai/step-3.5-flash:thinking', 'openai/gpt-oss-120b'],
     services: {
@@ -98,7 +116,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Text and image generation',
     baseUrl: 'https://api.chutes.ai',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true, reasoning: false },
     imageDefaults: { defaultModel: 'z-image-turbo', referenceModel: 'qwen-image-edit-2511', supportedSizes: ['576x576', '1024x1024', '2048x2048'] },
     fallbackModels: ['deepseek-ai/DeepSeek-V3-0324', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
     // No service defaults - user must configure models in Generation Settings
@@ -109,7 +127,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Free text and image generation (no API key needed)',
     baseUrl: 'https://text.pollinations.ai/openai',
     requiresApiKey: false,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: false },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: false, reasoning: false },
     imageDefaults: { defaultModel: 'flux', referenceModel: 'kontext', supportedSizes: ['512x512', '1024x1024', '2048x2048'] },
     fallbackModels: ['openai', 'mistral', 'llama'],
     // No service defaults - user must configure models in Generation Settings
@@ -120,7 +138,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Run local LLMs (requires Ollama installed)',
     baseUrl: 'http://localhost:11434',
     requiresApiKey: false,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: false },
     fallbackModels: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'qwen2.5', 'phi3', 'gemma2'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -130,7 +148,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Run local LLMs (requires LM Studio installed)',
     baseUrl: 'http://localhost:1234/v1',
     requiresApiKey: false,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false, reasoning: false },
     fallbackModels: ['loaded-model'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -140,7 +158,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Run local LLMs (requires llama.cpp server)',
     baseUrl: 'http://localhost:8080/v1',
     requiresApiKey: false,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false, reasoning: false },
     fallbackModels: ['loaded-model'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -150,7 +168,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'NVIDIA hosted inference microservices',
     baseUrl: 'https://integrate.api.nvidia.com/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: false },
     fallbackModels: ['meta/llama-3.1-70b-instruct', 'meta/llama-3.1-8b-instruct', 'nvidia/llama-3.1-nemotron-70b-instruct'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -160,7 +178,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Any OpenAI-compatible API (requires custom URL)',
     baseUrl: '', // Requires custom baseUrl
     requiresApiKey: false,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: false, reasoning: false },
     fallbackModels: ['default'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -170,7 +188,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'GPT models from OpenAI',
     baseUrl: '', // SDK default
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true, reasoning: 'native', reasoningExtraction: 'sdk-native' },
     imageDefaults: { defaultModel: 'dall-e-3', referenceModel: 'dall-e-2', supportedSizes: ['1024x1024', '1024x1792', '1792x1024'] },
     fallbackModels: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
     // No service defaults - user must configure models in Generation Settings
@@ -181,7 +199,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Claude models',
     baseUrl: '', // SDK default
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: 'native', reasoningExtraction: 'sdk-native' },
     fallbackModels: ['claude-opus-4-5-20251101', 'claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-opus-4-1-20250805', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -191,7 +209,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Gemini models',
     baseUrl: '', // SDK default
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true, reasoning: false },
     imageDefaults: { defaultModel: 'imagen-3.0-generate-002', referenceModel: 'imagen-3.0-generate-002', supportedSizes: ['512x512', '1024x1024'] },
     fallbackModels: ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'],
     // No service defaults - user must configure models in Generation Settings
@@ -202,7 +220,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Grok models from xAI',
     baseUrl: 'https://api.x.ai/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: 'native', reasoningExtraction: 'sdk-native' },
     fallbackModels: ['grok-3', 'grok-3-fast', 'grok-2', 'grok-2-vision'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -212,7 +230,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Ultra-fast inference for open models',
     baseUrl: 'https://api.groq.com/openai/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: false },
     fallbackModels: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -222,7 +240,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'GLM models (Chinese AI provider)',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: true, structuredOutput: true, reasoning: false },
     imageDefaults: { defaultModel: 'cogview-3-plus', referenceModel: 'cogview-3', supportedSizes: ['512x512', '1024x1024'] },
     fallbackModels: ['glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4v', 'glm-4v-plus', 'cogview-3-plus'],
     // No service defaults - user must configure models in Generation Settings
@@ -233,7 +251,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'Cost-effective reasoning models',
     baseUrl: 'https://api.deepseek.com/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: 'native', reasoningExtraction: 'sdk-native' },
     fallbackModels: ['deepseek-chat', 'deepseek-reasoner'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -243,7 +261,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     description: 'European AI provider with strong coding models',
     baseUrl: 'https://api.mistral.ai/v1',
     requiresApiKey: true,
-    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true },
+    capabilities: { textGeneration: true, imageGeneration: false, structuredOutput: true, reasoning: false },
     fallbackModels: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest', 'pixtral-large-latest', 'ministral-8b-latest', 'ministral-3b-latest'],
     // No service defaults - user must configure models in Generation Settings
   },
@@ -271,4 +289,80 @@ export function getProviderList(): Array<{ value: ProviderType; label: string; d
     label: PROVIDERS[key].name,
     description: PROVIDERS[key].description,
   }));
+}
+
+/** Check if a provider supports reasoning/thinking */
+export function supportsReasoning(providerType: ProviderType): boolean {
+  return PROVIDERS[providerType].capabilities.reasoning !== false;
+}
+
+/** Get the reasoning mode for a provider */
+export function getReasoningMode(providerType: ProviderType): 'native' | 'openrouter' | 'suffix' | false {
+  return PROVIDERS[providerType].capabilities.reasoning;
+}
+
+/** Get the reasoning extraction method for a provider */
+export function getReasoningExtraction(providerType: ProviderType): 'sdk-native' | 'api-field' | 'think-tag' | undefined {
+  return PROVIDERS[providerType].capabilities.reasoningExtraction;
+}
+
+/**
+ * Get the display model name (strips reasoning suffix for UI display).
+ * For providers using 'suffix' reasoning mode (e.g., NanoGPT), this removes
+ * the suffix (e.g., ':thinking') from the model name.
+ */
+export function getDisplayModelName(modelId: string, providerType: ProviderType): string {
+  const config = PROVIDERS[providerType];
+  if (config.capabilities.reasoning === 'suffix' && config.capabilities.reasoningSuffix) {
+    const suffix = config.capabilities.reasoningSuffix;
+    if (modelId.endsWith(suffix)) {
+      return modelId.slice(0, -suffix.length);
+    }
+  }
+  return modelId;
+}
+
+/**
+ * Check if a model supports reasoning based on its name.
+ * For 'suffix' providers, a model supports reasoning if it has the suffix.
+ * For other providers, we assume all models support reasoning if the provider does.
+ */
+export function modelSupportsReasoning(modelId: string, providerType: ProviderType): boolean {
+  const config = PROVIDERS[providerType];
+  if (config.capabilities.reasoning === false) {
+    return false;
+  }
+  if (config.capabilities.reasoning === 'suffix' && config.capabilities.reasoningSuffix) {
+    // For suffix providers, only models with the suffix support reasoning
+    return modelId.endsWith(config.capabilities.reasoningSuffix);
+  }
+  // For native/openrouter, assume all models support reasoning
+  return true;
+}
+
+/**
+ * Get the API model name for making requests.
+ * For 'suffix' providers with reasoning enabled, appends the suffix if not already present.
+ */
+export function getApiModelName(
+  modelId: string,
+  providerType: ProviderType,
+  reasoningEnabled: boolean
+): string {
+  const config = PROVIDERS[providerType];
+
+  if (config.capabilities.reasoning === 'suffix' && config.capabilities.reasoningSuffix) {
+    const suffix = config.capabilities.reasoningSuffix;
+    const baseModel = modelId.endsWith(suffix) ? modelId.slice(0, -suffix.length) : modelId;
+
+    if (reasoningEnabled) {
+      // Check if the model with suffix exists (model supports reasoning)
+      // For now, just append if reasoning is enabled - the model list should already have both variants
+      return baseModel + suffix;
+    }
+    return baseModel;
+  }
+
+  // For other providers, return as-is
+  return modelId;
 }

@@ -95,17 +95,21 @@ export class NarrativePhase {
 
           chunkCount++;
 
+          // Accumulate content and reasoning
           if (chunk.content) {
             fullResponse += chunk.content;
-            yield {
-              type: 'narrative_chunk',
-              content: chunk.content,
-              reasoning: chunk.reasoning,
-            } satisfies NarrativeChunkEvent;
           }
-
           if (chunk.reasoning) {
             fullReasoning += chunk.reasoning;
+          }
+
+          // Yield chunk if there's any content or reasoning to display
+          if (chunk.content || chunk.reasoning) {
+            yield {
+              type: 'narrative_chunk',
+              content: chunk.content || '',
+              reasoning: chunk.reasoning,
+            } satisfies NarrativeChunkEvent;
           }
 
           if (chunk.done) {
