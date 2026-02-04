@@ -538,14 +538,8 @@ class AIService {
       recentNarrative,
       availableEntries: entries,
       chapters,
-      // Adapt the chapter query callback if provided
-      getChapterContent: onQueryChapter
-        ? async (chapterId: string) => {
-            const chapter = chapters.find(c => c.id === chapterId);
-            if (!chapter) return 'Chapter not found';
-            return onQueryChapter(chapter.number, 'Provide the full content of this chapter');
-          }
-        : undefined,
+      // Pass through the chapter query callback directly
+      queryChapter: onQueryChapter,
     };
 
     const result = await service.runRetrieval(context, signal);

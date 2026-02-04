@@ -40,8 +40,8 @@ export interface RetrievalContext {
   availableEntries: Entry[];
   /** Chapter summaries for context */
   chapters?: Chapter[];
-  /** Optional callback to get full chapter content */
-  getChapterContent?: (chapterId: string) => Promise<string>;
+  /** Optional callback to ask a question about a chapter */
+  queryChapter?: (chapterNumber: number, question: string) => Promise<string>;
 }
 
 // Alias for export compatibility
@@ -122,11 +122,11 @@ export class AgenticRetrievalService {
         selectedIndices.add(index);
         log('Entry selected', { index, name: plainEntries[index]?.name });
       },
-      getChapterContent: context.getChapterContent
-        ? async (chapterId: string) => {
-            queriedChapterIds.add(chapterId);
-            queryHistory.push(`Queried chapter: ${chapterId}`);
-            return context.getChapterContent!(chapterId);
+      queryChapter: context.queryChapter
+        ? async (chapterNumber: number, question: string) => {
+            queriedChapterIds.add(String(chapterNumber));
+            queryHistory.push(`Queried chapter ${chapterNumber}: ${question}`);
+            return context.queryChapter!(chapterNumber, question);
           }
         : undefined,
     };
