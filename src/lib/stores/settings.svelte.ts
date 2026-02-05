@@ -541,7 +541,7 @@ export interface TTSServiceSettings {
   removeHtmlTags: boolean;        // Removes HTML tags from text (default: false)
   removeAllHtmlContent: boolean;     // Removes content within all HTML tags (default: false)
   htmlTagsToRemoveContent: string; // Specific HTML tags to remove content from (default: span, div)
-  provider: 'openai' | 'google';   // TTS Provider (default: 'openai')
+  provider: 'openai' | 'google' | 'microsoft';   // TTS Provider (default: 'openai')
   volume: number;                  // TTS volume 0.0-1.0 (default: 1.0)
   volumeOverride: boolean;         // Enable volume override (default: false)
   providerVoices: Record<string, string>; // Provider-specific voices
@@ -563,7 +563,7 @@ export function getDefaultTTSSettings(): TTSServiceSettings {
     provider: 'openai',
     volume: 1.0,
     volumeOverride: false,
-    providerVoices: {'openai': 'alloy', 'google': 'en'},
+    providerVoices: {'openai': 'alloy', 'google': 'en', 'microsoft': ''},
   };
 }
 
@@ -583,7 +583,7 @@ export function getDefaultTTSSettingsForProvider(provider: ProviderType): TTSSer
     provider: 'openai',
     volume: 1.0,
     volumeOverride: false,
-    providerVoices: {'openai': 'alloy', 'google': 'en'},
+    providerVoices: {'openai': 'alloy', 'google': 'en', 'microsoft': ''},
   };
 }
 
