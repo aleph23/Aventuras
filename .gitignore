@@ -169,6 +169,11 @@ coverage/
 .nyc_output/
 *.lcov
 .vitest/
+qodana.yaml
+.qlty/
+.vs/
+Aventuras.und/
+docs/workflow/
 test-results/
 playwright-report/
 playwright/.cache/
@@ -247,5 +252,4 @@ aventura-release.keystore.old
 design.md
 prompting_guide.md
 nul
-/docs/workflow
-/Loren.md
+Loren.md
