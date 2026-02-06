@@ -93,13 +93,6 @@
 
   async function playVoicePreview() {
     if (!settings.systemServicesSettings.tts.enabled || isPlayingPreview || isLoadingPreview) {
-      return;
-    }
-    return null
-  }
-
-  async function playVoicePreview() {
-    if (!settings.systemServicesSettings.tts.enabled || isPlayingPreview || isLoadingPreview) {
       return
     }
 
