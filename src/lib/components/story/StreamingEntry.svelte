@@ -47,7 +47,9 @@
 
 <!-- Streaming content container -->
 <div
-  class="border-border border-l-muted-foreground/40 bg-card animate-fade-in rounded-lg border border-l-4 px-4 pt-3 pb-4 shadow-sm"
+  class="border-border border-l-muted-foreground/40 animate-fade-in rounded-lg border border-l-4 px-4 pt-3 pb-4 shadow-sm {story.currentBgImage
+    ? 'bg-card/60 backdrop-blur-md'
+    : 'bg-card'}"
 >
   <!-- Header row -->
   <div class="mb-2 flex items-center gap-2">

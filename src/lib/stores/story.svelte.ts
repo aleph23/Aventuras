@@ -46,6 +46,7 @@ class StoryStore {
   // Current active story
   currentStory = $state<Story | null>(null)
   entries = $state<StoryEntry[]>([])
+  currentBgImage = $state<string | null>(null)
 
   // Lorebook entries (per design doc section 3.2)
   lorebookEntries = $state<Entry[]>([])
@@ -399,6 +400,7 @@ class StoryStore {
   closeStory(): void {
     this.currentStory = null
     this.entries = []
+    this.currentBgImage = null
     this.characters = []
     this.locations = []
     this.items = []
@@ -429,6 +431,7 @@ class StoryStore {
     await database.cleanupOrphanedEmbeddedImages()
 
     this.currentStory = story
+    this.currentBgImage = story.currentBgImage
 
     // Load branch-independent data first
     const [characters, locations, items, storyBeats, checkpoints, lorebookEntries, branches] =
@@ -525,6 +528,7 @@ class StoryStore {
       styleReviewState: null,
       timeTracker: null,
       currentBranchId: null,
+      currentBgImage: null,
     })
 
     this.allStories = [storyData, ...this.allStories]
@@ -725,6 +729,24 @@ class StoryStore {
 
     // Update in-memory state
     this.entries = this.entries.map((e) => (e.id === entryId ? updatedEntry : e))
+  }
+
+  /**
+   * Update the current background image for the story and persist to database.
+   */
+  async updateCurrentBackgroundImage(imageData: string | null): Promise<void> {
+    if (!this.currentStory) return
+
+    log('Updating background image...', { hasData: !!imageData })
+    this.currentBgImage = imageData
+
+    // Keep the currentStory object in sync to prevent any potential inconsistency
+    if (this.currentStory) {
+      this.currentStory.currentBgImage = imageData
+    }
+
+    await database.saveCurrentBackgroundImage(this.currentStory.id, imageData)
+    log('Background image updated and persisted')
   }
 
   /**
@@ -2716,6 +2738,7 @@ class StoryStore {
       styleReviewState: null,
       timeTracker: null,
       currentBranchId: null,
+      currentBgImage: null,
     })
 
     this.allStories = [storyData, ...this.allStories]

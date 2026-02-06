@@ -632,12 +632,20 @@
     retry: BookOpen,
   }
 
-  const styles = {
-    user_action: 'border-l-primary bg-primary/5',
-    narration: 'border-l-muted-foreground/40 bg-card',
-    system: 'border-l-muted bg-muted/30 italic text-muted-foreground',
-    retry: 'border-l-amber-500 bg-amber-500/10',
-  }
+  const styles = $derived({
+    user_action: story.currentBgImage
+      ? 'border-l-primary bg-primary/10 backdrop-blur-md'
+      : 'border-l-primary bg-primary/5',
+    narration: story.currentBgImage
+      ? 'border-l-muted-foreground/40 bg-card/60 backdrop-blur-md'
+      : 'border-l-muted-foreground/40 bg-card',
+    system: story.currentBgImage
+      ? 'border-l-muted bg-muted/20 backdrop-blur-md italic text-muted-foreground'
+      : 'border-l-muted bg-muted/30 italic text-muted-foreground',
+    retry: story.currentBgImage
+      ? 'border-l-amber-500 bg-amber-500/20 backdrop-blur-md'
+      : 'border-l-amber-500 bg-amber-500/10',
+  })
 
   const Icon = $derived(icons[entry.type])
 

@@ -529,6 +529,13 @@ export interface ImageGenerationServiceSettings {
   promptMaxTokens: number
   reasoningEffort: ReasoningEffort
   manualBody: string
+
+  // Background image settings
+  backgroundImagesEnabled: boolean // Enable background image generation (default: false)
+  backgroundProfileId: string | null // API profile for background image generation
+  backgroundModel: string // Model for background image generation
+  backgroundSize: '1280x720' | '720x1280' // Background image size (default: '1280x720')
+  backgroundBlur: number // Background blur amount in pixels (default: 0)
 }
 
 export function getDefaultImageGenerationSettings(): ImageGenerationServiceSettings {
@@ -551,6 +558,11 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     promptMaxTokens: 16384,
     reasoningEffort: 'high',
     manualBody: '',
+    backgroundImagesEnabled: false,
+    backgroundProfileId: null,
+    backgroundModel: 'z-image-turbo',
+    backgroundSize: '1280x720',
+    backgroundBlur: 2, // Default blur for atmosphere
   }
 }
 
@@ -1142,6 +1154,7 @@ class SettingsStore {
     interactiveLorebook: 'agentic',
     imageGeneration: 'suggestions',
     imageAnalysis: 'suggestions',
+    bgImageGeneration: 'suggestions',
     'wizard:settingExpansion': 'wizard',
     'wizard:settingRefinement': 'wizard',
     'wizard:protagonistGeneration': 'wizard',

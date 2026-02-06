@@ -240,6 +240,8 @@
       translateSuggestions: aiService.translateSuggestions.bind(aiService),
       generateActionChoices: aiService.generateActionChoices.bind(aiService),
       translateActionChoices: aiService.translateActionChoices.bind(aiService),
+      analyzeBackgroundChangeAndGenerateImage:
+        aiService.analyzeBackgroundChangeAndGenerateImage.bind(aiService),
     }
   }
 

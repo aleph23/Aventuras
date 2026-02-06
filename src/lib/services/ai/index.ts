@@ -1082,6 +1082,39 @@ class AIService {
   }
 
   /**
+   * Analyze the difference between two story responses and generate a new background image if needed.
+   * This is used to detect when the scene has changed enough to warrant a new background image and generate it.
+   */
+  async analyzeBackgroundChangeAndGenerateImage(
+    storyId: string,
+    visibleEntries: StoryEntry[],
+  ): Promise<void> {
+    log('analyzeBackgroundChangeAndGenerateImage called')
+
+    try {
+      const service = serviceFactory.createBackgroundImageService()
+
+      const result = await service.analyzeReponsesForBackgroundImage(visibleEntries)
+
+      // Ai returns empty string or short response if no change, otherwise the image prompt
+      if (result.changeNecessary) {
+        log('Background change detected, prompt:', result.prompt)
+
+        const image = await service.generateBackgroundImage(result.prompt)
+
+        if (image) {
+          log('Background image generated successfully', { image })
+          story.updateCurrentBackgroundImage(image)
+        } else {
+          log('Background image generation failed')
+        }
+      }
+    } catch (error) {
+      log('Background image analysis failed', error)
+    }
+  }
+
+  /**
    * Get the style prompt for the selected style ID.
    */
   private getStylePrompt(styleId: string): string {

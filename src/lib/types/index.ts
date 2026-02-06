@@ -37,6 +37,7 @@ export interface Story {
   styleReviewState: PersistentStyleReviewState | null
   timeTracker: TimeTracker | null
   currentBranchId: string | null // Active branch (null = main branch for legacy stories)
+  currentBgImage: string | null
 }
 
 // Persistent retry state - lightweight version saved to database

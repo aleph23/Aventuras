@@ -164,8 +164,9 @@ class DatabaseService {
         retry_state,
         style_review_state,
         time_tracker
+        current_background_image
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         story.id,
         story.title,
@@ -180,6 +181,7 @@ class DatabaseService {
         story.retryState ? JSON.stringify(story.retryState) : null,
         story.styleReviewState ? JSON.stringify(story.styleReviewState) : null,
         story.timeTracker ? JSON.stringify(story.timeTracker) : null,
+        story.currentBgImage,
       ],
     )
     return { ...story, createdAt: now, updatedAt: now }
@@ -226,6 +228,10 @@ class DatabaseService {
     if (updates.timeTracker !== undefined) {
       setClauses.push('time_tracker = ?')
       values.push(updates.timeTracker ? JSON.stringify(updates.timeTracker) : null)
+    }
+    if (updates.currentBgImage !== undefined) {
+      setClauses.push('current_background_image = ?')
+      values.push(updates.currentBgImage)
     }
 
     values.push(id)
@@ -1664,6 +1670,17 @@ class DatabaseService {
   }
 
   /**
+   * Save the current background image for a story.
+   */
+  async saveCurrentBackgroundImage(storyId: string, imageData: string | null): Promise<void> {
+    const db = await this.getDb()
+    await db.execute('UPDATE stories SET current_background_image = ? WHERE id = ?', [
+      imageData,
+      storyId,
+    ])
+  }
+
+  /**
    * Clean up orphaned embedded_images that reference non-existent story_entries.
    * This can happen if data was created before foreign key constraints were enforced.
    * Returns the number of orphaned records deleted.
@@ -1735,6 +1752,7 @@ class DatabaseService {
       styleReviewState: row.style_review_state ? JSON.parse(row.style_review_state) : null,
       timeTracker: row.time_tracker ? JSON.parse(row.time_tracker) : null,
       currentBranchId: row.current_branch_id || null,
+      currentBgImage: row.current_background_image || null,
     }
   }
 

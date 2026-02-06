@@ -27,6 +27,11 @@
     { value: '2048x2048', label: '2048x2048 (Highest Quality)' },
   ] as const
 
+  const backgroundSizes = [
+    { value: '1280x720', label: '1280x720 (Widescreen)' },
+    { value: '720x1280', label: '720x1280 (Portrait)' },
+  ] as const
+
   // Get profiles that support image generation
   function getImageCapableProfiles(): APIProfile[] {
     return settings.apiSettings.profiles.filter(
@@ -46,6 +51,10 @@
   let referenceModels = $state<ImageModelInfo[]>([])
   let isLoadingReferenceModels = $state(false)
   let referenceModelsError = $state<string | null>(null)
+
+  let backgroundModels = $state<ImageModelInfo[]>([])
+  let isLoadingBackgroundModels = $state(false)
+  let backgroundModelsError = $state<string | null>(null)
 
   // Filtered models for img2img (reference)
   const referenceImg2ImgModels = $derived(referenceModels.filter((m) => m.supportsImg2Img))
@@ -139,44 +148,83 @@
     }
   })
 
+  // Load background models when profile changes (only if background mode enabled)
+  $effect(() => {
+    const profileId = settings.systemServicesSettings.imageGeneration.backgroundProfileId
+    const backgroundMode = settings.systemServicesSettings.imageGeneration.backgroundImagesEnabled
+    if (
+      backgroundMode &&
+      profileId &&
+      backgroundModels.length === 0 &&
+      !isLoadingBackgroundModels
+    ) {
+      loadModelsForProfile(
+        profileId,
+        (m) => (backgroundModels = m),
+        (l) => (isLoadingBackgroundModels = l),
+        (e) => (backgroundModelsError = e),
+      )
+    }
+  })
+
   // Handle profile change - reload models
-  function onProfileChange(profileId: string, type: 'standard' | 'portrait' | 'reference') {
+  function onProfileChange(
+    profileId: string,
+    type: 'standard' | 'portrait' | 'reference' | 'background',
+  ) {
     const profile = settings.getProfile(profileId)
     if (!profile) return
 
-    if (type === 'standard') {
-      settings.systemServicesSettings.imageGeneration.profileId = profileId
-      standardModels = []
-      loadModelsForProfile(
-        profileId,
-        (m) => (standardModels = m),
-        (l) => (isLoadingStandardModels = l),
-        (e) => (standardModelsError = e),
-      )
-    } else if (type === 'portrait') {
-      settings.systemServicesSettings.imageGeneration.portraitProfileId = profileId
-      portraitModels = []
-      loadModelsForProfile(
-        profileId,
-        (m) => (portraitModels = m),
-        (l) => (isLoadingPortraitModels = l),
-        (e) => (portraitModelsError = e),
-      )
-    } else {
-      settings.systemServicesSettings.imageGeneration.referenceProfileId = profileId
-      referenceModels = []
-      loadModelsForProfile(
-        profileId,
-        (m) => (referenceModels = m),
-        (l) => (isLoadingReferenceModels = l),
-        (e) => (referenceModelsError = e),
-      )
+    switch (type) {
+      case 'standard':
+        settings.systemServicesSettings.imageGeneration.profileId = profileId
+        standardModels = []
+        loadModelsForProfile(
+          profileId,
+          (m) => (standardModels = m),
+          (l) => (isLoadingStandardModels = l),
+          (e) => (standardModelsError = e),
+        )
+        break
+      case 'portrait':
+        settings.systemServicesSettings.imageGeneration.portraitProfileId = profileId
+        portraitModels = []
+        loadModelsForProfile(
+          profileId,
+          (m) => (portraitModels = m),
+          (l) => (isLoadingPortraitModels = l),
+          (e) => (portraitModelsError = e),
+        )
+        break
+      case 'reference':
+        settings.systemServicesSettings.imageGeneration.referenceProfileId = profileId
+        referenceModels = []
+        loadModelsForProfile(
+          profileId,
+          (m) => (referenceModels = m),
+          (l) => (isLoadingReferenceModels = l),
+          (e) => (referenceModelsError = e),
+        )
+        break
+      case 'background':
+        settings.systemServicesSettings.imageGeneration.backgroundProfileId = profileId
+        backgroundModels = []
+        loadModelsForProfile(
+          profileId,
+          (m) => (backgroundModels = m),
+          (l) => (isLoadingBackgroundModels = l),
+          (e) => (backgroundModelsError = e),
+        )
+        break
     }
+
     settings.saveSystemServicesSettings()
   }
 
   // Get the currently selected profile for a type
-  function getSelectedProfile(type: 'standard' | 'portrait' | 'reference'): APIProfile | undefined {
+  function getSelectedProfile(
+    type: 'standard' | 'portrait' | 'reference' | 'background',
+  ): APIProfile | undefined {
     const profileId =
       type === 'standard'
         ? settings.systemServicesSettings.imageGeneration.profileId
@@ -366,161 +414,307 @@
         </p>
       </div>
 
-      <!-- Portrait Reference Mode -->
-      <div class="flex items-center justify-between">
-        <div>
-          <Label>Portrait Reference Mode</Label>
-          <p class="text-muted-foreground text-xs">
-            Use character portraits as reference images when generating story images.
-          </p>
+      <div class="border-border bg-muted/20 space-y-4 rounded-lg border p-4">
+        <!-- Portrait Reference Mode -->
+        <div class="flex items-center justify-between">
+          <div>
+            <Label>Portrait Reference Mode</Label>
+            <p class="text-muted-foreground text-xs">
+              Use character portraits as reference images when generating story images.
+            </p>
+          </div>
+          <Switch
+            checked={settings.systemServicesSettings.imageGeneration.portraitMode}
+            onCheckedChange={(v) => {
+              settings.systemServicesSettings.imageGeneration.portraitMode = v
+              settings.saveSystemServicesSettings()
+            }}
+          />
         </div>
-        <Switch
-          checked={settings.systemServicesSettings.imageGeneration.portraitMode}
-          onCheckedChange={(v) => {
-            settings.systemServicesSettings.imageGeneration.portraitMode = v
-            settings.saveSystemServicesSettings()
-          }}
-        />
+
+        {#if settings.systemServicesSettings.imageGeneration.portraitMode}
+          <!-- Portrait Generation Profile -->
+          <div>
+            <Label class="mb-2 block">Portrait Generation Profile</Label>
+            <Select.Root
+              type="single"
+              value={settings.systemServicesSettings.imageGeneration.portraitProfileId ??
+                settings.systemServicesSettings.imageGeneration.profileId ??
+                ''}
+              onValueChange={(v) => onProfileChange(v, 'portrait')}
+            >
+              <Select.Trigger class="h-10 w-full">
+                {#if getSelectedProfile('portrait') || getSelectedProfile('standard')}
+                  {(getSelectedProfile('portrait') || getSelectedProfile('standard'))?.name}
+                  ({(getSelectedProfile('portrait') || getSelectedProfile('standard'))
+                    ?.providerType})
+                {:else}
+                  Select a profile
+                {/if}
+              </Select.Trigger>
+              <Select.Content>
+                {#each imageCapableProfiles as profile (profile.id)}
+                  <Select.Item
+                    value={profile.id}
+                    label={`${profile.name} (${profile.providerType})`}
+                  >
+                    {profile.name}
+                    <span class="text-muted-foreground">({profile.providerType})</span>
+                  </Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+            <p class="text-muted-foreground mt-1 text-xs">
+              Profile used for generating character portraits.
+            </p>
+          </div>
+
+          <!-- Portrait Model -->
+          {#if settings.systemServicesSettings.imageGeneration.portraitProfileId || settings.systemServicesSettings.imageGeneration.profileId}
+            <div>
+              <Label class="mb-2 block">Portrait Generation Model</Label>
+              <ImageModelSelect
+                models={portraitModels.length > 0 ? portraitModels : standardModels}
+                selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
+                onModelChange={(id) => {
+                  settings.systemServicesSettings.imageGeneration.portraitModel = id
+                  settings.saveSystemServicesSettings()
+                }}
+                showCost={true}
+                showImg2ImgIndicator={true}
+                isLoading={isLoadingPortraitModels || isLoadingStandardModels}
+                errorMessage={portraitModelsError || standardModelsError}
+                showRefreshButton={true}
+                onRefresh={() => {
+                  const profileId =
+                    settings.systemServicesSettings.imageGeneration.portraitProfileId ||
+                    settings.systemServicesSettings.imageGeneration.profileId
+                  loadModelsForProfile(
+                    profileId,
+                    (m) => (portraitModels = m),
+                    (l) => (isLoadingPortraitModels = l),
+                    (e) => (portraitModelsError = e),
+                    true,
+                  )
+                }}
+              />
+              <p class="text-muted-foreground mt-1 text-xs">
+                Model used when generating character portraits from visual descriptors.
+              </p>
+            </div>
+          {/if}
+
+          <!-- Reference Image Profile -->
+          <div>
+            <Label class="mb-2 block">Reference Image Profile</Label>
+            <Select.Root
+              type="single"
+              value={settings.systemServicesSettings.imageGeneration.referenceProfileId ??
+                settings.systemServicesSettings.imageGeneration.profileId ??
+                ''}
+              onValueChange={(v) => onProfileChange(v, 'reference')}
+            >
+              <Select.Trigger class="h-10 w-full">
+                {#if getSelectedProfile('reference') || getSelectedProfile('standard')}
+                  {(getSelectedProfile('reference') || getSelectedProfile('standard'))?.name}
+                  ({(getSelectedProfile('reference') || getSelectedProfile('standard'))
+                    ?.providerType})
+                {:else}
+                  Select a profile
+                {/if}
+              </Select.Trigger>
+              <Select.Content>
+                {#each imageCapableProfiles as profile (profile.id)}
+                  <Select.Item
+                    value={profile.id}
+                    label={`${profile.name} (${profile.providerType})`}
+                  >
+                    {profile.name}
+                    <span class="text-muted-foreground">({profile.providerType})</span>
+                  </Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+            <p class="text-muted-foreground mt-1 text-xs">
+              Profile used for image-to-image generation with portrait references.
+            </p>
+          </div>
+
+          <!-- Reference Model -->
+          {#if settings.systemServicesSettings.imageGeneration.referenceProfileId || settings.systemServicesSettings.imageGeneration.profileId}
+            <div>
+              <Label class="mb-2 block">Reference Image Model</Label>
+              <ImageModelSelect
+                models={referenceImg2ImgModels.length > 0
+                  ? referenceImg2ImgModels
+                  : referenceModels.length > 0
+                    ? referenceModels
+                    : standardModels.filter((m) => m.supportsImg2Img)}
+                selectedModelId={settings.systemServicesSettings.imageGeneration.referenceModel}
+                onModelChange={(id) => {
+                  settings.systemServicesSettings.imageGeneration.referenceModel = id
+                  settings.saveSystemServicesSettings()
+                }}
+                showCost={true}
+                showImg2ImgIndicator={false}
+                isLoading={isLoadingReferenceModels || isLoadingStandardModels}
+                errorMessage={referenceModelsError || standardModelsError}
+                showRefreshButton={true}
+                onRefresh={() => {
+                  const profileId =
+                    settings.systemServicesSettings.imageGeneration.referenceProfileId ||
+                    settings.systemServicesSettings.imageGeneration.profileId
+                  loadModelsForProfile(
+                    profileId,
+                    (m) => (referenceModels = m),
+                    (l) => (isLoadingReferenceModels = l),
+                    (e) => (referenceModelsError = e),
+                    true,
+                  )
+                }}
+              />
+              <p class="text-muted-foreground mt-1 text-xs">
+                Model used for story images when a character portrait is attached as reference.
+              </p>
+            </div>
+          {/if}
+        {/if}
       </div>
-
-      {#if settings.systemServicesSettings.imageGeneration.portraitMode}
-        <!-- Portrait Generation Profile -->
-        <div>
-          <Label class="mb-2 block">Portrait Generation Profile</Label>
-          <Select.Root
-            type="single"
-            value={settings.systemServicesSettings.imageGeneration.portraitProfileId ??
-              settings.systemServicesSettings.imageGeneration.profileId ??
-              ''}
-            onValueChange={(v) => onProfileChange(v, 'portrait')}
-          >
-            <Select.Trigger class="h-10 w-full">
-              {#if getSelectedProfile('portrait') || getSelectedProfile('standard')}
-                {(getSelectedProfile('portrait') || getSelectedProfile('standard'))?.name}
-                ({(getSelectedProfile('portrait') || getSelectedProfile('standard'))?.providerType})
-              {:else}
-                Select a profile
-              {/if}
-            </Select.Trigger>
-            <Select.Content>
-              {#each imageCapableProfiles as profile (profile.id)}
-                <Select.Item value={profile.id} label={`${profile.name} (${profile.providerType})`}>
-                  {profile.name} <span class="text-muted-foreground">({profile.providerType})</span>
-                </Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-          <p class="text-muted-foreground mt-1 text-xs">
-            Profile used for generating character portraits.
-          </p>
-        </div>
-
-        <!-- Portrait Model -->
-        {#if settings.systemServicesSettings.imageGeneration.portraitProfileId || settings.systemServicesSettings.imageGeneration.profileId}
+      <div class="border-border bg-muted/20 space-y-4 rounded-lg border p-4">
+        <!-- Background image generation enabled -->
+        <div class="flex items-center justify-between">
           <div>
-            <Label class="mb-2 block">Portrait Generation Model</Label>
-            <ImageModelSelect
-              models={portraitModels.length > 0 ? portraitModels : standardModels}
-              selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
-              onModelChange={(id) => {
-                settings.systemServicesSettings.imageGeneration.portraitModel = id
-                settings.saveSystemServicesSettings()
-              }}
-              showCost={true}
-              showImg2ImgIndicator={true}
-              isLoading={isLoadingPortraitModels || isLoadingStandardModels}
-              errorMessage={portraitModelsError || standardModelsError}
-              showRefreshButton={true}
-              onRefresh={() => {
-                const profileId =
-                  settings.systemServicesSettings.imageGeneration.portraitProfileId ||
-                  settings.systemServicesSettings.imageGeneration.profileId
-                loadModelsForProfile(
-                  profileId,
-                  (m) => (portraitModels = m),
-                  (l) => (isLoadingPortraitModels = l),
-                  (e) => (portraitModelsError = e),
-                  true,
-                )
-              }}
-            />
-            <p class="text-muted-foreground mt-1 text-xs">
-              Model used when generating character portraits from visual descriptors.
+            <Label>Background image generation</Label>
+            <p class="text-muted-foreground text-xs">
+              Generate background images on location changes.
             </p>
           </div>
-        {/if}
-
-        <!-- Reference Image Profile -->
-        <div>
-          <Label class="mb-2 block">Reference Image Profile</Label>
-          <Select.Root
-            type="single"
-            value={settings.systemServicesSettings.imageGeneration.referenceProfileId ??
-              settings.systemServicesSettings.imageGeneration.profileId ??
-              ''}
-            onValueChange={(v) => onProfileChange(v, 'reference')}
-          >
-            <Select.Trigger class="h-10 w-full">
-              {#if getSelectedProfile('reference') || getSelectedProfile('standard')}
-                {(getSelectedProfile('reference') || getSelectedProfile('standard'))?.name}
-                ({(getSelectedProfile('reference') || getSelectedProfile('standard'))
-                  ?.providerType})
-              {:else}
-                Select a profile
-              {/if}
-            </Select.Trigger>
-            <Select.Content>
-              {#each imageCapableProfiles as profile (profile.id)}
-                <Select.Item value={profile.id} label={`${profile.name} (${profile.providerType})`}>
-                  {profile.name} <span class="text-muted-foreground">({profile.providerType})</span>
-                </Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-          <p class="text-muted-foreground mt-1 text-xs">
-            Profile used for image-to-image generation with portrait references.
-          </p>
+          <Switch
+            checked={settings.systemServicesSettings.imageGeneration.backgroundImagesEnabled}
+            onCheckedChange={(v) => {
+              settings.systemServicesSettings.imageGeneration.backgroundImagesEnabled = v
+              settings.saveSystemServicesSettings()
+            }}
+          />
         </div>
 
-        <!-- Reference Model -->
-        {#if settings.systemServicesSettings.imageGeneration.referenceProfileId || settings.systemServicesSettings.imageGeneration.profileId}
+        {#if settings.systemServicesSettings.imageGeneration.backgroundImagesEnabled}
+          <!-- Background image generation profile -->
           <div>
-            <Label class="mb-2 block">Reference Image Model</Label>
-            <ImageModelSelect
-              models={referenceImg2ImgModels.length > 0
-                ? referenceImg2ImgModels
-                : referenceModels.length > 0
-                  ? referenceModels
-                  : standardModels.filter((m) => m.supportsImg2Img)}
-              selectedModelId={settings.systemServicesSettings.imageGeneration.referenceModel}
-              onModelChange={(id) => {
-                settings.systemServicesSettings.imageGeneration.referenceModel = id
-                settings.saveSystemServicesSettings()
-              }}
-              showCost={true}
-              showImg2ImgIndicator={false}
-              isLoading={isLoadingReferenceModels || isLoadingStandardModels}
-              errorMessage={referenceModelsError || standardModelsError}
-              showRefreshButton={true}
-              onRefresh={() => {
-                const profileId =
-                  settings.systemServicesSettings.imageGeneration.referenceProfileId ||
-                  settings.systemServicesSettings.imageGeneration.profileId
-                loadModelsForProfile(
-                  profileId,
-                  (m) => (referenceModels = m),
-                  (l) => (isLoadingReferenceModels = l),
-                  (e) => (referenceModelsError = e),
-                  true,
-                )
-              }}
-            />
+            <Label class="mb-2 block">Background Image Generation Profile</Label>
+            <Select.Root
+              type="single"
+              value={settings.systemServicesSettings.imageGeneration.backgroundProfileId ??
+                settings.systemServicesSettings.imageGeneration.profileId ??
+                ''}
+              onValueChange={(v) => onProfileChange(v, 'background')}
+            >
+              <Select.Trigger class="h-10 w-full">
+                {#if getSelectedProfile('background') || getSelectedProfile('standard')}
+                  {(getSelectedProfile('background') || getSelectedProfile('standard'))?.name}
+                  ({(getSelectedProfile('background') || getSelectedProfile('standard'))
+                    ?.providerType})
+                {:else}
+                  Select a profile
+                {/if}
+              </Select.Trigger>
+              <Select.Content>
+                {#each imageCapableProfiles as profile (profile.id)}
+                  <Select.Item
+                    value={profile.id}
+                    label={`${profile.name} (${profile.providerType})`}
+                  >
+                    {profile.name}
+                    <span class="text-muted-foreground">({profile.providerType})</span>
+                  </Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
             <p class="text-muted-foreground mt-1 text-xs">
-              Model used for story images when a character portrait is attached as reference.
+              Profile used for generating character portraits.
             </p>
           </div>
+
+          <!-- Background Model -->
+          {#if settings.systemServicesSettings.imageGeneration.backgroundProfileId || settings.systemServicesSettings.imageGeneration.profileId}
+            <div>
+              <Label class="mb-2 block">Background Generation Model</Label>
+              <ImageModelSelect
+                models={backgroundModels.length > 0 ? backgroundModels : standardModels}
+                selectedModelId={settings.systemServicesSettings.imageGeneration.portraitModel}
+                onModelChange={(id) => {
+                  settings.systemServicesSettings.imageGeneration.portraitModel = id
+                  settings.saveSystemServicesSettings()
+                }}
+                showCost={true}
+                showImg2ImgIndicator={true}
+                isLoading={isLoadingBackgroundModels || isLoadingStandardModels}
+                errorMessage={backgroundModelsError || standardModelsError}
+                showRefreshButton={true}
+                onRefresh={() => {
+                  const profileId =
+                    settings.systemServicesSettings.imageGeneration.backgroundProfileId ||
+                    settings.systemServicesSettings.imageGeneration.profileId
+                  loadModelsForProfile(
+                    profileId,
+                    (m) => (backgroundModels = m),
+                    (l) => (isLoadingBackgroundModels = l),
+                    (e) => (backgroundModelsError = e),
+                    true,
+                  )
+                }}
+              />
+              <p class="text-muted-foreground mt-1 text-xs">
+                Model used when generating character portraits from visual descriptors.
+              </p>
+            </div>
+          {/if}
+          <div>
+            <Label class="mb-2 block">Background Image Size</Label>
+            <Select.Root
+              type="single"
+              value={settings.systemServicesSettings.imageGeneration.backgroundSize}
+              onValueChange={(v) => {
+                settings.systemServicesSettings.imageGeneration.backgroundSize = v as
+                  | '1280x720'
+                  | '720x1280'
+                settings.saveSystemServicesSettings()
+              }}
+            >
+              <Select.Trigger class="h-10 w-full">
+                {backgroundSizes.find(
+                  (s) => s.value === settings.systemServicesSettings.imageGeneration.backgroundSize,
+                )?.label ?? 'Select size'}
+              </Select.Trigger>
+              <Select.Content>
+                {#each backgroundSizes as size (size.value)}
+                  <Select.Item value={size.value} label={size.label}>
+                    {size.label}
+                  </Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </div>
+          <div>
+            <Label class="mb-2 block">
+              Background Blur: {settings.systemServicesSettings.imageGeneration.backgroundBlur}px
+            </Label>
+            <Slider
+              type="single"
+              value={settings.systemServicesSettings.imageGeneration.backgroundBlur}
+              onValueChange={(v) => {
+                settings.systemServicesSettings.imageGeneration.backgroundBlur = v
+                settings.saveSystemServicesSettings()
+              }}
+              min={0}
+              max={20}
+              step={1}
+              class="w-full"
+            />
+            <p class="text-muted-foreground mt-1 text-xs">Blur amount for the background image.</p>
+          </div>
         {/if}
-      {/if}
+      </div>
 
       <!-- Reset Button -->
       <Button variant="outline" size="sm" onclick={() => settings.resetImageGenerationSettings()}>

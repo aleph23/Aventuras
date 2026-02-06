@@ -147,6 +147,12 @@ pub fn run() {
             description: "simplify_character_vault",
             sql: include_str!("../migrations/023_simplify_character_vault.sql"),
             kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 24,
+            description: "story_bg_image",
+            sql: include_str!("../migrations/024_story_bg_image.sql"),
+            kind: MigrationKind::Up,
         }
     ];
 
