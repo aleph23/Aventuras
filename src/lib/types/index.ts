@@ -267,6 +267,7 @@ export interface VaultScenarioMetadata {
   hasFirstMessage?: boolean
   alternateGreetingsCount?: number
   npcCount?: number
+  linkedLorebookId?: string // ID of auto-imported lorebook from embedded character_book
   [key: string]: unknown
 }
 

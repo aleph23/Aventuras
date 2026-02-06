@@ -4,7 +4,7 @@
  * Imports lorebooks from various formats (primarily SillyTavern) into Aventura's Entry system.
  */
 
-import type { Entry, EntryType, EntryInjectionMode, EntryCreator } from '$lib/types'
+import type { Entry, EntryType, EntryInjectionMode, EntryCreator, VaultLorebookEntry } from '$lib/types'
 import type { StoryMode } from '$lib/services/prompts'
 import { promptService, type PromptContext } from '$lib/services/prompts'
 import { generateStructured } from './ai/sdk/generate'
@@ -763,5 +763,36 @@ export function getImportSummary(entries: ImportedEntry[]): {
     withKeywords,
     alwaysInject,
     disabled,
+  }
+}
+
+/**
+ * Extract an embedded lorebook (character_book) from a parsed character card.
+ * Returns parsed entries ready for vault import, or null if no valid lorebook found.
+ */
+export function extractEmbeddedLorebook(
+  characterBook: unknown,
+  cardName: string,
+): { name: string; entries: VaultLorebookEntry[]; result: LorebookImportResult } | null {
+  if (!characterBook || typeof characterBook !== 'object') return null
+
+  // SillyTavern character_book format has entries directly
+  const bookData = characterBook as Record<string, unknown>
+  if (!bookData.entries || typeof bookData.entries !== 'object') return null
+
+  const jsonString = JSON.stringify(characterBook)
+  const result = parseSillyTavernLorebook(jsonString)
+
+  if (!result.success || result.entries.length === 0) return null
+
+  const vaultEntries: VaultLorebookEntry[] = result.entries.map((e) => {
+    const { originalData: _originalData, ...rest } = e
+    return rest
+  })
+
+  return {
+    name: (bookData.name as string) || `${cardName} - Lorebook`,
+    entries: vaultEntries,
+    result,
   }
 }
