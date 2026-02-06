@@ -243,10 +243,9 @@ export interface VaultLorebookEntry {
   type: EntryType
   description: string
   keywords: string[]
+  aliases: string[]
   injectionMode: EntryInjectionMode
   priority: number
-  disabled: boolean
-  group: string | null
 }
 
 // ===== Scenario Vault Types =====
@@ -429,7 +428,7 @@ export interface Branch {
 // ===== Entry/Lorebook System (per design doc section 3.2) =====
 
 export type EntryType = 'character' | 'location' | 'item' | 'faction' | 'concept' | 'event'
-export type EntryInjectionMode = 'always' | 'keyword' | 'relevant' | 'never'
+export type EntryInjectionMode = 'always' | 'keyword' | 'never'
 export type EntryCreator = 'user' | 'ai' | 'import'
 
 /**
