@@ -202,10 +202,9 @@ class LorebookVaultStore {
         type,
         description: e.description,
         keywords: e.keywords,
+        aliases: [],
         injectionMode: 'keyword' as const,
         priority: 100,
-        disabled: false,
-        group: null,
       }
     })
 

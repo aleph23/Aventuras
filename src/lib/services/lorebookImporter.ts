@@ -73,10 +73,9 @@ export interface ImportedEntry {
   type: EntryType
   description: string
   keywords: string[]
+  aliases: string[]
   injectionMode: EntryInjectionMode
   priority: number
-  disabled: boolean
-  group: string | null
   originalData?: SillyTavernEntry
 }
 
@@ -318,7 +317,7 @@ function determineInjectionMode(entry: SillyTavernEntry): EntryInjectionMode {
   if (entry.selective && entry.key.length > 0) {
     return 'keyword'
   }
-  return 'relevant'
+  return 'keyword'
 }
 
 export function parseSillyTavernLorebook(jsonString: string): LorebookImportResult {
@@ -376,10 +375,9 @@ export function parseSillyTavernLorebook(jsonString: string): LorebookImportResu
           type: inferEntryType(name, entry.content || ''),
           description: entry.content || '',
           keywords,
+          aliases: [],
           injectionMode: determineInjectionMode(entry),
           priority: entry.order ?? 100,
-          disabled: entry.disable ?? false,
-          group: entry.group?.trim() || null,
           originalData: entry,
         }
 
@@ -473,10 +471,9 @@ export function parseAventuraLorebook(jsonString: string): LorebookImportResult 
           type: entry.type || 'concept',
           description: entry.description || '',
           keywords: entry.injection?.keywords || [],
+          aliases: entry.aliases ?? [],
           injectionMode: entry.injection?.mode || 'keyword',
           priority: entry.injection?.priority ?? 100,
-          disabled: entry.injection?.mode === 'never',
-          group: null,
           originalData: entry as unknown as SillyTavernEntry,
         }
 
@@ -663,7 +660,7 @@ export function convertToEntries(
       type: imported.type,
       description: imported.description,
       hiddenInfo: null,
-      aliases: imported.keywords.slice(0, 5),
+      aliases: imported.aliases.length > 0 ? imported.aliases : imported.keywords.slice(0, 5),
       state,
       adventureState: null,
       creativeState: null,
@@ -756,7 +753,7 @@ export function getImportSummary(entries: ImportedEntry[]): {
     if (entry.description.length > 0) withContent++
     if (entry.keywords.length > 0) withKeywords++
     if (entry.injectionMode === 'always') alwaysInject++
-    if (entry.disabled) disabled++
+    if (entry.injectionMode === 'never') disabled++
   }
 
   return {
