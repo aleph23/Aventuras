@@ -12,11 +12,6 @@ export const DEFAULT_SPEECH_RATE = 1.0
 export const DEFAULT_PITCH = 1.0
 export const DEFAULT_VOLUME = 1.0
 
-// Constants
-export const DEFAULT_SPEECH_RATE = 1.0;
-export const DEFAULT_PITCH = 1.0;
-export const DEFAULT_VOLUME = 1.0;
-
 // TTS Configuration - matches TTSServiceSettings in settings.svelte.ts
 export interface TTSSettings {
   enabled: boolean
