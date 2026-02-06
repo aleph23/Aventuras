@@ -85,10 +85,10 @@
         return `Voice "${tts.voice}" not found. Please select a different voice.`
       }
       if (systemVoices.length > 0 && !systemVoices.some(v => v.name === tts.voice)) {
-        return `Voice "${tts.voice}" not found. Please select a different voice.`;
+        return `Voice "${tts.voice}" not found. Please select a different voice.`
       }
     }
-    return null;
+    return null
   }
 
   async function playVoicePreview() {
