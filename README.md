@@ -188,10 +188,10 @@ aventura/
 │   │   ├── services/       # Business logic
 │   │   │   ├── ai/         # AI services (OpenRouter, context, memory)
 │   │   │   ├── database.ts # SQLite operations
-│   │   │   	└── grammar.ts  # Harper grammar checking
+│   │   │   └── grammar.ts  # Harper grammar checking
 │   │   ├── stores/         # Svelte stores (state management)
-│   │   	└── types/          # TypeScript interfaces
-│   	└── routes/             # SvelteKit routes
+│   │   └── types/          # TypeScript interfaces
+│   └── routes/             # SvelteKit routes
 ├── src-tauri/              # Rust backend
 │   ├── src/
 │   └── Cargo.toml
