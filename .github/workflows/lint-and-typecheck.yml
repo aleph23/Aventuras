@@ -25,6 +25,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build Tauri  
         run: npm run tauri build
 
       - name: Run Lint
