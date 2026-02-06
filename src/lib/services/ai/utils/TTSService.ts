@@ -8,11 +8,6 @@ import { PROVIDERS } from '../sdk/providers/config'
 import { corsFetch } from '$lib/services/discovery/utils'
 
 // Constants
-export const DEFAULT_SPEECH_RATE = 1.0
-export const DEFAULT_PITCH = 1.0
-export const DEFAULT_VOLUME = 1.0
-
-// Constants
 export const DEFAULT_SPEECH_RATE = 1.0;
 export const DEFAULT_PITCH = 1.0;
 export const DEFAULT_VOLUME = 1.0;
