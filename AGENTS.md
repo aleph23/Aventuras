@@ -1,6 +1,14 @@
 # AGENTS.md
 
-This file contains guidelines for agentic coding assistants working on the Aventuras codebase.
+# Overarching Principles
+
+All work on this repo strives toward these goals:
+- Pro Freedom (beer, liberty, and information)
+- Any opportunity to expose an element of configuration to the end user will be taken
+- The end-product will be fully user customizable
+- The end-product will accept plugins / extensions (preferably SillyTavern Extension compatible)
+- The end-product will always move toward Rust (Svelte to Dioxus or similar)
+- The end-product will utilize / adapt Aceternity style backgrounds
 
 ## Build/Lint/Test Commands
 
@@ -10,7 +18,6 @@ npm run dev              # Start dev server (Vite)
 npm run build            # Build for production
 npm run preview          # Preview production build
 npm run tauri -- dev     # Start Tauri development window (forward args to the tauri CLI)
-npm run release          # Create release artifacts (runs scripts/release.js)
 ```
 
 ### Type Checking
@@ -135,11 +142,9 @@ Services updated to accept `presetId` and use `settings.getPresetConfig(presetId
 - CharacterCardImport service doesn't exist (only defined in settings interfaces)
 
 ---
-
-## Code Style Guidelines
-
 ### File Organization
 ```
+docs/workflows/       # **WILL CONTAIN AGENT DIRECTIVES**
 src/
 ├── routes/           # SvelteKit pages (+page.svelte, +layout.svelte)
 ├── lib/
