@@ -252,4 +252,8 @@ aventura-release.keystore.old
 design.md
 prompting_guide.md
 nul
+docs/workflow/
 Loren.md
+.agent/
+Aventuras.und/
+qodana.yaml
