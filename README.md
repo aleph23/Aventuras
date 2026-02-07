@@ -98,14 +98,14 @@ AI-powered interactive fiction and creative writing application built with Tauri
 
 ### Download Pre-built Binaries
 
-Pre-compiled binaries are available on the [Releases](https://github.com/unkarelian/Aventura/releases) page:
+Pre-compiled binaries are available on the [Releases](https://github.com/unkarelian/Aventuras/releases) page:
 
 | Platform | Download |
 |----------|----------|
-| Windows | `aventura_x.x.x_x64-setup.exe` |
-| macOS | `aventura_x.x.x_x64.dmg` |
-| Linux | `aventura_x.x.x_amd64.deb` / `.AppImage` |
-| Android | `aventura_x.x.x.apk` |
+| Windows | `aventuras_x.x.x_x64-setup.exe` |
+| macOS | `aventuras_x.x.x_x64.dmg` |
+| Linux | `aventuras_x.x.x_amd64.deb` / `.AppImage` |
+| Android | `aventuras_x.x.x.apk` |
 
 Simply download the appropriate file for your platform and install.
 
@@ -124,8 +124,8 @@ Simply download the appropriate file for your platform and install.
 
 ```bash
 # Clone the repository
-git clone https://github.com/unkarelian/Aventura.git
-cd aventura
+git clone https://github.com/unkarelian/Aventuras.git
+cd aventuras
 
 # Install dependencies
 npm install
@@ -176,7 +176,7 @@ apksigner sign --ks release.keystore --ks-key-alias myalias --out app-release.ap
 ## Project Structure
 
 ```
-aventura/
+aventuras/
 ├── src/
 │   ├── lib/
 │   │   ├── components/     # Svelte components
@@ -204,7 +204,7 @@ aventura/
 ### API Key Setup
 
 1. Get an API key from [OpenRouter](https://openrouter.ai/)
-2. Open Aventura settings
+2. Open Aventuras settings
 3. Enter your API key in the API Settings section
 
 ### Memory Configuration
