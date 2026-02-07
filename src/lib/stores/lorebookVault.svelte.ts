@@ -85,6 +85,7 @@ class LorebookVaultStore {
     entries: VaultLorebookEntry[],
     result: LorebookImportResult,
     filename: string,
+    linkedFrom?: { name: string; type: 'character' | 'scenario' },
   ): Promise<VaultLorebook> {
     const entryBreakdown: Record<EntryType, number> = {
       character: 0,
@@ -111,6 +112,7 @@ class LorebookVaultStore {
         format: result.metadata.format,
         totalEntries: entries.length,
         entryBreakdown,
+        ...(linkedFrom && { linkedFromName: linkedFrom.name, linkedFromType: linkedFrom.type }),
       },
     })
   }

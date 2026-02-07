@@ -3,7 +3,7 @@
   import { lorebookVault } from '$lib/stores/lorebookVault.svelte'
   import { scenarioVault } from '$lib/stores/scenarioVault.svelte'
   import type { VaultCharacter, VaultLorebook, VaultScenario } from '$lib/types'
-  import { User, Archive, MapPin } from 'lucide-svelte'
+  import { User, Archive, MapPin, Link } from 'lucide-svelte'
   import { normalizeImageDataUrl } from '$lib/utils/image'
   import { Badge } from '$lib/components/ui/badge'
   import * as Avatar from '$lib/components/ui/avatar'
@@ -137,6 +137,15 @@
           </Avatar.Root>
         {/snippet}
 
+        {#snippet badges()}
+          {#if char.metadata?.linkedLorebookId}
+            <span class="text-muted-foreground flex items-center gap-1 text-[10px]">
+              <Link class="h-3 w-3" />
+              Lorebook
+            </span>
+          {/if}
+        {/snippet}
+
         {#snippet end()}
           {#if isSelected(char.id)}
             <Badge variant="default" class="h-5 px-1.5 text-[10px]">Selected</Badge>
@@ -157,6 +166,14 @@
         {#snippet icon()}
           <Archive class="text-accent-400 h-5 w-5" />
         {/snippet}
+        {#snippet badges()}
+          {#if (book.metadata as Record<string, unknown>)?.linkedFromName}
+            <span class="text-muted-foreground flex items-center gap-1 text-[10px]">
+              <Link class="h-3 w-3" />
+              {(book.metadata as Record<string, unknown>).linkedFromName}
+            </span>
+          {/if}
+        {/snippet}
         {#snippet end()}
           {#if isSelected(book.id)}
             <Badge variant="default" class="h-5 px-1.5 text-[10px]">Selected</Badge>
@@ -176,6 +193,14 @@
       >
         {#snippet icon()}
           <MapPin class="h-5 w-5 text-green-400" />
+        {/snippet}
+        {#snippet badges()}
+          {#if scen.metadata?.linkedLorebookId}
+            <span class="text-muted-foreground flex items-center gap-1 text-[10px]">
+              <Link class="h-3 w-3" />
+              Lorebook
+            </span>
+          {/if}
         {/snippet}
         {#snippet end()}
           {#if isSelected(scen.id)}

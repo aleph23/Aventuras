@@ -163,6 +163,7 @@ export class WizardStore {
         const alreadyAdded = this.narrative.importedLorebooks.some((lb) => lb.vaultId === linkedId)
         if (!alreadyAdded) {
           this.narrative.addLorebookFromVault(lorebook)
+          ui.showToast(`Added embedded lorebook: ${lorebook.name}`, 'info')
         }
       }
     }

@@ -319,6 +319,7 @@ class ScenarioVaultStore {
             extracted.entries,
             extracted.result,
             file.name,
+            { name: finalData.name, type: 'scenario' },
           )
           finalData = {
             ...finalData,

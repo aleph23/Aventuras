@@ -12,6 +12,7 @@
     Flag,
     Brain,
     Calendar,
+    Link,
   } from 'lucide-svelte'
   import TagBadge from '$lib/components/tags/TagBadge.svelte'
   import { tagStore } from '$lib/stores/tags.svelte'
@@ -46,6 +47,17 @@
   const asScenario = $derived(type === 'scenario' ? (item as VaultScenario) : null)
 
   let isImporting = $derived(item.metadata?.importing === true)
+
+  // Linked lorebook detection
+  const hasLinkedLorebook = $derived(
+    (type === 'character' || type === 'scenario') && !!item.metadata?.linkedLorebookId,
+  )
+  const isLinkedFromCard = $derived(
+    type === 'lorebook' && !!(item.metadata as Record<string, unknown>)?.linkedFromName,
+  )
+  const linkedFromName = $derived(
+    isLinkedFromCard ? ((item.metadata as Record<string, unknown>).linkedFromName as string) : null,
+  )
 
   // Helper for Lorebook Entry Icons
 
@@ -106,13 +118,26 @@
   {/snippet}
 
   {#snippet badges()}
-    {#if asLorebook}
+    {#if asCharacter}
+      {#if hasLinkedLorebook}
+        <Badge variant="secondary" class="h-4 gap-1 px-1.5 text-[10px] font-normal">
+          <Link class="h-2.5 w-2.5" />
+          Lorebook
+        </Badge>
+      {/if}
+    {:else if asLorebook}
       <span class="text-muted-foreground text-[10px] font-medium">
         {asLorebook.entries.length} entries
       </span>
       {#if asLorebook.source === 'story' || asLorebook.source === 'import'}
         <Badge variant="secondary" class="h-4 px-1.5 text-[10px] font-normal">
           {asLorebook.source === 'story' ? 'Story' : 'Imported'}
+        </Badge>
+      {/if}
+      {#if isLinkedFromCard}
+        <Badge variant="secondary" class="h-4 gap-1 px-1.5 text-[10px] font-normal">
+          <Link class="h-2.5 w-2.5" />
+          {linkedFromName}
         </Badge>
       {/if}
     {:else if asScenario}
@@ -127,6 +152,12 @@
           <span class="flex items-center gap-1 text-[10px]">
             <MessageSquare class="h-3 w-3" />
             Opening
+          </span>
+        {/if}
+        {#if hasLinkedLorebook}
+          <span class="flex items-center gap-1 text-[10px]">
+            <Link class="h-3 w-3" />
+            Lorebook
           </span>
         {/if}
         {#if asScenario.source === 'wizard'}

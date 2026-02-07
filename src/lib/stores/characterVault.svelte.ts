@@ -391,6 +391,7 @@ class CharacterVaultStore {
               extracted.entries,
               extracted.result,
               file.name,
+              { name: finalData.name, type: 'character' },
             )
             finalData = {
               ...finalData,
