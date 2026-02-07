@@ -186,7 +186,9 @@ export class WizardStore {
   _removeLinkedLorebook(lorebookVaultId: string) {
     const imported = this.narrative.importedLorebooks.find((lb) => lb.vaultId === lorebookVaultId)
     if (imported) {
+      const name = lorebookVault.getById(lorebookVaultId)?.name ?? 'lorebook'
       this.narrative.removeLorebook(imported.id)
+      ui.showToast(`Removed embedded lorebook: ${name}`, 'info')
     }
   }
 
