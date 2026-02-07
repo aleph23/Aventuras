@@ -236,7 +236,7 @@
                   Use "{inputValue}"
                 </Command.Item>
               {/if}
-              {#each filteredItems as itemData, i}
+              {#each filteredItems as itemData, i (i)}
                 <Command.Item
                   value={itemValue(itemData)}
                   onSelect={() => handleSelect(itemData)}

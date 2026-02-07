@@ -95,7 +95,6 @@
       onModelChange(value)
     }
   }
-  console.log(filteredModels)
 </script>
 
 <div class="w-full space-y-2">

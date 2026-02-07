@@ -183,7 +183,7 @@ export function buildSystemPrompt(
 
   // Determine inline image mode (requires both setting enabled and image gen service available)
   const inlineImageMode =
-    (story.currentStory?.settings?.inlineImageMode ?? false) && isImageGenerationEnabled()
+    story.currentStory?.settings?.imageGenerationMode === 'inline' && isImageGenerationEnabled()
   log('Inline image mode check:', { inlineImageMode, imageGenEnabled: isImageGenerationEnabled() })
 
   // Build prompt context for macro expansion - blocks auto-resolve based on mode flags

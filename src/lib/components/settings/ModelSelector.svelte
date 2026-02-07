@@ -1,23 +1,11 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings.svelte'
-  import {
-    Server,
-    Check,
-    ChevronsUpDown,
-    Plus,
-    RefreshCw,
-    Star,
-    AlertTriangle,
-    Brain,
-  } from 'lucide-svelte'
+  import { Server, Check, RefreshCw, Star, AlertTriangle, Brain } from 'lucide-svelte'
   import Autocomplete from '$lib/components/ui/autocomplete/Autocomplete.svelte'
   import * as Select from '$lib/components/ui/select'
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
   import { cn } from '$lib/utils/cn'
-
-  const ITEM_HEIGHT = 32
-  const MAX_LIST_HEIGHT = 300
 
   interface Props {
     profileId: string | null

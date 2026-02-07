@@ -83,7 +83,7 @@ export class BackgroundImageService {
 
   async generateBackgroundImage(prompt: string): Promise<string> {
     log('generateBackgroundImage called', { prompt })
-    const profileId = this.imageSettings.backgroundProfileId || this.imageSettings.profileId
+    const profileId = this.imageSettings.backgroundProfileId
 
     if (!profileId) {
       throw new Error('No background image generation profile selected')
@@ -94,7 +94,7 @@ export class BackgroundImageService {
         profileId,
         model: this.imageSettings.backgroundModel,
         prompt,
-        size: this.imageSettings.size,
+        size: this.imageSettings.backgroundSize,
       })
 
       if (!result.base64) {

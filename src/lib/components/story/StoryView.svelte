@@ -148,13 +148,6 @@
     if (raw.startsWith('data:')) return `url(${raw})`
     return `url(data:image/png;base64,${raw})`
   })
-  // Diagnostic logging for background blur reactivity
-  $effect(() => {
-    console.log(
-      '[StoryView] backgroundBlur:',
-      settings.systemServicesSettings.imageGeneration.backgroundBlur,
-    )
-  })
 </script>
 
 <div class="relative flex h-full flex-col overflow-hidden">

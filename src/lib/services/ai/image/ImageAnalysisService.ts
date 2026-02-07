@@ -43,12 +43,12 @@ export interface ImageAnalysisContext {
   charactersWithPortraits: string[]
   /** Names of characters that need portrait generation before appearing in scene images */
   charactersWithoutPortraits: string[]
-  /** Whether to use portrait reference mode */
-  portraitMode: boolean
   /** Translated narrative text - use this for sourceText extraction when available */
   translatedNarrative?: string
   /** Target language for translation */
   translationLanguage?: string
+  /** Generate images with character references */
+  referenceMode: boolean
 }
 
 /**
@@ -73,7 +73,7 @@ export class ImageAnalysisService {
     log('identifyScenes called', {
       narrativeLength: context.narrativeResponse.length,
       presentCharactersCount: context.presentCharacters.length,
-      portraitMode: context.portraitMode,
+      referenceMode: context.referenceMode,
       maxImages: context.maxImages,
       hasTranslation: !!context.translatedNarrative,
     })
@@ -107,7 +107,7 @@ ${context.translatedNarrative}`
     }
 
     // Select template based on portrait mode
-    const templateId = context.portraitMode
+    const templateId = context.referenceMode
       ? 'image-prompt-analysis-reference'
       : 'image-prompt-analysis'
 

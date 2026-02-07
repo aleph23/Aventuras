@@ -30,6 +30,7 @@ export interface InlineImageContext {
   entryId: string
   narrativeContent: string
   presentCharacters: Character[]
+  referenceMode: boolean
 }
 
 export class InlineImageGenerationService {
@@ -39,7 +40,6 @@ export class InlineImageGenerationService {
    */
   static isEnabled(): boolean {
     const imageSettings = settings.systemServicesSettings.imageGeneration
-    if (!imageSettings?.enabled) return false
 
     // Check if we have a valid profile for image generation
     const profileId = imageSettings.profileId
@@ -60,11 +60,6 @@ export class InlineImageGenerationService {
    */
   async processNarrativeForInlineImages(context: InlineImageContext): Promise<void> {
     const imageSettings = settings.systemServicesSettings.imageGeneration
-
-    if (!imageSettings?.enabled) {
-      log('Image generation disabled')
-      return
-    }
 
     // Extract all <pic> tags from the narrative
     const picTags = extractPicTags(context.narrativeContent)
@@ -120,7 +115,7 @@ export class InlineImageGenerationService {
     let referenceImageUrls: string[] | undefined
 
     // If portrait mode is enabled and tag specifies characters, look for their portraits
-    if (imageSettings.portraitMode && tag.characters.length > 0) {
+    if (context.referenceMode && tag.characters.length > 0) {
       const portraitUrls: string[] = []
       const charactersWithPortraits: string[] = []
       const charactersWithoutPortraits: string[] = []
@@ -141,8 +136,8 @@ export class InlineImageGenerationService {
 
       if (portraitUrls.length > 0) {
         // Use reference profile and model for img2img
-        profileId = imageSettings.referenceProfileId || imageSettings.profileId
-        modelToUse = imageSettings.referenceModel || imageSettings.model
+        profileId = imageSettings.referenceProfileId
+        modelToUse = imageSettings.referenceModel
         sizeToUse = imageSettings.referenceSize
         referenceImageUrls = portraitUrls
         log('Using character portraits as reference', {

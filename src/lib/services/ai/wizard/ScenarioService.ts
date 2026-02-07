@@ -174,10 +174,9 @@ export interface WizardData {
     tense: Tense
     tone: string
     visualProseMode?: boolean
-    inlineImageMode?: boolean
-    imageGenerationMode?: 'none' | 'auto' | 'inline'
+    imageGenerationMode?: 'none' | 'agentic' | 'inline'
     backgroundImagesEnabled?: boolean
-    portraitMode?: boolean
+    referenceMode?: boolean
   }
   title: string
   openingGuidance?: string
@@ -961,9 +960,9 @@ class ScenarioService {
       themes?: string[]
       visualProseMode?: boolean
       inlineImageMode?: boolean
-      imageGenerationMode?: 'none' | 'auto' | 'inline'
+      imageGenerationMode?: 'none' | 'agentic' | 'inline'
       backgroundImagesEnabled?: boolean
-      portraitMode?: boolean
+      referenceMode?: boolean
     }
     protagonist: Partial<Character>
     startingLocation: Partial<Location>
@@ -990,10 +989,9 @@ class ScenarioService {
         tone: writingStyle.tone,
         themes: expandedSetting?.themes,
         visualProseMode: writingStyle.visualProseMode,
-        inlineImageMode: writingStyle.inlineImageMode,
         imageGenerationMode: writingStyle.imageGenerationMode,
         backgroundImagesEnabled: writingStyle.backgroundImagesEnabled,
-        portraitMode: writingStyle.portraitMode,
+        referenceMode: writingStyle.referenceMode,
       },
       protagonist: {
         name: protagonist?.name || (writingStyle.pov === 'second' ? 'You' : 'The Protagonist'),
@@ -1043,7 +1041,7 @@ class ScenarioService {
       settingDescription,
       themes: setting?.themes,
       visualProseMode: writingStyle.visualProseMode,
-      inlineImageMode: writingStyle.inlineImageMode,
+      inlineImageMode: writingStyle.imageGenerationMode === 'inline',
     }
 
     const templateId = mode === 'creative-writing' ? 'creative-writing' : 'adventure'

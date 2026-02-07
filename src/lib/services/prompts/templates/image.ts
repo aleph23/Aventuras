@@ -55,7 +55,7 @@ export const imagePromptAnalysisTemplate: PromptTemplate = {
   content: `You identify visually striking moments in narrative text for image generation.
 
 ## Your Task
-Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = unlimited). Create DETAILED, descriptive image prompts (aim for 500-800 characters each). **Do NOT exceed 800 characters per prompt - prompts over 800 characters will cause an error and fail to generate.**
+Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = unlimited). Create DETAILED, descriptive image prompts (aim for below 500 characters each). **Do NOT exceed 500 characters per prompt - prompts over 500 characters will cause an error and fail to generate.**
 
 ## Style (MUST include in every prompt)
 {{imageStylePrompt}}
@@ -66,7 +66,7 @@ Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = u
 {{characterDescriptors}}
 
 ## Prompt Requirements
-- **Prompt length:** 500-800 characters MAX (prompts over 800 chars will ERROR and fail)
+- **Prompt length:** below 500 characters MAX (prompts over 500 characters will ERROR and fail)
 - **sourceText:** Exact phrase from narrative (3-15 words, VERBATIM with all punctuation and *markup*)
 - **sceneType:** action|item|character|environment
 - **priority:** 1-10
@@ -85,7 +85,7 @@ Analyze the narrative and identify up to {{maxImages}} key visual moments (0 = u
 1. **ONE CHARACTER PER IMAGE** - only depict a single character per prompt. Background details are fine, but no multiple characters. This ensures character consistency.
 2. **NEVER use character names** - the image model doesn't know who "Elena" is. Describe appearance only!
 3. **ALWAYS include the full style** - copy style keywords directly from the Style section
-4. **Stay under 800 characters** - prompts over 800 chars will ERROR and fail. Aim for 500-800.
+4. **Stay under 500 characters** - prompts over 500 characters will ERROR and fail. Aim for below 500.
 5. **sourceText** MUST be COPY-PASTED EXACTLY from the DISPLAY NARRATIVE - this is used for text matching and WILL FAIL if not exact.
    - If a "Display Narrative" is provided (translated text), copy sourceText from THAT version
    - Copy the EXACT characters, including punctuation and any *asterisks* or **markup**

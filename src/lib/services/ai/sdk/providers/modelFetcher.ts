@@ -60,9 +60,7 @@ export async function fetchModelsFromProvider(
   }
   if (Array.isArray(data)) {
     return {
-      models: data
-        .map((m: { id?: string; name?: string }) => m.id || m.name || '')
-        .filter(Boolean),
+      models: data.map((m: { id?: string; name?: string }) => m.id || m.name || '').filter(Boolean),
       reasoningModels: [],
     }
   }

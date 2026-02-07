@@ -215,7 +215,7 @@ export class GenerationPipeline {
     )
     return {
       storyId: ctx.story.id,
-      entryId: ctx.userAction.entryId,
+      entryId: ctx.narrationEntryId || ctx.userAction.entryId,
       narrativeContent: r.narrative?.content ?? '',
       userAction: ctx.userAction.content,
       presentCharacters,

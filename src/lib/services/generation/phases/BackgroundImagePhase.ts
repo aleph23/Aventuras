@@ -24,7 +24,6 @@ export interface BackgroundImageDependencies {
 
 /** Settings needed for image phase decision making */
 export interface BackgroundImageSettings {
-  enabled: boolean
   backgroundImagesEnabled?: boolean
 }
 

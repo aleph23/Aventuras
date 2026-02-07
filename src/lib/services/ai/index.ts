@@ -80,6 +80,7 @@ export interface ImageGenerationContext {
   lorebookContext?: string
   translatedNarrative?: string
   translationLanguage?: string
+  referenceMode: boolean
 }
 import type { TranslationResult, UITranslationItem } from './utils/TranslationService'
 import type { StreamChunk } from './core/types'
@@ -795,8 +796,7 @@ class AIService {
     }
 
     // Check if inline image mode is enabled for this story
-    const inlineImageMode = story.currentStory?.settings?.inlineImageMode ?? false
-
+    const inlineImageMode = story.currentStory?.settings?.imageGenerationMode === 'inline'
     try {
       if (inlineImageMode) {
         // Use inline image generation (process <pic> tags from AI response)
@@ -809,6 +809,7 @@ class AIService {
           entryId: context.entryId,
           narrativeContent: narrativeToProcess,
           presentCharacters: context.presentCharacters,
+          referenceMode: context.referenceMode,
         }
         await inlineImageService.processNarrativeForInlineImages(inlineContext)
       } else {
@@ -828,7 +829,7 @@ class AIService {
    */
   private async runAnalyzedImageGeneration(context: ImageGenerationContext): Promise<void> {
     const imageSettings = settings.systemServicesSettings.imageGeneration
-    const portraitMode = imageSettings.portraitMode ?? false
+    const referenceMode = context.referenceMode ?? false
 
     // Get characters with/without portraits
     const presentCharacterNames = context.presentCharacters.map((c) => c.name.toLowerCase())
@@ -857,7 +858,7 @@ class AIService {
       lorebookContext: context.lorebookContext,
       charactersWithPortraits,
       charactersWithoutPortraits,
-      portraitMode,
+      referenceMode,
       translatedNarrative: context.translatedNarrative,
       translationLanguage: context.translationLanguage,
     }
@@ -915,17 +916,17 @@ class AIService {
     presentCharacters: Character[],
   ): Promise<void> {
     const imageId = crypto.randomUUID()
-    const portraitMode =
-      story.currentStory?.settings?.portraitMode ?? imageSettings.portraitMode ?? false
+    const referenceMode = story.currentStory?.settings?.referenceMode ?? false
 
     // Determine profile and model
     let profileId = imageSettings.profileId
     let modelToUse = imageSettings.model
     let sizeToUse = imageSettings.size
     let referenceImageUrls: string[] | undefined
+    let styleId: string | undefined = imageSettings.styleId
 
-    // If portrait mode and scene has characters, look for reference images
-    if (portraitMode && scene.characters.length > 0 && !scene.generatePortrait) {
+    // If reference mode and scene has characters, look for reference images
+    if (referenceMode && scene.characters.length > 0 && !scene.generatePortrait) {
       const portraitUrls: string[] = []
 
       for (const charName of scene.characters.slice(0, 3)) {
@@ -940,10 +941,11 @@ class AIService {
 
       if (portraitUrls.length > 0) {
         // Use reference profile and model for img2img
-        profileId = imageSettings.referenceProfileId || imageSettings.profileId
-        modelToUse = imageSettings.referenceModel || imageSettings.model
+        profileId = imageSettings.referenceProfileId
+        modelToUse = imageSettings.referenceModel
         sizeToUse = imageSettings.referenceSize
         referenceImageUrls = portraitUrls
+        styleId = imageSettings.styleId
         log('Using character portraits as reference', {
           characters: scene.characters,
           count: portraitUrls.length,
@@ -953,9 +955,10 @@ class AIService {
 
     // For portrait generation, use portrait-specific settings
     if (scene.generatePortrait) {
-      profileId = imageSettings.portraitProfileId || imageSettings.profileId
-      modelToUse = imageSettings.portraitModel || imageSettings.model
+      profileId = imageSettings.portraitProfileId
+      modelToUse = imageSettings.portraitModel
       sizeToUse = imageSettings.portraitSize
+      styleId = imageSettings.portraitStyleId
     }
 
     if (!profileId) {
@@ -964,7 +967,7 @@ class AIService {
     }
 
     // Build full prompt with style
-    const stylePrompt = this.getStylePrompt(imageSettings.styleId)
+    const stylePrompt = this.getStylePrompt(styleId)
     const fullPrompt = `${scene.prompt}. ${stylePrompt}`
 
     // Create pending record in database
@@ -974,7 +977,7 @@ class AIService {
       entryId,
       sourceText: scene.sourceText,
       prompt: fullPrompt,
-      styleId: imageSettings.styleId,
+      styleId: styleId,
       model: modelToUse,
       imageData: '',
       width: sizeToUse === '1024x1024' ? 1024 : sizeToUse === '2048x2048' ? 2048 : 512,

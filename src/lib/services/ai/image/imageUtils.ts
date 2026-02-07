@@ -29,7 +29,7 @@ export function isImageGenerationEnabled(storySettings?: StorySettings): boolean
     // Falls back to global enabled if no story context (e.g. initial setup or legacy check)
     // NOTE: User wants overall toggle to not exist, so we might want to default this to true
     // if a profile is configured.
-    if (!imageSettings?.enabled && !imageSettings?.profileId) return false
+    if (!imageSettings?.profileId) return false
   }
 
   const profileId = imageSettings.profileId
@@ -169,30 +169,24 @@ export async function retryImageGeneration(imageId: string, prompt: string): Pro
  * Generate a portrait image for a character.
  * Returns the base64 image data on success.
  */
-export async function generatePortrait(
-  prompt: string,
-  options?: {
-    profileId?: string
-    model?: string
-    size?: string
-  },
-): Promise<string> {
+export async function generatePortrait(prompt: string): Promise<string> {
   const imageSettings = settings.systemServicesSettings.imageGeneration
 
   // Determine which profile/model to use
-  const profileId = options?.profileId || imageSettings.portraitProfileId
+  const profileId = imageSettings.portraitProfileId
+  console.log('imageSettings :>> ', imageSettings)
 
   if (!profileId) {
     throw new Error('No image generation profile configured')
   }
 
-  const model = options?.model || imageSettings.portraitModel
+  const model = imageSettings.portraitModel
 
   if (!model) {
     throw new Error('No image model configured')
   }
 
-  const size = options?.size || imageSettings.portraitSize || '1024x1024'
+  const size = imageSettings.portraitSize || '1024x1024'
 
   log('Generating portrait', {
     profileId,

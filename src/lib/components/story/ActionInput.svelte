@@ -101,9 +101,7 @@
   // ============================================================================
 
   const canShowManualImageGen = $derived(
-    settings.systemServicesSettings.imageGeneration.enabled &&
-      !settings.systemServicesSettings.imageGeneration.autoGenerate &&
-      !!lastImageGenContext,
+    story.currentStory?.settings?.imageGenerationMode === 'none' && !!lastImageGenContext,
   )
 
   const manualImageGenDisabled = $derived.by(() => {
@@ -353,7 +351,7 @@
     activeAbortController = new AbortController()
 
     const visualProseMode = story.currentStory.settings?.visualProseMode ?? false
-    const inlineImageMode = story.currentStory.settings?.inlineImageMode ?? false
+    const inlineImageMode = story.currentStory.settings?.imageGenerationMode === 'inline'
     const streamingEntryId = crypto.randomUUID()
     const narrationEntryId = crypto.randomUUID()
 
@@ -365,7 +363,7 @@
     const currentStoryRef = story.currentStory
 
     let inlineImageTracker: InlineImageTracker | null = null
-    if (inlineImageMode && settings.systemServicesSettings.imageGeneration.enabled) {
+    if (inlineImageMode) {
       inlineImageTracker = new InlineImageTracker(
         currentStoryRef.id,
         narrationEntryId,
@@ -400,6 +398,7 @@
           content: userActionContent,
           rawInput: userActionContent,
         },
+        narrationEntryId,
         abortSignal: activeAbortController.signal,
       }
 
@@ -416,12 +415,9 @@
         activationTracker,
         translationSettings: settings.translationSettings,
         imageSettings: {
-          enabled: settings.systemServicesSettings.imageGeneration.enabled,
-          autoGenerate: currentStoryRef.settings?.imageGenerationMode === 'auto',
-          imageGenerationMode: currentStoryRef.settings?.imageGenerationMode ?? 'auto',
+          imageGenerationMode: currentStoryRef.settings?.imageGenerationMode ?? 'agentic',
           backgroundImagesEnabled: currentStoryRef.settings?.backgroundImagesEnabled ?? false,
-          portraitMode: currentStoryRef.settings?.portraitMode ?? false,
-          inlineMode: inlineImageMode,
+          referenceMode: currentStoryRef.settings?.referenceMode ?? false,
         },
         promptContext: {
           mode: story.storyMode,
@@ -482,7 +478,11 @@
         if (event.type === 'narrative_chunk') {
           fullResponse += event.content
           if (event.reasoning) fullReasoning += event.reasoning
-          if (inlineImageTracker) inlineImageTracker.processChunk(fullResponse)
+          if (inlineImageTracker)
+            inlineImageTracker.processChunk(
+              fullResponse,
+              currentStoryRef.settings?.referenceMode ?? false,
+            )
         }
 
         if (event.type === 'phase_complete' && event.phase === 'narrative' && fullResponse.trim()) {
@@ -528,6 +528,7 @@
                 event.result.scene.currentLocationName ?? worldState.currentLocation?.name,
               chatHistory: imageGenChatHistory,
               lorebookContext: undefined,
+              referenceMode: currentStoryRef.settings?.referenceMode ?? false,
             }
           }
 

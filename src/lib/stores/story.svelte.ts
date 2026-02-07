@@ -2705,7 +2705,9 @@ class StoryStore {
       tone?: string
       themes?: string[]
       visualProseMode?: boolean
-      inlineImageMode?: boolean
+      imageGenerationMode?: 'none' | 'agentic' | 'inline'
+      backgroundImagesEnabled?: boolean
+      referenceMode?: boolean
     }
     protagonist: Partial<Character>
     startingLocation: Partial<Location>
@@ -2742,7 +2744,9 @@ class StoryStore {
       mode: data.mode,
       pov: data.settings.pov,
       visualProseMode: data.settings.visualProseMode,
-      inlineImageMode: data.settings.inlineImageMode,
+      imageGenerationMode: data.settings.imageGenerationMode,
+      backgroundImagesEnabled: data.settings.backgroundImagesEnabled,
+      referenceMode: data.settings.referenceMode,
     })
 
     // Create the base story with custom system prompt stored in settings
@@ -2761,7 +2765,9 @@ class StoryStore {
         // Don't store systemPromptOverride - use centralized prompt system instead
         // The centralized template uses story settings (pov, tense, genre, tone, themes) via macros
         visualProseMode: data.settings.visualProseMode,
-        inlineImageMode: data.settings.inlineImageMode,
+        imageGenerationMode: data.settings.imageGenerationMode,
+        backgroundImagesEnabled: data.settings.backgroundImagesEnabled,
+        referenceMode: data.settings.referenceMode,
       },
       memoryConfig: DEFAULT_MEMORY_CONFIG,
       retryState: null,

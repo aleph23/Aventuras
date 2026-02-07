@@ -76,7 +76,7 @@
   const visualProseMode = $derived(story.currentStory?.settings?.visualProseMode ?? false)
 
   // Check if Inline Image mode is enabled for this story
-  const inlineImageMode = $derived(story.currentStory?.settings?.inlineImageMode ?? false)
+  const inlineImageMode = $derived(story.currentStory?.settings?.imageGenerationMode === 'inline')
 
   // Check if this is the latest narration entry (for retry button)
   const isLatestNarration = $derived.by(() => {
@@ -282,6 +282,7 @@
       entryId: entry.id,
       narrativeContent: entry.translatedContent ?? entry.content,
       presentCharacters: story.characters, // Use all story characters for lookup
+      referenceMode: story.currentStory.settings?.referenceMode ?? false,
     }
 
     await inlineImageService.processNarrativeForInlineImages(context)

@@ -14,16 +14,16 @@
     tone: string
     visualProseMode: boolean
     imageGenerationEnabled: boolean
-    imageGenerationMode: 'none' | 'auto' | 'inline'
+    imageGenerationMode: 'none' | 'agentic' | 'inline'
     backgroundImagesEnabled: boolean
-    portraitMode: boolean
+    referenceMode: boolean
     onPOVChange: (v: POV) => void
     onTenseChange: (v: Tense) => void
     onToneChange: (v: string) => void
     onVisualProseModeChange: (v: boolean) => void
-    onImageGenerationModeChange: (v: 'none' | 'auto' | 'inline') => void
+    onImageGenerationModeChange: (v: 'none' | 'agentic' | 'inline') => void
     onBackgroundImagesEnabledChange: (v: boolean) => void
-    onPortraitModeChange: (v: boolean) => void
+    onReferenceModeChange: (v: boolean) => void
   }
 
   let {
@@ -34,14 +34,14 @@
     imageGenerationEnabled,
     imageGenerationMode,
     backgroundImagesEnabled,
-    portraitMode,
+    referenceMode,
     onPOVChange,
     onTenseChange,
     onToneChange,
     onVisualProseModeChange,
     onImageGenerationModeChange,
     onBackgroundImagesEnabledChange,
-    onPortraitModeChange,
+    onReferenceModeChange,
   }: Props = $props()
 
   // Force "none" mode when image generation is disabled
@@ -159,7 +159,7 @@
 
           <RadioGroup.Root
             value={imageGenerationMode}
-            onValueChange={(v) => onImageGenerationModeChange(v as 'none' | 'auto' | 'inline')}
+            onValueChange={(v) => onImageGenerationModeChange(v as 'none' | 'agentic' | 'inline')}
             class="grid grid-cols-1 gap-4 md:grid-cols-3"
           >
             <!-- No Images -->
@@ -229,12 +229,12 @@
 
             <div class="flex items-center space-x-2">
               <Switch
-                id="portrait-mode"
-                checked={portraitMode}
-                onCheckedChange={onPortraitModeChange}
+                id="reference-mode"
+                checked={referenceMode}
+                onCheckedChange={onReferenceModeChange}
               />
               <div class="grid gap-1.5 leading-none">
-                <Label for="portrait-mode">Portrait References</Label>
+                <Label for="reference-mode">Portrait Reference Mode</Label>
                 <p class="text-muted-foreground text-xs">
                   Use character portraits as visual references.
                 </p>

@@ -33,7 +33,9 @@
 
   // Auto-link embedded lorebook when selecting a vault character
   function autoLinkCharacterLorebook(char: VaultCharacter, isProtagonist = false) {
-    const linkedId = (char.metadata as Record<string, unknown>)?.linkedLorebookId as string | undefined
+    const linkedId = (char.metadata as Record<string, unknown>)?.linkedLorebookId as
+      | string
+      | undefined
     if (!linkedId) return
     if (isProtagonist) wizard.setProtagonistLinkedLorebook(linkedId)
     const lorebook = lorebookVault.getById(linkedId)
@@ -56,8 +58,6 @@
 
   // Check if image generation is enabled and configured
   const imageGenerationEnabled = $derived.by(() => {
-    const imgSettings = settings.systemServicesSettings.imageGeneration
-    if (!imgSettings.enabled) return false
     return hasRequiredCredentials()
   })
 
@@ -377,9 +377,9 @@
           imageGenerationMode={wizard.narrative.imageGenerationMode}
           onImageGenerationModeChange={(v) => (wizard.narrative.imageGenerationMode = v)}
           backgroundImagesEnabled={wizard.narrative.backgroundImagesEnabled}
-          portraitMode={wizard.narrative.portraitMode}
+          referenceMode={wizard.narrative.referenceMode}
           onBackgroundImagesEnabledChange={(v) => (wizard.narrative.backgroundImagesEnabled = v)}
-          onPortraitModeChange={(v) => (wizard.narrative.portraitMode = v)}
+          onReferenceModeChange={(v) => (wizard.narrative.referenceMode = v)}
         />
       {:else if wizard.currentStep === 8}
         <Step8Opening

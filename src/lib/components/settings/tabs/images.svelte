@@ -1,6 +1,5 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings.svelte'
-  import { Switch } from '$lib/components/ui/switch'
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
   import { Autocomplete } from '$lib/components/ui/autocomplete'
@@ -100,18 +99,6 @@
     }
   }
 
-  // Auto-select first image-capable profile if enabled but no profile selected
-  $effect(() => {
-    const imgSettings = settings.systemServicesSettings.imageGeneration
-    if (imgSettings.enabled && !imgSettings.profileId) {
-      const profiles = getImageCapableProfiles()
-      if (profiles.length > 0) {
-        settings.systemServicesSettings.imageGeneration.profileId = profiles[0].id
-        settings.saveSystemServicesSettings()
-      }
-    }
-  })
-
   // Load standard models when profile changes
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.profileId
@@ -128,8 +115,7 @@
   // Load portrait models when profile changes (only if portrait mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.portraitProfileId
-    const portraitMode = settings.systemServicesSettings.imageGeneration.portraitMode
-    if (portraitMode && profileId && portraitModels.length === 0 && !isLoadingPortraitModels) {
+    if (profileId && portraitModels.length === 0 && !isLoadingPortraitModels) {
       loadModelsForProfile(
         profileId,
         (m) => (portraitModels = m),
@@ -142,8 +128,7 @@
   // Load reference models when profile changes (only if portrait mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.referenceProfileId
-    const portraitMode = settings.systemServicesSettings.imageGeneration.portraitMode
-    if (portraitMode && profileId && referenceModels.length === 0 && !isLoadingReferenceModels) {
+    if (profileId && referenceModels.length === 0 && !isLoadingReferenceModels) {
       loadModelsForProfile(
         profileId,
         (m) => (referenceModels = m),
@@ -156,13 +141,7 @@
   // Load background models when profile changes (only if background mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.backgroundProfileId
-    const backgroundMode = settings.systemServicesSettings.imageGeneration.backgroundImagesEnabled
-    if (
-      backgroundMode &&
-      profileId &&
-      backgroundModels.length === 0 &&
-      !isLoadingBackgroundModels
-    ) {
+    if (profileId && backgroundModels.length === 0 && !isLoadingBackgroundModels) {
       loadModelsForProfile(
         profileId,
         (m) => (backgroundModels = m),
@@ -230,14 +209,21 @@
   function getSelectedProfile(
     type: 'standard' | 'portrait' | 'reference' | 'background',
   ): APIProfile | undefined {
-    const profileId =
-      type === 'standard'
-        ? settings.systemServicesSettings.imageGeneration.profileId
-        : type === 'portrait'
-          ? settings.systemServicesSettings.imageGeneration.portraitProfileId
-          : type === 'reference'
-            ? settings.systemServicesSettings.imageGeneration.referenceProfileId
-            : settings.systemServicesSettings.imageGeneration.backgroundProfileId
+    let profileId: string | null
+    switch (type) {
+      case 'standard':
+        profileId = settings.systemServicesSettings.imageGeneration.profileId
+        break
+      case 'portrait':
+        profileId = settings.systemServicesSettings.imageGeneration.portraitProfileId
+        break
+      case 'reference':
+        profileId = settings.systemServicesSettings.imageGeneration.referenceProfileId
+        break
+      case 'background':
+        profileId = settings.systemServicesSettings.imageGeneration.backgroundProfileId
+        break
+    }
     return profileId ? settings.getProfile(profileId) : undefined
   }
 
@@ -353,7 +339,7 @@
                   <Label>Reference (Img2Img) Profile</Label>
                   <Autocomplete
                     items={imageCapableProfiles}
-                    selected={getSelectedProfile('reference') || getSelectedProfile('standard')}
+                    selected={getSelectedProfile('reference')}
                     onSelect={(v) => onProfileChange((v as APIProfile).id, 'reference')}
                     itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
                     itemValue={(p: APIProfile) => p.id}
@@ -475,7 +461,7 @@
             <Label>Character Portrait Profile</Label>
             <Autocomplete
               items={imageCapableProfiles}
-              selected={getSelectedProfile('portrait') || getSelectedProfile('standard')}
+              selected={getSelectedProfile('portrait')}
               onSelect={(v) => onProfileChange((v as APIProfile).id, 'portrait')}
               itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
               itemValue={(p: APIProfile) => p.id}
@@ -576,7 +562,7 @@
             <Label>Background Profile</Label>
             <Autocomplete
               items={imageCapableProfiles}
-              selected={getSelectedProfile('background') || getSelectedProfile('standard')}
+              selected={getSelectedProfile('background')}
               onSelect={(v) => onProfileChange((v as APIProfile).id, 'background')}
               itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
               itemValue={(p: APIProfile) => p.id}
