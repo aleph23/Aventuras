@@ -4,7 +4,7 @@
  * Imports lorebooks from various formats (primarily SillyTavern) into Aventura's Entry system.
  */
 
-import type { Entry, EntryType, EntryInjectionMode, EntryCreator } from '$lib/types'
+import type { Entry, EntryType, EntryInjectionMode, EntryCreator, VaultLorebookEntry } from '$lib/types'
 import type { StoryMode } from '$lib/services/prompts'
 import { promptService, type PromptContext } from '$lib/services/prompts'
 import { generateStructured } from './ai/sdk/generate'
@@ -314,7 +314,7 @@ function determineInjectionMode(entry: SillyTavernEntry): EntryInjectionMode {
   if (entry.constant) {
     return 'always'
   }
-  if (entry.selective && entry.key.length > 0) {
+  if (entry.selective && entry.key?.length > 0) {
     return 'keyword'
   }
   return 'keyword'
@@ -763,5 +763,55 @@ export function getImportSummary(entries: ImportedEntry[]): {
     withKeywords,
     alwaysInject,
     disabled,
+  }
+}
+
+/**
+ * Extract an embedded lorebook (character_book) from a parsed character card.
+ * Returns parsed entries ready for vault import, or null if no valid lorebook found.
+ */
+export function extractEmbeddedLorebook(
+  characterBook: unknown,
+  cardName: string,
+): { name: string; entries: VaultLorebookEntry[]; result: LorebookImportResult } | null {
+  if (!characterBook || typeof characterBook !== 'object') return null
+
+  // SillyTavern character_book format has entries directly
+  const bookData = characterBook as Record<string, unknown>
+  if (!bookData.entries || typeof bookData.entries !== 'object') return null
+
+  // Embedded character_book entries use different field names than standalone lorebooks.
+  // Normalize: keys→key, secondary_keys→keysecondary, id→uid, insertion_order→order, name→comment
+  const rawEntries = bookData.entries as Record<string, unknown>[]
+  const normalizedEntries: Record<string, Record<string, unknown>> = {}
+  const entriesArray = Array.isArray(rawEntries) ? rawEntries : Object.values(rawEntries)
+
+  for (let i = 0; i < entriesArray.length; i++) {
+    const e = entriesArray[i] as Record<string, unknown>
+    normalizedEntries[String(i)] = {
+      ...e,
+      uid: e.uid ?? e.id ?? i,
+      key: e.key ?? e.keys ?? [],
+      keysecondary: e.keysecondary ?? e.secondary_keys ?? [],
+      comment: e.comment || e.name || '',
+      order: e.order ?? e.insertion_order ?? 100,
+    }
+  }
+
+  const normalized = { ...bookData, entries: normalizedEntries }
+  const jsonString = JSON.stringify(normalized)
+  const result = parseSillyTavernLorebook(jsonString)
+
+  if (!result.success || result.entries.length === 0) return null
+
+  const vaultEntries: VaultLorebookEntry[] = result.entries.map((e) => {
+    const { originalData: _originalData, ...rest } = e
+    return rest
+  })
+
+  return {
+    name: (bookData.name as string) || `${cardName} - Lorebook`,
+    entries: vaultEntries,
+    result,
   }
 }
