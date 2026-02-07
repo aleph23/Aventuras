@@ -267,6 +267,7 @@ export interface VaultScenarioMetadata {
   hasFirstMessage?: boolean
   alternateGreetingsCount?: number
   npcCount?: number
+  linkedLorebookId?: string // ID of auto-imported lorebook from embedded character_book
   [key: string]: unknown
 }
 
@@ -663,6 +664,7 @@ export interface APIProfile {
   apiKey: string // API key for this endpoint
   customModels: string[] // Manually added models
   fetchedModels: string[] // Auto-fetched from /models endpoint
+  reasoningModels: string[] // Models that support reasoning (fetched from API capabilities)
   hiddenModels: string[] // Models hidden from selection lists
   favoriteModels: string[] // Models shown at the top of selection lists
   createdAt: number // Timestamp
