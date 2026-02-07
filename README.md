@@ -1,6 +1,6 @@
 # Aventura
 
-[![Lint and Type-check](https://github.com/aleph23/Aventuras/actions/workflows/lint-and-typecheck.yml/badge.svg)](https://github.com/aleph23/Aventuras/actions/workflows/lint-and-typecheck.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aleph23/Aventuras)  [![Lint and Type-check](https://github.com/aleph23/Aventuras/actions/workflows/lint-and-typecheck.yml/badge.svg)](https://github.com/aleph23/Aventuras/actions/workflows/lint-and-typecheck.yml)  
 
 AI-powered interactive fiction and creative writing application built with Tauri, SvelteKit, and TypeScript.
 
