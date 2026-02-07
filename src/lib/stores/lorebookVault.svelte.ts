@@ -87,6 +87,14 @@ class LorebookVaultStore {
     filename: string,
     linkedFrom?: { name: string; type: 'character' | 'scenario' },
   ): Promise<VaultLorebook> {
+    // Dedup: if an embedded lorebook from the same file already exists, reuse it
+    if (linkedFrom) {
+      const existing = this.lorebooks.find(
+        (lb) => lb.originalFilename === filename && lb.name === name,
+      )
+      if (existing) return existing
+    }
+
     const entryBreakdown: Record<EntryType, number> = {
       character: 0,
       location: 0,
