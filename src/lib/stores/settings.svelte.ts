@@ -1151,7 +1151,6 @@ class SettingsStore {
     agenticRetrieval: 'agentic',
     interactiveLorebook: 'agentic',
     imageGeneration: 'suggestions',
-    imageAnalysis: 'suggestions',
     bgImageGeneration: 'suggestions',
     'wizard:settingExpansion': 'wizard',
     'wizard:settingRefinement': 'wizard',
