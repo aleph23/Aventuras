@@ -28,6 +28,7 @@ export interface ImageAnalysisContext {
   presentCharacters: Array<{
     name: string
     visualDescriptors?: VisualDescriptors
+    isProtagonist: boolean
   }>
   /** Current location name */
   currentLocation?: string
@@ -159,7 +160,11 @@ ${context.translatedNarrative}`
    * Build a formatted string of character visual descriptors for the prompt.
    */
   private buildCharacterDescriptors(
-    characters: Array<{ name: string; visualDescriptors?: VisualDescriptors }>,
+    characters: Array<{
+      name: string
+      visualDescriptors?: VisualDescriptors
+      isProtagonist: boolean
+    }>,
   ): string {
     const withDescriptors = characters.filter((c) => c.visualDescriptors)
 
@@ -191,6 +196,7 @@ ${context.translatedNarrative}`
         if (vd.clothing) parts.push(`Clothing: ${vd.clothing}`)
         if (vd.accessories) parts.push(`Accessories: ${vd.accessories}`)
         if (vd.distinguishing) parts.push(`Distinguishing features: ${vd.distinguishing}`)
+        if (char.isProtagonist) parts.push(` (Protagonist)`)
 
         return parts.join('\n  ')
       })

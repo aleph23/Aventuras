@@ -850,6 +850,7 @@ class AIService {
       presentCharacters: context.presentCharacters.map((c) => ({
         name: c.name,
         visualDescriptors: c.visualDescriptors,
+        isProtagonist: c.relationship === 'self',
       })),
       currentLocation: context.currentLocation,
       stylePrompt,

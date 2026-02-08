@@ -174,7 +174,6 @@ export async function generatePortrait(prompt: string): Promise<string> {
 
   // Determine which profile/model to use
   const profileId = imageSettings.portraitProfileId
-  console.log('imageSettings :>> ', imageSettings)
 
   if (!profileId) {
     throw new Error('No image generation profile configured')

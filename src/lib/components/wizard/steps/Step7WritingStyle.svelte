@@ -186,7 +186,7 @@
               >
                 <div class="mb-2 flex w-full items-start justify-between">
                   <span class="font-semibold">Agent Mode</span>
-                  <RadioGroup.Item value="auto" id="img-auto" class="sr-only" />
+                  <RadioGroup.Item value="agentic" id="img-auto" class="sr-only" />
                 </div>
                 <div class="text-muted-foreground text-xs font-normal">
                   AI decides when to generate images based on the story.

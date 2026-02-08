@@ -1236,7 +1236,6 @@ class DatabaseService {
     locations: Location[],
     items: Item[],
     storyBeats: StoryBeat[],
-    embeddedImages: EmbeddedImage[] = [],
   ): Promise<void> {
     const db = await this.getDb()
 
@@ -1272,7 +1271,7 @@ class DatabaseService {
     }
 
     // Restore embedded images
-    for (const image of embeddedImages) {
+    /*     for (const image of embeddedImages) {
       await this.createEmbeddedImage({
         id: image.id,
         storyId: image.storyId,
@@ -1287,7 +1286,7 @@ class DatabaseService {
         status: image.status,
         errorMessage: image.errorMessage,
       })
-    }
+    } */
   }
 
   // ===== Branch Operations (for story branching/alternate timelines) =====
