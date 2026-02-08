@@ -2,19 +2,34 @@
   import { settings } from '$lib/stores/settings.svelte'
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
+  import { Input } from '$lib/components/ui/input'
   import { Autocomplete } from '$lib/components/ui/autocomplete'
   import { Slider } from '$lib/components/ui/slider'
-  import { RotateCcw, Info } from 'lucide-svelte'
+  import {
+    RotateCcw,
+    Info,
+    Plus,
+    Pencil,
+    Trash2,
+    Copy,
+    Eye,
+    EyeOff,
+    ChevronRight,
+    Check,
+  } from 'lucide-svelte'
   import {
     listImageModels,
+    listImageModelsByProvider,
     clearModelsCache,
+    supportsImageGeneration,
     type ImageModelInfo,
-  } from '$lib/services/ai/image/modelListing'
-  import { PROVIDERS } from '$lib/services/ai/sdk/providers/config'
+  } from '$lib/services/ai/image'
   import ImageModelSelect from '$lib/components/settings/ImageModelSelect.svelte'
-  import type { APIProfile } from '$lib/types'
+  import type { ImageProfile, ImageProviderType, APIProfile } from '$lib/types'
   import * as Tabs from '$lib/components/ui/tabs'
   import * as Alert from '$lib/components/ui/alert'
+  import { Card, CardContent } from '$lib/components/ui/card'
+  import * as Collapsible from '$lib/components/ui/collapsible'
 
   const imageStyles = [
     { value: 'image-style-soft-anime', label: 'Soft Anime' },
@@ -33,6 +48,16 @@
     { value: '720x1280', label: '720x1280 (Portrait)' },
   ] as const
 
+  const providerTypes: { value: ImageProviderType; label: string }[] = [
+    { value: 'nanogpt', label: 'NanoGPT' },
+    { value: 'openai', label: 'OpenAI' },
+    { value: 'chutes', label: 'Chutes' },
+    { value: 'pollinations', label: 'Pollinations' },
+    { value: 'google', label: 'Google Imagen' },
+    { value: 'zhipu', label: 'Zhipu CogView' },
+    { value: 'comfyui', label: 'ComfyUI' },
+  ]
+
   // Helper to get available sizes for a model
   function getSizesForModel(
     profileId: string | null,
@@ -42,8 +67,7 @@
   ) {
     if (!profileId || !modelId) return defaults
 
-    const profile = settings.getProfile(profileId)
-    // Only use API-provided sizes for nanoGpt for now
+    const profile = settings.getImageProfile(profileId)
     if (profile?.providerType !== 'nanogpt') return defaults
 
     const modelInfo = models.find((m) => m.id === modelId)
@@ -58,14 +82,7 @@
   }
 
   // Tab state
-  let activeTab = $state<'general' | 'characters' | 'backgrounds'>('general')
-
-  // Get profiles that support image generation
-  function getImageCapableProfiles(): APIProfile[] {
-    return settings.apiSettings.profiles.filter(
-      (p) => PROVIDERS[p.providerType]?.capabilities.imageGeneration,
-    )
-  }
+  let activeTab = $state<'profiles' | 'general' | 'characters' | 'backgrounds'>('profiles')
 
   // Models state for each profile type
   let standardModels = $state<ImageModelInfo[]>([])
@@ -127,8 +144,8 @@
   // Filtered models for img2img (reference)
   const referenceImg2ImgModels = $derived(referenceModels.filter((m) => m.supportsImg2Img))
 
-  // Load models for a profile
-  async function loadModelsForProfile(
+  // Load models for an image profile
+  async function loadModelsForImageProfile(
     profileId: string | null,
     setModels: (models: ImageModelInfo[]) => void,
     setLoading: (loading: boolean) => void,
@@ -140,21 +157,15 @@
       return
     }
 
-    const profile = settings.getProfile(profileId)
-    if (!profile) {
-      setModels([])
-      return
-    }
-
     if (forceRefresh) {
-      clearModelsCache(profile.providerType)
+      clearModelsCache()
     }
 
     setLoading(true)
     setError(null)
 
     try {
-      const models = await listImageModels(profile.providerType, profile.apiKey)
+      const models = await listImageModels(profileId)
       setModels(models)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to load models')
@@ -167,7 +178,7 @@
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.profileId
     if (profileId && standardModels.length === 0 && !isLoadingStandardModels) {
-      loadModelsForProfile(
+      loadModelsForImageProfile(
         profileId,
         (m) => (standardModels = m),
         (l) => (isLoadingStandardModels = l),
@@ -176,11 +187,10 @@
     }
   })
 
-  // Load portrait models when profile changes (only if portrait mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.portraitProfileId
     if (profileId && portraitModels.length === 0 && !isLoadingPortraitModels) {
-      loadModelsForProfile(
+      loadModelsForImageProfile(
         profileId,
         (m) => (portraitModels = m),
         (l) => (isLoadingPortraitModels = l),
@@ -189,11 +199,10 @@
     }
   })
 
-  // Load reference models when profile changes (only if portrait mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.referenceProfileId
     if (profileId && referenceModels.length === 0 && !isLoadingReferenceModels) {
-      loadModelsForProfile(
+      loadModelsForImageProfile(
         profileId,
         (m) => (referenceModels = m),
         (l) => (isLoadingReferenceModels = l),
@@ -202,11 +211,10 @@
     }
   })
 
-  // Load background models when profile changes (only if background mode enabled)
   $effect(() => {
     const profileId = settings.systemServicesSettings.imageGeneration.backgroundProfileId
     if (profileId && backgroundModels.length === 0 && !isLoadingBackgroundModels) {
-      loadModelsForProfile(
+      loadModelsForImageProfile(
         profileId,
         (m) => (backgroundModels = m),
         (l) => (isLoadingBackgroundModels = l),
@@ -220,14 +228,11 @@
     profileId: string,
     type: 'standard' | 'portrait' | 'reference' | 'background',
   ) {
-    const profile = settings.getProfile(profileId)
-    if (!profile) return
-
     switch (type) {
       case 'standard':
         settings.systemServicesSettings.imageGeneration.profileId = profileId
         standardModels = []
-        loadModelsForProfile(
+        loadModelsForImageProfile(
           profileId,
           (m) => (standardModels = m),
           (l) => (isLoadingStandardModels = l),
@@ -237,7 +242,7 @@
       case 'portrait':
         settings.systemServicesSettings.imageGeneration.portraitProfileId = profileId
         portraitModels = []
-        loadModelsForProfile(
+        loadModelsForImageProfile(
           profileId,
           (m) => (portraitModels = m),
           (l) => (isLoadingPortraitModels = l),
@@ -247,7 +252,7 @@
       case 'reference':
         settings.systemServicesSettings.imageGeneration.referenceProfileId = profileId
         referenceModels = []
-        loadModelsForProfile(
+        loadModelsForImageProfile(
           profileId,
           (m) => (referenceModels = m),
           (l) => (isLoadingReferenceModels = l),
@@ -257,7 +262,7 @@
       case 'background':
         settings.systemServicesSettings.imageGeneration.backgroundProfileId = profileId
         backgroundModels = []
-        loadModelsForProfile(
+        loadModelsForImageProfile(
           profileId,
           (m) => (backgroundModels = m),
           (l) => (isLoadingBackgroundModels = l),
@@ -269,10 +274,10 @@
     settings.saveSystemServicesSettings()
   }
 
-  // Get the currently selected profile for a type
-  function getSelectedProfile(
+  // Get the currently selected image profile for a type
+  function getSelectedImageProfile(
     type: 'standard' | 'portrait' | 'reference' | 'background',
-  ): APIProfile | undefined {
+  ): ImageProfile | undefined {
     let profileId: string | null
     switch (type) {
       case 'standard':
@@ -288,10 +293,94 @@
         profileId = settings.systemServicesSettings.imageGeneration.backgroundProfileId
         break
     }
-    return profileId ? settings.getProfile(profileId) : undefined
+    return profileId ? settings.getImageProfile(profileId) : undefined
   }
 
-  const imageCapableProfiles = $derived(getImageCapableProfiles())
+  // ===== Image Profile CRUD =====
+  let editingProfileId = $state<string | null>(null)
+  let isNewProfile = $state(false)
+  let profileName = $state('')
+  let profileProviderType = $state<ImageProviderType>('nanogpt')
+  let profileApiKey = $state('')
+  let profileBaseUrl = $state('')
+  let showApiKey = $state(false)
+  let showCopyDropdown = $state(false)
+  let openProfileIds = $state<Set<string>>(new Set())
+
+  function startNewProfile() {
+    editingProfileId = crypto.randomUUID()
+    isNewProfile = true
+    profileName = ''
+    profileProviderType = 'nanogpt'
+    profileApiKey = ''
+    profileBaseUrl = ''
+    showApiKey = false
+    showCopyDropdown = false
+  }
+
+  function startEditProfile(profile: ImageProfile) {
+    editingProfileId = profile.id
+    isNewProfile = false
+    profileName = profile.name
+    profileProviderType = profile.providerType
+    profileApiKey = profile.apiKey
+    profileBaseUrl = profile.baseUrl || ''
+    showApiKey = false
+    showCopyDropdown = false
+    openProfileIds.add(profile.id)
+    openProfileIds = new Set(openProfileIds)
+  }
+
+  function cancelEdit() {
+    editingProfileId = null
+    isNewProfile = false
+    showCopyDropdown = false
+  }
+
+  async function handleSaveProfile() {
+    if (!profileName.trim()) return
+
+    if (isNewProfile) {
+      await settings.addImageProfile({
+        name: profileName.trim(),
+        providerType: profileProviderType,
+        apiKey: profileApiKey,
+        baseUrl: profileBaseUrl || undefined,
+        providerOptions: {},
+      })
+    } else if (editingProfileId) {
+      await settings.updateImageProfile(editingProfileId, {
+        name: profileName.trim(),
+        providerType: profileProviderType,
+        apiKey: profileApiKey,
+        baseUrl: profileBaseUrl || undefined,
+      })
+    }
+
+    cancelEdit()
+  }
+
+  async function deleteProfile(id: string) {
+    await settings.deleteImageProfile(id)
+    if (editingProfileId === id) cancelEdit()
+  }
+
+  function copyApiKeyFromProfile(apiProfile: APIProfile) {
+    profileApiKey = apiProfile.apiKey
+    showCopyDropdown = false
+  }
+
+  function handleProfileOpenChange(open: boolean, profile: ImageProfile) {
+    if (open) {
+      startEditProfile(profile)
+    } else {
+      openProfileIds.delete(profile.id)
+      openProfileIds = new Set(openProfileIds)
+      if (editingProfileId === profile.id) {
+        cancelEdit()
+      }
+    }
+  }
 </script>
 
 <div class="space-y-4">
@@ -302,14 +391,123 @@
     </Button>
   </div>
 
-  <Tabs.Root value={activeTab} onValueChange={(v) => (activeTab = v as any)}>
-    <Tabs.List class="grid w-full grid-cols-3">
+  <Tabs.Root value={activeTab} onValueChange={(v) => (activeTab = v as typeof activeTab)}>
+    <Tabs.List class="grid w-full grid-cols-4">
+      <Tabs.Trigger value="profiles">Profiles</Tabs.Trigger>
       <Tabs.Trigger value="general">Story Images</Tabs.Trigger>
       <Tabs.Trigger value="characters">Characters</Tabs.Trigger>
       <Tabs.Trigger value="backgrounds">Backgrounds</Tabs.Trigger>
     </Tabs.List>
 
     <div class="mt-4 min-h-[400px]">
+      <!-- Profiles Tab -->
+      <Tabs.Content value="profiles" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <p class="text-muted-foreground text-sm">
+            Image profiles configure which provider and API key to use for image generation.
+          </p>
+          <Button size="sm" onclick={startNewProfile}>
+            <Plus class="mr-1 h-3 w-3" />
+            Add Profile
+          </Button>
+        </div>
+
+        <!-- New Profile Form (inline) -->
+        {#if isNewProfile && editingProfileId}
+          <Card class="border-primary/50 bg-primary/5">
+            <CardContent>
+              {@render profileForm()}
+              <div class="flex gap-2 pt-4">
+                <Button variant="outline" onclick={cancelEdit} class="flex-1">Cancel</Button>
+                <Button
+                  onclick={handleSaveProfile}
+                  disabled={!profileName.trim()}
+                  class="flex-1"
+                >
+                  <Check class="h-4 w-4" />
+                  Create Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        {/if}
+
+        {#if settings.imageProfiles.length === 0 && !isNewProfile}
+          <Alert.Root>
+            <Info class="h-4 w-4" />
+            <Alert.Title>No Image Profiles</Alert.Title>
+            <Alert.Description class="text-xs">
+              Create an image profile to start generating images. You can have multiple profiles
+              for different providers or use cases (e.g., portraits vs backgrounds).
+            </Alert.Description>
+          </Alert.Root>
+        {:else}
+          <div class="space-y-3">
+            {#each settings.imageProfiles as profile (profile.id)}
+              <div class="bg-card text-card-foreground rounded-lg border shadow-sm">
+                <Collapsible.Root
+                  open={openProfileIds.has(profile.id)}
+                  onOpenChange={(open) => handleProfileOpenChange(open, profile)}
+                >
+                  <div class="flex items-center gap-3 p-3 pl-4">
+                    <Collapsible.Trigger
+                      class="group/trigger flex flex-1 items-center gap-2 text-left"
+                    >
+                      <ChevronRight
+                        class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/trigger:rotate-90"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <span class="text-sm font-medium">{profile.name}</span>
+                        <p class="text-muted-foreground text-xs">
+                          {providerTypes.find((p) => p.value === profile.providerType)?.label ||
+                            profile.providerType}
+                          {profile.apiKey ? ' · Key configured' : ' · No API key'}
+                        </p>
+                      </div>
+                    </Collapsible.Trigger>
+                    <div class="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-7 w-7"
+                        onclick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          startEditProfile(profile)
+                        }}
+                        title="Edit profile"
+                      >
+                        <Pencil class="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-7 w-7 hover:text-red-500"
+                        onclick={() => deleteProfile(profile.id)}
+                        title="Delete profile"
+                      >
+                        <Trash2 class="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Collapsible.Content>
+                    {#if editingProfileId === profile.id}
+                      <div class="bg-muted/10 space-y-4 border-t p-4">
+                        {@render profileForm()}
+                        <div class="flex justify-end gap-2 pt-2">
+                          <Button variant="outline" size="sm" onclick={cancelEdit}>Done</Button>
+                        </div>
+                      </div>
+                    {/if}
+                  </Collapsible.Content>
+                </Collapsible.Root>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </Tabs.Content>
+
       <!-- General Tab -->
       <Tabs.Content value="general" class="space-y-6">
         <section class="space-y-6">
@@ -339,12 +537,13 @@
                 <div class="space-y-2">
                   <Label>Regular Image Profile</Label>
                   <Autocomplete
-                    items={imageCapableProfiles}
-                    selected={getSelectedProfile('standard')}
-                    onSelect={(v) => onProfileChange((v as APIProfile).id, 'standard')}
-                    itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
-                    itemValue={(p: APIProfile) => p.id}
-                    placeholder="Select a profile"
+                    items={settings.imageProfiles}
+                    selected={getSelectedImageProfile('standard')}
+                    onSelect={(v) => onProfileChange((v as ImageProfile).id, 'standard')}
+                    itemLabel={(p: ImageProfile) =>
+                      `${p.name} (${providerTypes.find((t) => t.value === p.providerType)?.label || p.providerType})`}
+                    itemValue={(p: ImageProfile) => p.id}
+                    placeholder="Select an image profile"
                   />
                 </div>
 
@@ -365,7 +564,7 @@
                       errorMessage={standardModelsError}
                       showRefreshButton={true}
                       onRefresh={() =>
-                        loadModelsForProfile(
+                        loadModelsForImageProfile(
                           settings.systemServicesSettings.imageGeneration.profileId,
                           (m) => (standardModels = m),
                           (l) => (isLoadingStandardModels = l),
@@ -389,9 +588,7 @@
                           : undefined)}
                       onSelect={(v) => {
                         settings.systemServicesSettings.imageGeneration.size = (
-                          v as {
-                            value: string
-                          }
+                          v as { value: string }
                         ).value
                         settings.saveSystemServicesSettings()
                       }}
@@ -413,12 +610,13 @@
                 <div class="space-y-2">
                   <Label>Reference (Img2Img) Profile</Label>
                   <Autocomplete
-                    items={imageCapableProfiles}
-                    selected={getSelectedProfile('reference')}
-                    onSelect={(v) => onProfileChange((v as APIProfile).id, 'reference')}
-                    itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
-                    itemValue={(p: APIProfile) => p.id}
-                    placeholder="Select a profile"
+                    items={settings.imageProfiles}
+                    selected={getSelectedImageProfile('reference')}
+                    onSelect={(v) => onProfileChange((v as ImageProfile).id, 'reference')}
+                    itemLabel={(p: ImageProfile) =>
+                      `${p.name} (${providerTypes.find((t) => t.value === p.providerType)?.label || p.providerType})`}
+                    itemValue={(p: ImageProfile) => p.id}
+                    placeholder="Select an image profile"
                   />
                 </div>
 
@@ -446,7 +644,7 @@
                         const profileId =
                           settings.systemServicesSettings.imageGeneration.referenceProfileId ||
                           settings.systemServicesSettings.imageGeneration.profileId
-                        loadModelsForProfile(
+                        loadModelsForImageProfile(
                           profileId,
                           (m) => (referenceModels = m),
                           (l) => (isLoadingReferenceModels = l),
@@ -472,9 +670,7 @@
                           : undefined)}
                       onSelect={(v) => {
                         settings.systemServicesSettings.imageGeneration.referenceSize = (
-                          v as {
-                            value: string
-                          }
+                          v as { value: string }
                         ).value
                         settings.saveSystemServicesSettings()
                       }}
@@ -542,23 +738,22 @@
       <!-- Characters Tab -->
       <Tabs.Content value="characters" class="space-y-6">
         <section class="space-y-4">
-          <!-- Portrait Profile -->
           <div class="space-y-2">
             <Label>Character Portrait Profile</Label>
             <Autocomplete
-              items={imageCapableProfiles}
-              selected={getSelectedProfile('portrait')}
-              onSelect={(v) => onProfileChange((v as APIProfile).id, 'portrait')}
-              itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
-              itemValue={(p: APIProfile) => p.id}
-              placeholder="Select a profile"
+              items={settings.imageProfiles}
+              selected={getSelectedImageProfile('portrait')}
+              onSelect={(v) => onProfileChange((v as ImageProfile).id, 'portrait')}
+              itemLabel={(p: ImageProfile) =>
+                `${p.name} (${providerTypes.find((t) => t.value === p.providerType)?.label || p.providerType})`}
+              itemValue={(p: ImageProfile) => p.id}
+              placeholder="Select an image profile"
             />
             <p class="text-muted-foreground mt-1 text-xs">
               Profile used for generating character portraits.
             </p>
           </div>
 
-          <!-- Portrait Model -->
           {#if settings.systemServicesSettings.imageGeneration.portraitProfileId || settings.systemServicesSettings.imageGeneration.profileId}
             <div class="space-y-2">
               <Label>Character Portrait Model</Label>
@@ -578,7 +773,7 @@
                   const profileId =
                     settings.systemServicesSettings.imageGeneration.portraitProfileId ||
                     settings.systemServicesSettings.imageGeneration.profileId
-                  loadModelsForProfile(
+                  loadModelsForImageProfile(
                     profileId,
                     (m) => (portraitModels = m),
                     (l) => (isLoadingPortraitModels = l),
@@ -606,9 +801,7 @@
                     : undefined)}
                 onSelect={(v) => {
                   settings.systemServicesSettings.imageGeneration.portraitSize = (
-                    v as {
-                      value: string
-                    }
+                    v as { value: string }
                   ).value
                   settings.saveSystemServicesSettings()
                 }}
@@ -624,7 +817,6 @@
             </div>
           {/if}
 
-          <!-- Portrait Style -->
           <div class="space-y-2">
             <Label>Character Portrait Style</Label>
             <Autocomplete
@@ -634,9 +826,7 @@
               )}
               onSelect={(v) => {
                 settings.systemServicesSettings.imageGeneration.portraitStyleId = (
-                  v as {
-                    value: string
-                  }
+                  v as { value: string }
                 ).value
                 settings.saveSystemServicesSettings()
               }}
@@ -654,23 +844,22 @@
       <!-- Backgrounds Tab -->
       <Tabs.Content value="backgrounds" class="space-y-6">
         <section class="space-y-4">
-          <!-- Background Profile -->
           <div class="space-y-2">
             <Label>Background Profile</Label>
             <Autocomplete
-              items={imageCapableProfiles}
-              selected={getSelectedProfile('background')}
-              onSelect={(v) => onProfileChange((v as APIProfile).id, 'background')}
-              itemLabel={(p: APIProfile) => `${p.name} (${p.providerType})`}
-              itemValue={(p: APIProfile) => p.id}
-              placeholder="Select a profile"
+              items={settings.imageProfiles}
+              selected={getSelectedImageProfile('background')}
+              onSelect={(v) => onProfileChange((v as ImageProfile).id, 'background')}
+              itemLabel={(p: ImageProfile) =>
+                `${p.name} (${providerTypes.find((t) => t.value === p.providerType)?.label || p.providerType})`}
+              itemValue={(p: ImageProfile) => p.id}
+              placeholder="Select an image profile"
             />
             <p class="text-muted-foreground mt-1 text-xs">
               Profile used for generating background scenes.
             </p>
           </div>
 
-          <!-- Background Model -->
           {#if settings.systemServicesSettings.imageGeneration.backgroundProfileId || settings.systemServicesSettings.imageGeneration.profileId}
             <div class="space-y-2">
               <Label>Background Model</Label>
@@ -690,7 +879,7 @@
                   const profileId =
                     settings.systemServicesSettings.imageGeneration.backgroundProfileId ||
                     settings.systemServicesSettings.imageGeneration.profileId
-                  loadModelsForProfile(
+                  loadModelsForImageProfile(
                     profileId,
                     (m) => (backgroundModels = m),
                     (l) => (isLoadingBackgroundModels = l),
@@ -705,7 +894,6 @@
             </div>
           {/if}
 
-          <!-- Background Size -->
           <div class="space-y-2">
             <Label>Background Size</Label>
             <Autocomplete
@@ -721,9 +909,7 @@
                   : undefined)}
               onSelect={(v) => {
                 settings.systemServicesSettings.imageGeneration.backgroundSize = (
-                  v as {
-                    value: string
-                  }
+                  v as { value: string }
                 ).value
                 settings.saveSystemServicesSettings()
               }}
@@ -738,7 +924,6 @@
             />
           </div>
 
-          <!-- Background Blur -->
           <div class="space-y-2">
             <Label>
               Background Blur: {settings.systemServicesSettings.imageGeneration.backgroundBlur}px
@@ -761,3 +946,83 @@
     </div>
   </Tabs.Root>
 </div>
+
+{#snippet profileForm()}
+  <div class="space-y-4">
+    <div class="space-y-2">
+      <Label>Name</Label>
+      <Input bind:value={profileName} placeholder="e.g., NanoGPT Images" />
+    </div>
+
+    <div class="space-y-2">
+      <Label>Provider</Label>
+      <Autocomplete
+        items={providerTypes}
+        selected={providerTypes.find((p) => p.value === profileProviderType)}
+        onSelect={(v) => {
+          profileProviderType = (v as { value: ImageProviderType }).value
+        }}
+        itemLabel={(p: { label: string }) => p.label}
+        itemValue={(p: { value: string }) => p.value}
+        placeholder="Select provider"
+      />
+    </div>
+
+    <div class="space-y-2">
+      <Label>API Key</Label>
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <Input
+            type={showApiKey ? 'text' : 'password'}
+            bind:value={profileApiKey}
+            placeholder="Enter API key"
+          />
+          <button
+            type="button"
+            class="absolute inset-y-0 right-0 flex items-center pr-3"
+            onclick={() => (showApiKey = !showApiKey)}
+          >
+            {#if showApiKey}
+              <EyeOff class="text-muted-foreground h-4 w-4" />
+            {:else}
+              <Eye class="text-muted-foreground h-4 w-4" />
+            {/if}
+          </button>
+        </div>
+      </div>
+      {#if settings.apiSettings.profiles.length > 0}
+        <div class="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => (showCopyDropdown = !showCopyDropdown)}
+          >
+            <Copy class="mr-1 h-3 w-3" />
+            Copy from API Profile
+          </Button>
+          {#if showCopyDropdown}
+            <div class="bg-popover absolute z-10 mt-1 w-64 rounded-md border shadow-md">
+              {#each settings.apiSettings.profiles as apiProfile (apiProfile.id)}
+                <button
+                  type="button"
+                  class="hover:bg-accent w-full px-3 py-2 text-left text-sm"
+                  onclick={() => copyApiKeyFromProfile(apiProfile)}
+                >
+                  {apiProfile.name}
+                  <span class="text-muted-foreground text-xs">({apiProfile.providerType})</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
+
+    {#if profileProviderType === 'comfyui' || profileProviderType === 'openai' || profileProviderType === 'zhipu'}
+      <div class="space-y-2">
+        <Label>Base URL (optional)</Label>
+        <Input bind:value={profileBaseUrl} placeholder="Custom base URL" />
+      </div>
+    {/if}
+  </div>
+{/snippet}

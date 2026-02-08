@@ -15,8 +15,7 @@
  */
 
 import { extractPicTags, type ParsedPicTag } from '$lib/utils/inlineImageParser'
-import { generateImage as sdkGenerateImage } from '$lib/services/ai/sdk/generate'
-import { PROVIDERS } from '$lib/services/ai/sdk/providers/config'
+import { generateImage as registryGenerateImage, supportsImageGeneration } from './providers/registry'
 import { database } from '$lib/services/database'
 import { promptService } from '$lib/services/prompts'
 import { settings } from '$lib/stores/settings.svelte'
@@ -118,10 +117,9 @@ export class InlineImageTracker {
     }
 
     // Check if provider supports image generation
-    const profile = settings.getProfile(profileId)
+    const profile = settings.getImageProfile(profileId)
     if (!profile) return
-    const capabilities = PROVIDERS[profile.providerType].capabilities
-    if (!capabilities?.imageGeneration) return
+    if (!supportsImageGeneration(profile.providerType)) return
 
     // Build full prompt with style
     const stylePrompt = this.getStylePrompt(imageSettings.styleId)
@@ -166,7 +164,7 @@ export class InlineImageTracker {
     referenceImageUrls?: string[],
   ): Promise<{ base64: string | null; error?: string }> {
     try {
-      const result = await sdkGenerateImage({
+      const result = await registryGenerateImage({
         profileId,
         model,
         prompt,

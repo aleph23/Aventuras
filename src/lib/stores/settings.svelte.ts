@@ -8,6 +8,8 @@ import type {
   GenerationPreset,
   TranslationSettings,
   ProviderType,
+  ImageProfile,
+  ImageProviderType,
 } from '$lib/types'
 import { database } from '$lib/services/database'
 import {
@@ -21,7 +23,7 @@ import type { ReasoningEffort } from '$lib/types'
 import { ui } from '$lib/stores/ui.svelte'
 import { getTheme } from '../../themes/themes'
 import { LLM_TIMEOUT_DEFAULT, LLM_TIMEOUT_MIN, LLM_TIMEOUT_MAX } from '$lib/constants/timeout'
-import { SvelteSet } from 'svelte/reactivity'
+import { SvelteSet, SvelteMap } from 'svelte/reactivity'
 
 // Provider preset type (used by WelcomeScreen)
 export type ProviderPreset = 'openrouter' | 'nanogpt' | 'openai-compatible'
@@ -690,29 +692,29 @@ export interface LorebookClassifierSpecificSettings {
 // Linter doesnt like empty objects interfaces, but keeping them for potential future use.
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface SuggestionsSpecificSettings {}
+export interface SuggestionsSpecificSettings { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ActionChoicesSpecificSettings {}
+export interface ActionChoicesSpecificSettings { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface StyleReviewerSpecificSettings {}
+export interface StyleReviewerSpecificSettings { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface LoreManagementSpecificSettings {}
+export interface LoreManagementSpecificSettings { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InteractiveLorebookSpecificSettings {}
+export interface InteractiveLorebookSpecificSettings { }
 
 export interface AgenticRetrievalSpecificSettings {
   maxIterations: number
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface TimelineFillSpecificSettings {}
+export interface TimelineFillSpecificSettings { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ChapterQuerySpecificSettings {}
+export interface ChapterQuerySpecificSettings { }
 
 // Global context configuration - controls how much context is included in AI operations
 export interface ContextWindowSettings {
@@ -1137,6 +1139,9 @@ class SettingsStore {
 
   // Translation settings
   translationSettings = $state<TranslationSettings>(getDefaultTranslationSettings())
+
+  // Image profiles (dedicated image provider configurations)
+  imageProfiles = $state<ImageProfile[]>([])
 
   // Service preset assignments - which preset each service uses
   servicePresetAssignments = $state<Record<string, string>>({
@@ -1670,6 +1675,9 @@ class SettingsStore {
           this.translationSettings = getDefaultTranslationSettings()
         }
       }
+
+      // Load image profiles
+      await this.loadImageProfiles()
 
       // Load prompt settings and initialize the prompt service
       const promptSettingsJson = await database.getSetting('prompt_settings')
@@ -2294,7 +2302,7 @@ class SettingsStore {
     let wizardNeedsSave = false
     for (const [key, process] of Object.entries(this.wizardSettings)) {
       if (needsMigration(process.profileId)) {
-        ;(this.wizardSettings as any)[key].profileId = DEFAULT_OPENROUTER_PROFILE_ID
+        ; (this.wizardSettings as any)[key].profileId = DEFAULT_OPENROUTER_PROFILE_ID
         wizardNeedsSave = true
       }
     }
@@ -2308,37 +2316,68 @@ class SettingsStore {
   }
 
   /**
-   * Ensure default image generation profiles are set for all categories.
-   * This runs automatically on app start via init().
+   * Auto-migrate existing API Profile references to Image Profiles.
+   * On first load after the rework, if imageProfiles is empty but imageGeneration
+   * settings have API profile IDs, create Image Profiles from those API Profiles.
    */
   async migrateImageProfileDefaults() {
+    if (this.imageProfiles.length > 0) return
+
     const imgSettings = this.systemServicesSettings.imageGeneration
-    const profiles = this.apiSettings.profiles.filter(
-      (p) => PROVIDERS[p.providerType]?.capabilities.imageGeneration,
-    )
+    const profileFields = [
+      'profileId',
+      'referenceProfileId',
+      'portraitProfileId',
+      'backgroundProfileId',
+    ] as const
 
-    if (profiles.length > 0) {
-      let changed = false
-      const defaultProfileId = profiles[0].id
+    // Collect unique API Profile IDs that are set in image settings
+    const apiProfileIds = new SvelteSet<string>()
+    for (const field of profileFields) {
+      const value = imgSettings[field]
+      if (value) apiProfileIds.add(value)
+    }
 
-      const profileFields: (keyof typeof imgSettings)[] = [
-        'profileId',
-        'portraitProfileId',
-        'referenceProfileId',
-        'backgroundProfileId',
-      ]
+    if (apiProfileIds.size === 0) return
 
-      for (const field of profileFields) {
-        if (!imgSettings[field]) {
-          ;(imgSettings as any)[field] = defaultProfileId
-          changed = true
-        }
+    // Map from old API Profile ID → new Image Profile ID
+    const idMap = new SvelteMap<string, string>()
+    let changed = false
+
+    for (const apiProfileId of apiProfileIds) {
+      const apiProfile = this.getProfile(apiProfileId)
+      if (!apiProfile) continue
+
+      // Map ProviderType to ImageProviderType (only for image-capable providers)
+      const providerType = apiProfile.providerType as string
+      const imageProviderTypes = ['nanogpt', 'openai', 'chutes', 'pollinations', 'google', 'zhipu']
+      if (!imageProviderTypes.includes(providerType)) continue
+
+      const newProfile = await this.addImageProfile({
+        name: `${apiProfile.name} (Images)`,
+        providerType: providerType as ImageProviderType,
+        apiKey: apiProfile.apiKey ?? '',
+        baseUrl: apiProfile.baseUrl,
+        providerOptions: {},
+      })
+
+      idMap.set(apiProfileId, newProfile.id)
+    }
+
+    // Update image settings to point to new Image Profile IDs
+    for (const field of profileFields) {
+      const oldId = imgSettings[field]
+      if (oldId && idMap.has(oldId)) {
+        ; (imgSettings as unknown as Record<string, unknown>)[field] = idMap.get(oldId)!
+        changed = true
       }
+    }
 
-      if (changed) {
-        await this.saveSystemServicesSettings()
-        console.log('[Settings] Automatically set default image generation profiles')
-      }
+    if (changed) {
+      await this.saveSystemServicesSettings()
+      console.log(
+        '[Settings] Auto-migrated image generation profiles from API Profiles to Image Profiles',
+      )
     }
   }
 
@@ -2609,6 +2648,56 @@ class SettingsStore {
   async resetTranslationSettings() {
     this.translationSettings = getDefaultTranslationSettings()
     await this.saveTranslationSettings()
+  }
+
+  // ===== Image Profile Management =====
+
+  async saveImageProfiles() {
+    await database.setSetting('image_profiles', JSON.stringify(this.imageProfiles))
+  }
+
+  async loadImageProfiles() {
+    const json = await database.getSetting('image_profiles')
+    if (json) {
+      try {
+        const parsed = JSON.parse(json) as ImageProfile[]
+        this.imageProfiles = parsed.map((p) => ({
+          ...p,
+          providerOptions: p.providerOptions ?? {},
+        }))
+      } catch {
+        this.imageProfiles = []
+      }
+    }
+  }
+
+  async addImageProfile(profile: Omit<ImageProfile, 'id' | 'createdAt'>): Promise<ImageProfile> {
+    const newProfile: ImageProfile = {
+      ...profile,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+    }
+    this.imageProfiles = [...this.imageProfiles, newProfile]
+    await this.saveImageProfiles()
+    return newProfile
+  }
+
+  async updateImageProfile(id: string, updates: Partial<Omit<ImageProfile, 'id' | 'createdAt'>>) {
+    const index = this.imageProfiles.findIndex((p) => p.id === id)
+    if (index === -1) return
+    this.imageProfiles[index] = { ...this.imageProfiles[index], ...updates }
+    this.imageProfiles = [...this.imageProfiles]
+    await this.saveImageProfiles()
+  }
+
+  async deleteImageProfile(id: string): Promise<boolean> {
+    this.imageProfiles = this.imageProfiles.filter((p) => p.id !== id)
+    await this.saveImageProfiles()
+    return true
+  }
+
+  getImageProfile(id: string): ImageProfile | undefined {
+    return this.imageProfiles.find((p) => p.id === id)
   }
 
   async resetClassifierSettings() {

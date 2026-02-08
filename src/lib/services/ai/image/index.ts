@@ -1,9 +1,9 @@
 /**
  * AI Image Module
  *
- * Image generation services using SDK-based providers.
+ * Image generation services using standalone provider registry.
  * - InlineImageService: Inline image generation during narrative
- * - modelListing: List available models from providers
+ * - Provider registry: Direct HTTP calls per provider
  * - imageUtils: Helper functions for image generation
  */
 
@@ -20,8 +20,15 @@ export { InlineImageTracker } from './InlineImageTracker'
 // Image analysis service (analyzed/agent mode)
 export { ImageAnalysisService, type ImageAnalysisContext } from './ImageAnalysisService'
 
-// Model listing utilities
-export { listImageModels, clearModelsCache, type ImageModelInfo } from './modelListing'
+// Provider registry (replaces modelListing.ts)
+export {
+  generateImage,
+  listImageModels,
+  listImageModelsByProvider,
+  clearModelsCache,
+  supportsImageGeneration,
+  type ImageModelInfo,
+} from './providers/registry'
 
 // Image generation utilities
 export {

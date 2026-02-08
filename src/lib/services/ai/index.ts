@@ -68,7 +68,7 @@ import {
   emitBackgroundImageReady,
 } from '$lib/services/events'
 import { database } from '$lib/services/database'
-import { generateImage as sdkGenerateImage } from './sdk/generate'
+import { generateImage as registryGenerateImage } from './image/providers/registry'
 import { normalizeImageDataUrl } from '$lib/utils/image'
 import type { ImageableScene } from './sdk/schemas/imageanalysis'
 import type { EmbeddedImage } from '$lib/types'
@@ -1057,7 +1057,7 @@ class AIService {
       })
 
       // Generate image using SDK
-      const result = await sdkGenerateImage({
+      const result = await registryGenerateImage({
         profileId,
         model,
         prompt,

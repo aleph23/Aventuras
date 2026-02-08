@@ -8,7 +8,7 @@ import {
   generateStructured,
   type BackgroundImageAnalysisResult,
 } from '../sdk'
-import { generateImage } from '../sdk/generate'
+import { generateImage } from './providers/registry'
 
 const log = createLogger('BackgroundImageService')
 
