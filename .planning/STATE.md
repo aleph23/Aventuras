@@ -79,6 +79,10 @@ Recent decisions affecting current work:
 - External templates (interactive-lorebook) fetched via database.getPackTemplate() with manual placeholder injection
 - Generation ContextBuilder imports new pipeline as ContextPipeline to avoid class name collision
 - Services without storyId use new ContextBuilder() with add() for mode/pov/tense as flat variables
+- Service migration pattern: ContextBuilder.forStory(storyId) + ctx.add({vars}) + ctx.render(templateId) replaces promptService.renderPrompt/renderUserPrompt
+- Priming message moved to NarrativeService private methods (no macro engine dependency)
+- buildChapterSummariesBlock kept in systemBuilder as pure utility import
+- AIService orchestrator bridges old PromptContext API to new storyId-based ContextBuilder API
 
 ### Pending Todos
 
