@@ -1,0 +1,102 @@
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-02-08)
+
+**Core value:** Every {{ variable }} in every prompt template resolves correctly, predictably, through one pipeline — and users can create, edit, and share prompt presets without fighting the system.
+**Current focus:** Phase 3 - Context System & Service Integration
+
+## Current Position
+
+Phase: 3 of 6 (Context System & Service Integration)
+Plan: 3 of 6 in current phase
+Status: Ready to execute
+Last activity: 2026-02-09 — Completed plan 03-02 (Liquid template conversion)
+
+Progress: [█████░░░░░] 50%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 7
+- Average duration: 6.5 minutes
+- Total execution time: 0.49 hours
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 01 | 2 | 436s | 218s |
+| 02 | 3 | 525s | 175s |
+| 03 | 2 | 1507s | 754s |
+
+**Recent Executions:**
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 03 | 02 | 725s | 2 | 8 |
+| 03 | 01 | 782s | 2 | 4 |
+| 02 | 03 | 152s | 2 | 3 |
+| 02 | 02 | 201s | 2 | 1 |
+| 02 | 01 | 172s | 2 | 3 |
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- Template engine choice: LiquidJS for safe Jinja-like syntax (verified and working)
+- Three variable categories: system (auto-filled), runtime (service-injected), custom (user-defined)
+- Clean slate migration: No backward compatibility with old macro overrides
+- Error message simplification: Transform LiquidJS technical errors into plain language for non-technical users
+- Levenshtein distance threshold: maxDistance=2 for "did you mean?" suggestions
+- Validation stateless design: No side effects, safe for real-time editor keystroke validation
+- Pack variable types: 5 types including textarea (distinct from Phase 1's 4 VariableTypes)
+- Enum variables use label+value pairs for display vs storage separation
+- Variables have dual naming: variableName (template) and displayName (UI)
+- No versioning on packs: edits overwrite in place, export serves as snapshot mechanism
+- Pack deletion protection: ON DELETE RESTRICT prevents deleting packs with active stories
+- Content hashing: SHA-256 via Web Crypto API with whitespace normalization for modification detection
+- Foreign key enforcement: PRAGMA foreign_keys = ON in database init ensures constraints work
+- Template upsert preserves original created_at via INSERT OR REPLACE pattern
+- PackService singleton follows existing service pattern (database, templateEngine)
+- Template seeding handles both content and userContent from PROMPT_TEMPLATES
+- User content uses templateId-user naming convention (matches PromptOverride pattern)
+- Zod validation at system boundaries only (not every database read)
+- ContextBuilder flat namespace: all variables as {{ variableName }} (no nesting)
+- ContextBuilder per-render instantiation: not a singleton, use static factories
+- External templates bypass Liquid rendering (image generation, interactive)
+- Wizard progressive context: variables available based on step number
+- templateEngine imported from engine.ts directly (not barrel) to avoid RenderResult name collision
+- Translation settings (targetLanguage/sourceLanguage) are runtime variables (global settings, not per-story)
+- 67 runtime variables cataloged with wizard step availability annotations
+- Narrative templates include full system prompt instruction text (POV/tense/mode conditionals, story context, chapter summaries, style guidance)
+- 7 external templates identified: 3 image-style (raw text), interactive-lorebook, lorebook-classifier, character-card-import, vault-character-import (service-injected)
+- Complex macro variants inlined as Liquid {% if/elsif/else %} conditionals -- eliminates MacroEngine scoring-based resolution
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+**Phase 1 readiness:**
+- ✓ LiquidJS installed and verified (v11.3.7) - working correctly with all test cases
+- ✓ Security model (sandboxing, prototype pollution prevention) - validated via strictFilters: true configuration
+- ✓ Phase 1 complete: Template engine with validation and public API ready for Phase 2
+
+**Phase 4 readiness:**
+- CodeMirror 6 Svelte 5 wrapper availability uncertain — may need research-phase during planning
+- Mobile editor UX patterns for virtual keyboard handling need validation
+
+**Phase 6 readiness:**
+- Legacy template audit required — all existing templates and macro types must be mapped to new system before migration
+
+## Session Continuity
+
+Last session: 2026-02-09 (phase execution)
+Stopped at: Completed 03-02-PLAN.md (Liquid template conversion)
+Resume file: .planning/phases/03-context-system-service-integration/03-02-SUMMARY.md
