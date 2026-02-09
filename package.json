@@ -49,7 +49,8 @@
     "marked": "^17.0.1",
     "ollama-ai-provider": "^1.2.0",
     "tailwind-merge": "^3.4.0",
-    "zhipu-ai-provider": "^0.2.2"
+    "zhipu-ai-provider": "^0.2.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@lucide/svelte": "^0.482.0",
