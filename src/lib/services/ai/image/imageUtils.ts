@@ -56,7 +56,11 @@ export function hasRequiredCredentials(): boolean {
 
   if (!supportsImageGeneration(profile.providerType)) return false
 
-  return !!profile.apiKey || profile.providerType === 'pollinations'
+  return (
+    !!profile.apiKey ||
+    profile.providerType === 'pollinations' ||
+    profile.providerType === 'comfyui'
+  )
 }
 
 /**

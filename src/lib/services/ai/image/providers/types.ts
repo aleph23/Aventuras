@@ -47,6 +47,7 @@ export interface ImageProvider {
   supportsImg2Img(modelId: string): boolean
   // ComfyUI specific
   getSamplerInfo?(): Promise<ComfySamplerInfo>
+  listLoras?(): Promise<string[]>
 }
 
 export interface ImageProviderConfig {

@@ -21,6 +21,7 @@
   import {
     listImageModelsByProvider,
     getComfySamplerInfo,
+    listLoras,
     generateImage,
     ComfyMode,
     type ImageModelInfo,
@@ -59,7 +60,10 @@
     { value: 'zhipu', label: 'Zhipu CogView' },
     { value: 'comfyui', label: 'ComfyUI' },
   ]
-  const profileModes = [{ value: ComfyMode.BasicTxt2Img, label: 'Basic Text to Image' }] as const
+  const profileModes = [
+    { value: ComfyMode.BasicTxt2Img, label: 'Basic Text to Image' },
+    { value: ComfyMode.LoraTxt2Img, label: 'LoRA Text to Image' },
+  ] as const
 
   // Tab state
   let activeTab = $state<'profiles' | 'general' | 'characters' | 'backgrounds' | 'testing'>(
@@ -138,6 +142,10 @@
   let profileNegativePrompt = $state('')
   let profileSamplers = $state<{ value: string; label: string }[]>([])
   let profileSchedulers = $state<{ value: string; label: string }[]>([])
+  let profileLoraName = $state('')
+  let profileLoraStrengthModel = $state(1.0)
+  let profileLoraStrengthClip = $state(1.0)
+  let availableLoras = $state<string[]>([])
   let showsaveSuccess = $state(false)
   let saveTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -168,6 +176,7 @@
       loadProfileFormModels(profileProviderType, profileApiKey)
       if (profileProviderType === 'comfyui') {
         loadSamplerInfo(profileBaseUrl)
+        loadLoras(profileBaseUrl)
       }
     }
   })
@@ -176,6 +185,10 @@
     const info = await getComfySamplerInfo(baseUrl)
     profileSamplers = info.samplers.map((s) => ({ value: s, label: s }))
     profileSchedulers = info.schedulers.map((s) => ({ value: s, label: s }))
+  }
+
+  async function loadLoras(baseUrl?: string) {
+    availableLoras = await listLoras(baseUrl)
   }
 
   async function handleTestGenerate() {
@@ -217,10 +230,17 @@
       providerOptions.sampler = profileSampler
       providerOptions.scheduler = profileScheduler
       providerOptions.mode = profileMode
-      providerOptions.cfg = parseFloat(profileCfg.toString()) || 1
-      providerOptions.step = parseInt(profileSteps.toString()) || 6
+      providerOptions.cfg = profileCfg || 1
+      providerOptions.step = profileSteps || 6
       providerOptions.positivePrompt = profilePositivePrompt
       providerOptions.negativePrompt = profileNegativePrompt
+      if (profileLoraName) {
+        providerOptions.lora = {
+          name: profileLoraName,
+          strengthModel: profileLoraStrengthModel || 1,
+          strengthClip: profileLoraStrengthClip || 1,
+        }
+      }
     }
 
     await settings.updateImageProfile(editingProfileId, {
@@ -262,6 +282,9 @@
         profileSteps,
         profilePositivePrompt,
         profileNegativePrompt,
+        profileLoraName,
+        profileLoraStrengthModel,
+        profileLoraStrengthClip,
       ]
       triggerAutoSave()
     }
@@ -322,6 +345,16 @@
       profileSteps = Number(opts.step) || 6
       profilePositivePrompt = (opts.positivePrompt as string) || ''
       profileNegativePrompt = (opts.negativePrompt as string) || ''
+      if (opts.lora) {
+        const lora = opts.lora as any
+        profileLoraName = lora.name || ''
+        profileLoraStrengthModel = lora.strengthModel ?? 1.0
+        profileLoraStrengthClip = lora.strengthClip ?? 1.0
+      } else {
+        profileLoraName = ''
+        profileLoraStrengthModel = 1.0
+        profileLoraStrengthClip = 1.0
+      }
     }
 
     showApiKey = false
@@ -344,10 +377,17 @@
       providerOptions.sampler = profileSampler
       providerOptions.scheduler = profileScheduler
       providerOptions.mode = profileMode
-      providerOptions.cfg = parseFloat(profileCfg.toString()) || 1
-      providerOptions.step = parseInt(profileSteps.toString()) || 6
+      providerOptions.cfg = profileCfg || 1
+      providerOptions.step = profileSteps || 6
       providerOptions.positivePrompt = profilePositivePrompt
       providerOptions.negativePrompt = profileNegativePrompt
+      if (profileLoraName) {
+        providerOptions.lora = {
+          name: profileLoraName,
+          strengthModel: profileLoraStrengthModel || 1,
+          strengthClip: profileLoraStrengthClip || 1,
+        }
+      }
     }
 
     await settings.addImageProfile({
@@ -1028,6 +1068,49 @@
           <Textarea bind:value={profileNegativePrompt} placeholder="Negative prompt..." />
         </div>
       </div>
+      {#if profileMode === ComfyMode.LoraTxt2Img}
+        <div class="grid grid-cols-2 gap-4 pt-2">
+          <div class="col-span-2 space-y-2">
+            <Label>LoRA Model</Label>
+            <Autocomplete
+              items={availableLoras.map((l) => ({ value: l, label: l }))}
+              selected={availableLoras.includes(profileLoraName)
+                ? { value: profileLoraName, label: profileLoraName }
+                : undefined}
+              onSelect={(v) => {
+                profileLoraName = (v as { value: string }).value
+              }}
+              itemLabel={(s: { label: string }) => s.label}
+              itemValue={(s: { value: string }) => s.value}
+              placeholder="Select LoRA..."
+            />
+            <p class="text-muted-foreground text-xs">
+              Select a LoRA to apply style or character details.
+            </p>
+          </div>
+
+          {#if profileLoraName}
+            <div class="space-y-2">
+              <Label>Model Strength</Label>
+              <Input
+                type="number"
+                bind:value={profileLoraStrengthModel}
+                placeholder="Model Strength"
+                step="0.05"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label>CLIP Strength</Label>
+              <Input
+                type="number"
+                bind:value={profileLoraStrengthClip}
+                placeholder="CLIP Strength"
+                step="0.05"
+              />
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/if}
   </div>
 {/snippet}

@@ -15,16 +15,19 @@ import type {
 } from './types'
 import { ComfyApi, PromptBuilder, CallWrapper } from '@saintno/comfyui-sdk'
 import BasicTxt2ImgWorkflow from './comfyWorkflows/basic-txt2img-workflow.json'
+import LoraTxt2ImgWorkflow from './comfyWorkflows/lora-txt2img-workflow.json'
 import { parseImageSize } from '../imageUtils'
 
 const DEFAULT_BASE_URL = 'http://localhost:8188'
 
 export enum ComfyMode {
   BasicTxt2Img = 'basic-txt2img',
+  LoraTxt2Img = 'lora-txt2img',
 }
 
 export const ComfyModes: Record<ComfyMode, any> = {
   [ComfyMode.BasicTxt2Img]: BasicTxt2ImgWorkflow,
+  [ComfyMode.LoraTxt2Img]: LoraTxt2ImgWorkflow,
 }
 
 export function createComfyProvider(config: ImageProviderConfig): ImageProvider {
@@ -50,7 +53,12 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       const seed = Number(
         crypto.getRandomValues(new BigUint64Array(1))[0] % BigInt(Number.MAX_SAFE_INTEGER),
       )
-      const modeToUse = (providerOptions?.mode as ComfyMode) || ComfyMode.BasicTxt2Img
+      const loraOptions = providerOptions?.lora as
+        | { name: string; strengthModel?: number; strengthClip?: number }
+        | undefined
+      const isLoraMode = providerOptions?.mode === ComfyMode.LoraTxt2Img
+
+      const modeToUse = providerOptions?.mode as ComfyMode
       const workflowBase = ComfyModes[modeToUse]
       const positiveTags = (providerOptions?.positivePrompt as string) || ''
       const negativeTags = (providerOptions?.negativePrompt as string) || ''
@@ -58,23 +66,27 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       const finalPositivePrompt = positiveTags ? `${prompt}, ${positiveTags}` : prompt
       const finalNegativePrompt = negativeTags
 
-      const workflow = new PromptBuilder(
-        workflowBase,
-        [
-          'positive',
-          'negative',
-          'checkpoint',
-          'seed',
-          'batch',
-          'step',
-          'cfg',
-          'sampler',
-          'scheduler',
-          'width',
-          'height',
-        ],
-        ['images'],
-      )
+      console.log('isLoraMode :>> ', isLoraMode)
+
+      const inputKeys = [
+        'positive',
+        'negative',
+        'checkpoint',
+        'seed',
+        'batch',
+        'step',
+        'cfg',
+        'sampler',
+        'scheduler',
+        'width',
+        'height',
+      ]
+
+      if (isLoraMode) {
+        inputKeys.push('lora_name', 'lora_strength_model', 'lora_strength_clip')
+      }
+
+      let builder = new PromptBuilder(workflowBase, inputKeys, ['images'])
         .setInputNode('checkpoint', '4.inputs.ckpt_name')
         .setInputNode('seed', '3.inputs.seed')
         .setInputNode('batch', '5.inputs.batch_size')
@@ -99,8 +111,21 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
         .input('positive', finalPositivePrompt)
         .input('negative', finalNegativePrompt)
 
+      if (isLoraMode && loraOptions) {
+        console.log('loraOptions :>> ', loraOptions)
+        builder = builder
+          .setInputNode('lora_name', '2.inputs.lora_name')
+          .setInputNode('lora_strength_model', '2.inputs.strength_model')
+          .setInputNode('lora_strength_clip', '2.inputs.strength_clip')
+          .input('lora_name', loraOptions.name, api.osType)
+          .input('lora_strength_model', loraOptions.strengthModel ?? 1)
+          .input('lora_strength_clip', loraOptions.strengthClip ?? 1)
+      }
+
+      const workflow = builder
+      console.log('workflow :>> ', workflow)
+
       return new Promise((resolve, reject) => {
-        console.log('workflow :>> ', workflow)
         new CallWrapper(api, workflow)
           .onFinished(async (data) => {
             try {
@@ -141,7 +166,6 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
     },
 
     async listModels(): Promise<ImageModelInfo[]> {
-      console.log('listModels')
       try {
         const imageModels = await api.getCheckpoints()
         const sampler = await api.getSamplerInfo()
@@ -153,11 +177,20 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
             id: m,
             name: m,
             description: '',
-            supportsSizes: ['512x512', '1024x1024'],
+            supportsSizes: [],
             supportsImg2Img: false,
             costPerImage: 0,
           }
         })
+      } catch {
+        return []
+      }
+    },
+
+    async listLoras(): Promise<string[]> {
+      try {
+        const loras = await api.getLoras()
+        return loras
       } catch {
         return []
       }

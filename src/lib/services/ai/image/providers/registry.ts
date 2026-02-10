@@ -201,5 +201,22 @@ export async function getComfySamplerInfo(
   }
 }
 
+/**
+ * List available LoRAs for a ComfyUI provider.
+ */
+export async function listLoras(baseUrl?: string): Promise<string[]> {
+  try {
+    const config: ImageProviderConfig = { apiKey: '', baseUrl }
+    const provider = createComfyProvider(config)
+    if (provider.listLoras) {
+      return await provider.listLoras()
+    }
+    return []
+  } catch (error) {
+    log('Error getting LoRA list', { error })
+    return []
+  }
+}
+
 // Re-export types for convenience
 export type { ImageModelInfo, ImageGenerateResult } from './types'

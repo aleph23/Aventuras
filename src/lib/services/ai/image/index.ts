@@ -26,6 +26,7 @@ export {
   listImageModels,
   listImageModelsByProvider,
   getComfySamplerInfo,
+  listLoras,
   clearModelsCache,
   supportsImageGeneration,
   type ImageModelInfo,
