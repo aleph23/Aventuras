@@ -67,7 +67,6 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       const finalNegativePrompt = negativeTags
 
       console.log('isLoraMode :>> ', isLoraMode)
-
       const inputKeys = [
         'positive',
         'negative',
@@ -112,7 +111,6 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
         .input('negative', finalNegativePrompt)
 
       if (isLoraMode && loraOptions) {
-        console.log('loraOptions :>> ', loraOptions)
         builder = builder
           .setInputNode('lora_name', '2.inputs.lora_name')
           .setInputNode('lora_strength_model', '2.inputs.strength_model')
@@ -123,7 +121,6 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       }
 
       const workflow = builder
-      console.log('workflow :>> ', workflow)
 
       return new Promise((resolve, reject) => {
         new CallWrapper(api, workflow)
