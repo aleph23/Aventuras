@@ -9,7 +9,6 @@
     RotateCcw,
     Info,
     Plus,
-    Pencil,
     Trash2,
     Copy,
     Eye,
@@ -146,7 +145,6 @@
   let profileLoraStrengthModel = $state(1.0)
   let profileLoraStrengthClip = $state(1.0)
   let availableLoras = $state<string[]>([])
-  let showsaveSuccess = $state(false)
   let saveTimeout: ReturnType<typeof setTimeout> | null = null
 
   // Testing state
@@ -251,11 +249,6 @@
       model: profileModel,
       providerOptions,
     })
-
-    showsaveSuccess = true
-    setTimeout(() => {
-      showsaveSuccess = false
-    }, 2000)
   }
 
   function triggerAutoSave() {
@@ -366,7 +359,6 @@
     editingProfileId = null
     isNewProfile = false
     showCopyDropdown = false
-    showsaveSuccess = false
   }
 
   async function handleSaveProfile() {
