@@ -170,7 +170,6 @@ coverage/
 test-results/
 qodana.yaml
 .qlty/
-.vs/
 Aventuras.und/
 docs/workflow/
 playwright-report/
@@ -251,9 +250,8 @@ design.md
 prompting_guide.md
 nul
 docs/workflow/
-Loren.md
 .agent/
 Aventuras.und/
 qodana.yaml
-/.roo/rules-merge-resolver
+.roo/rules-merge-resolver/
 .roomodes
