@@ -167,6 +167,10 @@ coverage/
 *.lcov
 .vitest/
 test-results/
+qodana.yaml
+.qlty/
+Aventuras.und/
+docs/workflow/
 playwright-report/
 playwright/.cache/
 
@@ -244,3 +248,9 @@ aventura-release.keystore.old
 design.md
 prompting_guide.md
 nul
+docs/workflow/
+.agent/
+Aventuras.und/
+qodana.yaml
+.roo/rules-merge-resolver/
+.roomodes
