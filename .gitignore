@@ -104,7 +104,6 @@ DerivedData/
 .idea/
 .vs/
 .vscode/
-.qlty/
 *.swp
 *.swo
 *.swn
@@ -252,10 +251,6 @@ aventura-release.keystore.old
 design.md
 prompting_guide.md
 nul
-docs/workflow/
-Loren.md
 .agent/
-Aventuras.und/
-qodana.yaml
-/.roo/rules-merge-resolver
+.roo/rules-merge-resolver/
 .roomodes
