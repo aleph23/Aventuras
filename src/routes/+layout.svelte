@@ -4,13 +4,21 @@
   import Toast from '$lib/components/Toast.svelte'
   import { ui } from '$lib/stores/ui.svelte'
   import { story } from '$lib/stores/story.svelte'
+  import { isAndroid } from '$lib/utils/platform'
 
   let { children } = $props()
 
   const BACK_EXIT_WINDOW_MS = 2000
 
   onMount(() => {
-    if (!/Android/i.test(navigator.userAgent)) return
+    // Start tracking visibility changes for background generation detection
+    ui.initVisibilityTracking()
+
+    if (!isAndroid()) {
+      return () => {
+        ui.destroyVisibilityTracking()
+      }
+    }
 
     let lastBackAttemptAt = 0
 
@@ -57,6 +65,7 @@
     }
 
     return () => {
+      ui.destroyVisibilityTracking()
       delete (window as any).__aventuraBackHandler
     }
   })
