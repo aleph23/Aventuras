@@ -11,23 +11,36 @@ import {
   generateText,
   streamText,
   Output,
-  generateImage as sdkGenerateImage,
   wrapLanguageModel,
 } from 'ai'
 import type { LanguageModelV3, LanguageModelV3Middleware } from '@ai-sdk/provider'
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
-import { createOpenAI } from '@ai-sdk/openai'
-import { createChutes } from '@chutes-ai/ai-sdk-provider'
 import { jsonrepair } from 'jsonrepair'
 import type { z } from 'zod'
 
 import { settings } from '$lib/stores/settings.svelte'
-import type { ProviderType, GenerationPreset, ReasoningEffort, APIProfile } from '$lib/types'
-import { createLogger } from '../core/config'
-import { createProviderFromProfile } from './providers'
-import { PROVIDERS } from './providers/config'
+import type {
+  ProviderType,
+  GenerationPreset,
+  ReasoningEffort,
+  APIProfile,
+  TextModel,
+} from '$lib/types'
+import { createLogger } from '$lib/log'
+import { createModelFromProfile } from './providers'
+import { PROVIDERS, getReasoningExtraction, GOOGLE_SAFETY_SETTINGS } from './providers/config'
 import { promptSchemaMiddleware, patchResponseMiddleware, loggingMiddleware } from './middleware'
-import { ui } from '$lib/stores/ui.svelte'
+import { debug } from '$lib/stores/debug.svelte'
+import type { OpenAICompatibleProviderOptions } from '@ai-sdk/openai-compatible'
+import type { DeepSeekChatOptions } from '@ai-sdk/deepseek'
+import type { XaiProviderOptions } from '@ai-sdk/xai'
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic'
+import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai'
+import type { OpenRouterProviderOptions } from '@openrouter/ai-sdk-provider'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { PollinationsLanguageModelSettings } from 'ai-sdk-pollinations'
+import type { GroqProviderOptions } from '@ai-sdk/groq'
+import type { MistralLanguageModelOptions } from '@ai-sdk/mistral'
 
 const log = createLogger('Generate')
 
@@ -61,8 +74,8 @@ const PROVIDER_OPTIONS_KEY: Record<ProviderType, string> = {
   ollama: 'ollama',
   lmstudio: 'lmstudio',
   llamacpp: 'llamacpp',
-  'nvidia-nim': 'openai',
-  'openai-compatible': 'openai',
+  'nvidia-nim': 'nvidia-nim',
+  'openai-compatible': 'openaiCompatible',
   openai: 'openai',
   anthropic: 'anthropic',
   google: 'google',
@@ -80,48 +93,117 @@ const REASONING_TOKEN_BUDGETS: Record<ReasoningEffort, number> = {
   high: 16000,
 }
 
+/** Shared middleware instance for extracting reasoning from <think> tags */
+const thinkTagMiddleware = extractReasoningMiddleware({ tagName: 'think' })
+
 /**
  * Build provider-specific options from preset settings.
  */
 export function buildProviderOptions(
   preset: GenerationPreset,
   providerType: ProviderType,
+  structuredOutputs?: boolean,
+  modelInfo?: TextModel,
 ): ProviderOptions | undefined {
-  const options: JSONObject = {}
+  let options: JSONObject = {}
 
-  if (preset.reasoningEffort && preset.reasoningEffort !== 'off') {
-    const budgetTokens = REASONING_TOKEN_BUDGETS[preset.reasoningEffort] ?? 8000
+  const budgetTokens = REASONING_TOKEN_BUDGETS[preset.reasoningEffort] ?? 8000
+  const reasoningEffort = preset.reasoningEffort === 'off' ? undefined : preset.reasoningEffort
 
+  if (!settings.advancedRequestSettings.manualMode) {
     switch (providerType) {
       case 'openrouter':
         // OpenRouter uses max_tokens for reasoning budget
-        options.reasoning = { max_tokens: budgetTokens }
+        if (reasoningEffort) {
+          options = { reasoning: { effort: reasoningEffort } } satisfies OpenRouterProviderOptions
+        }
         break
       case 'openai':
-        options.reasoningEffort = preset.reasoningEffort
+        if (reasoningEffort) {
+          options = { reasoningEffort: reasoningEffort } satisfies OpenAIResponsesProviderOptions
+        }
         break
       case 'anthropic':
-        options.thinking = {
-          type: 'enabled',
-          budgetTokens,
+        if (reasoningEffort) {
+          options = {
+            thinking: {
+              type: 'enabled',
+              budgetTokens,
+            },
+          } satisfies AnthropicProviderOptions
         }
         break
-    }
-  }
-
-  if (preset.manualBody) {
-    try {
-      const manual = JSON.parse(preset.manualBody) as JSONObject
-      const reservedKeys = ['messages', 'tools', 'tool_choice', 'stream', 'model']
-      if (manual && typeof manual === 'object' && !Array.isArray(manual)) {
-        for (const [key, value] of Object.entries(manual)) {
-          if (!reservedKeys.includes(key)) {
-            options[key] = value
-          }
+      case 'xai':
+        if (reasoningEffort) {
+          // xAI Chat API supports 'low' | 'high' only (no 'medium')
+          options = {
+            reasoningEffort: reasoningEffort === 'medium' ? 'high' : reasoningEffort,
+          } satisfies XaiProviderOptions
         }
-      }
-    } catch {
-      log('Invalid manualBody JSON, skipping')
+        options = { ...options, parallel_function_calling: true } satisfies XaiProviderOptions
+        break
+      case 'deepseek':
+        // DeepSeek uses binary thinking: enabled/disabled (no effort levels)
+        if (reasoningEffort) {
+          options = { thinking: { type: 'enabled' } } satisfies DeepSeekChatOptions
+        }
+        break
+      case 'google':
+        // Reinject safety settings here for complete model-request coverage
+        options = {
+          safetySettings: GOOGLE_SAFETY_SETTINGS,
+        } satisfies GoogleGenerativeAIProviderOptions
+        if (reasoningEffort) {
+          // Gemini 2.5 uses thinkingBudget (token count), Gemini 3.x uses thinkingLevel
+          const usesBudget = modelInfo?.isBudgetReasoning ?? preset.model.includes('gemini-2.5')
+          options = {
+            ...options,
+            thinkingConfig: {
+              includeThoughts: true,
+              ...(usesBudget
+                ? { thinkingBudget: budgetTokens }
+                : { thinkingLevel: reasoningEffort }),
+            },
+          } satisfies GoogleGenerativeAIProviderOptions
+        }
+        if (structuredOutputs) {
+          options = { ...options, structuredOutputs } satisfies GoogleGenerativeAIProviderOptions
+        }
+        break
+      case 'pollinations':
+        options = {
+          reasoning_effort: reasoningEffort,
+          parallel_tool_calls: true,
+        } satisfies PollinationsLanguageModelSettings
+        break
+      case 'groq':
+        options = {
+          reasoningEffort: reasoningEffort,
+          structuredOutputs,
+          parallelToolCalls: true,
+        } satisfies GroqProviderOptions
+        break
+      case 'zhipu':
+        if (reasoningEffort) {
+          options = { type: 'enabled', clearThinking: true, doSample: true }
+        }
+        break
+      case 'mistral':
+        options = {
+          safePrompt: false,
+          parallelToolCalls: true,
+          structuredOutputs,
+        } satisfies MistralLanguageModelOptions
+        break
+      case 'chutes':
+      case 'nvidia-nim':
+      case 'nanogpt':
+      case 'ollama':
+      case 'lmstudio':
+      case 'llamacpp':
+      case 'openai-compatible':
+        options = { reasoningEffort: reasoningEffort } satisfies OpenAICompatibleProviderOptions
+        break
     }
   }
 
@@ -144,6 +226,7 @@ interface ResolvedConfig {
   model: LanguageModelV3
   providerOptions: ProviderOptions | undefined
   supportsStructuredOutput: boolean
+  useThinkTag: boolean
 }
 
 interface NarrativeConfig {
@@ -153,6 +236,7 @@ interface NarrativeConfig {
   temperature: number
   maxTokens: number
   providerOptions: ProviderOptions | undefined
+  useThinkTag: boolean
 }
 
 function resolveConfig(presetId: string, serviceId: string, debugId?: string): ResolvedConfig {
@@ -164,17 +248,53 @@ function resolveConfig(presetId: string, serviceId: string, debugId?: string): R
     throw new Error(`Profile not found: ${profileId}`)
   }
 
-  const provider = createProviderFromProfile(profile, serviceId, debugId)
-  const model = provider(preset.model) as LanguageModelV3
   const capabilities = PROVIDERS[profile.providerType].capabilities
+
+  const override = preset.structuredOutputOverride
+  let supportsStructuredOutput: boolean
+  if (override === 'on') {
+    supportsStructuredOutput = true
+  } else if (override === 'off') {
+    supportsStructuredOutput = false
+  } else {
+    // Auto: start with provider-level default, then refine with fetched model data if available
+    const providerDefault = capabilities?.structuredOutput ?? true
+    if (capabilities?.modelCapabilityFetching) {
+      const fetchedModel = settings.getProfileModels(profileId).find((m) => m.id === preset.model)
+      supportsStructuredOutput = !!fetchedModel?.structuredOutput
+    } else {
+      supportsStructuredOutput = providerDefault
+    }
+  }
+
+  const fetchedModel = settings.getProfileModels(profileId).find((m) => m.id === preset.model)
+
+  const model = createModelFromProfile({
+    profile,
+    modelId: preset.model,
+    presetId: serviceId,
+    debugId,
+    structuredOutputs: supportsStructuredOutput,
+    manualBody: preset.manualBody ?? '',
+  })
+
+  const useThinkTag =
+    profile.providerType === 'openai-compatible' ||
+    getReasoningExtraction(profile.providerType) === 'think-tag'
 
   return {
     preset,
     profile,
     providerType: profile.providerType,
     model,
-    providerOptions: buildProviderOptions(preset, profile.providerType),
-    supportsStructuredOutput: capabilities?.structuredOutput ?? true,
+    providerOptions: buildProviderOptions(
+      preset,
+      profile.providerType,
+      supportsStructuredOutput,
+      fetchedModel,
+    ),
+    supportsStructuredOutput,
+    useThinkTag,
   }
 }
 
@@ -187,11 +307,18 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
     )
   }
 
-  const provider = createProviderFromProfile(profile, 'narrative', debugId)
   const baseModelId = settings.apiSettings.defaultModel
-  const reasoningEffort = settings.apiSettings.reasoningEffort ?? 'off'
-  const model = provider(baseModelId) as LanguageModelV3
+  const fetchedModel = settings.getProfileModels(profile.id).find((m) => m.id === baseModelId)
 
+  const model = createModelFromProfile({
+    profile,
+    modelId: baseModelId,
+    presetId: 'narrative',
+    debugId,
+    manualBody: settings.apiSettings.manualBody ?? '',
+  })
+
+  const reasoningEffort = settings.apiSettings.reasoningEffort ?? 'off'
   const narrativePreset: GenerationPreset = {
     id: '_narrative',
     name: 'Narrative',
@@ -201,8 +328,12 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
     temperature: settings.apiSettings.temperature,
     maxTokens: settings.apiSettings.maxTokens,
     reasoningEffort: reasoningEffort,
-    manualBody: '',
+    manualBody: settings.apiSettings.manualBody ?? '',
   }
+
+  const useThinkTag =
+    profile.providerType === 'openai-compatible' ||
+    getReasoningExtraction(profile.providerType) === 'think-tag'
 
   return {
     profile,
@@ -210,7 +341,13 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
     model,
     temperature: settings.apiSettings.temperature,
     maxTokens: settings.apiSettings.maxTokens,
-    providerOptions: buildProviderOptions(narrativePreset, profile.providerType),
+    providerOptions: buildProviderOptions(
+      narrativePreset,
+      profile.providerType,
+      false,
+      fetchedModel,
+    ),
+    useThinkTag,
   }
 }
 
@@ -235,35 +372,42 @@ function createJsonExtractMiddleware(): LanguageModelV3Middleware {
   })
 }
 
-function buildStructuredMiddleware(supportsStructuredOutput: boolean): LanguageModelV3Middleware[] {
-  const base = [patchResponseMiddleware(), createJsonExtractMiddleware(), loggingMiddleware()]
-  if (supportsStructuredOutput) {
-    return base
+function buildStructuredMiddleware(
+  supportsStructuredOutput: boolean,
+  useThinkTag: boolean,
+  reasoningEnabled: boolean,
+  thinkingNudge: boolean,
+): LanguageModelV3Middleware[] {
+  const base: LanguageModelV3Middleware[] = [patchResponseMiddleware()]
+
+  base.push(createJsonExtractMiddleware())
+
+  if (useThinkTag) {
+    base.push(thinkTagMiddleware)
   }
-  return [
-    patchResponseMiddleware(),
-    promptSchemaMiddleware(),
-    createJsonExtractMiddleware(),
-    loggingMiddleware(),
-  ]
+  if (!supportsStructuredOutput) {
+    if (useThinkTag && reasoningEnabled && thinkingNudge) {
+      base.push(
+        promptSchemaMiddleware({
+          instruction: `Respond with your reasoning inside <think> and </think> tags first. Then, output strictly valid JSON compatible with the TypeScript type Response from the following:\n\n{schema}\n\nOutput ONLY the JSON object after the </think> tag, no other text or markdown.`,
+        }),
+      )
+    } else {
+      base.push(promptSchemaMiddleware())
+    }
+  }
+
+  base.push(loggingMiddleware())
+  return base
 }
 
-function buildPlainTextMiddleware(): LanguageModelV3Middleware[] {
-  return [patchResponseMiddleware(), loggingMiddleware()]
-}
-
-/**
- * Build middleware for narrative generation with reasoning support.
- * Includes extractReasoningMiddleware for models that use <think> tags.
- */
-function buildNarrativeMiddleware(): LanguageModelV3Middleware[] {
-  return [
-    patchResponseMiddleware(),
-    // Extract reasoning from <think> tags for models like DeepSeek R1, Mistral Magistral
-    // For native reasoning providers (Anthropic, OpenAI), reasoning comes through the stream directly
-    extractReasoningMiddleware({ tagName: 'think' }),
-    loggingMiddleware(),
-  ]
+function buildPlainTextMiddleware(useThinkTag: boolean): LanguageModelV3Middleware[] {
+  const base: LanguageModelV3Middleware[] = [patchResponseMiddleware()]
+  if (useThinkTag) {
+    base.push(thinkTagMiddleware)
+  }
+  base.push(loggingMiddleware())
+  return base
 }
 
 // ============================================================================
@@ -276,7 +420,8 @@ export async function generateStructured<T extends z.ZodType>(
 ): Promise<z.infer<T>> {
   const { presetId, schema, system, prompt, signal } = options
   const config = resolveConfig(presetId, serviceId)
-  const { preset, providerType, model, providerOptions, supportsStructuredOutput } = config
+  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } =
+    config
 
   log('generateStructured', {
     presetId,
@@ -288,13 +433,18 @@ export async function generateStructured<T extends z.ZodType>(
   const result = await generateText({
     model: wrapLanguageModel({
       model,
-      middleware: buildStructuredMiddleware(supportsStructuredOutput),
+      middleware: buildStructuredMiddleware(
+        supportsStructuredOutput,
+        useThinkTag,
+        !!preset.reasoningEffort && preset.reasoningEffort !== 'off',
+        !!preset.thinkingNudgePrompt,
+      ),
     }),
     system,
     prompt,
     output: Output.object({ schema }),
-    temperature: preset.temperature,
-    maxOutputTokens: preset.maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
     providerOptions,
     abortSignal: signal,
   })
@@ -307,16 +457,22 @@ export async function generatePlainText(
   serviceId: string,
 ): Promise<string> {
   const { presetId, system, prompt, signal } = options
-  const { preset, providerType, model, providerOptions } = resolveConfig(presetId, serviceId)
+  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(
+    presetId,
+    serviceId,
+  )
 
   log('generatePlainText', { presetId, model: preset.model, providerType })
 
   const { text } = await generateText({
-    model: wrapLanguageModel({ model, middleware: buildPlainTextMiddleware() }),
+    model: wrapLanguageModel({
+      model,
+      middleware: buildPlainTextMiddleware(useThinkTag),
+    }),
     system,
     prompt,
-    temperature: preset.temperature,
-    maxOutputTokens: preset.maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
     providerOptions,
     abortSignal: signal,
   })
@@ -327,7 +483,7 @@ export async function generatePlainText(
 export function streamPlainText(options: BaseGenerateOptions, serviceId: string) {
   const debugId = crypto.randomUUID()
   const { presetId, system, prompt, signal } = options
-  const { preset, providerType, model, providerOptions } = resolveConfig(
+  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(
     presetId,
     serviceId,
     debugId,
@@ -337,19 +493,25 @@ export function streamPlainText(options: BaseGenerateOptions, serviceId: string)
   const startTime = Date.now()
 
   return streamText({
-    model: wrapLanguageModel({ model, middleware: buildPlainTextMiddleware() }),
+    model: wrapLanguageModel({
+      model,
+      middleware: buildPlainTextMiddleware(useThinkTag),
+    }),
     system,
     prompt,
-    temperature: preset.temperature,
-    maxOutputTokens: preset.maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
     providerOptions,
     abortSignal: signal,
     onFinish: (result) => {
-      ui.addDebugResponse(
+      debug.addDebugResponse(
         debugId,
-        serviceId,
+        serviceId + ':result',
         {
-          result: result.content,
+          _note: 'This is the final SDK summary. Look at the other log entry for the raw response.',
+          finishReason: result.finishReason,
+          usage: result.usage,
+          providerMetadata: result.providerMetadata,
         },
         startTime,
       )
@@ -364,7 +526,8 @@ export function streamStructured<T extends z.ZodType>(
   const { presetId, schema, system, prompt, signal } = options
   const debugId = crypto.randomUUID()
   const config = resolveConfig(presetId, serviceId, debugId)
-  const { preset, providerType, model, providerOptions, supportsStructuredOutput } = config
+  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } =
+    config
 
   log('streamStructured', { presetId, model: preset.model, providerType, supportsStructuredOutput })
   const startTime = Date.now()
@@ -372,21 +535,29 @@ export function streamStructured<T extends z.ZodType>(
   return streamText({
     model: wrapLanguageModel({
       model,
-      middleware: buildStructuredMiddleware(supportsStructuredOutput),
+      middleware: buildStructuredMiddleware(
+        supportsStructuredOutput,
+        useThinkTag,
+        !!preset.reasoningEffort && preset.reasoningEffort !== 'off',
+        !!preset.thinkingNudgePrompt,
+      ),
     }),
     system,
     prompt,
     output: Output.object({ schema }),
-    temperature: preset.temperature,
-    maxOutputTokens: preset.maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
     providerOptions,
     abortSignal: signal,
     onFinish: (result) => {
-      ui.addDebugResponse(
+      debug.addDebugResponse(
         debugId,
-        serviceId,
+        serviceId + ':result',
         {
-          result: result.content,
+          _note: 'This is the final SDK summary. Look at the other log entry for the raw response.',
+          finishReason: result.finishReason,
+          usage: result.usage,
+          providerMetadata: result.providerMetadata,
         },
         startTime,
       )
@@ -407,30 +578,35 @@ interface NarrativeGenerateOptions {
 export function streamNarrative(options: NarrativeGenerateOptions) {
   const { system, prompt, signal } = options
   const debugId = crypto.randomUUID()
-  const { providerType, model, temperature, maxTokens, providerOptions } =
+  const { providerType, model, temperature, maxTokens, providerOptions, useThinkTag } =
     resolveNarrativeConfig(debugId)
 
   log('streamNarrative', { model: settings.apiSettings.defaultModel, providerType })
   const startTime = Date.now()
 
   return streamText({
-    model: wrapLanguageModel({ model, middleware: buildNarrativeMiddleware() }),
+    model: wrapLanguageModel({
+      model,
+      middleware: buildPlainTextMiddleware(useThinkTag),
+    }),
     system,
     prompt,
-    temperature,
-    maxOutputTokens: maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? maxTokens : undefined,
     providerOptions,
     abortSignal: signal,
     onFinish: (result) => {
-      ui.addDebugResponse(
+      debug.addDebugResponse(
         debugId,
-        'narrative',
+        'narrative:result',
         {
-          result: result.content,
+          _note: 'This is the final SDK summary. Look at the other log entry for the raw response.',
+          finishReason: result.finishReason,
+          usage: result.usage,
+          providerMetadata: result.providerMetadata,
         },
         startTime,
       )
-      console.log('Narrative generation finished', result)
     },
   })
 }
@@ -442,7 +618,10 @@ export async function generateNarrative(options: NarrativeGenerateOptions): Prom
   log('generateNarrative', { model: settings.apiSettings.defaultModel, providerType })
 
   const { text } = await generateText({
-    model: wrapLanguageModel({ model, middleware: buildPlainTextMiddleware() }),
+    model: wrapLanguageModel({
+      model,
+      middleware: buildPlainTextMiddleware(getReasoningExtraction(providerType) === 'think-tag'),
+    }),
     system,
     prompt,
     temperature,
@@ -452,85 +631,4 @@ export async function generateNarrative(options: NarrativeGenerateOptions): Prom
   })
 
   return text
-}
-
-// ============================================================================
-// Image Generation
-// ============================================================================
-
-export interface GenerateImageOptions {
-  profileId: string
-  model: string
-  prompt: string
-  size?: string
-  referenceImages?: string[]
-  signal?: AbortSignal
-}
-
-export interface GenerateImageResult {
-  base64: string
-  revisedPrompt?: string
-}
-
-function getImageModel(
-  provider: ReturnType<typeof createProviderFromProfile>,
-  providerType: ProviderType,
-  modelId: string,
-) {
-  if ('imageModel' in provider && typeof provider.imageModel === 'function') {
-    return (provider as ReturnType<typeof createChutes>).imageModel(modelId)
-  }
-  if ('image' in provider && typeof provider.image === 'function') {
-    return (provider as unknown as ReturnType<typeof createOpenAI>).image(modelId)
-  }
-  throw new Error(`Provider ${providerType} does not support image generation`)
-}
-
-function ensureDataUrl(img: string): string {
-  if (img.startsWith('data:')) {
-    return img
-  }
-  return `data:image/png;base64,${img}`
-}
-
-export async function generateImage(options: GenerateImageOptions): Promise<GenerateImageResult> {
-  const { profileId, model, prompt, size = '1024x1024', referenceImages, signal } = options
-
-  const profile = settings.getProfile(profileId)
-  if (!profile) {
-    throw new Error(`Profile not found: ${profileId}`)
-  }
-
-  const capabilities = PROVIDERS[profile.providerType].capabilities
-  if (!capabilities?.imageGeneration) {
-    throw new Error(`Provider ${profile.providerType} does not support image generation`)
-  }
-
-  log('generateImage', {
-    profileId,
-    model,
-    providerType: profile.providerType,
-    hasReferences: !!referenceImages?.length,
-  })
-
-  const provider = createProviderFromProfile(profile, 'image')
-  const imageModel = getImageModel(provider, profile.providerType, model)
-
-  const promptValue = referenceImages?.length
-    ? { text: prompt, images: referenceImages.map(ensureDataUrl) }
-    : prompt
-
-  const result = await sdkGenerateImage({
-    model: imageModel,
-    size: size as `${number}x${number}`,
-    abortSignal: signal,
-    prompt: promptValue,
-  })
-
-  const image = result.images?.[0] ?? result.image
-  if (!image) {
-    throw new Error('No image data returned from provider')
-  }
-
-  return { base64: image.base64 }
 }

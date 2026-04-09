@@ -21,12 +21,14 @@
     PanelRight,
     Settings,
     Library,
-    Download,
+    ArrowUpDown,
     FileJson,
     FileText,
     ChevronDown,
     Bug,
     ImageIcon,
+    MessageSquare,
+    AlertTriangle,
   } from 'lucide-svelte'
 
   let showExportMenu = $state(false)
@@ -249,22 +251,34 @@
         title="View generated images"
       />
 
-      <!-- Export Menu -->
+      <!-- Import / Export Menu -->
       <DropdownMenu.Root bind:open={showExportMenu}>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
             <Button
               {...props}
-              icon={Download}
-              label="Export"
+              icon={ArrowUpDown}
+              label="Import/Export"
               endIcon={ChevronDown}
               variant="text"
               class="text-muted-foreground hover:text-primary min-h-[44px] min-w-[44px]"
-              title="Export story"
+              title="Import / Export story"
             />
           {/snippet}
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end">
+          <DropdownMenu.Label>Import</DropdownMenu.Label>
+          <DropdownMenu.Item
+            onclick={() => {
+              showExportMenu = false
+              ui.openSTChatImport()
+            }}
+          >
+            <MessageSquare class="text-muted-foreground h-4 w-4" />
+            SillyTavern Chat (.jsonl)
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator />
+          <DropdownMenu.Label>Export</DropdownMenu.Label>
           <DropdownMenu.Item onclick={() => exportAventuras()}>
             <FileJson class="text-accent-400 h-4 w-4" />
             Aventuras (.avt)
@@ -301,7 +315,7 @@
 
     {#if !story.currentStory}
       <Button
-        href="https://discord.gg/DqVzhSPC46"
+        href="https://discord.gg/aventuras"
         target="_blank"
         rel="noopener noreferrer"
         variant="text"
@@ -316,13 +330,22 @@
       </Button>
     {/if}
 
-    <Button
-      icon={Settings}
-      label="Settings"
-      variant="text"
-      class="text-muted-foreground hover:text-primary min-h-11 min-w-11"
-      onclick={() => ui.openSettings()}
-    />
+    <div class="relative">
+      <Button
+        icon={Settings}
+        label="Settings"
+        variant="text"
+        class="text-muted-foreground hover:text-primary min-h-11 min-w-11"
+        onclick={() => ui.openSettings()}
+      />
+      {#if settings.hasGenerationConfigIssues}
+        <span
+          class="pointer-events-none absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500"
+        >
+          <AlertTriangle class="h-2.5 w-2.5 text-white" />
+        </span>
+      {/if}
+    </div>
 
     {#if story.currentStory}
       <Button

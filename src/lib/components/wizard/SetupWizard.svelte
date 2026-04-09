@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { settings } from '$lib/stores/settings.svelte'
   import { WizardStore } from '$lib/stores/wizard/wizard.svelte'
   import * as ResponsiveModal from '$lib/components/ui/responsive-modal'
   import { Button } from '$lib/components/ui/button'
-  import { ChevronLeft, ChevronRight, Sparkles, Play } from 'lucide-svelte'
+  import { ChevronLeft, ChevronRight, Play } from 'lucide-svelte'
   import { ui } from '$lib/stores/ui.svelte'
   import { lorebookVault } from '$lib/stores/lorebookVault.svelte'
   import { characterVault } from '$lib/stores/characterVault.svelte'
@@ -13,6 +12,7 @@
   // Step components
   import {
     Step1Mode,
+    StepPackSelection,
     Step2Lorebook,
     Step3Setting,
     Step4Characters,
@@ -53,9 +53,6 @@
     return (char.metadata as Record<string, unknown>)?.linkedLorebookId as string | undefined
   }
 
-  // Check if API key is configured
-  const needsApiKey = $derived(settings.needsApiKey)
-
   // Check if image generation is enabled and configured
   const imageGenerationEnabled = $derived.by(() => {
     return hasRequiredCredentials()
@@ -64,6 +61,7 @@
   // Step Titles
   const stepTitles = [
     'Choose Your Mode',
+    'Prompt Pack',
     'World & Setting',
     'Create Your Character',
     'Supporting Cast (Optional)',
@@ -72,6 +70,13 @@
     'Writing Style',
     'Generate Opening',
   ]
+
+  // Load packs when entering step 2
+  $effect(() => {
+    if (wizard.currentStep === 2) {
+      wizard.loadPacks()
+    }
+  })
 </script>
 
 <ResponsiveModal.Root open={true} onOpenChange={(open) => !open && onClose()}>
@@ -105,32 +110,21 @@
 
     <!-- Content -->
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
-      {#if needsApiKey}
-        <!-- API Key Warning -->
-        <div class="flex flex-col items-center justify-center py-8 text-center">
-          <div class="mb-4 rounded-full bg-amber-500/20 p-4">
-            <Sparkles class="h-8 w-8 text-amber-400" />
-          </div>
-          <h3 class="mb-2 text-lg font-semibold">API Key Required</h3>
-          <p class="text-muted-foreground mb-4 max-w-md">
-            The setup wizard uses AI to dynamically generate your story world. Please configure your
-            OpenRouter API key in settings first.
-          </p>
-          <Button
-            onclick={() => {
-              ui.openSettings()
-              onClose()
-            }}
-          >
-            Open Settings
-          </Button>
-        </div>
-      {:else if wizard.currentStep === 1}
+      {#if wizard.currentStep === 1}
         <Step1Mode
           selectedMode={wizard.narrative.selectedMode}
           onModeChange={(mode) => (wizard.narrative.selectedMode = mode)}
         />
       {:else if wizard.currentStep === 2}
+        <StepPackSelection
+          availablePacks={wizard.availablePacks}
+          selectedPackId={wizard.selectedPackId}
+          packVariables={wizard.packVariables}
+          variableValues={wizard.customVariableValues}
+          onSelectPack={(packId) => wizard.selectPack(packId)}
+          onVariableChange={(name, value) => wizard.setVariableValue(name, value)}
+        />
+      {:else if wizard.currentStep === 3}
         <Step3Setting
           settingSeed={wizard.setting.settingSeed}
           expandedSetting={wizard.setting.expandedSettingDisplay}
@@ -148,7 +142,7 @@
           customGenre={wizard.narrative.customGenre}
           onSettingSeedChange={(v) => (wizard.setting.settingSeed = v)}
           onGuidanceChange={(v) => (wizard.setting.settingElaborationGuidance = v)}
-          onCustomGenreChange={(v) => (wizard.narrative.customGenre = v)}
+          onCustomGenreChange={(v) => wizard.narrative.setCustomGenre(v)}
           onUseAsIs={() => wizard.setting.useSettingAsIs()}
           onExpandSetting={() =>
             wizard.setting.expandSetting(
@@ -191,7 +185,7 @@
             onClose()
           }}
         />
-      {:else if wizard.currentStep === 3}
+      {:else if wizard.currentStep === 4}
         <Step4Characters
           selectedMode={wizard.narrative.selectedMode}
           expandedSetting={wizard.setting.expandedSettingDisplay}
@@ -253,7 +247,7 @@
             onClose()
           }}
         />
-      {:else if wizard.currentStep === 4}
+      {:else if wizard.currentStep === 5}
         <Step5SupportingCast
           protagonist={wizard.character.protagonistDisplay}
           supportingCharacters={wizard.character.supportingCharactersDisplay}
@@ -313,7 +307,7 @@
             onClose()
           }}
         />
-      {:else if wizard.currentStep === 5}
+      {:else if wizard.currentStep === 6}
         <Step2Lorebook
           importedLorebooks={wizard.narrative.importedLorebooks}
           importError={wizard.narrative.importError}
@@ -327,7 +321,7 @@
             onClose()
           }}
         />
-      {:else if wizard.currentStep === 6}
+      {:else if wizard.currentStep === 7}
         <Step6Portraits
           protagonist={wizard.character.protagonist}
           supportingCharacters={wizard.character.supportingCharacters}
@@ -363,7 +357,7 @@
           onSupportingPortraitUpload={(e, name) =>
             wizard.image.handleSupportingCharacterPortraitUpload(e, name)}
         />
-      {:else if wizard.currentStep === 7}
+      {:else if wizard.currentStep === 8}
         <Step7WritingStyle
           selectedPOV={wizard.narrative.selectedPOV}
           selectedTense={wizard.narrative.selectedTense}
@@ -381,7 +375,7 @@
           onBackgroundImagesEnabledChange={(v) => (wizard.narrative.backgroundImagesEnabled = v)}
           onReferenceModeChange={(v) => (wizard.narrative.referenceMode = v)}
         />
-      {:else if wizard.currentStep === 8}
+      {:else if wizard.currentStep === 9}
         <Step8Opening
           storyTitle={wizard.narrative.storyTitle}
           openingGuidance={wizard.narrative.openingGuidance}

@@ -1,27 +1,29 @@
 import type {
-  APISettings,
-  UISettings,
-  ThemeId,
-  FontSource,
-  UpdateSettings,
   APIProfile,
+  APISettings,
+  ExperimentalFeatures,
+  FontSource,
   GenerationPreset,
-  TranslationSettings,
+  ImageProfile,
+  ImageProviderType,
   ProviderType,
+  ReasoningEffort,
+  TextModel,
+  ThemeId,
+  TranslationSettings,
+  UISettings,
+  UpdateSettings,
 } from '$lib/types'
 import { database } from '$lib/services/database'
-import {
-  type AdvancedWizardSettings,
-  getDefaultAdvancedSettings,
-  getDefaultAdvancedSettingsForProvider,
-} from '$lib/services/ai/wizard/ScenarioService'
+import { grammarService } from '$lib/services/grammar'
 import { PROVIDERS } from '$lib/services/ai/sdk/providers/config'
-import { promptService, type PromptSettings, getDefaultPromptSettings } from '$lib/services/prompts'
-import type { ReasoningEffort } from '$lib/types'
 import { ui } from '$lib/stores/ui.svelte'
 import { getTheme } from '../../themes/themes'
 import { LLM_TIMEOUT_DEFAULT, LLM_TIMEOUT_MIN, LLM_TIMEOUT_MAX } from '$lib/constants/timeout'
-import { SvelteSet } from 'svelte/reactivity'
+import { SvelteSet, SvelteMap } from 'svelte/reactivity'
+import { dedupeTextModels } from '$lib/utils/dedupeTextModels'
+import type { ImageGenerationServiceSettings, TimelineFillSettings } from '$lib/services/ai'
+import { debug } from './debug.svelte'
 
 // Provider preset type (used by WelcomeScreen)
 export type ProviderPreset = 'openrouter' | 'nanogpt' | 'openai-compatible'
@@ -30,32 +32,141 @@ export type ProviderPreset = 'openrouter' | 'nanogpt' | 'openai-compatible'
 export const DEFAULT_OPENROUTER_PROFILE_ID = 'default-openrouter-profile'
 export const DEFAULT_NANOGPT_PROFILE_ID = 'default-nanogpt-profile'
 
-// NOTE: Default story prompts are now in the centralized prompt system at
-// src/lib/services/prompts/definitions.ts (template ids: 'adventure', 'creative-writing')
-// The prompt fields in StoryGenerationSettings are kept for backwards compatibility
-// with user-customized settings, but the actual prompts are rendered via promptService.
-
-// Story generation settings interface
-export interface StoryGenerationSettings {
-  adventurePrompt: string
-  creativeWritingPrompt: string
+function dedupeModelIds(models: string[]): string[] {
+  return Array.from(new Set(models.map((model) => model.trim()).filter(Boolean)))
 }
 
-export function getDefaultStoryGenerationSettings(): StoryGenerationSettings {
+function mergeProfileModels(fetchedModels: TextModel[], customModels: string[]): TextModel[] {
+  return dedupeTextModels([...fetchedModels, ...dedupeModelIds(customModels).map((id) => ({ id }))])
+}
+
+function normalizeProfile(profile: APIProfile): APIProfile {
   return {
-    adventurePrompt: '',
-    creativeWritingPrompt: '',
+    ...profile,
+    customModels: dedupeModelIds(profile.customModels ?? []),
+    fetchedModels: dedupeTextModels(profile.fetchedModels ?? []),
+    hiddenModels: dedupeModelIds(profile.hiddenModels ?? []),
+    favoriteModels: dedupeModelIds(profile.favoriteModels ?? []),
   }
 }
 
 // ===== System Services Settings =====
 
-// NOTE: Default service prompts are now in the centralized prompt system at
-// src/lib/services/prompts/definitions.ts (template ids: 'classifier', 'chapter-analysis',
-// 'chapter-summarization', 'retrieval-decision', 'suggestions', 'style-reviewer',
-// 'timeline-fill', 'timeline-fill-answer')
-// The systemPrompt fields in service settings are kept for backwards compatibility
-// with user-customized settings, but the actual prompts are rendered via promptService.
+// Advanced settings for customizing generation processes
+interface ProcessSettings {
+  profileId?: string | null
+  presetId?: string
+  model?: string
+  temperature?: number
+  topP?: number
+  maxTokens?: number
+  reasoningEffort?: ReasoningEffort
+  manualBody?: string
+}
+
+interface AdvancedWizardSettings {
+  settingExpansion: ProcessSettings
+  settingRefinement: ProcessSettings
+  protagonistGeneration: ProcessSettings
+  characterElaboration: ProcessSettings
+  characterRefinement: ProcessSettings
+  supportingCharacters: ProcessSettings
+  openingGeneration: ProcessSettings
+  openingRefinement: ProcessSettings
+}
+
+function getDefaultAdvancedWizardSettings(): AdvancedWizardSettings {
+  return getDefaultAdvancedSettingsForProvider('openrouter')
+}
+
+export function getDefaultAdvancedSettingsForProvider(
+  provider: ProviderType,
+): AdvancedWizardSettings {
+  const preset = getPresetDefaults(provider, 'wizard')
+
+  return {
+    settingExpansion: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    settingRefinement: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    protagonistGeneration: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    characterElaboration: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    characterRefinement: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    supportingCharacters: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    openingGeneration: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+    openingRefinement: {
+      presetId: 'wizard',
+      profileId: null,
+      model: preset.model,
+      temperature: 0.3,
+      topP: 0.95,
+      maxTokens: 8192,
+      reasoningEffort: preset.reasoningEffort,
+      manualBody: '',
+    },
+  }
+}
 
 export interface AdvancedRequestSettings {
   manualMode: boolean
@@ -74,7 +185,6 @@ export interface ClassifierSettings {
   model: string
   temperature: number
   maxTokens: number
-  systemPrompt: string
   reasoningEffort: ReasoningEffort
   manualBody: string
   chatHistoryTruncation: number // Max words per chat history entry (0 = no truncation, up to 500)
@@ -94,7 +204,6 @@ export function getDefaultClassifierSettingsForProvider(
     model: preset.model,
     temperature: 0.3,
     maxTokens: 8192,
-    systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
     chatHistoryTruncation: 0,
@@ -108,14 +217,11 @@ export interface LorebookClassifierSettings {
   model: string
   temperature: number
   maxTokens: number
-  systemPrompt: string
   batchSize: number // Entries per batch for LLM classification
   maxConcurrent: number // Max concurrent batch requests
   reasoningEffort: ReasoningEffort
   manualBody: string
 }
-
-export const DEFAULT_LOREBOOK_CLASSIFIER_PROMPT = `You are a precise classifier for fantasy/RPG lorebook entries. Analyze the name, content, and keywords to determine the most appropriate category. Be decisive - pick the single best category for each entry. Respond only with the JSON array.`
 
 export function getDefaultLorebookClassifierSettings(): LorebookClassifierSettings {
   return getDefaultLorebookClassifierSettingsForProvider('openrouter')
@@ -131,7 +237,6 @@ export function getDefaultLorebookClassifierSettingsForProvider(
     model: preset.model,
     temperature: 0.1,
     maxTokens: 8192,
-    systemPrompt: DEFAULT_LOREBOOK_CLASSIFIER_PROMPT,
     batchSize: 50,
     maxConcurrent: 5,
     reasoningEffort: preset.reasoningEffort,
@@ -172,7 +277,6 @@ export interface SuggestionsSettings {
   model: string
   temperature: number
   maxTokens: number
-  systemPrompt: string
   reasoningEffort: ReasoningEffort
   manualBody: string
 }
@@ -191,7 +295,6 @@ export function getDefaultSuggestionsSettingsForProvider(
     model: preset.model,
     temperature: 0.7,
     maxTokens: 8192,
-    systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
   }
@@ -236,7 +339,6 @@ export interface StyleReviewerSettings {
   temperature: number
   maxTokens: number
   triggerInterval: number
-  systemPrompt: string
   reasoningEffort: ReasoningEffort
   manualBody: string
 }
@@ -257,7 +359,6 @@ export function getDefaultStyleReviewerSettingsForProvider(
     temperature: 0.3,
     maxTokens: 8192,
     triggerInterval: 5,
-    systemPrompt: '',
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
   }
@@ -270,27 +371,9 @@ export interface LoreManagementSettings {
   model: string
   temperature: number
   maxIterations: number
-  systemPrompt: string
   reasoningEffort: ReasoningEffort
   manualBody: string
 }
-
-export const DEFAULT_LORE_MANAGEMENT_PROMPT = `You are a lore manager for an interactive story. Your job is to maintain a consistent, comprehensive database of story elements.
-
-Your tasks:
-1. Identify important characters, locations, items, factions, and concepts that appear in the story but have no entry
-2. Find entries that are outdated or incomplete based on story events
-3. Identify redundant entries that should be merged
-4. Update relationship statuses and character states
-
-Guidelines:
-- Be conservative - only create entries for elements that are genuinely important to the story
-- Use exact names from the story text
-- When merging, combine all relevant information
-- Focus on facts that would help maintain story consistency
-- Prefer targeted updates (e.g., search/replace) instead of rewriting long descriptions
-
-Use your tools to review the story and make necessary changes. When finished, call finish_lore_management with a summary.`
 
 export function getDefaultLoreManagementSettings(): LoreManagementSettings {
   return getDefaultLoreManagementSettingsForProvider('openrouter')
@@ -306,15 +389,14 @@ export function getDefaultLoreManagementSettingsForProvider(
     model: preset.model,
     temperature: 0.3,
     maxIterations: 50,
-    systemPrompt: DEFAULT_LORE_MANAGEMENT_PROMPT,
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
   }
 }
 
-// Interactive Lorebook service settings (AI-assisted lorebook creation in vault)
-// Note: System prompt is managed via the Prompts tab (template id: 'interactive-lorebook')
-export interface InteractiveLorebookSettings {
+// Interactive Vault service settings (AI-assisted vault management)
+// Note: System prompt is managed via the Prompts tab (template id: 'interactive-vault')
+export interface InteractiveVaultSettings {
   presetId?: string
   profileId: string | null // API profile to use (null = use main narrative profile)
   model: string
@@ -323,13 +405,13 @@ export interface InteractiveLorebookSettings {
   manualBody: string
 }
 
-export function getDefaultInteractiveLorebookSettings(): InteractiveLorebookSettings {
-  return getDefaultInteractiveLorebookSettingsForProvider('openrouter')
+export function getDefaultInteractiveVaultSettings(): InteractiveVaultSettings {
+  return getDefaultInteractiveVaultSettingsForProvider('openrouter')
 }
 
-export function getDefaultInteractiveLorebookSettingsForProvider(
+export function getDefaultInteractiveVaultSettingsForProvider(
   provider: ProviderType,
-): InteractiveLorebookSettings {
+): InteractiveVaultSettings {
   const preset = getPresetDefaults(provider, 'agentic')
   return {
     presetId: 'agentic',
@@ -349,27 +431,10 @@ export interface AgenticRetrievalSettings {
   model: string
   temperature: number
   maxIterations: number
-  systemPrompt: string
   agenticThreshold: number // Use agentic if chapters > N
   reasoningEffort: ReasoningEffort
   manualBody: string
 }
-
-export const DEFAULT_AGENTIC_RETRIEVAL_PROMPT = `You are a context retrieval agent for an interactive story. Your job is to gather relevant past context that will help the narrator respond to the current situation.
-
-Guidelines:
-1. Start by reviewing the chapter list to understand the story structure
-2. Query specific chapters that seem relevant to the current user input
-3. Focus on gathering context about:
-   - Characters mentioned or involved
-   - Locations being revisited
-   - Plot threads being referenced
-   - Items or information from the past
-   - Relationship history
-4. Be selective - only gather truly relevant information
-5. When you have enough context, call finish_retrieval with a synthesized summary
-
-The context you provide will be injected into the narrator's prompt to help maintain story consistency.`
 
 export function getDefaultAgenticRetrievalSettings(): AgenticRetrievalSettings {
   return getDefaultAgenticRetrievalSettingsForProvider('openrouter')
@@ -386,26 +451,10 @@ export function getDefaultAgenticRetrievalSettingsForProvider(
     model: preset.model,
     temperature: 0.3,
     maxIterations: 30,
-    systemPrompt: DEFAULT_AGENTIC_RETRIEVAL_PROMPT,
     agenticThreshold: 30,
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
   }
-}
-
-// Timeline Fill service settings (per design doc section 3.1.4: Static Retrieval)
-export interface TimelineFillSettings {
-  presetId?: string
-  profileId: string | null // API profile to use (null = use default profile)
-  enabled: boolean
-  mode: 'static' | 'agentic' // 'static' is default, 'agentic' for tool-calling retrieval
-  model: string
-  temperature: number
-  maxQueries: number
-  systemPrompt: string
-  queryAnswerPrompt: string
-  reasoningEffort: ReasoningEffort
-  manualBody: string
 }
 
 export function getDefaultTimelineFillSettings(): TimelineFillSettings {
@@ -424,8 +473,6 @@ export function getDefaultTimelineFillSettingsForProvider(
     model: preset.model,
     temperature: 0.3,
     maxQueries: 5,
-    systemPrompt: '',
-    queryAnswerPrompt: '',
     reasoningEffort: preset.reasoningEffort,
     manualBody: '',
   }
@@ -503,47 +550,9 @@ export function getDefaultUpdateSettings(): UpdateSettings {
   }
 }
 
-// Image Generation settings (automatic image generation for narrative)
-export interface ImageGenerationServiceSettings {
-  // Profile-based image generation (profiles must have supportsImageGeneration capability)
-  profileId: string | null // API profile for standard image generation
-  model: string // Image model for the selected profile
-  size: string // Regular image size
-
-  // Reference model settings (for image-to-image with portrait references)
-  referenceProfileId: string | null // API profile for image-to-image with portrait references
-  referenceModel: string // Model for image generation with reference
-  referenceSize: string // Reference image size
-
-  // General story image settings
-  styleId: string // Selected image style template
-  maxImagesPerMessage: number // Max images per narrative (0 = unlimited, default: 3)
-
-  // Portrait model settings (character reference images)
-  portraitProfileId: string | null // API profile for generating character portraits
-  portraitModel: string // Model for generating character portraits
-  portraitStyleId: string // Selected character portrait style template
-  portraitSize: string // Portrait image size
-
-  // Scene analysis model settings (for identifying imageable scenes)
-  promptProfileId: string | null // API profile for scene analysis
-  promptModel: string // Model for scene analysis (empty = use profile default)
-  promptTemperature: number
-  promptMaxTokens: number
-  reasoningEffort: ReasoningEffort
-  manualBody: string
-
-  // Background image settings
-  backgroundProfileId: string | null // API profile for background image generation
-  backgroundModel: string // Model for background image generation
-  backgroundSize: string // Background image size (default: '1280x720')
-  backgroundBlur: number // Background blur amount in pixels (default: 0)
-}
-
 export function getDefaultImageGenerationSettings(): ImageGenerationServiceSettings {
   return {
     profileId: null, // User must select an image-capable profile
-    model: 'flux', // Common default across providers
     styleId: 'image-style-soft-anime',
     portraitStyleId: 'image-style-soft-anime',
     size: '1024x1024',
@@ -551,9 +560,7 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     portraitSize: '512x512',
     maxImagesPerMessage: 3,
     portraitProfileId: null,
-    portraitModel: 'flux',
     referenceProfileId: null,
-    referenceModel: 'kontext', // Common reference/editing model
     promptProfileId: null, // Use default profile for scene analysis
     promptModel: '', // Empty = use profile default
     promptTemperature: 0.3,
@@ -561,7 +568,6 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     reasoningEffort: 'high',
     manualBody: '',
     backgroundProfileId: null,
-    backgroundModel: 'z-image-turbo',
     backgroundSize: '1280x720',
     backgroundBlur: 2, // Default blur for atmosphere
   }
@@ -702,7 +708,7 @@ export interface StyleReviewerSpecificSettings {}
 export interface LoreManagementSpecificSettings {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface InteractiveLorebookSpecificSettings {}
+export interface InteractiveVaultSpecificSettings {}
 
 export interface AgenticRetrievalSpecificSettings {
   maxIterations: number
@@ -780,7 +786,7 @@ export interface ServiceSpecificSettings {
   actionChoices: ActionChoicesSpecificSettings
   styleReviewer: StyleReviewerSpecificSettings
   loreManagement: LoreManagementSpecificSettings
-  interactiveLorebook: InteractiveLorebookSpecificSettings
+  interactiveVault: InteractiveVaultSpecificSettings
   agenticRetrieval: AgenticRetrievalSpecificSettings
   timelineFill: TimelineFillSpecificSettings
   chapterQuery: ChapterQuerySpecificSettings
@@ -793,6 +799,18 @@ export interface ServiceSpecificSettings {
   lorebookLimits: LorebookLimitsSettings
 }
 
+export function getDefaultExperimentalFeatures(): ExperimentalFeatures {
+  return {
+    stateTracking: false,
+    rollbackOnDelete: false,
+    lightweightBranches: false,
+    autoSnapshotInterval: 20,
+    backgroundGeneration: false,
+    generationNotifications: false,
+    notificationPreview: false,
+  }
+}
+
 export function getDefaultServiceSpecificSettings(): ServiceSpecificSettings {
   return {
     classifier: getDefaultClassifierSpecificSettings(),
@@ -801,7 +819,7 @@ export function getDefaultServiceSpecificSettings(): ServiceSpecificSettings {
     actionChoices: getDefaultActionChoicesSpecificSettings(),
     styleReviewer: getDefaultStyleReviewerSpecificSettings(),
     loreManagement: getDefaultLoreManagementSpecificSettings(),
-    interactiveLorebook: getDefaultInteractiveLorebookSpecificSettings(),
+    interactiveVault: getDefaultInteractiveVaultSpecificSettings(),
     agenticRetrieval: getDefaultAgenticRetrievalSpecificSettings(),
     timelineFill: getDefaultTimelineFillSpecificSettings(),
     chapterQuery: getDefaultChapterQuerySpecificSettings(),
@@ -843,7 +861,7 @@ export function getDefaultLoreManagementSpecificSettings(): LoreManagementSpecif
   return {}
 }
 
-export function getDefaultInteractiveLorebookSpecificSettings(): InteractiveLorebookSpecificSettings {
+export function getDefaultInteractiveVaultSpecificSettings(): InteractiveVaultSpecificSettings {
   return {}
 }
 
@@ -900,7 +918,7 @@ export function getDefaultContextWindowSettings(): ContextWindowSettings {
     recentEntriesForNarrative: 20,
     recentEntriesForTiered: 10,
     recentEntriesForRetrieval: 5,
-    recentEntriesForChoices: 3,
+    recentEntriesForChoices: 5,
     userActionsForStyle: 6,
     recentEntriesForLoreManagement: 10,
     recentEntriesForNameMatching: 3,
@@ -913,7 +931,7 @@ export function getDefaultLorebookLimitsSettings(): LorebookLimitsSettings {
     maxForSuggestions: 15,
     maxForAgenticPreview: 20,
     llmThreshold: 30,
-    maxEntriesPerTier: 10,
+    maxEntriesPerTier: 20,
   }
 }
 
@@ -925,7 +943,7 @@ export interface SystemServicesSettings {
   actionChoices: ActionChoicesSettings
   styleReviewer: StyleReviewerSettings
   loreManagement: LoreManagementSettings
-  interactiveLorebook: InteractiveLorebookSettings
+  interactiveVault: InteractiveVaultSettings
   agenticRetrieval: AgenticRetrievalSettings
   timelineFill: TimelineFillSettings
   chapterQuery: ChapterQuerySettings
@@ -944,7 +962,7 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
     actionChoices: getDefaultActionChoicesSettings(),
     styleReviewer: getDefaultStyleReviewerSettings(),
     loreManagement: getDefaultLoreManagementSettings(),
-    interactiveLorebook: getDefaultInteractiveLorebookSettings(),
+    interactiveVault: getDefaultInteractiveVaultSettings(),
     agenticRetrieval: getDefaultAgenticRetrievalSettings(),
     timelineFill: getDefaultTimelineFillSettings(),
     chapterQuery: getDefaultChapterQuerySettings(),
@@ -966,7 +984,7 @@ export function getDefaultSystemServicesSettingsForProvider(
     actionChoices: getDefaultActionChoicesSettingsForProvider(provider),
     styleReviewer: getDefaultStyleReviewerSettingsForProvider(provider),
     loreManagement: getDefaultLoreManagementSettingsForProvider(provider),
-    interactiveLorebook: getDefaultInteractiveLorebookSettingsForProvider(provider),
+    interactiveVault: getDefaultInteractiveVaultSettingsForProvider(provider),
     agenticRetrieval: getDefaultAgenticRetrievalSettingsForProvider(provider),
     timelineFill: getDefaultTimelineFillSettingsForProvider(provider),
     chapterQuery: getDefaultChapterQuerySettingsForProvider(provider),
@@ -1078,6 +1096,58 @@ export function getPresetDefaults(provider: ProviderType, presetId: string): Gen
   return preset
 }
 
+export function getDefaultUISettings(): UISettings {
+  return {
+    theme: 'dark',
+    fontSize: 'medium',
+    fontFamily: 'default',
+    fontSource: 'default',
+    showWordCount: true,
+    autoSave: true,
+    spellcheckEnabled: true,
+    debugMode: false,
+    disableSuggestions: false,
+    disableActionPrefixes: false,
+    showReasoning: true,
+    sidebarWidth: 288,
+    autoScroll: true,
+    showScrollToTop: false,
+    showScrollToBottom: true,
+  }
+}
+
+export const DEFAULT_SERVICE_PRESET_ASSIGNMENTS: Record<string, string> = {
+  classifier: 'classification',
+  lorebookClassifier: 'classification',
+  entryRetrieval: 'classification',
+  characterCardImport: 'classification',
+  memory: 'memory',
+  chapterQuery: 'memory',
+  timelineFill: 'memory',
+  suggestions: 'suggestions',
+  actionChoices: 'suggestions',
+  styleReviewer: 'suggestions',
+  loreManagement: 'agentic',
+  agenticRetrieval: 'agentic',
+  interactiveVault: 'agentic',
+  imageGeneration: 'suggestions',
+  bgImageGeneration: 'suggestions',
+  'wizard:settingExpansion': 'wizard',
+  'wizard:settingRefinement': 'wizard',
+  'wizard:protagonistGeneration': 'wizard',
+  'wizard:characterElaboration': 'wizard',
+  'wizard:characterRefinement': 'wizard',
+  'wizard:supportingCharacters': 'wizard',
+  'wizard:openingGeneration': 'wizard',
+  'wizard:openingRefinement': 'wizard',
+  'translation:narration': 'translation',
+  'translation:input': 'translation',
+  'translation:ui': 'translation',
+  'translation:suggestions': 'translation',
+  'translation:actionChoices': 'translation',
+  'translation:wizard': 'translation',
+}
+
 // Settings Store using Svelte 5 runes
 class SettingsStore {
   // Provider preset - which provider's defaults to use
@@ -1100,31 +1170,14 @@ class SettingsStore {
     manualBody: '',
     enableThinking: false,
     llmTimeoutMs: LLM_TIMEOUT_DEFAULT,
-    useNativeTimeout: false,
   })
 
-  uiSettings = $state<UISettings>({
-    theme: 'dark',
-    fontSize: 'medium',
-    fontFamily: 'default',
-    fontSource: 'default',
-    showWordCount: true,
-    autoSave: true,
-    spellcheckEnabled: true,
-    debugMode: false,
-    disableSuggestions: false,
-    disableActionPrefixes: false,
-    showReasoning: true,
-    sidebarWidth: 288,
-  })
+  uiSettings = $state<UISettings>(getDefaultUISettings())
 
   advancedRequestSettings = $state<AdvancedRequestSettings>(getDefaultAdvancedRequestSettings())
 
   // Advanced wizard settings for scenario generation
-  wizardSettings = $state<AdvancedWizardSettings>(getDefaultAdvancedSettings())
-
-  // Story generation settings (main AI prompts)
-  storyGenerationSettings = $state<StoryGenerationSettings>(getDefaultStoryGenerationSettings())
+  wizardSettings = $state<AdvancedWizardSettings>(getDefaultAdvancedWizardSettings())
 
   // System services settings (classifier, memory, suggestions)
   systemServicesSettings = $state<SystemServicesSettings>(getDefaultSystemServicesSettings())
@@ -1132,46 +1185,20 @@ class SettingsStore {
   // Update settings
   updateSettings = $state<UpdateSettings>(getDefaultUpdateSettings())
 
-  // Prompt settings (centralized macro-based prompts)
-  promptSettings = $state<PromptSettings>(getDefaultPromptSettings())
-
   // Translation settings
   translationSettings = $state<TranslationSettings>(getDefaultTranslationSettings())
 
+  // Image profiles (dedicated image provider configurations)
+  imageProfiles = $state<ImageProfile[]>([])
+
   // Service preset assignments - which preset each service uses
   servicePresetAssignments = $state<Record<string, string>>({
-    classifier: 'classification',
-    lorebookClassifier: 'classification',
-    entryRetrieval: 'classification',
-    characterCardImport: 'classification',
-    memory: 'memory',
-    chapterQuery: 'memory',
-    timelineFill: 'memory',
-    suggestions: 'suggestions',
-    actionChoices: 'suggestions',
-    styleReviewer: 'suggestions',
-    loreManagement: 'agentic',
-    agenticRetrieval: 'agentic',
-    interactiveLorebook: 'agentic',
-    imageGeneration: 'suggestions',
-    bgImageGeneration: 'suggestions',
-    'wizard:settingExpansion': 'wizard',
-    'wizard:settingRefinement': 'wizard',
-    'wizard:protagonistGeneration': 'wizard',
-    'wizard:characterElaboration': 'wizard',
-    'wizard:characterRefinement': 'wizard',
-    'wizard:supportingCharacters': 'wizard',
-    'wizard:openingGeneration': 'wizard',
-    'wizard:openingRefinement': 'wizard',
-    'translation:narration': 'translation',
-    'translation:input': 'translation',
-    'translation:ui': 'translation',
-    'translation:suggestions': 'translation',
-    'translation:actionChoices': 'translation',
-    'translation:wizard': 'translation',
+    ...DEFAULT_SERVICE_PRESET_ASSIGNMENTS,
   })
 
   serviceSpecificSettings = $state<ServiceSpecificSettings>(getDefaultServiceSpecificSettings())
+
+  experimentalFeatures = $state<ExperimentalFeatures>(getDefaultExperimentalFeatures())
 
   // Generation Presets (Profiles)
   generationPresets = $state<GenerationPreset[]>([
@@ -1290,17 +1317,34 @@ class SettingsStore {
       const profilesJson = await database.getSetting('api_profiles')
       if (profilesJson) {
         try {
-          const parsed = JSON.parse(profilesJson) as import('$lib/types').APIProfile[]
+          const parsed = JSON.parse(profilesJson) as (APIProfile & {
+            reasoningModels?: string[]
+          })[]
           // Ensure new fields have defaults for profiles saved before these fields existed
-          this.apiSettings.profiles = parsed.map((p) => ({
-            ...p,
-            customModels: Array.isArray(p.customModels) ? p.customModels : [],
-            fetchedModels: Array.isArray(p.fetchedModels) ? p.fetchedModels : [],
-            reasoningModels: Array.isArray(p.reasoningModels) ? p.reasoningModels : [],
-            hiddenModels: Array.isArray(p.hiddenModels) ? p.hiddenModels : [],
-            favoriteModels: Array.isArray(p.favoriteModels) ? p.favoriteModels : [],
-            providerType: p.providerType ?? 'openai-compatible',
-          }))
+          this.apiSettings.profiles = parsed.map((p) => {
+            // Migrate fetchedModels: old format was string[], new format is TextModel[]
+            let fetchedModels: TextModel[] = []
+            if (Array.isArray(p.fetchedModels) && p.fetchedModels.length > 0) {
+              if (typeof p.fetchedModels[0] === 'string') {
+                // Old format: string[] + optional reasoningModels string[]
+                const reasoningSet = new Set(p.reasoningModels ?? [])
+                fetchedModels = (p.fetchedModels as unknown as string[]).map((id) => ({
+                  id,
+                  reasoning: reasoningSet.has(id) || undefined,
+                }))
+              } else {
+                fetchedModels = p.fetchedModels
+              }
+            }
+            return normalizeProfile({
+              ...p,
+              customModels: Array.isArray(p.customModels) ? p.customModels : [],
+              fetchedModels,
+              hiddenModels: Array.isArray(p.hiddenModels) ? p.hiddenModels : [],
+              favoriteModels: Array.isArray(p.favoriteModels) ? p.favoriteModels : [],
+              providerType: p.providerType ?? 'openai-compatible',
+            })
+          })
         } catch {
           this.apiSettings.profiles = []
         }
@@ -1331,12 +1375,6 @@ class SettingsStore {
         if (!isNaN(parsed) && parsed >= LLM_TIMEOUT_MIN && parsed <= LLM_TIMEOUT_MAX) {
           this.apiSettings.llmTimeoutMs = parsed
         }
-      }
-
-      // Load native timeout setting
-      const useNativeTimeout = await database.getSetting('use_native_timeout')
-      if (useNativeTimeout !== null) {
-        this.apiSettings.useNativeTimeout = useNativeTimeout === 'true'
       }
 
       // Load provider preset (which provider's defaults to use)
@@ -1417,8 +1455,18 @@ class SettingsStore {
       const showReasoning = await database.getSetting('show_reasoning')
       if (showReasoning !== null) this.uiSettings.showReasoning = showReasoning === 'true'
 
+      const autoScroll = await database.getSetting('auto_scroll')
+      if (autoScroll !== null) this.uiSettings.autoScroll = autoScroll === 'true'
+
+      const showScrollToTop = await database.getSetting('show_scroll_to_top')
+      if (showScrollToTop !== null) this.uiSettings.showScrollToTop = showScrollToTop === 'true'
+
+      const showScrollToBottom = await database.getSetting('show_scroll_to_bottom')
+      if (showScrollToBottom !== null)
+        this.uiSettings.showScrollToBottom = showScrollToBottom === 'true'
+
       const debugMode = await database.getSetting('debug_mode')
-      if (debugMode !== null) this.uiSettings.debugMode = debugMode === 'true'
+      if (debugMode !== null) debug.isActive = this.uiSettings.debugMode = debugMode === 'true'
 
       const sidebarWidth = await database.getSetting('sidebar_width')
       if (sidebarWidth) this.uiSettings.sidebarWidth = parseInt(sidebarWidth, 10)
@@ -1434,7 +1482,7 @@ class SettingsStore {
         try {
           const loaded = JSON.parse(wizardSettingsJson)
           // Merge with defaults to ensure all fields exist
-          const defaults = getDefaultAdvancedSettings()
+          const defaults = getDefaultAdvancedWizardSettings()
           this.wizardSettings = {
             settingExpansion: { ...defaults.settingExpansion, ...loaded.settingExpansion },
             settingRefinement: { ...defaults.settingRefinement, ...loaded.settingRefinement },
@@ -1456,22 +1504,7 @@ class SettingsStore {
           }
         } catch {
           // If parsing fails, use defaults
-          this.wizardSettings = getDefaultAdvancedSettings()
-        }
-      }
-
-      // Load story generation settings
-      const storyGenSettingsJson = await database.getSetting('story_generation_settings')
-      if (storyGenSettingsJson) {
-        try {
-          const loaded = JSON.parse(storyGenSettingsJson)
-          const defaults = getDefaultStoryGenerationSettings()
-          this.storyGenerationSettings = {
-            adventurePrompt: loaded.adventurePrompt || defaults.adventurePrompt,
-            creativeWritingPrompt: loaded.creativeWritingPrompt || defaults.creativeWritingPrompt,
-          }
-        } catch {
-          this.storyGenerationSettings = getDefaultStoryGenerationSettings()
+          this.wizardSettings = getDefaultAdvancedWizardSettings()
         }
       }
 
@@ -1526,7 +1559,7 @@ class SettingsStore {
             actionChoices: getDefaultActionChoicesSpecificSettings(),
             styleReviewer: getDefaultStyleReviewerSpecificSettings(),
             loreManagement: getDefaultLoreManagementSpecificSettings(),
-            interactiveLorebook: getDefaultInteractiveLorebookSpecificSettings(),
+            interactiveVault: getDefaultInteractiveVaultSpecificSettings(),
             agenticRetrieval: {
               ...getDefaultAgenticRetrievalSpecificSettings(),
               ...loaded.agenticRetrieval,
@@ -1545,6 +1578,20 @@ class SettingsStore {
             characterCardImport: getDefaultCharacterCardImportSpecificSettings(),
             contextWindow: { ...getDefaultContextWindowSettings(), ...loaded.contextWindow },
             lorebookLimits: { ...getDefaultLorebookLimitsSettings(), ...loaded.lorebookLimits },
+          }
+        } catch {
+          // Keep defaults
+        }
+      }
+
+      // Load experimental features
+      const experimentalJson = await database.getSetting('experimental_features')
+      if (experimentalJson) {
+        try {
+          const loaded = JSON.parse(experimentalJson)
+          this.experimentalFeatures = {
+            ...getDefaultExperimentalFeatures(),
+            ...loaded,
           }
         } catch {
           // Keep defaults
@@ -1574,7 +1621,10 @@ class SettingsStore {
             imageGeneration: { ...defaults.imageGeneration, ...loaded.imageGeneration },
             tts: { ...defaults.tts, ...loaded.tts },
             characterCardImport: { ...defaults.characterCardImport, ...loaded.characterCardImport },
-            interactiveLorebook: { ...defaults.interactiveLorebook, ...loaded.interactiveLorebook },
+            interactiveVault: {
+              ...defaults.interactiveVault,
+              ...(loaded.interactiveVault ?? loaded.interactiveLorebook),
+            },
           }
 
           const isMissingProfileId = (profileId: string | null | undefined): boolean => {
@@ -1670,143 +1720,8 @@ class SettingsStore {
         }
       }
 
-      // Load prompt settings and initialize the prompt service
-      const promptSettingsJson = await database.getSetting('prompt_settings')
-      if (promptSettingsJson) {
-        try {
-          const loaded = JSON.parse(promptSettingsJson)
-          const defaults = getDefaultPromptSettings()
-          this.promptSettings = {
-            customMacros: loaded.customMacros ?? defaults.customMacros,
-            macroOverrides: loaded.macroOverrides ?? defaults.macroOverrides,
-            templateOverrides: loaded.templateOverrides ?? defaults.templateOverrides,
-            legacyMigrationComplete: loaded.legacyMigrationComplete ?? false,
-          }
-        } catch {
-          this.promptSettings = getDefaultPromptSettings()
-        }
-      }
-
-      // Migrate legacy prompt overrides into centralized prompt settings
-      // Only run this migration once - check the flag to prevent re-migration
-      if (!this.promptSettings.legacyMigrationComplete) {
-        const defaultStorySettings = getDefaultStoryGenerationSettings()
-        const defaultWizardSettings = getDefaultAdvancedSettings()
-        const defaultSystemServices = getDefaultSystemServicesSettingsForProvider(
-          this.getDefaultProviderType(),
-        )
-        const overrideIds = new SvelteSet(
-          this.promptSettings.templateOverrides.map((o) => o.templateId),
-        )
-
-        const addOverride = (
-          templateId: string,
-          content?: string | null,
-          defaultContent?: string | null,
-        ) => {
-          if (!content) return
-          if (overrideIds.has(templateId)) return
-          if (defaultContent !== undefined && content === defaultContent) return
-          this.promptSettings.templateOverrides.push({ templateId, content })
-          overrideIds.add(templateId)
-        }
-
-        // Story generation prompts
-        addOverride(
-          'adventure',
-          this.storyGenerationSettings.adventurePrompt,
-          defaultStorySettings.adventurePrompt,
-        )
-        addOverride(
-          'creative-writing',
-          this.storyGenerationSettings.creativeWritingPrompt,
-          defaultStorySettings.creativeWritingPrompt,
-        )
-
-        // System services prompts
-        addOverride(
-          'classifier',
-          this.systemServicesSettings.classifier.systemPrompt,
-          defaultSystemServices.classifier.systemPrompt,
-        )
-        addOverride(
-          'suggestions',
-          this.systemServicesSettings.suggestions.systemPrompt,
-          defaultSystemServices.suggestions.systemPrompt,
-        )
-        addOverride(
-          'style-reviewer',
-          this.systemServicesSettings.styleReviewer.systemPrompt,
-          defaultSystemServices.styleReviewer.systemPrompt,
-        )
-        addOverride(
-          'lore-management',
-          this.systemServicesSettings.loreManagement.systemPrompt,
-          defaultSystemServices.loreManagement.systemPrompt,
-        )
-        addOverride(
-          'agentic-retrieval',
-          this.systemServicesSettings.agenticRetrieval.systemPrompt,
-          defaultSystemServices.agenticRetrieval.systemPrompt,
-        )
-        addOverride(
-          'timeline-fill',
-          this.systemServicesSettings.timelineFill?.systemPrompt,
-          defaultSystemServices.timelineFill?.systemPrompt,
-        )
-        addOverride(
-          'timeline-fill-answer',
-          this.systemServicesSettings.timelineFill?.queryAnswerPrompt,
-          defaultSystemServices.timelineFill?.queryAnswerPrompt,
-        )
-        addOverride(
-          'lorebook-classifier',
-          this.systemServicesSettings.lorebookClassifier.systemPrompt,
-          defaultSystemServices.lorebookClassifier.systemPrompt,
-        )
-
-        // Wizard prompts
-        addOverride(
-          'setting-expansion',
-          this.wizardSettings.settingExpansion.systemPrompt,
-          defaultWizardSettings.settingExpansion.systemPrompt,
-        )
-        addOverride(
-          'protagonist-generation',
-          this.wizardSettings.protagonistGeneration.systemPrompt,
-          defaultWizardSettings.protagonistGeneration.systemPrompt,
-        )
-        addOverride(
-          'character-elaboration',
-          this.wizardSettings.characterElaboration.systemPrompt,
-          defaultWizardSettings.characterElaboration.systemPrompt,
-        )
-        addOverride(
-          'supporting-characters',
-          this.wizardSettings.supportingCharacters.systemPrompt,
-          defaultWizardSettings.supportingCharacters.systemPrompt,
-        )
-
-        if (this.wizardSettings.openingGeneration.systemPrompt) {
-          const converted = this.wizardSettings.openingGeneration.systemPrompt
-            .replace(/\{userName\}/g, '{{protagonistName}}')
-            .replace(/\{genreLabel\}/g, '{{genreLabel}}')
-            .replace(/\{mode\}/g, '{{mode}}')
-            .replace(/\{tense\}/g, '{{tenseInstruction}}')
-            .replace(/\{tone\}/g, '{{tone}}')
-          addOverride('opening-generation-adventure', converted, '')
-          addOverride('opening-generation-creative', converted, '')
-        }
-
-        // Mark migration as complete so it doesn't run again
-        this.promptSettings.legacyMigrationComplete = true
-
-        // Always save after migration to persist the legacyMigrationComplete flag
-        await database.setSetting('prompt_settings', JSON.stringify(this.promptSettings))
-      }
-
-      // Initialize the centralized prompt service with loaded settings
-      promptService.init(this.promptSettings)
+      // Load image profiles
+      await this.loadImageProfiles()
 
       // Ensure default image generation profiles are set
       await this.migrateImageProfileDefaults()
@@ -1847,11 +1762,6 @@ class SettingsStore {
     await database.setSetting('llm_timeout_ms', timeoutMs.toString())
   }
 
-  async setUseNativeTimeout(useNative: boolean) {
-    this.apiSettings.useNativeTimeout = useNative
-    await database.setSetting('use_native_timeout', useNative.toString())
-  }
-
   async setEnableThinking(enabled: boolean) {
     this.apiSettings.enableThinking = enabled
     this.apiSettings.reasoningEffort = enabled ? 'high' : 'off'
@@ -1881,11 +1791,11 @@ class SettingsStore {
   }
 
   async addProfile(profile: Omit<APIProfile, 'id' | 'createdAt'>) {
-    const newProfile: APIProfile = {
+    const newProfile = normalizeProfile({
       ...profile,
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-    }
+    })
     this.apiSettings.profiles = [...this.apiSettings.profiles, newProfile]
     await this.saveProfiles()
 
@@ -1901,19 +1811,18 @@ class SettingsStore {
     const index = this.apiSettings.profiles.findIndex((p) => p.id === id)
     if (index === -1) return
 
-    this.apiSettings.profiles[index] = {
+    this.apiSettings.profiles[index] = normalizeProfile({
       ...this.apiSettings.profiles[index],
       ...updates,
-    }
+    })
     this.apiSettings.profiles = [...this.apiSettings.profiles]
     await this.saveProfiles()
   }
 
   async deleteProfile(id: string) {
-    // Prevent deleting the main narrative profile
+    // Reset main narrative profile to default if the deleted profile is currently set as main narrative
     if (id === this.apiSettings.mainNarrativeProfileId) {
-      console.warn('[Settings] Cannot delete the main narrative profile')
-      return false
+      this.setMainNarrativeProfile(this.getDefaultProfileIdForProvider())
     }
 
     // Prevent deleting the default profile for the current provider
@@ -2049,24 +1958,24 @@ class SettingsStore {
     return this.getProfile(this.apiSettings.activeProfileId)
   }
 
-  getProfileModels(profileId: string | null): string[] {
+  getProfileModels(profileId: string | null): TextModel[] {
     if (!profileId) return []
     const profile = this.getProfile(profileId)
     if (!profile) return []
-    return [...new Set([...profile.fetchedModels, ...profile.customModels])]
+    return mergeProfileModels(profile.fetchedModels, profile.customModels)
   }
 
-  getAvailableModels(profileId: string | null): string[] {
+  getAvailableModels(profileId: string | null): TextModel[] {
     if (!profileId) return []
     const profile = this.getProfile(profileId)
     if (!profile) return []
-    const hidden = new Set(profile.hiddenModels ?? [])
-    const favSet = new Set(profile.favoriteModels ?? [])
-    const all = [...new Set([...profile.fetchedModels, ...profile.customModels])].filter(
-      (m) => !hidden.has(m),
-    )
-    const favorites = all.filter((m) => favSet.has(m))
-    const rest = all.filter((m) => !favSet.has(m))
+
+    const hidden = profile.hiddenModels ?? []
+    const favSet = profile.favoriteModels ?? []
+    const profileModels = this.getProfileModels(profileId)
+    const all = profileModels.filter((m) => !hidden.includes(m.id))
+    const favorites = all.filter((m) => favSet.includes(m.id))
+    const rest = all.filter((m) => !favSet.includes(m.id))
     return [...favorites, ...rest]
   }
 
@@ -2176,7 +2085,6 @@ class SettingsStore {
         apiKey: existingApiKey || '', // Migrate existing key if present
         customModels: allModels, // Include all models in use plus defaults
         fetchedModels: [], // Will be populated when user fetches from API
-        reasoningModels: [],
         hiddenModels: [],
         favoriteModels: [],
         createdAt: Date.now(),
@@ -2208,15 +2116,15 @@ class SettingsStore {
       }
 
       // Add any models in use that aren't already in the profile
-      const existingModels = new Set([
-        ...existingDefault.fetchedModels,
-        ...existingDefault.customModels,
-      ])
+      const existingModels = new Set(
+        this.getProfileModels(existingDefault.id).map((model) => model.id),
+      )
       const missingModels = modelsInUse.filter((m) => !existingModels.has(m))
       if (missingModels.length > 0) {
-        existingDefault.customModels = [
-          ...new Set([...existingDefault.customModels, ...missingModels]),
-        ]
+        existingDefault.customModels = dedupeModelIds([
+          ...existingDefault.customModels,
+          ...missingModels,
+        ])
         needsSave = true
         console.log(
           '[Settings] Added',
@@ -2307,37 +2215,87 @@ class SettingsStore {
   }
 
   /**
-   * Ensure default image generation profiles are set for all categories.
-   * This runs automatically on app start via init().
+   * Auto-migrate existing API Profile references to Image Profiles.
+   * On first load after the rework, if imageProfiles is empty but imageGeneration
+   * settings have API profile IDs, create Image Profiles from those API Profiles.
    */
   async migrateImageProfileDefaults() {
+    if (this.imageProfiles.length > 0) return
+
     const imgSettings = this.systemServicesSettings.imageGeneration
-    const profiles = this.apiSettings.profiles.filter(
-      (p) => PROVIDERS[p.providerType]?.capabilities.imageGeneration,
-    )
+    // Map each profile field to its corresponding old model field
+    // The old model fields (model, referenceModel, portraitModel, backgroundModel) have been
+    // removed from the type but may still exist in persisted user data
+    const profileFieldMap: Record<string, string> = {
+      profileId: 'model',
+      referenceProfileId: 'referenceModel',
+      portraitProfileId: 'portraitModel',
+      backgroundProfileId: 'backgroundModel',
+    }
 
-    if (profiles.length > 0) {
-      let changed = false
-      const defaultProfileId = profiles[0].id
+    // Map from "apiProfileId:model" → new Image Profile ID
+    const newProfileIds = new SvelteMap<string, string>()
+    let changed = false
 
-      const profileFields: (keyof typeof imgSettings)[] = [
-        'profileId',
-        'portraitProfileId',
-        'referenceProfileId',
-        'backgroundProfileId',
-      ]
+    for (const [profileField, modelField] of Object.entries(profileFieldMap)) {
+      const apiProfileId = (imgSettings as unknown as Record<string, unknown>)[profileField] as
+        | string
+        | undefined
+      const model = (imgSettings as unknown as Record<string, unknown>)[modelField] as
+        | string
+        | undefined
 
-      for (const field of profileFields) {
-        if (!imgSettings[field]) {
-          ;(imgSettings as any)[field] = defaultProfileId
-          changed = true
-        }
+      if (!apiProfileId || !model) continue
+
+      const uniqueKey = `${apiProfileId}:${model}`
+      if (newProfileIds.has(uniqueKey)) {
+        ;(imgSettings as unknown as Record<string, unknown>)[profileField] =
+          newProfileIds.get(uniqueKey)!
+        changed = true
+        continue
       }
 
-      if (changed) {
-        await this.saveSystemServicesSettings()
-        console.log('[Settings] Automatically set default image generation profiles')
+      const apiProfile = this.getProfile(apiProfileId)
+      if (!apiProfile) continue
+
+      // Map ProviderType to ImageProviderType (only for image-capable providers)
+      const providerType = apiProfile.providerType as string
+      const imageProviderTypes = ['nanogpt', 'openai', 'chutes', 'pollinations', 'google', 'zhipu']
+      if (!imageProviderTypes.includes(providerType)) continue
+
+      const newProfile = await this.addImageProfile({
+        name: `${apiProfile.name} (${model})`,
+        providerType: providerType as ImageProviderType,
+        apiKey: apiProfile.apiKey ?? '',
+        baseUrl: apiProfile.baseUrl,
+        model: model,
+        providerOptions: {},
+      })
+
+      newProfileIds.set(uniqueKey, newProfile.id)
+      ;(imgSettings as unknown as Record<string, unknown>)[profileField] = newProfile.id
+      changed = true
+    }
+
+    if (changed) {
+      await this.saveSystemServicesSettings()
+      console.log(
+        '[Settings] Auto-migrated image generation profiles from API Profiles to Image Profiles',
+      )
+    }
+
+    // Ensure all existing image profiles have a model field
+    let profilesUpdated = false
+    for (const profile of this.imageProfiles) {
+      if (!profile.model) {
+        profile.model = 'flux'
+        profilesUpdated = true
       }
+    }
+    if (profilesUpdated) {
+      this.imageProfiles = [...this.imageProfiles]
+      await this.saveImageProfiles()
+      console.log('[Settings] Migrated image profiles to include model field')
     }
   }
 
@@ -2446,13 +2404,6 @@ class SettingsStore {
     }
   }
 
-  private stripWizardSystemPrompts() {
-    if (!this.promptSettings.legacyMigrationComplete) return
-    for (const process of Object.values(this.wizardSettings)) {
-      process.systemPrompt = undefined
-    }
-  }
-
   async setFontFamily(fontFamily: string, source: FontSource) {
     this.uiSettings.fontFamily = fontFamily
     this.uiSettings.fontSource = source
@@ -2492,6 +2443,21 @@ class SettingsStore {
     await database.setSetting('show_reasoning', show.toString())
   }
 
+  async setAutoScroll(enabled: boolean) {
+    this.uiSettings.autoScroll = enabled
+    await database.setSetting('auto_scroll', enabled.toString())
+  }
+
+  async setShowScrollToTop(enabled: boolean) {
+    this.uiSettings.showScrollToTop = enabled
+    await database.setSetting('show_scroll_to_top', enabled.toString())
+  }
+
+  async setShowScrollToBottom(enabled: boolean) {
+    this.uiSettings.showScrollToBottom = enabled
+    await database.setSetting('show_scroll_to_bottom', enabled.toString())
+  }
+
   async setSidebarWidth(width: number) {
     this.uiSettings.sidebarWidth = width
     await database.setSetting('sidebar_width', width.toString())
@@ -2507,23 +2473,21 @@ class SettingsStore {
     await database.setSetting('advanced_manual_mode', enabled.toString())
   }
 
-  //Return true if an API key is needed for main narrative generation.
-  get needsApiKey(): boolean {
-    const mainProfile = this.getMainNarrativeProfile() ?? this.getDefaultProfile()
-    if (mainProfile) {
-      return !mainProfile.apiKey || mainProfile.apiKey.length === 0
-    }
-
-    // Fall back to legacy check for pre-profile installations
-    return (
-      !this.apiSettings.openaiApiKey &&
-      this.apiSettings.openaiApiURL === PROVIDERS.openrouter.baseUrl
-    )
+  // Wizard settings methods
+  /** Persist main narrative API settings (temperature, max tokens, reasoning) to the database. */
+  async saveApiSettings() {
+    await Promise.allSettled([
+      database.setSetting('temperature', this.apiSettings.temperature.toString()),
+      database.setSetting('max_tokens', this.apiSettings.maxTokens.toString()),
+      database.setSetting('main_reasoning_effort', this.apiSettings.reasoningEffort),
+      database.setSetting('enable_thinking', this.apiSettings.enableThinking.toString()),
+      database.setSetting('default_model', this.apiSettings.defaultModel),
+      database.setSetting('main_narrative_profile_id', this.apiSettings.mainNarrativeProfileId),
+      database.setSetting('main_manual_body', this.apiSettings.manualBody),
+    ])
   }
 
-  // Wizard settings methods
   async saveWizardSettings() {
-    this.stripWizardSystemPrompts()
     await database.setSetting('wizard_settings', JSON.stringify(this.wizardSettings))
   }
 
@@ -2536,19 +2500,6 @@ class SettingsStore {
   async resetAllWizardSettings() {
     this.wizardSettings = getDefaultAdvancedSettingsForProvider(this.getDefaultProviderType())
     await this.saveWizardSettings()
-  }
-
-  // Story generation settings methods
-  async saveStoryGenerationSettings() {
-    await database.setSetting(
-      'story_generation_settings',
-      JSON.stringify(this.storyGenerationSettings),
-    )
-  }
-
-  async resetStoryGenerationSettings() {
-    this.storyGenerationSettings = getDefaultStoryGenerationSettings()
-    await this.saveStoryGenerationSettings()
   }
 
   // System services settings methods
@@ -2576,6 +2527,11 @@ class SettingsStore {
     await this.saveGenerationPresets()
   }
 
+  async resetServicePresetAssignments() {
+    this.servicePresetAssignments = { ...DEFAULT_SERVICE_PRESET_ASSIGNMENTS }
+    await this.saveServicePresetAssignments()
+  }
+
   async saveSystemServicesSettings() {
     await database.setSetting(
       'system_services_settings',
@@ -2595,6 +2551,42 @@ class SettingsStore {
     await this.saveServiceSpecificSettings()
   }
 
+  // Experimental features methods
+  async saveExperimentalFeatures() {
+    await database.setSetting('experimental_features', JSON.stringify(this.experimentalFeatures))
+  }
+
+  async updateExperimentalFeatures(updates: Partial<ExperimentalFeatures>) {
+    // Enforce dependencies: rollbackOnDelete requires stateTracking
+    if (
+      updates.rollbackOnDelete &&
+      !this.experimentalFeatures.stateTracking &&
+      !updates.stateTracking
+    ) {
+      updates.rollbackOnDelete = false
+    }
+    // lightweightBranches requires stateTracking
+    if (
+      updates.lightweightBranches &&
+      !this.experimentalFeatures.stateTracking &&
+      !updates.stateTracking
+    ) {
+      updates.lightweightBranches = false
+    }
+    // Disabling stateTracking cascades
+    if (updates.stateTracking === false) {
+      updates.rollbackOnDelete = false
+      updates.lightweightBranches = false
+    }
+    this.experimentalFeatures = { ...this.experimentalFeatures, ...updates }
+    await this.saveExperimentalFeatures()
+  }
+
+  async resetExperimentalFeatures() {
+    this.experimentalFeatures = getDefaultExperimentalFeatures()
+    await this.saveExperimentalFeatures()
+  }
+
   // Translation settings methods
   async saveTranslationSettings() {
     await database.setSetting('translation_settings', JSON.stringify(this.translationSettings))
@@ -2608,6 +2600,56 @@ class SettingsStore {
   async resetTranslationSettings() {
     this.translationSettings = getDefaultTranslationSettings()
     await this.saveTranslationSettings()
+  }
+
+  // ===== Image Profile Management =====
+
+  async saveImageProfiles() {
+    await database.setSetting('image_profiles', JSON.stringify(this.imageProfiles))
+  }
+
+  async loadImageProfiles() {
+    const json = await database.getSetting('image_profiles')
+    if (json) {
+      try {
+        const parsed = JSON.parse(json) as ImageProfile[]
+        this.imageProfiles = parsed.map((p) => ({
+          ...p,
+          providerOptions: p.providerOptions ?? {},
+        }))
+      } catch {
+        this.imageProfiles = []
+      }
+    }
+  }
+
+  async addImageProfile(profile: Omit<ImageProfile, 'id' | 'createdAt'>): Promise<ImageProfile> {
+    const newProfile: ImageProfile = {
+      ...profile,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+    }
+    this.imageProfiles = [...this.imageProfiles, newProfile]
+    await this.saveImageProfiles()
+    return newProfile
+  }
+
+  async updateImageProfile(id: string, updates: Partial<Omit<ImageProfile, 'id' | 'createdAt'>>) {
+    const index = this.imageProfiles.findIndex((p) => p.id === id)
+    if (index === -1) return
+    this.imageProfiles[index] = { ...this.imageProfiles[index], ...updates }
+    this.imageProfiles = [...this.imageProfiles]
+    await this.saveImageProfiles()
+  }
+
+  async deleteImageProfile(id: string): Promise<boolean> {
+    this.imageProfiles = this.imageProfiles.filter((p) => p.id !== id)
+    await this.saveImageProfiles()
+    return true
+  }
+
+  getImageProfile(id: string): ImageProfile | undefined {
+    return this.imageProfiles.find((p) => p.id === id)
   }
 
   async resetClassifierSettings() {
@@ -2656,9 +2698,10 @@ class SettingsStore {
     await this.saveSystemServicesSettings()
   }
 
-  async resetInteractiveLorebookSettings() {
-    this.systemServicesSettings.interactiveLorebook =
-      getDefaultInteractiveLorebookSettingsForProvider(this.providerPreset)
+  async resetInteractiveVaultSettings() {
+    this.systemServicesSettings.interactiveVault = getDefaultInteractiveVaultSettingsForProvider(
+      this.providerPreset,
+    )
     await this.saveSystemServicesSettings()
   }
 
@@ -2758,43 +2801,6 @@ class SettingsStore {
     await this.saveUpdateSettings()
   }
 
-  // Prompt settings methods
-  async savePromptSettings() {
-    await database.setSetting('prompt_settings', JSON.stringify(this.promptSettings))
-    // Re-initialize the prompt service with updated settings
-    promptService.init(this.promptSettings)
-  }
-
-  async resetPromptSettings() {
-    this.promptSettings = getDefaultPromptSettings()
-    await this.savePromptSettings()
-  }
-
-  /**
-   * Update a template override in prompt settings
-   */
-  async setTemplateOverride(templateId: string, content: string) {
-    const existingIndex = this.promptSettings.templateOverrides.findIndex(
-      (o) => o.templateId === templateId,
-    )
-    if (existingIndex >= 0) {
-      this.promptSettings.templateOverrides[existingIndex].content = content
-    } else {
-      this.promptSettings.templateOverrides.push({ templateId, content })
-    }
-    await this.savePromptSettings()
-  }
-
-  /**
-   * Remove a template override (reset to default)
-   */
-  async removeTemplateOverride(templateId: string) {
-    this.promptSettings.templateOverrides = this.promptSettings.templateOverrides.filter(
-      (o) => o.templateId !== templateId,
-    )
-    await this.savePromptSettings()
-  }
-
   /**
    * Reset ALL settings to their default values based on the current provider preset.
    * This preserves the API key and URL but resets everything else.
@@ -2831,24 +2837,10 @@ class SettingsStore {
       manualBody: '',
       enableThinking: false,
       llmTimeoutMs: LLM_TIMEOUT_DEFAULT,
-      useNativeTimeout: false,
     }
 
     // Reset UI settings
-    this.uiSettings = {
-      theme: 'dark',
-      fontSize: 'medium',
-      fontFamily: 'default',
-      fontSource: 'default',
-      showWordCount: true,
-      autoSave: true,
-      spellcheckEnabled: true,
-      debugMode: false,
-      disableSuggestions: false,
-      disableActionPrefixes: false,
-      showReasoning: false,
-      sidebarWidth: 288,
-    }
+    this.uiSettings = getDefaultUISettings()
 
     // Reset font to default
     this.applyFontFamily('default', 'default')
@@ -2858,17 +2850,12 @@ class SettingsStore {
     // Reset wizard settings based on provider
     this.wizardSettings = getDefaultAdvancedSettingsForProvider(provider)
 
-    // Reset story generation settings
-    this.storyGenerationSettings = getDefaultStoryGenerationSettings()
-
     // Reset system services settings based on provider
     this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(provider)
 
     // Reset update settings
     this.updateSettings = getDefaultUpdateSettings()
-
-    // Reset prompt settings
-    this.promptSettings = getDefaultPromptSettings()
+    await grammarService.clearCustomWords()
 
     // Save all to database
     await database.setSetting('default_model', this.apiSettings.defaultModel)
@@ -2888,15 +2875,21 @@ class SettingsStore {
       'disable_action_prefixes',
       this.uiSettings.disableActionPrefixes.toString(),
     )
+    await database.setSetting('auto_scroll', this.uiSettings.autoScroll.toString())
+    await database.setSetting('show_scroll_to_top', this.uiSettings.showScrollToTop.toString())
+    await database.setSetting(
+      'show_scroll_to_bottom',
+      this.uiSettings.showScrollToBottom.toString(),
+    )
     await database.setSetting(
       'advanced_manual_mode',
       this.advancedRequestSettings.manualMode.toString(),
     )
     await this.saveWizardSettings()
-    await this.saveStoryGenerationSettings()
     await this.saveSystemServicesSettings()
     await this.saveUpdateSettings()
-    await this.savePromptSettings()
+    await this.resetGenerationPresets()
+    await this.resetServicePresetAssignments()
 
     // Apply theme and font size
     this.applyTheme(this.uiSettings.theme)
@@ -2944,7 +2937,6 @@ class SettingsStore {
       apiKey: apiKey,
       customModels: [],
       fetchedModels: [],
-      reasoningModels: [],
       hiddenModels: [],
       favoriteModels: [],
       createdAt: Date.now(),
@@ -3028,19 +3020,6 @@ class SettingsStore {
   getDefaultProviderType(): ProviderType {
     const defaultProfile = this.getDefaultProfile()
     return defaultProfile?.providerType ?? 'openrouter'
-  }
-
-  /**
-   * Get the first available model from the default profile.
-   * Used for 'custom' provider resets to use user's actual models instead of placeholders.
-   */
-  getFirstModelFromDefaultProfile(): string | null {
-    const defaultProfile = this.getDefaultProfile()
-    if (!defaultProfile) return null
-
-    // Prefer fetched models, then custom models
-    const models = [...defaultProfile.fetchedModels, ...defaultProfile.customModels]
-    return models.length > 0 ? models[0] : null
   }
 
   /**
@@ -3150,10 +3129,7 @@ class SettingsStore {
       settingsMatch(this.systemServicesSettings.chapterQuery, defaults.chapterQuery) &&
       settingsMatch(this.systemServicesSettings.entryRetrieval, defaults.entryRetrieval) &&
       settingsMatch(this.systemServicesSettings.lorebookClassifier, defaults.lorebookClassifier) &&
-      settingsMatch(
-        this.systemServicesSettings.interactiveLorebook,
-        defaults.interactiveLorebook,
-      ) &&
+      settingsMatch(this.systemServicesSettings.interactiveVault, defaults.interactiveVault) &&
       settingsMatch(this.systemServicesSettings.characterCardImport, defaults.characterCardImport)
     )
   }
@@ -3222,6 +3198,48 @@ class SettingsStore {
    */
   hasInvalidProfiles(): boolean {
     return this.getInvalidProfiles().length > 0
+  }
+
+  /**
+   * Reactive getter: returns true if generation is blocked due to config issues.
+   * Declared as a getter so Svelte 5 memoizes it — the for...of loop over
+   * generationPresets doesn't re-run on every render, only when $state changes.
+   *
+   * Covers:
+   * - Any structurally invalid API profile (migration from old versions)
+   * - Main Narrative: missing/deleted API profile, or no model selected
+   * - Any Generation Preset: missing/deleted API profile, or no model selected
+   */
+  get hasGenerationConfigIssues(): boolean {
+    // 1. Any structurally invalid API profile
+    if (this.getInvalidProfiles().length > 0) return true
+
+    // 2. Main Narrative: missing or deleted API profile
+    if (!this.getProfile(this.apiSettings.mainNarrativeProfileId)) return true
+
+    // 3. Main Narrative: no model
+    if (!this.apiSettings.defaultModel) return true
+
+    // 4. Each Generation Preset
+    for (const preset of this.generationPresets) {
+      if (!preset.profileId || !this.getProfile(preset.profileId)) return true
+      if (!preset.model) return true
+    }
+
+    return false
+  }
+
+  /**
+   * Check whether selecting a model should auto-force reasoning effort to 'high'.
+   * This is a NanoGPT-specific behavior: reasoning models on NanoGPT require
+   * effort set to high (the provider enforces it).
+   */
+  shouldForceHighReasoning(profileId: string | null | undefined, modelId: string): boolean {
+    if (!profileId) return false
+    const profile = this.getProfile(profileId)
+    if (!profile || profile.providerType !== 'nanogpt') return false
+    const model = this.getProfileModels(profileId).find((m) => m.id === modelId)
+    return !!model?.reasoning
   }
 }
 

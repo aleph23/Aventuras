@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity'
-  import { settings } from '$lib/stores/settings.svelte'
+  import { onDestroy } from 'svelte'
+  import { settings, DEFAULT_SERVICE_PRESET_ASSIGNMENTS } from '$lib/stores/settings.svelte'
   import type { GenerationPreset } from '$lib/types'
   import { ask } from '@tauri-apps/plugin-dialog'
   import {
@@ -26,28 +27,16 @@
     AlertCircle,
     AlertTriangle,
   } from 'lucide-svelte'
-  import ModelSelector from './ModelSelector.svelte'
-  import {
-    supportsReasoning,
-    modelSupportsReasoning,
-    getReasoningMode,
-  } from '$lib/services/ai/sdk/providers'
+  import { fetchModelsFromProvider, getReasoningExtraction } from '$lib/services/ai/sdk/providers'
 
   // Shadcn Components
   import * as Card from '$lib/components/ui/card'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
-  import { Slider } from '$lib/components/ui/slider'
   import { Textarea } from '$lib/components/ui/textarea'
-
-  const reasoningLevels = ['off', 'low', 'medium', 'high'] as const
-  const reasoningLabels: Record<string, string> = {
-    off: 'Off',
-    low: 'Low',
-    medium: 'Medium',
-    high: 'High',
-  }
+  import { Switch } from '$lib/components/ui/switch'
+  import GenerationParamsForm from './GenerationParamsForm.svelte'
 
   // All system services that can be assigned to profiles
   const systemServices = [
@@ -140,10 +129,10 @@
       description: 'Active context search',
     },
     {
-      id: 'interactiveLorebook',
-      label: 'Interactive Lore',
+      id: 'interactiveVault',
+      label: 'Vault Assistant',
       icon: BookOpen,
-      description: 'Assists creating entries',
+      description: 'AI vault assistant',
     },
     // Wizard tasks
     {
@@ -235,57 +224,59 @@
 
   // State
   let editingPresetId = $state<string | null>(null)
-  let tempPreset = $state<GenerationPreset | null>(null)
-  let activeTaskMenu = $state<string | null>(null) // Just stores serviceId now
+  let activeTaskMenu = $state<string | null>(null)
   let resettingProfiles = $state(false)
+  let isLoadingPresetModels = $state(false)
 
-  // Default profile assignments
-  const defaultAssignments: Record<string, string> = {
-    // Classification
-    classifier: 'classification',
-    lorebookClassifier: 'classification',
-    entryRetrieval: 'classification',
-    characterCardImport: 'classification',
-    // Memory
-    memory: 'memory',
-    chapterQuery: 'memory',
-    timelineFill: 'memory',
-    // Suggestions
-    suggestions: 'suggestions',
-    actionChoices: 'suggestions',
-    styleReviewer: 'suggestions',
-    imageGeneration: 'suggestions',
-    bgImageGeneration: 'suggestions',
-    // Agentic
-    loreManagement: 'agentic',
-    agenticRetrieval: 'agentic',
-    interactiveLorebook: 'agentic',
-    // Wizard
-    'wizard:settingExpansion': 'wizard',
-    'wizard:settingRefinement': 'wizard',
-    'wizard:protagonistGeneration': 'wizard',
-    'wizard:characterElaboration': 'wizard',
-    'wizard:characterRefinement': 'wizard',
-    'wizard:supportingCharacters': 'wizard',
-    'wizard:openingGeneration': 'wizard',
-    'wizard:openingRefinement': 'wizard',
-    // Translation
-    'translation:narration': 'translation',
-    'translation:input': 'translation',
-    'translation:ui': 'translation',
-    'translation:suggestions': 'translation',
-    'translation:actionChoices': 'translation',
-    'translation:wizard': 'translation',
+  // Auto-persist: debounced save to avoid a DB write on every slider tick
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+  function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => settings.saveGenerationPresets(), 300)
   }
 
-  function getReasoningIndex(value?: string): number {
-    const index = reasoningLevels.indexOf((value ?? 'off') as any)
-    return index === -1 ? 0 : index
+  function flushSave() {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+      settings.saveGenerationPresets()
+    }
   }
 
-  function getReasoningValue(index: number): string {
-    const clamped = Math.min(Math.max(0, index), reasoningLevels.length - 1)
-    return reasoningLevels[clamped]
+  // Flush any pending save when the component is destroyed (e.g. Settings modal closed)
+  onDestroy(() => flushSave())
+
+  function getEditingPreset(): GenerationPreset | undefined {
+    return settings.generationPresets.find((p) => p.id === editingPresetId)
+  }
+
+  const defaultAssignments = DEFAULT_SERVICE_PRESET_ASSIGNMENTS
+
+  async function fetchModelsForPreset() {
+    const preset = getEditingPreset()
+    if (!preset?.profileId) return
+    const profile = settings.getProfile(preset.profileId)
+    if (!profile) return
+    if (isLoadingPresetModels) return
+
+    isLoadingPresetModels = true
+    try {
+      const result = await fetchModelsFromProvider(
+        profile.providerType,
+        profile.baseUrl,
+        profile.apiKey,
+      )
+      await settings.updateProfile(profile.id, {
+        ...profile,
+        fetchedModels: result,
+      })
+      console.log(`[AgentProfiles] Fetched ${result.length} models from ${profile.providerType}`)
+    } catch (error) {
+      console.error('[AgentProfiles] Failed to fetch models:', error)
+    } finally {
+      isLoadingPresetModels = false
+    }
   }
 
   // Memoized: compute service-to-profile mapping once per reactive update
@@ -310,7 +301,7 @@
   function createNewPreset() {
     const newId = `preset-${Date.now()}`
     const defaultProfile = settings.getMainNarrativeProfile()
-    tempPreset = {
+    const newPreset: GenerationPreset = {
       id: newId,
       name: 'New Profile',
       description: '',
@@ -321,39 +312,19 @@
       reasoningEffort: 'off',
       manualBody: '',
     }
+    settings.generationPresets = [...settings.generationPresets, newPreset]
+    settings.saveGenerationPresets()
     editingPresetId = newId
   }
 
   function startEditingPreset(preset: GenerationPreset) {
-    tempPreset = { ...preset }
+    flushSave() // flush any pending save before switching presets
     editingPresetId = preset.id
   }
 
-  function cancelEditingPreset() {
+  function closeEditingPreset() {
+    flushSave()
     editingPresetId = null
-    tempPreset = null
-  }
-
-  async function handleSavePreset() {
-    if (!tempPreset) return
-    if (!tempPreset.model) {
-      await ask('Please select or enter a model.', {
-        title: 'Validation Error',
-        kind: 'error',
-      })
-      return
-    }
-
-    const index = settings.generationPresets.findIndex((p) => p.id === tempPreset!.id)
-    if (index >= 0) {
-      settings.generationPresets[index] = tempPreset
-    } else {
-      settings.generationPresets = [...settings.generationPresets, tempPreset]
-    }
-    await settings.saveGenerationPresets()
-
-    editingPresetId = null
-    tempPreset = null
   }
 
   async function handleDeletePreset(presetId: string) {
@@ -372,12 +343,13 @@
       settings.generationPresets = settings.generationPresets.filter((p) => p.id !== presetId)
       await settings.saveGenerationPresets()
 
-      // Reset assignments
+      // Reset assignments - mutate in-memory then save once
       for (const service of systemServices) {
         if (settings.servicePresetAssignments[service.id] === presetId) {
-          settings.setServicePresetId(service.id, '')
+          settings.servicePresetAssignments[service.id] = ''
         }
       }
+      await settings.saveServicePresetAssignments()
     }
   }
 
@@ -432,57 +404,6 @@
   function isTaskMenuOpen(serviceId: string): boolean {
     return activeTaskMenu === serviceId
   }
-
-  // Proxy states for sliders when editing
-  let tempPresetTemperature = $state(0.7)
-  let tempPresetMaxTokens = $state(4096)
-  let tempPresetReasoning = $state(0)
-
-  $effect(() => {
-    if (tempPreset) {
-      tempPresetTemperature = tempPreset.temperature
-      tempPresetMaxTokens = tempPreset.maxTokens
-      tempPresetReasoning = getReasoningIndex(tempPreset.reasoningEffort)
-    }
-  })
-
-  function updateTempPresetTemperature(v: number) {
-    if (tempPreset) tempPreset.temperature = v
-  }
-
-  function updateTempPresetMaxTokens(v: number) {
-    if (tempPreset) tempPreset.maxTokens = v
-  }
-
-  function updateTempPresetReasoning(v: number) {
-    if (tempPreset) tempPreset.reasoningEffort = getReasoningValue(v) as any
-  }
-
-  // Check if reasoning is supported for the currently editing preset
-  let tempPresetReasoningSupported = $derived.by(() => {
-    if (!tempPreset) return false
-    const profileId = tempPreset.profileId ?? settings.getDefaultProfileIdForProvider()
-    const profile = settings.getProfile(profileId)
-    if (!profile) return false
-
-    // Check if provider supports reasoning
-    if (!supportsReasoning(profile.providerType)) return false
-
-    // Check if the specific model supports reasoning
-    const model = tempPreset.model
-    if (!model) return false
-
-    return modelSupportsReasoning(model, profile.providerType, profile.reasoningModels)
-  })
-
-  // For 'fetched' providers (e.g., NanoGPT), reasoning is binary — no slider, just text
-  let tempPresetIsFetchedProvider = $derived.by(() => {
-    if (!tempPreset) return false
-    const profileId = tempPreset.profileId ?? settings.getDefaultProfileIdForProvider()
-    const profile = settings.getProfile(profileId)
-    if (!profile) return false
-    return getReasoningMode(profile.providerType) === 'fetched'
-  })
 </script>
 
 <div class="border-t pt-6">
@@ -544,145 +465,170 @@
     </div>
   </div>
 
-  {#if editingPresetId && tempPreset}
-    <Card.Root class="mb-6">
-      <Card.Header class="pb-3">
-        <div class="flex items-start justify-between">
-          <Card.Title class="text-base">
-            {tempPreset.id === editingPresetId &&
-            !settings.generationPresets.find((p) => p.id === tempPreset!.id)
-              ? 'Create Profile'
-              : 'Edit Profile'}
-          </Card.Title>
-          <Button
-            variant="text"
-            size="icon"
-            class="-mt-2 -mr-2 h-6 w-6"
-            onclick={cancelEditingPreset}
-          >
-            <X class="h-4 w-4" />
-          </Button>
-        </div>
-      </Card.Header>
-
-      <Card.Content class="grid gap-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="grid gap-2">
-            <Label>Name</Label>
-            <Input
-              type="text"
-              bind:value={tempPreset.name}
-              placeholder="e.g. Classification, Memory"
-            />
+  {#if editingPresetId}
+    {@const preset = getEditingPreset()}
+    {#if preset}
+      <Card.Root class="mb-6">
+        <Card.Header class="pb-3">
+          <div class="flex items-start justify-between">
+            <Card.Title class="text-base">
+              {settings.generationPresets.find((p) => p.id === editingPresetId)
+                ? 'Edit Profile'
+                : 'Create Profile'}
+            </Card.Title>
+            <Button
+              variant="text"
+              size="icon"
+              class="-mt-2 -mr-2 h-6 w-6"
+              onclick={closeEditingPreset}
+            >
+              <X class="h-4 w-4" />
+            </Button>
           </div>
-          <div class="grid gap-2">
-            <Label>Description</Label>
-            <Input
-              type="text"
-              bind:value={tempPreset.description}
-              placeholder="Brief description"
-            />
-          </div>
-        </div>
+        </Card.Header>
 
-        <ModelSelector
-          profileId={tempPreset?.profileId ?? null}
-          model={tempPreset?.model ?? ''}
-          onProfileChange={(id) => {
-            if (tempPreset) tempPreset.profileId = id
-          }}
-          onModelChange={(m) => {
-            if (tempPreset) tempPreset.model = m
-          }}
-        />
-        <div class="grid grid-cols-2 gap-6">
-          <div class="grid gap-4">
-            <div class="flex justify-between">
-              <Label>Temperature</Label>
-              <span class="text-muted-foreground text-xs">{tempPreset.temperature.toFixed(2)}</span>
+        <Card.Content class="grid gap-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="grid gap-2">
+              <Label>Name</Label>
+              <Input
+                type="text"
+                bind:value={preset.name}
+                oninput={() => debouncedSave()}
+                placeholder="e.g. Classification, Memory"
+              />
             </div>
-            <Slider
-              bind:value={tempPresetTemperature}
-              type="single"
-              min={0}
-              max={2}
-              step={0.05}
-              onValueChange={updateTempPresetTemperature}
-            />
+            <div class="grid gap-2">
+              <Label>Description</Label>
+              <Input
+                type="text"
+                bind:value={preset.description}
+                oninput={() => debouncedSave()}
+                placeholder="Brief description"
+              />
+            </div>
           </div>
 
-          <div class="grid gap-4">
-            <div class="flex justify-between">
-              <Label>Max Tokens</Label>
-              <span class="text-muted-foreground text-xs">{tempPreset.maxTokens}</span>
+          <!-- Warning if no model or deleted profile -->
+          {#if !preset.model || (preset.profileId && !settings.getProfile(preset.profileId))}
+            <div
+              class="flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
+            >
+              <AlertCircle class="h-4 w-4 shrink-0" />
+              No model configured — story generation is blocked until you set one.
             </div>
-            <Slider
-              bind:value={tempPresetMaxTokens}
-              type="single"
-              min={256}
-              max={32000}
-              step={256}
-              onValueChange={updateTempPresetMaxTokens}
-            />
-          </div>
-        </div>
-
-        {#if tempPresetIsFetchedProvider}
-          {#if tempPresetReasoningSupported}
-            <div class="flex items-center gap-1.5 text-xs text-emerald-500">
-              <Brain class="h-3.5 w-3.5" />
-              Reasoning enabled
-            </div>
-          {:else}
-            <p class="text-muted-foreground text-xs">
-              Some models support reasoning. Fetch models to detect capabilities.
-            </p>
           {/if}
-        {:else if tempPresetReasoningSupported}
-          <div class="grid gap-4">
-            <div class="flex justify-between">
-              <Label>Thinking: {reasoningLabels[tempPreset.reasoningEffort]}</Label>
-            </div>
-            <Slider
-              bind:value={tempPresetReasoning}
-              type="single"
-              min={0}
-              max={3}
-              step={1}
-              onValueChange={updateTempPresetReasoning}
-            />
-            <div class="text-muted-foreground flex justify-between px-1 text-xs">
-              <span>Off</span>
-              <span>Low</span>
-              <span>Medium</span>
-              <span>High</span>
-            </div>
-          </div>
-        {/if}
 
-        {#if settings.advancedRequestSettings.manualMode}
-          <div class="border-t pt-2">
-            <Label class="mb-2 block">Manual Request Body (JSON)</Label>
-            <Textarea
-              bind:value={tempPreset.manualBody}
-              class="min-h-[100px] font-mono text-xs"
-              rows={4}
-              placeholder={'{"temperature": 0.7, "top_p": 0.9}'}
-            />
-            <p class="text-muted-foreground mt-1 text-xs">
-              Overrides request parameters; messages and tools are managed by Aventuras.
+          <GenerationParamsForm
+            profileId={preset.profileId ?? null}
+            model={preset.model}
+            temperature={preset.temperature}
+            maxTokens={preset.maxTokens}
+            reasoningEffort={preset.reasoningEffort}
+            onProfileChange={async (id) => {
+              const previousModel = preset.model
+              preset.profileId = id
+              await fetchModelsForPreset()
+              const models = settings.getAvailableModels(
+                preset.profileId || settings.getDefaultProfileIdForProvider(),
+              )
+              if (!models.find((m) => m.id === previousModel)) {
+                preset.model = ''
+              }
+              debouncedSave()
+            }}
+            onModelChange={(m) => {
+              preset.model = m
+              debouncedSave()
+            }}
+            onTemperatureChange={(v) => {
+              preset.temperature = v
+              debouncedSave()
+            }}
+            onMaxTokensChange={(v) => {
+              preset.maxTokens = v
+              debouncedSave()
+            }}
+            onReasoningChange={(v) => {
+              preset.reasoningEffort = v
+              debouncedSave()
+            }}
+            onRefreshModels={fetchModelsForPreset}
+            isRefreshingModels={isLoadingPresetModels}
+            isManualMode={settings.advancedRequestSettings.manualMode}
+          />
+
+          <!-- Structured Output (unchanged) -->
+          <div class="grid gap-2">
+            <Label>Structured Output</Label>
+            <div class="flex rounded-md border">
+              {#each [['auto', 'Auto'], ['on', 'Force On'], ['off', 'Force Off']] as [val, label] (val)}
+                {@const isActive = (preset.structuredOutputOverride ?? 'auto') === val}
+                <button
+                  type="button"
+                  class="flex-1 px-3 py-1.5 text-xs transition-colors first:rounded-l-md last:rounded-r-md {isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted/50'}"
+                  onclick={() => {
+                    preset.structuredOutputOverride = val as 'auto' | 'on' | 'off'
+                    debouncedSave()
+                  }}
+                >
+                  {label}
+                </button>
+              {/each}
+            </div>
+            <p class="text-muted-foreground text-xs">
+              Auto uses provider/model capability detection. Force On/Off to override. Using
+              structured output can break reasoning when using local model servers.
             </p>
           </div>
-        {/if}
-      </Card.Content>
 
-      <Card.Footer class="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" size="sm" onclick={cancelEditingPreset}>Cancel</Button>
-        <Button size="sm" onclick={handleSavePreset} disabled={!tempPreset?.model}
-          >Save Profile</Button
-        >
-      </Card.Footer>
-    </Card.Root>
+          <!-- Thinking nudge (unchanged — only for openai-compatible / think-tag providers) -->
+          {#if preset.profileId && (() => {
+              const profile = settings.getProfile(preset.profileId)
+              return profile && (profile.providerType === 'openai-compatible' || getReasoningExtraction(profile.providerType) === 'think-tag')
+            })()}
+            <div class="flex flex-row items-center justify-between gap-3">
+              <div class="space-y-0.5">
+                <Label class="text-sm">Thinking nudge</Label>
+                <p class="text-muted-foreground text-xs">
+                  Inject a prompt to encourage the model to use <code>&lt;think&gt;</code> tags properly.
+                  Useful for some local models such as Mistral models, but may cause issues with other
+                  models such as Qwen 3.5. Has no effect when using structured output with local model
+                  servers.
+                </p>
+              </div>
+              <Switch
+                checked={!!preset.thinkingNudgePrompt}
+                onCheckedChange={(v) => {
+                  preset.thinkingNudgePrompt = !!v
+                  debouncedSave()
+                }}
+              />
+            </div>
+          {/if}
+
+          <!-- Manual Request Body (unchanged) -->
+          {#if settings.advancedRequestSettings.manualMode}
+            <div class="border-t pt-2">
+              <Label class="mb-2 block">Manual Request Body (JSON)</Label>
+              <Textarea
+                bind:value={preset.manualBody}
+                onblur={() => debouncedSave()}
+                class="min-h-[100px] font-mono text-xs"
+                rows={4}
+                placeholder={'{"temperature": 0.7, "top_p": 0.9}'}
+              />
+              <p class="text-muted-foreground mt-1 text-xs">
+                Overrides request parameters; messages and tools are managed by Aventuras.
+              </p>
+            </div>
+          {/if}
+        </Card.Content>
+        <!-- No Card.Footer: auto-persist replaces explicit Save/Cancel -->
+      </Card.Root>
+    {/if}
   {/if}
 
   <div class="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 xl:grid-cols-3">
@@ -716,7 +662,7 @@
                 {@const _models = settings.getAvailableModels(
                   preset.profileId || settings.getDefaultProfileIdForProvider(),
                 )}
-                {#if _models.length > 0 && !_models.includes(preset.model)}
+                {#if _models.length > 0 && !_models.find((m) => m.id === preset.model)}
                   <div class="mt-0.5 flex items-center gap-1 text-xs text-yellow-500">
                     <AlertTriangle class="h-3 w-3" />
                     Model not in profile
@@ -813,73 +759,68 @@
     {/each}
 
     <!-- Unassigned Card -->
-    <Card.Root class="bg-muted/20 flex h-full flex-col border-dashed">
-      <div class="border-b p-3 pb-2">
-        <div class="text-muted-foreground text-sm font-medium">Unassigned</div>
-      </div>
-      <Card.Content
-        class="flex flex-1 flex-col gap-2 p-3 transition-all {getServicesForProfile('custom')
-          .length > 0
-          ? 'bg-muted/30'
-          : ''}"
-      >
-        {#if getServicesForProfile('custom').length > 0}
-          <div
-            class="mb-2 rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-600 dark:text-amber-400"
-          >
-            Unassigned agents will not work. Assign them to a profile.
-          </div>
-        {/if}
-        {#each getServicesForProfile('custom') as service (service.id)}
-          <div
-            class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all"
-          >
-            <button
-              class="group hover:bg-muted/50 flex w-full items-center gap-2 p-2 text-left transition-colors select-none"
-              onclick={(e) => handleTaskClick(e, service.id)}
-              title={service.description}
+    {#if getServicesForProfile('custom').length !== 0}
+      <Card.Root class="bg-muted/20 flex h-full flex-col border-dashed">
+        <div class="border-b p-3 pb-2">
+          <div class="text-muted-foreground text-sm font-medium">Unassigned</div>
+        </div>
+        <Card.Content
+          class="flex flex-1 flex-col gap-2 p-3 transition-all {getServicesForProfile('custom')
+            .length > 0
+            ? 'bg-muted/30'
+            : ''}"
+        >
+          {#if getServicesForProfile('custom').length > 0}
+            <div
+              class="mb-2 rounded border border-amber-500/20 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-600 dark:text-amber-400"
             >
-              <service.icon class="text-muted-foreground h-3 w-3 shrink-0" />
-              <span class="flex-1 truncate text-xs">{service.label}</span>
-              <ChevronDown
-                class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(
-                  service.id,
-                )
-                  ? 'rotate-180'
-                  : ''}"
-              />
-            </button>
+              Unassigned agents will not work. Assign them to a profile.
+            </div>
+          {/if}
+          {#each getServicesForProfile('custom') as service (service.id)}
+            <div
+              class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all"
+            >
+              <button
+                class="group hover:bg-muted/50 flex w-full items-center gap-2 p-2 text-left transition-colors select-none"
+                onclick={(e) => handleTaskClick(e, service.id)}
+                title={service.description}
+              >
+                <service.icon class="text-muted-foreground h-3 w-3 shrink-0" />
+                <span class="flex-1 truncate text-xs">{service.label}</span>
+                <ChevronDown
+                  class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(
+                    service.id,
+                  )
+                    ? 'rotate-180'
+                    : ''}"
+                />
+              </button>
 
-            {#if isTaskMenuOpen(service.id)}
-              <div class="bg-muted/50 flex flex-col gap-0.5 border-t p-1">
-                <div
-                  class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
-                >
-                  Move to...
-                </div>
-                {#each settings.generationPresets as targetPreset (targetPreset.id)}
-                  <button
-                    class="hover:bg-background w-full truncate rounded-sm px-2 py-1.5 text-left text-xs transition-colors"
-                    onclick={(e) => {
-                      e.stopPropagation()
-                      moveTask(service.id, targetPreset.id)
-                    }}
+              {#if isTaskMenuOpen(service.id)}
+                <div class="bg-muted/50 flex flex-col gap-0.5 border-t p-1">
+                  <div
+                    class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
                   >
-                    {targetPreset.name}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {/each}
-        {#if getServicesForProfile('custom').length === 0}
-          <div
-            class="text-muted-foreground flex flex-1 items-center justify-center py-2 text-xs italic"
-          >
-            All tasks assigned
-          </div>
-        {/if}
-      </Card.Content>
-    </Card.Root>
+                    Move to...
+                  </div>
+                  {#each settings.generationPresets as targetPreset (targetPreset.id)}
+                    <button
+                      class="hover:bg-background w-full truncate rounded-sm px-2 py-1.5 text-left text-xs transition-colors"
+                      onclick={(e) => {
+                        e.stopPropagation()
+                        moveTask(service.id, targetPreset.id)
+                      }}
+                    >
+                      {targetPreset.name}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </Card.Content>
+      </Card.Root>
+    {/if}
   </div>
 </div>

@@ -5,6 +5,8 @@
  */
 
 import type { ProviderType, ReasoningEffort } from '$lib/types'
+import { POLLINATIONS_SUPPORTED_SIZES } from '../../image/constants'
+import { OPENROUTER_SUPPORTED_SIZES } from '../../image/providers/openrouter'
 
 // ============================================================================
 // Types
@@ -23,20 +25,16 @@ export interface ProviderCapabilities {
   structuredOutput: boolean
   /**
    * Whether the provider supports reasoning/thinking.
-   * - 'native': Provider has native reasoning support (Anthropic thinking, OpenAI reasoning)
-   * - 'openrouter': Uses OpenRouter's reasoning parameter
-   * - 'fetched': Reasoning support determined per-model from API capabilities (e.g., NanoGPT)
-   * - false: No reasoning support
    */
-  reasoning: 'native' | 'openrouter' | 'fetched' | false
+  reasoning: boolean
+  binaryReasoning?: true
   /**
    * How reasoning is extracted from the response.
-   * - 'sdk-native': SDK handles it natively (Anthropic, DeepSeek)
-   * - 'api-field': Provider sends reasoning in delta.reasoning field, needs fetch wrapper (NanoGPT)
    * - 'think-tag': Provider embeds reasoning in <think> tags, use extractReasoningMiddleware
-   * - undefined: No extraction needed
+   * - undefined: Standard handling
    */
-  reasoningExtraction?: 'sdk-native' | 'api-field' | 'think-tag'
+  reasoningExtraction?: 'think-tag'
+  modelCapabilityFetching?: boolean
 }
 
 export interface ImageDefaults {
@@ -71,6 +69,18 @@ export interface ProviderConfig {
 // Provider Configurations
 // ============================================================================
 
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+
+export const GOOGLE_SAFETY_SETTINGS: NonNullable<
+  GoogleGenerativeAIProviderOptions['safetySettings']
+> = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+] as const
+
 export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openrouter: {
     name: 'OpenRouter',
@@ -79,33 +89,38 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     requiresApiKey: true,
     capabilities: {
       textGeneration: true,
-      imageGeneration: false,
+      imageGeneration: true,
       structuredOutput: true,
-      reasoning: 'openrouter',
-      reasoningExtraction: 'think-tag',
+      reasoning: true,
+      modelCapabilityFetching: true,
+    },
+    imageDefaults: {
+      defaultModel: 'google/gemini-2.5-flash-image',
+      referenceModel: 'google/gemini-2.5-flash-image',
+      supportedSizes: OPENROUTER_SUPPORTED_SIZES,
     },
     fallbackModels: [
-      'moonshotai/kimi-k2.5',
-      'stepfun/step-3.5-flash:free',
+      'z-ai/glm-5',
+      'x-ai/grok-4.1-fast',
       'google/gemini-3-flash-preview',
       'deepseek/deepseek-v3.2',
       'stepfun/step-3.5-flash:free',
     ],
     services: {
       narrative: {
-        model: 'moonshotai/kimi-k2.5',
+        model: 'z-ai/glm-5',
         temperature: 1.0,
         maxTokens: 8192,
         reasoningEffort: 'high',
       },
       classification: {
-        model: 'stepfun/step-3.5-flash:free',
+        model: 'x-ai/grok-4.1-fast',
         temperature: 0.5,
         maxTokens: 8192,
         reasoningEffort: 'high',
       },
       memory: {
-        model: 'stepfun/step-3.5-flash:free',
+        model: 'x-ai/grok-4.1-fast',
         temperature: 0.5,
         maxTokens: 8192,
         reasoningEffort: 'high',
@@ -117,7 +132,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
         reasoningEffort: 'off',
       },
       agentic: {
-        model: 'moonshotai/kimi-k2.5',
+        model: 'z-ai/glm-5',
         temperature: 1.0,
         maxTokens: 8192,
         reasoningEffort: 'high',
@@ -146,8 +161,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: true,
       structuredOutput: false,
-      reasoning: 'fetched',
-      reasoningExtraction: 'api-field',
+      reasoning: true,
+      modelCapabilityFetching: true,
     },
     imageDefaults: {
       defaultModel: 'z-image-turbo',
@@ -156,25 +171,25 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     },
     fallbackModels: [
       'deepseek/deepseek-v3.2',
-      'moonshotai/kimi-k2.5:thinking',
-      'stepfun-ai/step-3.5-flash:thinking',
+      'zai-org/glm-5:thinking',
+      'stepfun-ai/step-3.5-flash',
       'openai/gpt-oss-120b',
     ],
     services: {
       narrative: {
-        model: 'moonshotai/kimi-k2.5:thinking',
+        model: 'zai-org/glm-5:thinking',
         temperature: 0.8,
         maxTokens: 8192,
         reasoningEffort: 'high',
       },
       classification: {
-        model: 'stepfun-ai/step-3.5-flash:thinking',
+        model: 'stepfun-ai/step-3.5-flash',
         temperature: 0.5,
         maxTokens: 8192,
         reasoningEffort: 'high',
       },
       memory: {
-        model: 'stepfun-ai/step-3.5-flash:thinking',
+        model: 'stepfun-ai/step-3.5-flash',
         temperature: 0.5,
         maxTokens: 8192,
         reasoningEffort: 'high',
@@ -186,7 +201,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
         reasoningEffort: 'off',
       },
       agentic: {
-        model: 'moonshotai/kimi-k2.5:thinking',
+        model: 'zai-org/glm-5:thinking',
         temperature: 1.0,
         maxTokens: 8192,
         reasoningEffort: 'high',
@@ -209,13 +224,13 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   chutes: {
     name: 'Chutes',
     description: 'Text and image generation',
-    baseUrl: 'https://api.chutes.ai',
+    baseUrl: 'https://llm.chutes.ai/v1',
     requiresApiKey: true,
     capabilities: {
       textGeneration: true,
       imageGeneration: true,
-      structuredOutput: true,
-      reasoning: false,
+      structuredOutput: false,
+      reasoning: true,
     },
     imageDefaults: {
       defaultModel: 'z-image-turbo',
@@ -238,27 +253,29 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: true,
       structuredOutput: false,
-      reasoning: false,
+      reasoning: true,
+      modelCapabilityFetching: true,
     },
     imageDefaults: {
       defaultModel: 'flux',
       referenceModel: 'kontext',
-      supportedSizes: ['512x512', '1024x1024', '2048x2048'],
+      supportedSizes: POLLINATIONS_SUPPORTED_SIZES,
     },
-    fallbackModels: ['openai', 'mistral', 'llama'],
+    fallbackModels: ['openai', 'openai-fast', 'claude-fast', 'mistral', 'gemini'],
     // No service defaults - user must configure models in Generation Settings
   },
 
   ollama: {
     name: 'Ollama',
     description: 'Run local LLMs (requires Ollama installed)',
-    baseUrl: 'http://localhost:11434',
+    baseUrl: 'http://localhost:11434/v1',
     requiresApiKey: false,
     capabilities: {
       textGeneration: true,
       imageGeneration: false,
-      structuredOutput: true,
-      reasoning: false,
+      structuredOutput: false,
+      reasoning: true,
+      reasoningExtraction: 'think-tag',
     },
     fallbackModels: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'qwen2.5', 'phi3', 'gemma2'],
     // No service defaults - user must configure models in Generation Settings
@@ -273,7 +290,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: false,
-      reasoning: false,
+      reasoning: true,
+      reasoningExtraction: 'think-tag',
     },
     fallbackModels: ['loaded-model'],
     // No service defaults - user must configure models in Generation Settings
@@ -288,7 +306,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: false,
-      reasoning: false,
+      reasoning: true,
+      reasoningExtraction: 'think-tag',
     },
     fallbackModels: ['loaded-model'],
     // No service defaults - user must configure models in Generation Settings
@@ -302,10 +321,12 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     capabilities: {
       textGeneration: true,
       imageGeneration: false,
-      structuredOutput: true,
-      reasoning: false,
+      structuredOutput: false,
+      reasoning: true,
+      reasoningExtraction: 'think-tag',
     },
     fallbackModels: [
+      'nvidia/llama-3.1-nemotron-nano-8b-v2',
       'meta/llama-3.1-70b-instruct',
       'meta/llama-3.1-8b-instruct',
       'nvidia/llama-3.1-nemotron-70b-instruct',
@@ -322,7 +343,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: false,
-      reasoning: false,
+      reasoning: true,
     },
     fallbackModels: ['default'],
     // No service defaults - user must configure models in Generation Settings
@@ -331,14 +352,13 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openai: {
     name: 'OpenAI',
     description: 'GPT models from OpenAI',
-    baseUrl: '', // SDK default
+    baseUrl: 'https://api.openai.com/v1',
     requiresApiKey: true,
     capabilities: {
       textGeneration: true,
       imageGeneration: true,
       structuredOutput: true,
-      reasoning: 'native',
-      reasoningExtraction: 'sdk-native',
+      reasoning: true,
     },
     imageDefaults: {
       defaultModel: 'dall-e-3',
@@ -366,8 +386,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: true,
-      reasoning: 'native',
-      reasoningExtraction: 'sdk-native',
+      reasoning: true,
     },
     fallbackModels: [
       'claude-opus-4-5-20251101',
@@ -389,7 +408,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: true,
       structuredOutput: true,
-      reasoning: false,
+      reasoning: true,
+      modelCapabilityFetching: true,
     },
     imageDefaults: {
       defaultModel: 'imagen-3.0-generate-002',
@@ -415,8 +435,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: true,
-      reasoning: 'native',
-      reasoningExtraction: 'sdk-native',
+      reasoning: true,
     },
     fallbackModels: ['grok-3', 'grok-3-fast', 'grok-2', 'grok-2-vision'],
     // No service defaults - user must configure models in Generation Settings
@@ -430,8 +449,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     capabilities: {
       textGeneration: true,
       imageGeneration: false,
-      structuredOutput: true,
-      reasoning: false,
+      structuredOutput: false,
+      reasoning: true,
     },
     fallbackModels: [
       'llama-3.3-70b-versatile',
@@ -451,7 +470,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: true,
       structuredOutput: true,
-      reasoning: false,
+      reasoning: true,
+      binaryReasoning: true,
     },
     imageDefaults: {
       defaultModel: 'cogview-3-plus',
@@ -478,8 +498,8 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       textGeneration: true,
       imageGeneration: false,
       structuredOutput: true,
-      reasoning: 'native',
-      reasoningExtraction: 'sdk-native',
+      reasoning: true,
+      binaryReasoning: true,
     },
     fallbackModels: ['deepseek-chat', 'deepseek-reasoner'],
     // No service defaults - user must configure models in Generation Settings
@@ -493,7 +513,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     capabilities: {
       textGeneration: true,
       imageGeneration: false,
-      structuredOutput: true,
+      structuredOutput: false,
       reasoning: false,
     },
     fallbackModels: [
@@ -538,37 +558,22 @@ export function getProviderList(): Array<{
 
 /** Check if a provider supports reasoning/thinking */
 export function supportsReasoning(providerType: ProviderType): boolean {
-  return PROVIDERS[providerType].capabilities.reasoning !== false
+  return !!PROVIDERS[providerType].capabilities.reasoning
 }
 
-/** Get the reasoning mode for a provider */
-export function getReasoningMode(
-  providerType: ProviderType,
-): 'native' | 'openrouter' | 'fetched' | false {
-  return PROVIDERS[providerType].capabilities.reasoning
+/** Check if a provider uses binary (on/off) reasoning instead of a level slider */
+export function supportsBinaryReasoning(providerType: ProviderType): boolean {
+  return !!PROVIDERS[providerType].capabilities.binaryReasoning
+}
+
+/** Check if a provider supports capability fetching */
+export function supportsCapabilityFetch(providerType: ProviderType): boolean {
+  return !!PROVIDERS[providerType].capabilities.modelCapabilityFetching
 }
 
 /** Get the reasoning extraction method for a provider */
 export function getReasoningExtraction(
   providerType: ProviderType,
-): 'sdk-native' | 'api-field' | 'think-tag' | undefined {
+): ProviderCapabilities['reasoningExtraction'] {
   return PROVIDERS[providerType].capabilities.reasoningExtraction
-}
-
-/**
- * Check if a model supports reasoning controls (slider).
- * For 'fetched' providers (e.g., NanoGPT), check the profile's reasoningModels list.
- * For other providers, we assume all models support reasoning if the provider does.
- */
-export function modelSupportsReasoning(
-  modelId: string,
-  providerType: ProviderType,
-  reasoningModels?: string[],
-): boolean {
-  const config = PROVIDERS[providerType]
-  if (config.capabilities.reasoning === false) return false
-  if (config.capabilities.reasoning === 'fetched') {
-    return reasoningModels?.includes(modelId) ?? false
-  }
-  return true
 }

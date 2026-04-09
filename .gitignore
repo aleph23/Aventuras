@@ -14,6 +14,7 @@
 *.p12
 *.pfx
 .opencode/
+.planning/
 
 # Keystore files (Android signing)
 *.keystore
@@ -43,9 +44,18 @@ build/
 # Rust / Tauri
 # -----------------------------------------------------------------------------
 src-tauri/target/
-src-tauri/gen/
+src-tauri/gen/schemas/
 src-tauri/WixTools/
 src-tauri/Cargo.lock.bak
+
+# Android: files regenerated at build time (do NOT track)
+src-tauri/gen/android/app/src/main/jniLibs/
+src-tauri/gen/android/app/src/main/assets/
+src-tauri/gen/android/app/src/main/java/**/generated/
+
+# Android: secrets (handled by CI secrets)
+src-tauri/gen/android/aventura.keystore
+src-tauri/gen/android/key.properties
 
 # SQLite databases (runtime data)
 *.db
@@ -222,7 +232,7 @@ releases/
 # -----------------------------------------------------------------------------
 prompting_guide.md
 architecture.md
-CLAUDE.md
+design.md
 
 # Temporary image files used during icon creation
 # (sun2022.png is kept as the app icon source)
@@ -232,10 +242,23 @@ sunicon.*
 # -----------------------------------------------------------------------------
 # Claude Code
 # -----------------------------------------------------------------------------
+CLAUDE.md
 .claude/
 scripts/ralph/
 tasks/
-.planning/
+
+# -----------------------------------------------------------------------------
+# Antigravity
+# -----------------------------------------------------------------------------
+.agent/
+
+# -----------------------------------------------------------------------------
+# Other Agentic Coding Documents
+# -----------------------------------------------------------------------------
+AGENTS.md
+FEATURES.md
+IMPLEMENTATION_PLAN.md
+TODO_*.md
 
 # -----------------------------------------------------------------------------
 # AUR Package (separate repo)
@@ -248,9 +271,9 @@ aur/
 *.local
 .env*.local
 aventura-release.keystore.old
-design.md
-prompting_guide.md
+key.properties
 nul
+test_data/
 .agent/
 .roo/rules-merge-resolver/
 .roomodes

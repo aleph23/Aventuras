@@ -25,7 +25,7 @@ export const AI_CONFIG = {
     /** Number of recent entries for classification/retrieval operations */
     recentEntriesForRetrieval: 5,
     /** Number of recent entries for action choices context */
-    recentEntriesForChoices: 3,
+    recentEntriesForChoices: 5,
     /** Number of user actions to analyze for style matching */
     userActionsForStyle: 6,
     /** Number of recent entries for lore management context */
@@ -45,13 +45,13 @@ export const AI_CONFIG = {
     /** Threshold for switching to LLM-based selection */
     llmThreshold: 30,
     /** Max entries per tier in context building */
-    maxEntriesPerTier: 10,
+    maxEntriesPerTier: 20,
   },
 
   /** Memory/chapter system defaults */
   memory: {
     /** Default token threshold for chapter creation */
-    defaultTokenThreshold: 24000,
+    defaultTokenThreshold: 16000,
     /** Default chapter buffer (entries protected from summarization) */
     defaultChapterBuffer: 10,
   },
@@ -62,40 +62,6 @@ export const AI_CONFIG = {
     defaultChatHistoryTruncation: 100,
   },
 } as const
-
-/**
- * Debug configuration.
- * Controls logging behavior across all AI services.
- */
-export const DEBUG = {
-  /** Master switch for all AI service logging - enabled in dev mode only */
-  enabled: import.meta.env.DEV,
-} as const
-
-/**
- * Creates a logger function for an AI service.
- * Logs are only output when DEBUG.enabled is true (dev mode).
- *
- * @param serviceName - Name of the service (shown as prefix in logs)
- * @returns A logging function that respects the DEBUG configuration
- *
- * @example
- * const log = createLogger('Classifier');
- * log('Processing entry', { id: entry.id }); // [Classifier] Processing entry { id: ... }
- */
-export function createLogger(serviceName: string) {
-  const prefix = `[${serviceName}]`
-  return (...args: unknown[]) => {
-    if (DEBUG.enabled) {
-      console.log(prefix, ...args)
-    }
-  }
-}
-
-/**
- * Type for the logger function returned by createLogger.
- */
-export type Logger = ReturnType<typeof createLogger>
 
 /**
  * Get context window configuration from user settings with fallback to defaults.

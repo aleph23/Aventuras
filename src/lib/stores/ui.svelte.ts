@@ -21,29 +21,15 @@ import type {
   EntryRetrievalResult,
   ActivationTracker,
 } from '$lib/services/ai/retrieval/EntryRetrievalService'
+import type { RetrievalResult } from '$lib/services/generation/types'
 import type { SyncMode } from '$lib/types/sync'
 import { SimpleActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService'
 import { database } from '$lib/services/database'
 import { SvelteMap, SvelteSet } from 'svelte/reactivity'
 import { StreamingHtmlRenderer } from '$lib/utils/htmlStreaming'
 import { countTokens } from '$lib/services/tokenizer'
-import { emit, listen } from '@tauri-apps/api/event'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { type UnlistenFn } from '@tauri-apps/api/event'
-import { settings } from './settings.svelte'
 
-export type VaultTab = 'characters' | 'lorebooks' | 'scenarios'
-
-// Debug log entry for request/response logging
-export interface DebugLogEntry {
-  id: string
-  timestamp: number
-  type: 'request' | 'response'
-  serviceName: string
-  data: Record<string, unknown>
-  duration?: number // For responses, time taken in ms
-  error?: string // For error responses
-}
+export type VaultTab = 'characters' | 'lorebooks' | 'scenarios' | 'prompts'
 
 // Backup for retry functionality - captures state before each user message
 export interface RetryBackup {
@@ -140,6 +126,11 @@ class UIStore {
   // Scroll break state - persists until user sends a new message
   userScrolledUp = $state(false)
 
+  // App visibility tracking (Android background generation)
+  isAppBackgrounded = $state(false)
+  wasBackgroundedDuringGeneration = $state(false)
+  private visibilityCleanup: (() => void) | null = null
+
   // Error state for retry
   lastGenerationError = $state<GenerationError | null>(null)
 
@@ -192,12 +183,19 @@ class UIStore {
   suggestions = $state<Suggestion[]>([])
   suggestionsLoading = $state(false)
 
+  // Flag to request auto-regeneration of suggestions/actions after time-travel delete
+  // when no saved actions were found on the restored entry
+  suggestionsRegenerationNeeded = $state(false)
+
   // Style reviewer state
   messagesSinceLastStyleReview = $state(0)
   lastStyleReview = $state<StyleReviewResult | null>(null)
   styleReviewLoading = $state(false)
   private currentStyleReviewStoryId = $state<string | null>(null)
   styleReviewStateWrite = Promise.resolve()
+
+  // Cached retrieval result (for regenerate skip)
+  lastRetrievalResult = $state<RetrievalResult | null>(null)
 
   // Lorebook debug state
   lastLorebookRetrieval = $state<EntryRetrievalResult | null>(null)
@@ -228,22 +226,14 @@ class UIStore {
   syncModalOpen = $state(false)
   syncMode = $state<SyncMode>('select')
 
+  // SillyTavern chat import modal state
+  stChatImportModalOpen = $state(false)
+
   // Lore management mode state
   // When active, the AI is reviewing/updating the lorebook - user editing is locked
   loreManagementActive = $state(false)
   loreManagementProgress = $state('')
   loreManagementChanges = $state<number>(0)
-
-  // Debug mode state - session-only request/response logging
-  debugLogs = $state<DebugLogEntry[]>([])
-  debugModalOpen = $state(false)
-  debugWindowActive = $state(false)
-  debugRenderNewlines = $state(false)
-  private debugLogIdCounter = 0
-  private unlistenPopIn: UnlistenFn | null = null
-  private unlistenRequestLogs: UnlistenFn | null = null
-  private unlistenClearLogs: UnlistenFn | null = null
-  private unlistenToggleRenderNewlines: UnlistenFn | null = null
 
   // Lorebook activation tracking for stickiness
   // Maps entry ID -> last activation position (story entry index)
@@ -1000,6 +990,61 @@ class UIStore {
     }
   }
 
+  /**
+   * Restore action choices or suggestions from a saved entry's suggestedActions field.
+   * Used during time-travel (entry deletion) to restore the correct suggestions
+   * for the new last position.
+   * @param storyMode - 'adventure' or 'creative-writing'
+   * @param savedActions - JSON string of ActionChoice[] or Suggestion[] from the entry
+   * @param storyId - story ID for persistence
+   * @returns true if actions were restored, false if no saved actions existed
+   */
+  restoreSuggestedActionsFromEntry(
+    storyMode: string,
+    savedActions: string | null | undefined,
+    storyId: string,
+  ): boolean {
+    if (!savedActions) {
+      // No saved actions — clear current ones
+      if (storyMode === 'adventure') {
+        this.actionChoices = []
+      } else {
+        this.suggestions = []
+      }
+      return false
+    }
+
+    try {
+      const parsed = JSON.parse(savedActions)
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        return false
+      }
+
+      if (storyMode === 'adventure') {
+        this.actionChoices = parsed as ActionChoice[]
+        // Also persist to settings so they survive app restart
+        const data: PersistedActionChoices = { storyId, choices: parsed as ActionChoice[] }
+        database
+          .setSetting(this.getActionChoicesKey(storyId), JSON.stringify(data))
+          .catch((err) => {
+            console.warn('[UI] Failed to persist restored action choices:', err)
+          })
+      } else {
+        this.suggestions = parsed as Suggestion[]
+        const data: PersistedSuggestions = { storyId, suggestions: parsed as Suggestion[] }
+        database.setSetting(this.getSuggestionsKey(storyId), JSON.stringify(data)).catch((err) => {
+          console.warn('[UI] Failed to persist restored suggestions:', err)
+        })
+      }
+
+      console.log('[UI] Restored suggested actions from entry for story:', storyId)
+      return true
+    } catch (err) {
+      console.warn('[UI] Failed to parse saved suggested actions:', err)
+      return false
+    }
+  }
+
   // Retry callback management
   setRetryCallback(callback: (() => Promise<void>) | null) {
     this.retryCallback = callback
@@ -1077,6 +1122,16 @@ class UIStore {
   }
 
   /**
+   * Clear all generation-related caches (when switching stories).
+   * Includes style review state and retrieval cache.
+   */
+  clearGenerationCaches() {
+    this.clearStyleReviewState()
+    this.lastRetrievalResult = null
+    this.lastLorebookRetrieval = null
+  }
+
+  /**
    * Persist current style review state to database.
    */
   private persistStyleReviewState() {
@@ -1136,6 +1191,11 @@ class UIStore {
   setStyleReviewLoading(loading: boolean, storyId?: string | null) {
     if (storyId && storyId !== this.currentStyleReviewStoryId) return
     this.styleReviewLoading = loading
+  }
+
+  // Retrieval cache methods
+  setLastRetrievalResult(result: RetrievalResult | null) {
+    this.lastRetrievalResult = result
   }
 
   // Lorebook debug methods
@@ -1308,6 +1368,15 @@ class UIStore {
     this.syncMode = 'select'
   }
 
+  // SillyTavern chat import modal methods
+  openSTChatImport() {
+    this.stChatImportModalOpen = true
+  }
+
+  closeSTChatImport() {
+    this.stChatImportModalOpen = false
+  }
+
   closeSyncModal() {
     this.syncModalOpen = false
     this.syncMode = 'select'
@@ -1428,220 +1497,6 @@ class UIStore {
     }
   }
 
-  // Debug log methods
-
-  /**
-   * Add a request log entry. Returns the entry ID for pairing with response.
-   */
-  addDebugRequest(serviceName: string, data: Record<string, unknown>, debugId?: string): string {
-    const id = debugId || `debug-${++this.debugLogIdCounter}-${Date.now()}`
-    const entry: DebugLogEntry = {
-      id,
-      timestamp: Date.now(),
-      type: 'request',
-      serviceName,
-      data,
-    }
-    this.debugLogs = [...this.debugLogs, entry]
-    // Keep only last 100 entries to prevent memory issues
-    if (this.debugLogs.length > 100) {
-      this.debugLogs = this.debugLogs.slice(-100)
-    }
-
-    // Notify external window if active
-    if (this.debugWindowActive) {
-      console.log('[UI] Emitting debug-log-added', entry.id)
-      emit('debug-log-added', JSON.parse(JSON.stringify(entry))).catch((err) => {
-        console.warn('[UI] Failed to emit debug-log-added:', err)
-      })
-    }
-
-    return id
-  }
-
-  /**
-   * Add a response log entry paired with a request.
-   */
-  addDebugResponse(
-    requestId: string,
-    serviceName: string,
-    data: Record<string, unknown>,
-    startTime: number,
-    error?: string,
-  ) {
-    if (!settings.uiSettings.debugMode) return
-
-    const entry: DebugLogEntry = {
-      id: `${requestId}-response`,
-      timestamp: Date.now(),
-      type: 'response',
-      serviceName,
-      data,
-      duration: Date.now() - startTime,
-      error,
-    }
-    this.debugLogs = [...this.debugLogs, entry]
-    // Keep only last 100 entries to prevent memory issues
-    if (this.debugLogs.length > 100) {
-      this.debugLogs = this.debugLogs.slice(-100)
-    }
-
-    // Notify external window if active
-    if (this.debugWindowActive) {
-      console.log('[UI] Emitting debug-log-added', entry.id)
-      emit('debug-log-added', JSON.parse(JSON.stringify(entry))).catch((err) => {
-        console.warn('[UI] Failed to emit debug-log-added:', err)
-      })
-    }
-  }
-
-  /**
-   * Clear all debug logs (session clear).
-   */
-  clearDebugLogs() {
-    this.debugLogs = []
-    if (this.debugWindowActive) {
-      emit('debug-logs-cleared', {}).catch((err) => {
-        console.warn('[UI] Failed to emit debug-logs-cleared:', err)
-      })
-    }
-  }
-
-  /**
-   * Open the debug log modal.
-   */
-  openDebugModal() {
-    this.debugModalOpen = true
-  }
-
-  /**
-   * Close the debug log modal.
-   */
-  closeDebugModal() {
-    this.debugModalOpen = false
-  }
-
-  /**
-   * Toggle the debug log modal.
-   */
-  toggleDebugModal() {
-    this.debugModalOpen = !this.debugModalOpen
-  }
-
-  /**
-   * Toggle rendering of newlines in debug logs.
-   */
-  toggleDebugRenderNewlines() {
-    this.debugRenderNewlines = !this.debugRenderNewlines
-    console.log('[UI] toggleDebugRenderNewlines', this.debugRenderNewlines)
-    if (this.debugWindowActive) {
-      emit('debug-render-newlines-changed', this.debugRenderNewlines).catch((err) => {
-        console.warn('[UI] Failed to emit debug-render-newlines-changed:', err)
-      })
-    }
-  }
-
-  /**
-   * Pop out the debug logs into a separate window.
-   */
-  async popOutDebug() {
-    if (this.debugWindowActive) return
-
-    try {
-      const win = new WebviewWindow('debug-logs', {
-        url: '/debug',
-        title: 'API Debug Logs',
-        width: 1000,
-        height: 800,
-        minWidth: 800,
-        minHeight: 600,
-      })
-
-      win.once('tauri://error', (e) => {
-        console.error('[UI] Failed to create debug window:', e)
-        this.debugWindowActive = false
-      })
-
-      win.once('tauri://destroyed', () => {
-        console.log('[UI] Debug window destroyed')
-        this.debugWindowActive = false
-        if (this.unlistenPopIn) {
-          this.unlistenPopIn()
-          this.unlistenPopIn = null
-        }
-        if (this.unlistenRequestLogs) {
-          this.unlistenRequestLogs()
-          this.unlistenRequestLogs = null
-        }
-        if (this.unlistenClearLogs) {
-          this.unlistenClearLogs()
-          this.unlistenClearLogs = null
-        }
-        if (this.unlistenToggleRenderNewlines) {
-          this.unlistenToggleRenderNewlines()
-          this.unlistenToggleRenderNewlines = null
-        }
-      })
-
-      // Listen for "pop in" request from the external window
-      this.unlistenPopIn = await listen('pop-in-debug', () => {
-        console.log('[UI] Received pop-in-debug request')
-        this.popInDebug()
-      })
-
-      // Listen for requests for initial logs from the external window
-      this.unlistenRequestLogs = await listen('request-initial-debug-logs', () => {
-        console.log('[UI] Received request-initial-debug-logs')
-        emit('initial-debug-logs', {
-          logs: JSON.parse(JSON.stringify(this.debugLogs)),
-          renderNewlines: this.debugRenderNewlines,
-        }).catch((err) => {
-          console.warn('[UI] Failed to emit initial-debug-logs:', err)
-        })
-      })
-
-      // Listen for clear requests from the external window
-      this.unlistenClearLogs = await listen('request-clear-debug-logs', () => {
-        this.clearDebugLogs()
-      })
-
-      // Listen for toggle render newlines requests
-      this.unlistenToggleRenderNewlines = await listen(
-        'request-toggle-debug-render-newlines',
-        () => {
-          this.toggleDebugRenderNewlines()
-        },
-      )
-
-      this.debugWindowActive = true
-    } catch (err) {
-      console.error('[UI] Error popping out debug window:', err)
-      ui.showToast('Failed to pop out debug window', 'error')
-    }
-  }
-
-  /**
-   * Pop back in - close the external window and focus the modal.
-   */
-  async popInDebug() {
-    console.log('[UI] popInDebug called', { debugWindowActive: this.debugWindowActive })
-    if (!this.debugWindowActive) return
-
-    try {
-      const win = await WebviewWindow.getByLabel('debug-logs')
-      if (win) {
-        console.log('[UI] Closing debug-logs window')
-        await win.close()
-      } else {
-        console.warn('[UI] debug-logs window not found by label')
-      }
-      this.debugWindowActive = false
-      this.debugModalOpen = true
-    } catch (err) {
-      console.error('[UI] Error popping in debug window:', err)
-    }
-  }
-
   // Toast notification state
   toastVisible = $state(false)
   toastMessage = $state('')
@@ -1698,9 +1553,7 @@ class UIStore {
     }
   }
 
-  // Profile warning banner state
-  // This banner persists until the user fixes their profiles or dismisses it
-  profileWarningDismissed = $state(false)
+  // Settings navigation state
   private settingsActiveTab = $state<string>('api')
 
   /**
@@ -1708,14 +1561,6 @@ class UIStore {
    */
   get settingsTab(): string {
     return this.settingsActiveTab
-  }
-
-  /**
-   * Dismiss the profile warning banner for the current session.
-   * Users can still fix it later via Settings > API.
-   */
-  dismissProfileWarning() {
-    this.profileWarningDismissed = true
   }
 
   /**
@@ -1727,10 +1572,53 @@ class UIStore {
   }
 
   /**
+   * Open settings modal and navigate to the Generation tab to configure models.
+   */
+  openSettingsToGenerationTab() {
+    this.settingsActiveTab = 'generation'
+    this.settingsModalOpen = true
+  }
+
+  /**
    * Set the active settings tab.
    */
   setSettingsTab(tab: string) {
     this.settingsActiveTab = tab
+  }
+
+  set settingsTab(v: string) {
+    this.settingsActiveTab = v
+  }
+
+  // -- App visibility tracking (Android background generation) ---------------
+
+  /** Start tracking document visibility changes for background generation detection. */
+  initVisibilityTracking() {
+    if (typeof document === 'undefined') return
+    // Avoid double-init
+    if (this.visibilityCleanup) return
+
+    const handler = () => {
+      const hidden = document.hidden
+      this.isAppBackgrounded = hidden
+      if (hidden && this.isGenerating) {
+        this.wasBackgroundedDuringGeneration = true
+      }
+    }
+
+    document.addEventListener('visibilitychange', handler)
+    this.visibilityCleanup = () => document.removeEventListener('visibilitychange', handler)
+  }
+
+  /** Clean up visibility tracking listener. */
+  destroyVisibilityTracking() {
+    this.visibilityCleanup?.()
+    this.visibilityCleanup = null
+  }
+
+  /** Reset the backgrounded-during-generation flag (call when a new generation starts). */
+  resetBackgroundedFlag() {
+    this.wasBackgroundedDuringGeneration = false
   }
 }
 

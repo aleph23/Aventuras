@@ -11,7 +11,7 @@
  * - generateSuggestions() - SuggestionsService
  * - generateActionChoices() - ActionChoicesService
  * - runTimelineFill(), answerChapterQuestion(), answerChapterRangeQuestion() - TimelineFillService
- * - buildTieredContext(), getRelevantLorebookEntries() - ContextBuilder/EntryRetrievalService
+ * - buildTieredContext(), getRelevantLorebookEntries() - EntryInjector/EntryRetrievalService
  * - analyzeStyle() - StyleReviewerService
  * - runLoreManagement() - LoreManagementService
  * - generateImagesForNarrative() (both inline and analyzed modes) - ImageAnalysisService
@@ -21,40 +21,8 @@
  * - translate*() - TranslationService
  */
 
-import { settings } from '$lib/stores/settings.svelte'
-import { story } from '$lib/stores/story.svelte'
-import {
-  promptService,
-  type PromptContext,
-  type StoryMode,
-  type POV,
-  type Tense,
-} from '$lib/services/prompts'
-import { type ClassificationContext } from './generation/ClassifierService'
-import type { ClassificationResult } from './sdk/schemas/classifier'
-import { MemoryService, type RetrievalContext } from './generation/MemoryService'
-import type { ChapterAnalysis, ChapterSummaryResult, RetrievalDecision } from './sdk/schemas/memory'
-import type { SuggestionsResult } from './sdk/schemas/suggestions'
-import type { ActionChoicesResult } from './sdk/schemas/actionchoices'
-import type { StyleReviewResult } from './generation/StyleReviewerService'
-import {
-  type AgenticRetrievalResult,
-  type RetrievalContext as AgenticRetrievalContext,
-} from './retrieval/AgenticRetrievalService'
-import type { TimelineFillResult } from './retrieval/TimelineFillService'
-import { ContextBuilder, type ContextResult, type ContextConfig } from './generation/ContextBuilder'
-import {
-  EntryRetrievalService,
-  type EntryRetrievalResult,
-  type ActivationTracker,
-  getEntryRetrievalConfigFromSettings,
-} from './retrieval/EntryRetrievalService'
-import {
-  inlineImageService,
-  type InlineImageContext,
-  isImageGenerationEnabled as isImageGenerationEnabledUtil,
-  type ImageAnalysisContext,
-} from './image'
+import { createLogger } from '$lib/log'
+import { database } from '$lib/services/database'
 import {
   emitImageAnalysisStarted,
   emitImageAnalysisComplete,
@@ -67,11 +35,109 @@ import {
   emitBackgroundImageQueued,
   emitBackgroundImageReady,
 } from '$lib/services/events'
-import { database } from '$lib/services/database'
-import { generateImage as sdkGenerateImage } from './sdk/generate'
-import { normalizeImageDataUrl } from '$lib/utils/image'
-import type { ImageableScene } from './sdk/schemas/imageanalysis'
-import type { EmbeddedImage } from '$lib/types'
+import type { PromptContext } from '$lib/services/generation'
+import type {
+  Chapter,
+  Character,
+  EmbeddedImage,
+  Entry,
+  ImageProfile,
+  Item,
+  Location,
+  LoreChange,
+  LoreManagementResult,
+  MemoryConfig,
+  POV,
+  ReasoningEffort,
+  Story,
+  StoryBeat,
+  StoryEntry,
+  StoryMode,
+  StorySettings,
+  Tense,
+  TimeTracker,
+} from '$lib/types'
+import { normalizeImageDataUrl, parseImageSize } from '$lib/utils/image'
+import type { StreamChunk } from './core'
+import { serviceFactory } from './core/factory'
+import {
+  DEFAULT_FALLBACK_STYLE_PROMPT,
+  inlineImageService,
+  isImageGenerationEnabled as isImageGenerationEnabledUtil,
+} from './image'
+import type { InlineImageContext, ImageAnalysisContext } from './image'
+import { generateImage as registryGenerateImage } from './image/providers/registry'
+import { EntryInjector, MemoryService, NarrativeService } from './generation'
+import type {
+  ClassificationContext,
+  ContextConfig,
+  ContextResult,
+  RetrievalContext,
+  StyleReviewResult,
+  WorldStateContext,
+} from './generation'
+import { EntryRetrievalService, getEntryRetrievalConfigFromSettings } from './retrieval'
+import type { TimelineFillResult, EntryRetrievalResult, ActivationTracker } from './retrieval'
+import type {
+  AgenticRetrievalResult,
+  RetrievalContext as AgenticRetrievalContext,
+} from './retrieval/AgenticRetrievalService'
+import type {
+  ActionChoicesResult,
+  ChapterAnalysis,
+  ChapterSummaryResult,
+  ClassificationResult,
+  ImageableScene,
+  RetrievalDecision,
+  SuggestionsResult,
+} from './sdk'
+import type { TranslationResult, UITranslationItem } from './utils'
+
+// Timeline Fill service settings (per design doc section 3.1.4: Static Retrieval)
+export interface TimelineFillSettings {
+  presetId?: string
+  profileId: string | null // API profile to use (null = use default profile)
+  enabled: boolean
+  mode: 'static' | 'agentic' // 'static' is default, 'agentic' for tool-calling retrieval
+  model: string
+  temperature: number
+  maxQueries: number
+  reasoningEffort: ReasoningEffort
+  manualBody: string
+}
+
+// Image Generation settings (automatic image generation for narrative)
+export interface ImageGenerationServiceSettings {
+  // Profile-based image generation (profiles must have supportsImageGeneration capability)
+  profileId: string | null // API profile for standard image generation
+  size: string // Regular image size
+
+  // Reference model settings (for image-to-image with portrait references)
+  referenceProfileId: string | null // API profile for image-to-image with portrait references
+  referenceSize: string // Reference image size
+
+  // General story image settings
+  styleId: string // Selected image style template
+  maxImagesPerMessage: number // Max images per narrative (0 = unlimited, default: 3)
+
+  // Portrait model settings (character reference images)
+  portraitProfileId: string | null // API profile for generating character portraits
+  portraitStyleId: string // Selected character portrait style template
+  portraitSize: string // Portrait image size
+
+  // Scene analysis model settings (for identifying imageable scenes)
+  promptProfileId: string | null // API profile for scene analysis
+  promptModel: string // Model for scene analysis (empty = use profile default)
+  promptTemperature: number
+  promptMaxTokens: number
+  reasoningEffort: ReasoningEffort
+  manualBody: string
+
+  // Background image settings
+  backgroundProfileId: string | null // API profile for background image generation
+  backgroundSize: string // Background image size (default: '1280x720')
+  backgroundBlur: number // Background blur amount in pixels (default: 0)
+}
 
 // Re-export ImageGenerationContext type for backwards compatibility
 export interface ImageGenerationContext {
@@ -86,29 +152,15 @@ export interface ImageGenerationContext {
   translatedNarrative?: string
   translationLanguage?: string
   referenceMode: boolean
+  /** Story-level image generation mode — supplied by caller to avoid store access */
+  imageGenerationMode?: string | null
+  /** All story characters — supplied by caller for portrait/reference lookups */
+  allCharacters?: Character[]
+  /** System image generation service settings — supplied by caller */
+  imageSettings?: ImageGenerationServiceSettings
+  /** Image profile lookup — supplied by caller */
+  getImageProfile?: (id: string) => ImageProfile | undefined
 }
-import type { TranslationResult, UITranslationItem } from './utils/TranslationService'
-import type { StreamChunk } from './core/types'
-import type {
-  Story,
-  StoryEntry,
-  Character,
-  Location,
-  Item,
-  StoryBeat,
-  Chapter,
-  MemoryConfig,
-  Entry,
-  LoreManagementResult,
-  LoreChange,
-  TimeTracker,
-  StorySettings,
-} from '$lib/types'
-import { createLogger } from './core/config'
-import { serviceFactory } from './core/factory'
-import { NarrativeService } from './generation/NarrativeService'
-import type { WorldStateContext } from './prompts/systemBuilder'
-import { parseImageSize } from './image/imageUtils'
 
 const log = createLogger('AIService')
 
@@ -243,12 +295,15 @@ class AIService {
     activeThreads: StoryBeat[],
     lorebookEntries?: Entry[],
     promptContext?: PromptContext,
+    latestNarrativeResponse?: string,
+    storyId?: string,
   ): Promise<SuggestionsResult> {
     log('generateSuggestions called', {
       entriesCount: entries.length,
       threadsCount: activeThreads.length,
       hasPromptContext: !!promptContext,
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
+      latestNarrativeLength: latestNarrativeResponse?.length ?? 0,
     })
 
     const suggestionsService = serviceFactory.createSuggestionsService()
@@ -256,7 +311,8 @@ class AIService {
       entries,
       activeThreads,
       lorebookEntries,
-      promptContext,
+      storyId,
+      latestNarrativeResponse,
     )
   }
 
@@ -270,6 +326,7 @@ class AIService {
     lorebookEntries?: Entry[],
     promptContext?: PromptContext,
     pov?: 'first' | 'second' | 'third',
+    storyId?: string,
   ): Promise<ActionChoicesResult> {
     log('generateActionChoices called', {
       entriesCount: entries.length,
@@ -296,6 +353,7 @@ class AIService {
 
     // Build context for the service
     const context = {
+      storyId,
       narrativeResponse,
       userAction: lastUserAction?.content ?? '',
       recentEntries: entries.slice(-10),
@@ -407,15 +465,17 @@ class AIService {
    * Build context block from retrieved chapters.
    * NOTE: This method works - it's just string building.
    */
-  buildRetrievedContextBlock(chapters: Chapter[], decision: RetrievalDecision): string {
+  buildRetrievedContextBlock(
+    chapters: Chapter[],
+    decision: RetrievalDecision,
+    getChapterEntries: (chapter: Chapter) => StoryEntry[],
+  ): string {
     const memory = new MemoryService('memory')
-    // Pass callback to fetch full chapter entries for richer context
-    const getChapterEntries = (chapter: Chapter) => story.getChapterEntries(chapter)
     return memory.buildRetrievedContextBlock(chapters, decision, getChapterEntries)
   }
 
   /**
-   * Build tiered context using the ContextBuilder.
+   * Build tiered context using the EntryInjector.
    * NOTE: Tier 1 & 2 work. Tier 3 (LLM selection) is stubbed.
    */
   async buildTieredContext(
@@ -431,7 +491,7 @@ class AIService {
       hasRetrievedContext: !!retrievedChapterContext,
     })
 
-    const contextBuilder = new ContextBuilder(config)
+    const contextBuilder = new EntryInjector(config, 'entryRetrieval')
     const result = await contextBuilder.buildContext(
       worldState,
       userInput,
@@ -471,10 +531,7 @@ class AIService {
     })
 
     const config = getEntryRetrievalConfigFromSettings()
-    const entryService = new EntryRetrievalService(
-      config,
-      settings.getServicePresetId('entryRetrieval'),
-    )
+    const entryService = new EntryRetrievalService(config, 'entryRetrieval')
     const result = await entryService.getRelevantEntries(
       entries,
       userInput,
@@ -636,8 +693,10 @@ class AIService {
   /**
    * Determine if agentic retrieval should be used.
    */
-  shouldUseAgenticRetrieval(_chapters: Chapter[]): boolean {
-    const timelineFillSettings = settings.systemServicesSettings.timelineFill
+  shouldUseAgenticRetrieval(
+    _chapters: Chapter[],
+    timelineFillSettings: Pick<TimelineFillSettings, 'enabled' | 'mode'>,
+  ): boolean {
     if (!timelineFillSettings?.enabled) {
       return false
     }
@@ -659,6 +718,7 @@ class AIService {
   async runTimelineFill(
     visibleEntries: StoryEntry[],
     chapters: Chapter[],
+    getChapterEntries: (chapter: Chapter) => StoryEntry[],
   ): Promise<TimelineFillResult> {
     log('runTimelineFill called', {
       visibleEntriesCount: visibleEntries.length,
@@ -666,8 +726,6 @@ class AIService {
     })
 
     const timelineFillService = serviceFactory.createTimelineFillService()
-    // Pass callback to fetch full chapter entries for richer context
-    const getChapterEntries = (chapter: Chapter) => story.getChapterEntries(chapter)
     return timelineFillService.runTimelineFill(visibleEntries, chapters, getChapterEntries)
   }
 
@@ -678,6 +736,7 @@ class AIService {
     chapterNumber: number,
     question: string,
     chapters: Chapter[],
+    getChapterEntries: (chapter: Chapter) => StoryEntry[],
   ): Promise<string> {
     log('answerChapterQuestion called', {
       chapterNumber,
@@ -686,8 +745,6 @@ class AIService {
     })
 
     const chapterQueryService = serviceFactory.createChapterQueryService()
-    // Pass callback to fetch full chapter entries for richer context
-    const getChapterEntries = (chapter: Chapter) => story.getChapterEntries(chapter)
     const answer = await chapterQueryService.answerQuestion(
       question,
       chapters,
@@ -705,6 +762,7 @@ class AIService {
     endChapter: number,
     question: string,
     chapters: Chapter[],
+    getChapterEntries: (chapter: Chapter) => StoryEntry[],
   ): Promise<string> {
     log('answerChapterRangeQuestion called', {
       startChapter,
@@ -720,8 +778,6 @@ class AIService {
     }
 
     const chapterQueryService = serviceFactory.createChapterQueryService()
-    // Pass callback to fetch full chapter entries for richer context
-    const getChapterEntries = (chapter: Chapter) => story.getChapterEntries(chapter)
     const answer = await chapterQueryService.answerQuestion(
       question,
       chapters,
@@ -734,8 +790,10 @@ class AIService {
   /**
    * Determine if timeline fill should be used.
    */
-  shouldUseTimelineFill(_chapters: Chapter[]): boolean {
-    const timelineFillSettings = settings.systemServicesSettings.timelineFill
+  shouldUseTimelineFill(
+    _chapters: Chapter[],
+    timelineFillSettings: Pick<TimelineFillSettings, 'enabled' | 'mode'>,
+  ): boolean {
     if (!timelineFillSettings?.enabled) {
       return false
     }
@@ -805,7 +863,7 @@ class AIService {
     }
 
     // Check if inline image mode is enabled for this story
-    const inlineImageMode = story.currentStory?.settings?.imageGenerationMode === 'inline'
+    const inlineImageMode = context.imageGenerationMode === 'inline'
     try {
       if (inlineImageMode) {
         // Use inline image generation (process <pic> tags from AI response)
@@ -837,20 +895,25 @@ class AIService {
    * Uses LLM to identify visually striking moments in narrative text.
    */
   private async runAnalyzedImageGeneration(context: ImageGenerationContext): Promise<void> {
-    const imageSettings = settings.systemServicesSettings.imageGeneration
+    const imageSettings = context.imageSettings
+    if (!imageSettings) {
+      log('No image settings in context, skipping analyzed image generation')
+      return
+    }
     const referenceMode = context.referenceMode ?? false
+    const allCharacters = context.allCharacters ?? []
 
     // Get characters with/without portraits
     const presentCharacterNames = context.presentCharacters.map((c) => c.name.toLowerCase())
-    const charactersWithPortraits = story.characters
+    const charactersWithPortraits = allCharacters
       .filter((c) => presentCharacterNames.includes(c.name.toLowerCase()) && c.portrait)
       .map((c) => c.name)
-    const charactersWithoutPortraits = story.characters
+    const charactersWithoutPortraits = allCharacters
       .filter((c) => presentCharacterNames.includes(c.name.toLowerCase()) && !c.portrait)
       .map((c) => c.name)
 
     // Build style prompt
-    const stylePrompt = this.getStylePrompt(imageSettings.styleId)
+    const stylePrompt = await this.getStylePrompt(imageSettings.styleId)
 
     // Build analysis context
     const analysisContext: ImageAnalysisContext = {
@@ -899,6 +962,7 @@ class AIService {
       emitImageAnalysisComplete(context.entryId, sceneCount, portraitCount)
 
       // Queue image generation for each scene
+      const getImageProfile = context.getImageProfile ?? (() => undefined)
       for (const scene of scenes) {
         await this.queueAnalyzedImageGeneration(
           context.storyId,
@@ -906,6 +970,8 @@ class AIService {
           scene,
           imageSettings,
           context.presentCharacters,
+          referenceMode,
+          getImageProfile,
         )
       }
     } catch (error) {
@@ -922,15 +988,16 @@ class AIService {
     storyId: string,
     entryId: string,
     scene: ImageableScene,
-    imageSettings: typeof settings.systemServicesSettings.imageGeneration,
+    imageSettings: ImageGenerationServiceSettings,
     presentCharacters: Character[],
+    referenceMode: boolean,
+    getImageProfile: (id: string) => ImageProfile | undefined,
   ): Promise<void> {
     const imageId = crypto.randomUUID()
-    const referenceMode = story.currentStory?.settings?.referenceMode ?? false
 
     // Determine profile and model
     let profileId = imageSettings.profileId
-    let modelToUse = imageSettings.model
+    let modelToUse = getImageProfile(profileId ?? '')?.model ?? ''
     let sizeToUse = imageSettings.size
     let referenceImageUrls: string[] | undefined
     let styleId: string | undefined = imageSettings.styleId
@@ -956,7 +1023,7 @@ class AIService {
         }
         // Use reference profile and model for img2img
         profileId = imageSettings.referenceProfileId
-        modelToUse = imageSettings.referenceModel
+        modelToUse = getImageProfile(profileId ?? '')?.model ?? ''
         sizeToUse = imageSettings.referenceSize
         referenceImageUrls = portraitUrls
         styleId = imageSettings.styleId
@@ -974,7 +1041,7 @@ class AIService {
         return
       }
       profileId = imageSettings.portraitProfileId
-      modelToUse = imageSettings.portraitModel
+      modelToUse = getImageProfile(profileId ?? '')?.model ?? ''
       sizeToUse = imageSettings.portraitSize
       styleId = imageSettings.portraitStyleId
     }
@@ -985,7 +1052,7 @@ class AIService {
     }
 
     // Build full prompt with style
-    const stylePrompt = this.getStylePrompt(styleId)
+    const stylePrompt = await this.getStylePrompt(styleId)
     const fullPrompt = `${scene.prompt}. ${stylePrompt}`
 
     const { width, height } = parseImageSize(sizeToUse)
@@ -1059,7 +1126,7 @@ class AIService {
       })
 
       // Generate image using SDK
-      const result = await sdkGenerateImage({
+      const result = await registryGenerateImage({
         profileId,
         model,
         prompt,
@@ -1113,11 +1180,12 @@ class AIService {
   async analyzeBackgroundChangeAndGenerateImage(
     storyId: string,
     visibleEntries: StoryEntry[],
+    onBackgroundImageUpdate: (image: string) => void,
   ): Promise<void> {
     try {
       const service = serviceFactory.createBackgroundImageService()
       emitBackgroundImageAnalysisStarted()
-      const result = await service.analyzeReponsesForBackgroundImage(visibleEntries)
+      const result = await service.analyzeResponsesForBackgroundImage(visibleEntries)
       emitBackgroundImageAnalysisComplete()
       // Ai returns empty string or short response if no change, otherwise the image prompt
       if (result.changeNecessary) {
@@ -1128,7 +1196,7 @@ class AIService {
         if (image) {
           emitBackgroundImageReady()
           log('Background image generated successfully', { image })
-          story.updateCurrentBackgroundImage(image)
+          onBackgroundImageUpdate(image)
         } else {
           log('Background image generation failed')
         }
@@ -1141,33 +1209,19 @@ class AIService {
 
   /**
    * Get the style prompt for the selected style ID.
+   * Image style templates are external (raw text) -- fetched directly from the database.
    */
-  private getStylePrompt(styleId: string): string {
+  private async getStylePrompt(styleId: string): Promise<string> {
     try {
-      const promptContext: PromptContext = {
-        mode: 'adventure',
-        pov: 'second',
-        tense: 'present',
-        protagonistName: '',
-      }
-      const customized = promptService.getPrompt(styleId, promptContext)
-      if (customized) {
-        return customized
+      const template = await database.getPackTemplate('default-pack', styleId)
+      if (template?.content) {
+        return template.content
       }
     } catch {
       // Template not found, use fallback
     }
 
-    const defaultStyles: Record<string, string> = {
-      'image-style-soft-anime':
-        'Soft cel-shading with gentle gradients. Muted pastel palette with warm highlights. Dreamy, ethereal atmosphere. Delicate linework with minimal harsh shadows. Subtle lighting effects, soft bokeh. Clean composition with breathing room. Anime-inspired but refined, elegant aesthetic.',
-      'image-style-semi-realistic':
-        'Semi-realistic anime art with refined, detailed rendering. Realistic proportions with anime influence. Detailed hair strands, subtle skin tones, fabric folds. Naturalistic lighting with clear direction and soft falloff. Cinematic composition with depth of field. Rich, slightly desaturated colors with intentional color grading. Painterly quality with polished edges. Atmospheric and grounded mood.',
-      'image-style-photorealistic':
-        'Photorealistic digital art. True-to-life rendering with natural lighting. Detailed textures, accurate proportions. Professional photography aesthetic. Cinematic depth of field. High dynamic range. Realistic materials and surfaces.',
-    }
-
-    return defaultStyles[styleId] || defaultStyles['image-style-soft-anime']
+    return DEFAULT_FALLBACK_STYLE_PROMPT
   }
 
   // ===== Translation Methods =====

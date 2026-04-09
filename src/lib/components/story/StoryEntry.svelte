@@ -24,13 +24,10 @@
   import { parseMarkdown } from '$lib/utils/markdown'
   import { sanitizeTextForTTS } from '$lib/utils/htmlSanitize'
   import {
-    processContentWithImages,
-    processVisualProseWithImages,
-    processContentWithInlineImages,
-    processVisualProseWithInlineImages,
+    processStoryContent,
+    processVisualProseStoryContent,
     getPlacedImageIds,
   } from '$lib/services/image'
-  import { database } from '$lib/services/database'
   import {
     eventBus,
     type ImageReadyEvent,
@@ -39,7 +36,7 @@
     type TTSQueuedEvent,
   } from '$lib/services/events'
   import { inlineImageService, retryImageGeneration } from '$lib/services/ai/image'
-  import { promptService } from '$lib/services/prompts'
+  import { database } from '$lib/services/database'
   import { onMount } from 'svelte'
   import ReasoningBlock from './ReasoningBlock.svelte'
   import { countTokens } from '$lib/services/tokenizer'
@@ -78,9 +75,6 @@
 
   // Check if Visual Prose mode is enabled for this story
   const visualProseMode = $derived(story.currentStory?.settings?.visualProseMode ?? false)
-
-  // Check if Inline Image mode is enabled for this story
-  const inlineImageMode = $derived(story.currentStory?.settings?.imageGenerationMode === 'inline')
 
   // Check if this is the latest narration entry (for retry button)
   const isLatestNarration = $derived.by(() => {
@@ -682,13 +676,8 @@
         const styleId = imageSettings.styleId
         let stylePrompt = ''
         try {
-          const promptContext = {
-            mode: 'adventure' as const,
-            pov: 'second' as const,
-            tense: 'present' as const,
-            protagonistName: '',
-          }
-          stylePrompt = promptService.getPrompt(styleId, promptContext) || ''
+          const template = await database.getPackTemplate('default-pack', styleId)
+          stylePrompt = template?.content || ''
         } catch {
           stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT
         }
@@ -725,13 +714,8 @@
     const styleId = imageSettings.styleId
     let stylePrompt = ''
     try {
-      const promptContext = {
-        mode: 'adventure' as const,
-        pov: 'second' as const,
-        tense: 'present' as const,
-        protagonistName: '',
-      }
-      stylePrompt = promptService.getPrompt(styleId, promptContext) || ''
+      const template = await database.getPackTemplate('default-pack', styleId)
+      stylePrompt = template?.content || ''
     } catch {
       stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT
     }
@@ -1050,6 +1034,10 @@
         presentCharacters: story.characters,
         referenceMode: story.currentStory.settings?.referenceMode ?? false,
         translatedNarrative: entry.translatedContent ?? undefined,
+        imageGenerationMode: story.currentStory.settings?.imageGenerationMode,
+        allCharacters: story.characters,
+        imageSettings: settings.systemServicesSettings.imageGeneration,
+        getImageProfile: (id: string) => settings.getImageProfile(id),
       }
       await aiService.generateImagesForNarrative(context)
     } catch (error) {
@@ -1185,7 +1173,7 @@
             <Volume2 class="h-4 w-4" />
           {/if}
         </Button>
-        {#if isLatestNarration}
+        {#if isLatestNarration && story.currentStory?.settings?.imageGenerationMode === 'agentic'}
           <Button
             variant="text"
             size="icon"
@@ -1375,32 +1363,17 @@
 
         {#if entry.type === 'narration'}
           {@const displayContent = entry.translatedContent ?? entry.content}
-          {#if visualProseMode && inlineImageMode}
-            <!-- Both Visual Prose and Inline Image mode -->
-            {@html processVisualProseWithInlineImages(
+          {#if visualProseMode}
+            <!-- Visual Prose mode (handles both agentic and inline images) -->
+            {@html processVisualProseStoryContent(
               displayContent,
               embeddedImages,
               entry.id,
-              regeneratingImageIds,
-            )}
-          {:else if visualProseMode}
-            <!-- Visual Prose mode only -->
-            {@html processVisualProseWithImages(
-              displayContent,
-              embeddedImages,
-              entry.id,
-              regeneratingImageIds,
-            )}
-          {:else if inlineImageMode}
-            <!-- Inline Image mode only -->
-            {@html processContentWithInlineImages(
-              displayContent,
-              embeddedImages,
               regeneratingImageIds,
             )}
           {:else}
-            <!-- Standard mode with analyzed images -->
-            {@html processContentWithImages(displayContent, embeddedImages, regeneratingImageIds)}
+            <!-- Standard mode (handles both agentic and inline images) -->
+            {@html processStoryContent(displayContent, embeddedImages, regeneratingImageIds)}
           {/if}
         {:else if entry.type === 'user_action'}
           <!-- User action: show original input (before translation) -->

@@ -35,6 +35,7 @@
     type ClassificationCompleteEvent,
   } from '$lib/services/events'
   import { isTouchDevice } from '$lib/utils/swipe'
+  import { isAndroid } from '$lib/utils/platform'
   import {
     GenerationPipeline,
     retryService,
@@ -45,6 +46,7 @@
     type PipelineDependencies,
     type PipelineConfig,
     type GenerationContext,
+    type RetrievalResult,
     type BackgroundTaskDependencies,
     type BackgroundTaskInput,
     type PipelineUICallbacks,
@@ -114,6 +116,9 @@
   const sendKeyHint = $derived(
     isTouchDevice() ? 'Shift+Enter to send' : 'Enter to send, Shift+Enter for new line',
   )
+
+  // Block generation when any service is missing a model or has an invalid profile
+  const blockGeneration = $derived(settings.hasGenerationConfigIssues)
 
   // ============================================================================
   // Action Type Configuration
@@ -215,6 +220,14 @@
     }
   })
 
+  // Auto-regenerate suggestions/actions after time-travel delete when no saved actions found
+  $effect(() => {
+    if (ui.suggestionsRegenerationNeeded && !ui.isGenerating && story.entries.length > 0) {
+      ui.suggestionsRegenerationNeeded = false
+      regenerateActionsAfterDelete()
+    }
+  })
+
   // ============================================================================
   // Builder Functions
   // ============================================================================
@@ -222,25 +235,53 @@
   function buildPipelineDependencies(): PipelineDependencies {
     return {
       shouldUseAgenticRetrieval: (chaptersLength: number) =>
-        aiService.shouldUseAgenticRetrieval({ length: chaptersLength } as any),
+        aiService.shouldUseAgenticRetrieval(
+          { length: chaptersLength } as any,
+          settings.systemServicesSettings.timelineFill,
+        ),
       runAgenticRetrieval: aiService.runAgenticRetrieval.bind(aiService),
       formatAgenticRetrievalForPrompt: aiService.formatAgenticRetrievalForPrompt.bind(aiService),
-      runTimelineFill: aiService.runTimelineFill.bind(aiService),
-      answerChapterQuestion: aiService.answerChapterQuestion.bind(aiService),
-      answerChapterRangeQuestion: aiService.answerChapterRangeQuestion.bind(aiService),
+      runTimelineFill: (visibleEntries, chapters) =>
+        aiService.runTimelineFill(visibleEntries, chapters, story.getChapterEntries.bind(story)),
+      answerChapterQuestion: (chapterNumber, question, chapters) =>
+        aiService.answerChapterQuestion(
+          chapterNumber,
+          question,
+          chapters,
+          story.getChapterEntries.bind(story),
+        ),
+      answerChapterRangeQuestion: (startChapter, endChapter, question, chapters) =>
+        aiService.answerChapterRangeQuestion(
+          startChapter,
+          endChapter,
+          question,
+          chapters,
+          story.getChapterEntries.bind(story),
+        ),
       getRelevantLorebookEntries: aiService.getRelevantLorebookEntries.bind(aiService),
       streamNarrative: aiService.streamNarrative.bind(aiService),
       classifyResponse: aiService.classifyResponse.bind(aiService),
       translateNarration: aiService.translateNarration.bind(aiService),
-      generateImagesForNarrative: aiService.generateImagesForNarrative.bind(aiService),
-      isImageGenerationEnabled: (settings, type) =>
-        aiService.isImageGenerationEnabled(settings, type),
+      generateImagesForNarrative: (ctx) =>
+        aiService.generateImagesForNarrative({
+          ...ctx,
+          imageGenerationMode: story.currentStory?.settings?.imageGenerationMode,
+          allCharacters: story.characters,
+          imageSettings: settings.systemServicesSettings.imageGeneration,
+          getImageProfile: (id) => settings.getImageProfile(id),
+        }),
+      isImageGenerationEnabled: (storySettings, type) =>
+        aiService.isImageGenerationEnabled(storySettings, type),
       generateSuggestions: aiService.generateSuggestions.bind(aiService),
       translateSuggestions: aiService.translateSuggestions.bind(aiService),
       generateActionChoices: aiService.generateActionChoices.bind(aiService),
       translateActionChoices: aiService.translateActionChoices.bind(aiService),
-      analyzeBackgroundChangeAndGenerateImage:
-        aiService.analyzeBackgroundChangeAndGenerateImage.bind(aiService),
+      analyzeBackgroundChangeAndGenerateImage: (storyId, visibleEntries) =>
+        aiService.analyzeBackgroundChangeAndGenerateImage(
+          storyId,
+          visibleEntries,
+          story.updateCurrentBackgroundImage.bind(story),
+        ),
     }
   }
 
@@ -322,6 +363,7 @@
             chapterNumber,
             question,
             story.currentBranchChapters,
+            story.getChapterEntries.bind(story),
           )
         },
       },
@@ -337,10 +379,60 @@
   // Core Generation
   // ============================================================================
 
+  /**
+   * Send an OS notification when generation completes/fails while the app is backgrounded.
+   * Only called on Android when the generationNotifications experimental feature is enabled.
+   * Both body and largeBody are set so Android BigTextStyle keeps preview text
+   * visible in collapsed, expanded, and grouped notification states.
+   */
+  async function sendGenerationNotification(responseText: string, success: boolean) {
+    try {
+      const { sendNotification, isPermissionGranted } =
+        await import('@tauri-apps/plugin-notification')
+      const permitted = await isPermissionGranted()
+      if (!permitted) return
+
+      if (success) {
+        const previewText =
+          settings.experimentalFeatures.notificationPreview && responseText.length > 0
+            ? responseText.slice(0, 120).replace(/[<>]/g, '') +
+              (responseText.length > 120 ? '…' : '')
+            : 'Tap to return to your story.'
+        sendNotification({
+          title: 'Story generation complete',
+          body: previewText,
+          largeBody: previewText,
+        })
+      } else {
+        sendNotification({
+          title: 'Story generation failed',
+          body: 'Tap to return and retry.',
+          largeBody: 'Tap to return and retry.',
+        })
+      }
+    } catch (e) {
+      console.warn('[ActionInput] Failed to send notification:', e)
+    }
+  }
+
+  /** Send a failure notification if the user was backgrounded during this generation. */
+  async function notifyFailureIfBackgrounded() {
+    if (
+      ui.wasBackgroundedDuringGeneration &&
+      settings.experimentalFeatures.generationNotifications
+    ) {
+      await sendGenerationNotification('', false)
+    }
+  }
+
   async function generateResponse(
     userActionEntryId: string,
     userActionContent: string,
-    options?: { countStyleReview?: boolean; styleReviewSource?: string },
+    options?: {
+      countStyleReview?: boolean
+      styleReviewSource?: string
+      cachedRetrievalResult?: RetrievalResult | null
+    },
   ) {
     const countStyleReview = options?.countStyleReview ?? true
     const styleReviewSource =
@@ -371,6 +463,17 @@
         () => story.characters,
       )
     }
+
+    // Android: start foreground service to keep process alive when backgrounded
+    const useBackgroundService = isAndroid() && settings.experimentalFeatures.backgroundGeneration
+    if (useBackgroundService) {
+      try {
+        window.AndroidBridge?.startGenerationService()
+      } catch (e) {
+        console.warn('[ActionInput] Failed to start generation foreground service:', e)
+      }
+    }
+    ui.resetBackgroundedFlag()
 
     try {
       const worldState = {
@@ -432,6 +535,7 @@
         },
         disableSuggestions: settings.uiSettings.disableSuggestions,
         activeThreads: story.pendingQuests,
+        cachedRetrievalResult: options?.cachedRetrievalResult ?? null,
       }
 
       const deps = buildPipelineDependencies()
@@ -441,40 +545,65 @@
       let fullReasoning = ''
       let narrationEntry: Awaited<ReturnType<typeof story.addEntry>> | null = null
 
+      const eventState: PipelineEventState = {
+        fullResponse: () => fullResponse,
+        fullReasoning: () => fullReasoning,
+        streamingEntryId,
+        visualProseMode,
+        isCreativeMode,
+        storyId: currentStoryRef.id,
+        activeParallelPhases: new Set(),
+      }
+
+      const persistSuggestedActions = (actions: unknown[], type: 'suggestions' | 'choices') => {
+        if (narrationEntry && actions.length > 0) {
+          database
+            .updateStoryEntry(narrationEntry.id, {
+              suggestedActions: JSON.stringify(actions),
+            })
+            .catch((err) =>
+              console.warn(`[ActionInput] Failed to save suggested ${type} to entry:`, err),
+            )
+        }
+      }
+
+      const eventCallbacks: PipelineUICallbacks = {
+        startStreaming: ui.startStreaming.bind(ui),
+        appendStreamContent: ui.appendStreamContent.bind(ui),
+        appendReasoningContent: ui.appendReasoningContent.bind(ui),
+        setGenerationStatus: ui.setGenerationStatus.bind(ui),
+        setSuggestionsLoading: ui.setSuggestionsLoading.bind(ui),
+        setActionChoicesLoading: ui.setActionChoicesLoading.bind(ui),
+        setSuggestions: (suggestions, storyId) => {
+          ui.setSuggestions(suggestions, storyId)
+          persistSuggestedActions(suggestions, 'suggestions')
+        },
+        setActionChoices: (choices, storyId) => {
+          ui.setActionChoices(choices, storyId)
+          persistSuggestedActions(choices, 'choices')
+        },
+        emitResponseStreaming: (chunk, accumulated) => {
+          eventBus.emit<ResponseStreamingEvent>({
+            type: 'ResponseStreaming',
+            chunk,
+            accumulated,
+          })
+        },
+        emitSuggestionsReady: (suggestions) => {
+          emitSuggestionsReady(suggestions)
+        },
+      }
+
       for await (const event of pipeline.execute(ctx, cfg)) {
         if (stopRequested) break
 
-        const eventState: PipelineEventState = {
-          fullResponse: () => fullResponse,
-          fullReasoning: () => fullReasoning,
-          streamingEntryId,
-          visualProseMode,
-          isCreativeMode,
-          storyId: currentStoryRef.id,
-        }
-
-        const eventCallbacks: PipelineUICallbacks = {
-          startStreaming: ui.startStreaming.bind(ui),
-          appendStreamContent: ui.appendStreamContent.bind(ui),
-          appendReasoningContent: ui.appendReasoningContent.bind(ui),
-          setGenerationStatus: ui.setGenerationStatus.bind(ui),
-          setSuggestionsLoading: ui.setSuggestionsLoading.bind(ui),
-          setActionChoicesLoading: ui.setActionChoicesLoading.bind(ui),
-          setSuggestions: ui.setSuggestions.bind(ui),
-          setActionChoices: ui.setActionChoices.bind(ui),
-          emitResponseStreaming: (chunk, accumulated) => {
-            eventBus.emit<ResponseStreamingEvent>({
-              type: 'ResponseStreaming',
-              chunk,
-              accumulated,
-            })
-          },
-          emitSuggestionsReady: (suggestions) => {
-            emitSuggestionsReady(suggestions)
-          },
-        }
-
         handleEvent(event, eventState, eventCallbacks)
+
+        if (event.type === 'phase_complete' && event.phase === 'retrieval') {
+          const retrievalResult = event.result as RetrievalResult | undefined
+          ui.setLastLorebookRetrieval(retrievalResult?.lorebookRetrievalResult ?? null)
+          ui.setLastRetrievalResult(retrievalResult ?? null)
+        }
 
         if (event.type === 'narrative_chunk') {
           fullResponse += event.content
@@ -505,7 +634,7 @@
             messageId: narrationEntry.id,
             result: event.result,
           })
-          await story.applyClassificationResult(event.result)
+          await story.applyClassificationResult(event.result, narrationEntry.id)
           await story.updateEntryTimeEnd(narrationEntry.id)
 
           if (currentStoryRef.settings?.imageGenerationMode !== 'none') {
@@ -602,6 +731,8 @@
           userActionEntryId,
           timestamp: Date.now(),
         })
+
+        await notifyFailureIfBackgrounded()
         return
       }
 
@@ -619,11 +750,28 @@
       coordinator
         .runBackgroundTasks(input)
         .catch((err) => log('Background tasks failed (non-fatal)', err))
+
+      // Android: notify user that generation completed while app is still backgrounded.
+      // Awaited so the foreground service isn't torn down before the notification fires.
+      if (
+        ui.wasBackgroundedDuringGeneration &&
+        ui.isAppBackgrounded &&
+        settings.experimentalFeatures.generationNotifications
+      ) {
+        await sendGenerationNotification(fullResponse, true)
+      }
     } catch (error) {
-      if (stopRequested || (error instanceof Error && error.name === 'AbortError')) return
+      // Only suppress handling when the user explicitly requested a stop.
+      // An AbortError that arrives with stopRequested=false means the request
+      // was cancelled externally (e.g. connection loss), so we still want to
+      // record the error entry and send a failure notification.
+      if (stopRequested) return
       console.error('[ActionInput] Generation error:', error)
-      const errorMessage =
+      const baseMessage =
         error instanceof Error ? error.message : 'Failed to generate response. Please try again.'
+      const errorMessage = ui.wasBackgroundedDuringGeneration
+        ? `Generation may have been interrupted while the app was in the background. ${baseMessage}`
+        : baseMessage
       const errorEntry = await story.addEntry('system', `Generation failed: ${errorMessage}`)
       ui.setGenerationError({
         message: errorMessage,
@@ -631,18 +779,103 @@
         userActionEntryId,
         timestamp: Date.now(),
       })
+
+      await notifyFailureIfBackgrounded()
     } finally {
       ui.endStreaming()
       ui.setGenerating(false)
       ui.setGenerationStatus('')
       activeAbortController = null
       stopRequested = false
+
+      // Android: always stop the foreground service when generation ends
+      if (useBackgroundService) {
+        try {
+          window.AndroidBridge?.stopGenerationService()
+        } catch (e) {
+          console.warn('[ActionInput] Failed to stop generation foreground service:', e)
+        }
+      }
     }
   }
 
   // ============================================================================
   // Event Handlers
   // ============================================================================
+
+  /**
+   * Regenerate suggestions or action choices after a time-travel delete
+   * when no previously saved actions were found on the restored entry.
+   */
+  async function regenerateActionsAfterDelete() {
+    if (!story.currentStory || story.entries.length === 0) return
+
+    const storyMode = story.storyMode
+
+    if (storyMode === 'creative-writing') {
+      // For creative-writing mode, use the existing refresh mechanism
+      await refreshSuggestions()
+    } else if (storyMode === 'adventure') {
+      // For adventure mode, generate new action choices
+      if (settings.uiSettings.disableSuggestions) return
+
+      ui.setActionChoicesLoading(true)
+      try {
+        const lastNarration = [...story.entries].reverse().find((e) => e.type === 'narration')
+        if (!lastNarration) {
+          ui.setActionChoicesLoading(false)
+          return
+        }
+
+        const protagonist = story.characters.find((c) => c.relationship === 'self')
+        const promptContext: import('$lib/services/generation/phases/PostGenerationPhase').PromptContext =
+          {
+            mode: 'adventure',
+            pov: story.pov,
+            tense: story.tense,
+            protagonistName: protagonist?.name || 'the protagonist',
+            genre: story.currentStory.genre ?? undefined,
+            settingDescription: story.currentStory.description ?? undefined,
+            tone: story.currentStory.settings?.tone ?? undefined,
+            themes: story.currentStory.settings?.themes ?? undefined,
+          }
+
+        const worldState = {
+          characters: story.characters,
+          locations: story.locations,
+          items: story.items,
+          storyBeats: story.storyBeats,
+        }
+
+        const lorebookEntries = story.lorebookEntries
+        const result = await aiService.generateActionChoices(
+          story.entries,
+          worldState,
+          lastNarration.content,
+          lorebookEntries,
+          promptContext,
+          story.pov,
+          story.currentStory?.id,
+        )
+
+        if (result.choices.length > 0) {
+          ui.setActionChoices(result.choices, story.currentStory!.id)
+          // Also save to the last narration entry for future time-travel
+          database
+            .updateStoryEntry(lastNarration.id, {
+              suggestedActions: JSON.stringify(result.choices),
+            })
+            .catch((err) =>
+              console.warn('[ActionInput] Failed to save regenerated action choices:', err),
+            )
+        }
+      } catch (error) {
+        console.warn('[ActionInput] Failed to regenerate action choices after delete:', error)
+      } finally {
+        ui.setActionChoicesLoading(false)
+      }
+    }
+  }
 
   async function refreshSuggestions() {
     if (!story.currentStory) return
@@ -675,6 +908,17 @@
       })
       ui.setSuggestions(result.suggestions, story.currentStory.id)
       emitSuggestionsReady(result.suggestions.map((s) => ({ text: s.text, type: s.type })))
+      // Persist refreshed suggestions to the latest narration entry for time-travel restore
+      const lastNarration = [...story.entries].reverse().find((e) => e.type === 'narration')
+      if (lastNarration && result.suggestions.length > 0) {
+        database
+          .updateStoryEntry(lastNarration.id, {
+            suggestedActions: JSON.stringify(result.suggestions),
+          })
+          .catch((err) =>
+            console.warn('[ActionInput] Failed to save refreshed suggestions to entry:', err),
+          )
+      }
     } catch (error) {
       log('Failed to generate suggestions:', error)
       ui.clearSuggestions(story.currentStory.id)
@@ -694,7 +938,13 @@
     if (!storySettings || storySettings.imageGenerationMode === 'none') return
     isManualImageGenRunning = true
     try {
-      await aiService.generateImagesForNarrative(lastImageGenContext)
+      await aiService.generateImagesForNarrative({
+        ...lastImageGenContext,
+        imageGenerationMode: story.currentStory?.settings?.imageGenerationMode,
+        allCharacters: story.characters,
+        imageSettings: settings.systemServicesSettings.imageGeneration,
+        getImageProfile: (id) => settings.getImageProfile(id),
+      })
     } catch (error) {
       log('Manual image generation failed (non-fatal)', error)
     } finally {
@@ -751,12 +1001,7 @@
     emitUserInput(content, isCreativeMode ? 'direction' : forceFreeMode ? 'free' : actionType)
     await tick()
 
-    if (!settings.needsApiKey) await generateResponse(userActionEntry.id, content)
-    else
-      await story.addEntry(
-        'system',
-        'Please configure your API key in settings to enable AI generation.',
-      )
+    await generateResponse(userActionEntry.id, content)
   }
 
   async function handleStopGeneration() {
@@ -781,6 +1026,7 @@
       ui.restoreActivationData(backup.activationData, backup.storyPosition)
     }
     ui.setLastLorebookRetrieval(null)
+    ui.setLastRetrievalResult(null)
 
     const result = await retryService.handleStopGeneration(
       backup,
@@ -825,12 +1071,10 @@
     await story.deleteEntry(error.errorEntryId)
     ui.clearGenerationError()
 
-    if (!settings.needsApiKey) {
-      await generateResponse(userActionEntry.id, userActionEntry.content, {
-        countStyleReview: false,
-        styleReviewSource: 'retry-error',
-      })
-    }
+    await generateResponse(userActionEntry.id, userActionEntry.content, {
+      countStyleReview: false,
+      styleReviewSource: 'retry-error',
+    })
   }
 
   function dismissError() {
@@ -851,7 +1095,6 @@
     ui.clearSuggestions(storyId)
     ui.clearActionChoices(storyId)
     lastImageGenContext = null
-    ui.setLastLorebookRetrieval(null)
 
     const result = await retryService.handleRetryLastMessage(
       backup,
@@ -895,16 +1138,15 @@
     emitUserInput(backup.userActionContent, isCreativeMode ? 'direction' : backup.actionType)
     await tick()
 
-    if (!settings.needsApiKey) {
-      ui.setRetryingLastMessage(true)
-      try {
-        await generateResponse(userActionEntry.id, promptContent, {
-          countStyleReview: false,
-          styleReviewSource: 'retry-last-message',
-        })
-      } finally {
-        ui.setRetryingLastMessage(false)
-      }
+    ui.setRetryingLastMessage(true)
+    try {
+      await generateResponse(userActionEntry.id, promptContent, {
+        countStyleReview: false,
+        styleReviewSource: 'retry-last-message',
+        cachedRetrievalResult: ui.lastRetrievalResult,
+      })
+    } finally {
+      ui.setRetryingLastMessage(false)
     }
   }
 
@@ -991,7 +1233,6 @@
             bind:value={inputValue}
             use:autoResize={inputValue}
             onkeydown={handleKeydown}
-            disabled={ui.isGenerating}
             placeholder="Describe what happens next in the story..."
             class="text-surface-200 placeholder-surface-500 max-h-40 min-h-6 w-full resize-none border-none bg-transparent px-2 text-base leading-relaxed focus:ring-0 focus:outline-none sm:min-h-6"
             rows="1"
@@ -1010,9 +1251,11 @@
             >{/if}
         {:else}<button
             onclick={handleSubmit}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || blockGeneration}
             class="text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 flex h-11 w-11 flex-shrink-0 -translate-y-0.5 items-center justify-center rounded-lg p-0 transition-all active:scale-95 disabled:opacity-50 sm:translate-y-0"
-            title="Send direction ({sendKeyHint})"><Send class="h-6 w-6" /></button
+            title={blockGeneration
+              ? 'AI configuration incomplete — check Settings'
+              : `Send direction (${sendKeyHint})`}><Send class="h-6 w-6" /></button
           >{/if}
       </div>
     </div>
@@ -1062,7 +1305,6 @@
                     : 'What do you do?'}
             class="text-surface-200 placeholder-surface-500 max-h-[160px] min-h-[24px] w-full resize-none border-none bg-transparent px-2 text-base leading-relaxed focus:ring-0 focus:outline-none sm:min-h-[24px]"
             rows="1"
-            disabled={ui.isGenerating}
           ></textarea>
         </div>
         {#if ui.isGenerating}
@@ -1078,11 +1320,13 @@
             >{/if}
         {:else}<button
             onclick={handleSubmit}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || blockGeneration}
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg p-0 transition-all active:scale-95 disabled:opacity-50 {actionButtonStyles[
               actionType
             ]} -translate-y-0.5 sm:translate-y-0"
-            title="Send ({sendKeyHint})"><Send class="h-6 w-6" /></button
+            title={blockGeneration
+              ? 'AI configuration incomplete — check Settings'
+              : `Send (${sendKeyHint})`}><Send class="h-6 w-6" /></button
           >{/if}
       </div>
     </div>
