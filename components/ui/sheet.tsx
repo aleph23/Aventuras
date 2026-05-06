@@ -179,6 +179,16 @@ function SheetPanel({
             }),
             className,
           )}
+          // @rn-primitives/dialog's native Content unconditionally
+          // returns `onStartShouldSetResponder={() => true}`, which
+          // makes Content claim the touch responder before any
+          // descendant can — that breaks vertical scrolling for any
+          // ScrollView nested inside the panel (the responder bubble
+          // never lets ScrollView claim move-pan). Overriding to
+          // `false` here lets ScrollView capture pans normally.
+          // Tap-outside dismissal is owned by DialogPrimitive.Overlay,
+          // not Content, so this doesn't affect modal close semantics.
+          onStartShouldSetResponder={() => false}
           {...contentProps}
         >
           {handle}
