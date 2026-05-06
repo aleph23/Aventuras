@@ -318,6 +318,9 @@ inherit unchanged.
   filter and sort chips wrap beneath. Same `flex-wrap` rule on
   `.history-controls` per
   [the World mobile expression](../world/world.md#mobile-expression).
+  History rows themselves render via the
+  [DeltaLogRow pattern](../../patterns/delta-log-row.md), filtered
+  host-side to thread / happening targets.
 - **Detail-head overflow menu (`⋯`)** binds to Popover on desktop /
   tablet, Sheet (short) on phone per
   [`mobile/layout.md → Surface bindings`](../../foundations/mobile/layout.md#surface-bindings--existing-app-surfaces).

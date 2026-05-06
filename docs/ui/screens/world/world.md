@@ -324,7 +324,10 @@ error rather than a partial save.
 
 History is the delta log filtered to this entity: every change
 (`op=create / update / delete`) that touched this `entity_id`. Never
-editable — rollback happens in the reader.
+editable — rollback happens in the reader. Row rendering follows
+the [DeltaLogRow pattern](../../patterns/delta-log-row.md); host
+resolves target display names and renders the diff summary
+prose, then hands pre-formatted strings to the compound.
 
 - **Search** — structured: `field-path strings`, `op`, and the
   rendered change-summary text. Backed by `LIKE` on

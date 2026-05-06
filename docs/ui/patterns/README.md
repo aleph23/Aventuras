@@ -64,5 +64,10 @@ The split heuristic + when-to-add rules live in
   star, status badges (`Draft` / `Archived`) as Chips, meta row,
   3-line description, top-right overflow menu. Documents the
   favorite-star visibility exception to icon-actions.
+- [`delta-log-row.md`](./delta-log-row.md) — history-tab row:
+  op-keyed badge (create / update / delete), pre-resolved target
+  display name plus optional field path, host-rendered diff
+  summary, source / entry-link / time meta. Used by World and
+  Plot history tabs and the future global delta-log surface.
 - [`data.md`](./data.md) — raw JSON viewer, import counterparts
   (file-based + Vault).
