@@ -54,5 +54,10 @@ The split heuristic + when-to-add rules live in
   rule (search-on-own-row at narrow tiers, single horizontal row
   at desktop). Used across Story List, World, Plot, Reader Browse
   rail.
+- [`entry-card.md`](./entry-card.md) — reader-composer narrative
+  row: kind-discriminated bubble (user / ai / opening / system /
+  streaming) with conditional reasoning expansion, in-place edit,
+  per-kind action cluster, muted world-time footer. Variable-height
+  by contract; calendar-agnostic.
 - [`data.md`](./data.md) — raw JSON viewer, import counterparts
   (file-based + Vault).

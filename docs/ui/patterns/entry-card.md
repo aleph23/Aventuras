@@ -1,0 +1,216 @@
+# EntryCard pattern
+
+The reader-composer narrative-row compound. Renders all five
+entry kinds (`user`, `ai`, `opening`, `system`, `streaming`) as
+full-width bubbles with kind-keyed styling, conditional reasoning
+body, in-place edit, and a muted world-time footer.
+
+Sister patterns:
+
+- [`icon-actions.md`](./icon-actions.md) — the per-entry action
+  cluster (top-right, opacity 0.55 → 1.0 on hover) follows this
+  pattern.
+- [`save-sessions.md`](./save-sessions.md) — host-level save bar
+  for the in-place edit flow; EntryCard exposes
+  `onCommitEdit / onCancelEdit` for the host to bind.
+- [`forms.md → Textarea primitive`](./forms.md#textarea-primitive) —
+  the in-place edit textarea.
+
+Used by:
+
+- [Reader composer](../screens/reader-composer/reader-composer.md#per-entry-actions) —
+  the narrative loop. Sole consumer in v1.
+
+## Compound API
+
+```ts
+type EntryCardProps = {
+  kind: 'user' | 'ai' | 'opening' | 'system' | 'streaming'
+  content: string
+  worldTimeLabel?: string
+
+  onEdit?: () => void
+  onDelete?: () => void // not for opening (block-delete) or system/streaming
+
+  // AI / opening:
+  meta?: { tokens: { reply: number; reasoning?: number }; model?: string }
+  reasoning?: string
+  onRegen?: () => void // ai only
+  onBranch?: () => void // ai, opening
+  onFlipEra?: () => void // user, ai, opening — host hides when eras: null
+
+  // Streaming-only:
+  streamingPhase?: 'reasoning' | 'reply'
+
+  // System-only:
+  detail?: string
+  onRetry?: () => void
+  onDismiss?: () => void
+
+  // Edit-restrictions (uniform with principles):
+  disabled?: boolean
+  disabledReason?: string
+
+  // Edit mode (host-controlled):
+  editing?: boolean
+  onContentChange?: (next: string) => void
+  onCommitEdit?: () => void
+  onCancelEdit?: () => void
+
+  className?: string
+}
+```
+
+Two structural choices:
+
+1. **Edit mode is controlled.** `editing` boolean plus
+   controlled `content` value plus
+   `onContentChange / onCommitEdit / onCancelEdit` callbacks.
+   Host owns dirty-state machinery (delta-log writes); compound
+   relays keystrokes and renders textarea-or-prose.
+2. **`worldTimeLabel` is pre-formatted.** Calendar formatting
+   lives in the host's render pass via the active calendar's
+   renderer. EntryCard renders the string opaque — same
+   contract the top-bar chip uses.
+
+## Per-kind structure
+
+| Slot                       | user                             | ai                                        | opening                                | system                                       | streaming                             |
+| -------------------------- | -------------------------------- | ----------------------------------------- | -------------------------------------- | -------------------------------------------- | ------------------------------------- |
+| Top line                   | `You` badge                      | meta line (glyph, brain, tokens)          | meta line                              | `System` with warn glyph                     | meta line (brain pulses, trailing → ) |
+| Reasoning body             | —                                | conditional (`reasoning` set, expanded)   | conditional                            | —                                            | live-streaming on `streamingPhase`    |
+| Content                    | prose (or textarea if `editing`) | prose                                     | prose                                  | error description with inline action buttons | partial prose tokens                  |
+| Action cluster (top-right) | edit, `[flip era]`, delete       | edit, regen, branch, `[flip era]`, delete | edit, branch, `[flip era]` (no delete) | — (uses inline buttons)                      | —                                     |
+| World-time footer          | shown                            | shown                                     | shown                                  | hidden                                       | hidden                                |
+| Bubble styling             | `bg-highlight border-line-soft`  | `bg-region border-line`                   | same as ai                             | warn-tinted                                  | ai styling plus dashed border         |
+
+`opening` renders identically to `ai` for visual treatment; the
+discriminator only affects available actions. See
+[data-model.md → Opening entry](../../data-model.md#opening-entry)
+for the underlying invariant.
+
+## Reasoning expansion
+
+**Data source:** `props.reasoning`, sourced from
+`story_entries.metadata.reasoning?: string` (see
+[data-model.md → Entry metadata shape](../../data-model.md#entry-metadata-shape)).
+Brain icon renders only when `reasoning` is present, or when
+`streamingPhase === 'reasoning'`.
+
+**State:** internal `expanded: boolean`, default `false`. Click
+brain toggles. No external override prop.
+
+**Animation:**
+
+- Web: `transition: max-height 200ms ease-out` with
+  measured-height clamp.
+- Native: reanimated worklet on a shared `expanded` value with
+  `withTiming(expanded ? measured : 0, { duration: 200 })`.
+- Reasoning body uses `display: none` when collapsed so it
+  doesn't take layout space and doesn't measure.
+
+**Scroll-anchor concern (parent's responsibility, not
+EntryCard's).** The reasoning body sits above content; expanding
+above the viewport top would shift the user's view. EntryCard's
+contract: emit a measurable, deterministic layout transition;
+never pin its own height; let the parent's `measureElement`
+(web) or `maintainVisibleContentPosition` (native) track the
+shift. The
+[reader narrative scroll-anchoring](../../followups.md#reader-narrative-scroll-anchoring-on-prepend)
+followup covers the parent's mechanic.
+
+## Edit mode
+
+When `editing === true`:
+
+- Content slot renders [`<Textarea>`](./forms.md#textarea-primitive)
+  instead of prose `<Text>`.
+- Textarea seeded with current `content`.
+- `onContentChange(next)` fires on each keystroke.
+- `<SaveBar>` is NOT rendered inside EntryCard. Host wires the
+  existing [save-session pattern](./save-sessions.md) at
+  detail-pane level; EntryCard exposes
+  `onCommitEdit / onCancelEdit` for the host to bind.
+- Brain, reasoning body, and action cluster are hidden during
+  edit. The entry is in edit-mode focus.
+- Reasoning text is NOT editable. Only `content`. Reasoning is
+  generation provenance.
+
+**Cross-tier:** identical on phone and desktop. Textarea spans
+full content width. Mobile keyboard pushes the textarea up via
+existing form-row patterns. No sheet, no modal — keeps the edit
+in narrative flow.
+
+## World-time footer
+
+- Muted small text, bottom-right of bubble (`text-fg-muted text-xs`).
+- Renders `props.worldTimeLabel` opaque.
+- Hidden for `kind` ∈ { `system`, `streaming` } — system is
+  generation-meta, streaming has no committed worldTime yet.
+- Hidden when `worldTimeLabel` undefined (host's choice — e.g.,
+  formatter failure or calendar omits this entry).
+
+**Future hook:** the
+[manual worldTime correction](../../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
+followup will turn this footer into a click-to-edit affordance.
+Today: read-only display.
+
+## Action cluster
+
+Per-kind action sets:
+
+| Kind      | edit                                                  | regen | branch | flip-era    | delete            |
+| --------- | ----------------------------------------------------- | ----- | ------ | ----------- | ----------------- |
+| user      | yes                                                   | —     | —      | conditional | yes               |
+| ai        | yes                                                   | yes   | yes    | conditional | yes               |
+| opening   | yes                                                   | —     | yes    | conditional | no (block-delete) |
+| system    | (inline buttons inside content; no top-right cluster) |
+| streaming | (no actions; cancel via composer)                     |
+
+`flip-era` is conditional: host passes `onFlipEra` only when
+active calendar has eras. Same gating as the
+[per-screen doc](../screens/reader-composer/reader-composer.md#per-entry-actions).
+
+Position: absolute top-right of bubble; opacity 0.55 default,
+1.0 on hover or focus per the
+[icon-actions pattern](./icon-actions.md). Cluster gap and
+density-aware sizing inherit from icon-actions.
+
+## Variable-height plus virtualization compatibility
+
+EntryCard's contract for parent virtualized lists:
+
+- **No fixed height.** Bubble height is content-driven.
+- **No key shenanigans.** Same key across re-renders (host
+  passes `entry.id`).
+- **Deterministic layout transitions.** Reasoning expand/collapse
+  uses height-auto with predictable timing; parent's
+  `measureElement` (web) or `FlatList`'s native layout (mobile)
+  reacts naturally.
+- **No layout effects fighting the parent.** EntryCard doesn't
+  measure itself or apply scroll fixes.
+
+The reader narrative scroll-anchoring concern is the parent
+list's responsibility, not EntryCard's. EntryCard ships
+compatible.
+
+## Storybook (EntryCard)
+
+Live demos for: user kind, ai kind (with reasoning expanded /
+collapsed), opening kind (no delete action), system kind (with
+detail expanded), streaming kind (reasoning-phase, reply-phase),
+edit mode (textarea), disabled state, world-time footer
+shown/hidden by kind. Belongs in
+`Patterns/Reader composer/EntryCard` when component
+implementation begins.
+
+## What this design defers
+
+- **Manual worldTime correction UI** — footer is the future
+  home; today read-only.
+- **Reasoning text in search scope** — provenance, not narrative
+  content; lean: don't include. Revisit on demand.
+- **Reasoning text in export / backup** — yes by default;
+  confirms with the export-shape pass when it lands.
+- **Click-to-edit on the world-time footer** — same future as
+  manual worldTime correction.

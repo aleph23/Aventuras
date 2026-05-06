@@ -167,7 +167,9 @@ Actions on an individual entry (edit, regenerate, branch, delete)
 follow the
 [icon-actions pattern](../../patterns/icon-actions.md) — icon
 buttons, always-visible-but-muted, brighten on row hover/focus,
-same affordance on desktop and mobile.
+same affordance on desktop and mobile. The full per-kind action
+matrix and rendering contract live in the
+[EntryCard pattern](../../patterns/entry-card.md#action-cluster).
 
 Icon set (placeholder glyphs per the
 [shared glyph vocabulary](../../patterns/icon-actions.md#glyph-vocabulary);
@@ -277,6 +279,15 @@ the new calendar doesn't support) lives in
 
 ## Reasoning expansion + token metadata on AI entries
 
+Reasoning text is persisted in
+[`story_entries.metadata.reasoning?: string`](../../../data-model.md#entry-metadata-shape)
+alongside the existing token counts; the brain-toggle expansion
+re-shows the text post-stream from this field. The render contract
+is owned by the
+[EntryCard pattern](../../patterns/entry-card.md#reasoning-expansion);
+this section covers the surface-specific shape of the meta line
+and brain affordance.
+
 Meta line is intentionally minimal. No model name — users don't care
 per-entry. Format:
 
@@ -297,6 +308,29 @@ per-entry. Format:
   as the gen-status pill dot). Static + clickable when done.
 - **Collapsed by default**, including during the reasoning phase —
   click the pulsing brain to expand and watch reasoning stream.
+
+## Per-entry world-time footer
+
+Each `user`, `ai`, and `opening` entry carries a muted bottom-right
+footer showing the entry's in-world time as a pre-formatted string
+from the active calendar's renderer (same opaque-render contract
+the [top-bar time chip](#top-bar--in-world-time-display) uses).
+Hidden on `system` and `streaming` entries — system is generation
+meta, streaming has no committed `worldTime` yet.
+
+The footer reads `metadata.worldTime` through the active calendar's
+formatter on the host side; the
+[EntryCard pattern](../../patterns/entry-card.md#world-time-footer)
+takes the formatted label opaque. Calendar formatter failure or a
+calendar that omits per-entry display drops the footer cleanly via
+an undefined label.
+
+**Future affordance.** When the deferred
+[manual `worldTime` correction](../../../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
+gets its design pass, this footer becomes the click-to-edit
+surface — read-only display today, interactive correction trigger
+later. The footer's existence today is the surface that future
+correction UX wires to without growing chrome.
 
 ## Streaming entry — same structure, live state
 
@@ -827,7 +861,7 @@ specifics below.
   button and mode picker remain visible. Suggestion panel moves
   up with the composer (it's content, not chrome).
 - **Per-entry action icons** stay always-visible-muted per the
-  [icon-actions visibility rule](../../patterns/icon-actions.md#visibility--always-rendered-muted-default-brighten-on-hover);
+  [icon-actions visibility rule](../../patterns/icon-actions.md#visibility--always-rendered-color-tiered-brighten-on-hover);
   no tier-specific change. Touch users see the icons at the muted
   default; taps trigger normally.
 - **Modals stay Modal all tiers** — branch creation, rollback

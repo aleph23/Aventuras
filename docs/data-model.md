@@ -1072,6 +1072,7 @@ story_entries.metadata: {
   tokens?: { prompt: number, completion: number, reasoning?: number }
   model?: string
   generationTimingMs?: number
+  reasoning?: string                // persisted reasoning text from providers that expose it; mirrors `tokens.reasoning` (the count). Optional — undefined when the provider doesn't surface reasoning.
 
   // Scene presence — classifier-authored
   sceneEntities: string[]           // entity IDs present in this entry's scene (characters + items)
@@ -1081,6 +1082,17 @@ story_entries.metadata: {
   worldTime: number                 // physical seconds since story start; calendar-uniform; monotonically non-decreasing within a branch
 }
 ```
+
+**Reasoning text persistence.** `reasoning` is written at stream
+completion alongside `tokens.reasoning`. Field stays undefined for
+providers that don't expose reasoning text. Translation behavior:
+stays untranslated (provenance, not user-facing narrative — same
+treatment as `model`). Read sites: the
+[EntryCard pattern](./ui/patterns/entry-card.md#reasoning-expansion)
+expands the brain-toggle reasoning body from this field;
+export/backup includes it as part of the entry record. Search
+scope intentionally excludes it (provenance, not searchable
+narrative content).
 
 **Scene presence is kind-aware.** `sceneEntities` carries characters
 and items — the things that come and go. `currentLocationId` is the
