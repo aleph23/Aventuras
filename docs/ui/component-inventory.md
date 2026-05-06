@@ -68,11 +68,12 @@ for the rule.
 
 ### Compounds — shipped
 
-| Compound       | Folder                  | Notes                                                                                                                             |
-| -------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| EntityKindIcon | `components/entity/`    | 22×22 box, Lucide glyph centered (User / MapPin / Package / Flag). Color inherits via `TextClassContext`.                         |
-| FormRow        | `components/compounds/` | Container-keyed stacked-vs-2-col layout (label / hint / error / required slot). Library-agnostic — caller pipes the error string. |
-| SwitchRow      | `components/compounds/` | Label + description + toggle, three-peer row.                                                                                     |
+| Compound       | Folder                  | Notes                                                                                                                                                                              |
+| -------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EntityKindIcon | `components/entity/`    | 22×22 box, Lucide glyph centered (User / MapPin / Package / Flag). Color inherits via `TextClassContext`.                                                                          |
+| FormRow        | `components/compounds/` | Container-keyed stacked-vs-2-col layout (label / hint / error / required slot). Library-agnostic — caller pipes the error string.                                                  |
+| ListRow        | `components/compounds/` | Pan-domain row carrying four indicator channels: lead-badge (slot), status-pill (slot), scene-presence (typed left-edge stripe), recently-classified (typed background-tint enum). |
+| SwitchRow      | `components/compounds/` | Label + description + toggle, three-peer row.                                                                                                                                      |
 
 ### Compounds — build-ready
 

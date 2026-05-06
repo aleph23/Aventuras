@@ -94,9 +94,11 @@ absence that makes "nothing shown" ambiguous):
   3px green accent stripe along the left edge. Steady-state signal —
   "which rows matter right now."
 - **Recently-classified** (background tint): rows whose source data
-  the classifier wrote in the last 1-2 turns get a faint info-blue
-  background tint that decays. Transient signal — see
-  [Recently-classified row accent](#recently-classified-row-accent)
+  the classifier wrote in the last 1-2 turns get a faint
+  theme-defined background tint that decays. Transient signal —
+  the tint color is theme-authored per
+  [`foundations/color.md → Recently-classified slot`](../foundations/color.md#recently-classified-slot);
+  see [Recently-classified row accent](#recently-classified-row-accent)
   for the full rule.
 
 **Edge vs tint — load-bearing decoupling.** Scene-presence owns the
@@ -326,11 +328,14 @@ pencil edits are the documented quick-edit exception.
 
 Cross-cutting visual signal: rows whose underlying data was written
 by the classifier (or any agent) in the last 1-2 turns get a faint
-**info-blue background tint** that decays. Single signal with two
-visual states:
+theme-defined background tint that decays. The tint color is the
+`--recently-classified-bg` slot, theme-authored per
+[`foundations/color.md → Recently-classified slot`](../foundations/color.md#recently-classified-slot)
+(values vary across the palette set; the slot is the constraint, not
+a specific hue). Single signal with two visual states:
 
-- **Fresh** (full-color info-blue): touched in the last turn.
-- **Fading** (faded info-blue): touched 1-2 turns ago.
+- **Fresh** (full-strength tint): touched in the last turn.
+- **Fading** (50%-strength tint): touched 1-2 turns ago.
 - After that the tint is gone.
 
 The two tiers are conceptual states — wireframe HTML happens to
@@ -348,9 +353,9 @@ tint; scene-presence owns the left-edge stripe (per
 [Entity row indicators](#entity-row-indicators--four-orthogonal-channels)).
 Both fire simultaneously on common cases (in-scene character just
 classified) without contention — different primitives, different
-signals. Color separation is also load-bearing: info-blue is
-reserved for "recently written," other signals get their own
-treatments.
+signals. Color separation is also load-bearing: the
+`--recently-classified-bg` slot is reserved for "recently written,"
+other signals get their own treatments.
 
 **Detail-pane mirroring.** The tint is echoed in the detail head as
 a "Recently classified" badge in the same color, visible while the
