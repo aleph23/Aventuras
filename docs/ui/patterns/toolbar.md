@@ -113,10 +113,12 @@ Props:
 
 Internally renders `<Input leading={<Icon as={Search}/>}
 trailing={<ScopeHelpPopoverTrigger scope={...}/>}/>`. Trailing
-icon opens a Popover (Sheet on phone) showing the scope as a
-labeled list. Web also gets a focus-tooltip below the input
-fading after 2 s; native skips the focus-tooltip and relies on
-the ⓘ trigger as the discovery affordance.
+icon opens a Popover on every tier showing the scope as a
+labeled list — Sheet would be overkill for an info-tooltip-shaped
+affordance (no decision to make, no list to scroll, just a few
+fields to glance at). Web also gets a focus-tooltip below the
+input fading after 2 s; native skips the focus-tooltip and
+relies on the ⓘ trigger as the discovery affordance.
 
 Default width: `flex-1` to fill available space at desktop, full
 width at narrow tiers per the overflow rule. Consumers can

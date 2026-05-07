@@ -1,0 +1,274 @@
+import { Info, Search as SearchIcon } from 'lucide-react-native'
+import * as React from 'react'
+import { Platform, Pressable, View } from 'react-native'
+
+import { Icon } from '@/components/ui/icon'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, type SelectOption } from '@/components/ui/select'
+import { Text } from '@/components/ui/text'
+import { useTier } from '@/hooks/use-tier'
+import { cn } from '@/lib/utils'
+
+// Container threshold for the desktop-vs-narrow layout switch. Per
+// `docs/ui/patterns/toolbar.md → Cross-tier overflow rule`. Same dual
+// mechanism as FormRow: `onLayout` measurement on the wrapper plus
+// `useTier()` as the first-paint fallback. Keeps web + native on a
+// single mechanism (NativeWind 4 has web container queries but not
+// native, and the consumer surfaces aren't deeply nested enough to
+// need separate rules per platform).
+const NARROW_THRESHOLD_PX = 1024
+
+// ──────────────────────────────────────────────────────────────────
+// Toolbar.Search — wraps the search-bar-scope pattern. Input with
+// leading magnifier + trailing ⓘ help-popover that shows the
+// searchable fields. Popover on every tier — Sheet would be overkill
+// for an info-tooltip-shaped affordance (no decision to make, no list
+// to scroll, just a few fields to glance at).
+// ──────────────────────────────────────────────────────────────────
+
+type ToolbarSearchProps = {
+  value: string
+  onChange: (value: string) => void
+  /**
+   * Short, truncation-safe placeholder (≤ ~25 chars per
+   * `lists.md → Search bar scope`). Names 1-2 most obvious fields;
+   * the full scope list lives in the trailing ⓘ help.
+   */
+  placeholder: string
+  /**
+   * Searchable field names. Surfaces in the ⓘ help-popover content
+   * as the canonical list. Empty array hides the ⓘ trigger entirely
+   * (useful when a surface intentionally doesn't advertise scope).
+   */
+  scope: readonly string[]
+  disabled?: boolean
+  disabledReason?: string
+  className?: string
+}
+
+function ScopeHelpTrigger({ scope, disabled }: { scope: readonly string[]; disabled?: boolean }) {
+  const fieldList = scope.join(' · ')
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Pressable
+          disabled={disabled}
+          accessibilityRole="button"
+          aria-label="Search scope"
+          // hitSlop extends the tap area past the icon's 16 px
+          // footprint without bloating layout. Phone touch-floor
+          // (44 px) is met even though the visible icon is `sm`.
+          hitSlop={12}
+          className={cn(
+            'p-1',
+            Platform.select({ web: 'cursor-pointer outline-none' }),
+            disabled && 'opacity-50',
+          )}
+        >
+          <Icon as={Info} size="sm" className="text-fg-muted" />
+        </Pressable>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        <View className="gap-1">
+          <Text size="sm" className="font-medium">
+            Search scope
+          </Text>
+          <Text size="xs" variant="muted">
+            {`Searches: ${fieldList}`}
+          </Text>
+        </View>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function ToolbarSearch({
+  value,
+  onChange,
+  placeholder,
+  scope,
+  disabled,
+  disabledReason,
+  className,
+}: ToolbarSearchProps) {
+  const showScopeHelp = scope.length > 0
+  const input = (
+    <Input
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      editable={!disabled}
+      leading={<Icon as={SearchIcon} size="sm" className="text-fg-muted" />}
+      trailing={showScopeHelp ? <ScopeHelpTrigger scope={scope} disabled={disabled} /> : null}
+      className={cn('w-full', className)}
+    />
+  )
+
+  // Web disabled-reason tooltip: same raw-`<div title>` workaround
+  // Input / Autocomplete use. RN-Web's TextInput allowlist filters
+  // arbitrary HTML attrs, so `title` doesn't reach the DOM otherwise.
+  if (disabled && disabledReason && Platform.OS === 'web') {
+    return (
+      <div title={disabledReason} style={{ width: '100%' }}>
+        {input}
+      </div>
+    )
+  }
+  return input
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Toolbar.FilterChips — pure layout container for Chip children.
+// Wrap-capable; selection semantics are host concern.
+// ──────────────────────────────────────────────────────────────────
+
+type ToolbarFilterChipsProps = {
+  className?: string
+  children: React.ReactNode
+}
+
+function ToolbarFilterChips({ className, children }: ToolbarFilterChipsProps) {
+  return <View className={cn('flex-row flex-wrap items-center gap-2', className)}>{children}</View>
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Toolbar.Sort — Select forced to dropdown mode. Trigger renders
+// compact `Sort: <selected.label> ▾` (or bare value when no label).
+// ──────────────────────────────────────────────────────────────────
+
+type ToolbarSortProps = {
+  value: string
+  onChange: (value: string) => void
+  options: readonly SelectOption[]
+  /** Optional prefix label rendered muted before the selected value. */
+  label?: string
+  disabled?: boolean
+  className?: string
+}
+
+function ToolbarSort({ value, onChange, options, label, disabled, className }: ToolbarSortProps) {
+  return (
+    <Select
+      mode="dropdown"
+      options={options as SelectOption[]}
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      // Trigger height matched to chip-row height for visual grouping
+      // with the filter chips. Select's default `h-control-md` (40 px)
+      // dwarfs chips' natural ~34 px. Native Tailwind `h-9` (36 px)
+      // gets within 2 px of Chip's natural height — closest match
+      // available without a Chip-primitive change. Used directly
+      // because `h-control-sm` is a custom token tailwind-merge
+      // doesn't recognize as conflicting with `h-control-md`. The
+      // residual 2 px gap is a Chip-primitive inconsistency, not
+      // Toolbar-fixable; tracked as a followup.
+      className={cn('h-9', className)}
+      // The `label` prop also drives the phone Sheet title — gives
+      // the bottom-sheet a meaningful header when sorting on phone.
+      label={label}
+      renderTrigger={({ selected, placeholder }) => {
+        const valueText = selected?.label ?? placeholder ?? ''
+        if (label != null) {
+          return (
+            <View className="flex-row items-center gap-1">
+              <Text size="sm" variant="muted">
+                {`${label}:`}
+              </Text>
+              <Text size="sm" className="text-fg-primary">
+                {valueText}
+              </Text>
+            </View>
+          )
+        }
+        return (
+          <Text size="sm" className="text-fg-primary">
+            {valueText}
+          </Text>
+        )
+      }}
+    />
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Toolbar — bar wrapper. Iterates children, type-checks against
+// sub-component identity, places each in its slot, applies the
+// cross-tier overflow rule.
+// ──────────────────────────────────────────────────────────────────
+
+type ToolbarProps = {
+  className?: string
+  children: React.ReactNode
+}
+
+function ToolbarRoot({ className, children }: ToolbarProps) {
+  const initialTier = useTier()
+  const [containerWidth, setContainerWidth] = React.useState<number | null>(null)
+  const isNarrow =
+    containerWidth != null ? containerWidth < NARROW_THRESHOLD_PX : initialTier !== 'desktop'
+
+  // Slot detection — type-check via stable sub-component references.
+  // Unknown children pass through as-is (escape hatch for surface-
+  // specific extras), but the canonical three are the named ones.
+  // Chips slot is typed explicitly so the narrow-tier layout can
+  // reach into its children without TS narrowing failures.
+  let searchSlot: React.ReactNode = null
+  let chipsSlot: React.ReactElement<{ children?: React.ReactNode }> | null = null
+  let sortSlot: React.ReactNode = null
+  const others: React.ReactNode[] = []
+
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+    if (child.type === ToolbarSearch) searchSlot = child
+    else if (child.type === ToolbarFilterChips) {
+      chipsSlot = child as React.ReactElement<{ children?: React.ReactNode }>
+    } else if (child.type === ToolbarSort) sortSlot = child
+    else others.push(child)
+  })
+
+  return (
+    <View
+      className={cn('w-full', className)}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      {isNarrow ? (
+        <View className="gap-2">
+          {searchSlot}
+          {(chipsSlot != null || sortSlot != null) && (
+            // Narrow-tier bottom row: chip children (extracted from
+            // the FilterChips slot) and sort flow as siblings in a
+            // single flex-wrap row. Left-aligned in entry order so
+            // they read as one visual group — earlier `ml-auto` on
+            // sort looked disconnected when chips fit on one line
+            // and sort dropped to its own.
+            <View className="flex-row flex-wrap items-center gap-2">
+              {(chipsSlot as React.ReactElement<{ children?: React.ReactNode }> | null)?.props
+                .children ?? null}
+              {sortSlot}
+            </View>
+          )}
+          {others}
+        </View>
+      ) : (
+        <View className="flex-row items-center gap-3">
+          <View className="min-w-0 flex-1">{searchSlot}</View>
+          {chipsSlot}
+          {sortSlot}
+          {others}
+        </View>
+      )}
+    </View>
+  )
+}
+
+const Toolbar = Object.assign(ToolbarRoot, {
+  Search: ToolbarSearch,
+  FilterChips: ToolbarFilterChips,
+  Sort: ToolbarSort,
+})
+
+export { Toolbar }
+export type { ToolbarSearchProps, ToolbarFilterChipsProps, ToolbarSortProps }

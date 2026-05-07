@@ -3,6 +3,9 @@ import * as React from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
+import { Text } from '@/components/ui/text'
+import { themes } from '@/lib/themes/registry'
+
 import { TagInput } from './tag-input'
 
 const meta: Meta<typeof TagInput> = {
@@ -176,4 +179,30 @@ export const DisabledBlocksInput: Story = {
     expect(input).toBeDisabled()
     expect(args.onChange).not.toHaveBeenCalled()
   },
+}
+
+export const ThemeMatrix: Story = {
+  render: () => (
+    <View className="flex-col gap-3">
+      {themes.map((t) => (
+        <View
+          key={t.id}
+          // @ts-expect-error — dataSet is RN-Web only.
+          dataSet={{ theme: t.id }}
+          className="overflow-hidden rounded-md border border-border bg-bg-base p-3"
+        >
+          <View className="pb-2">
+            <Text variant="muted" size="xs">
+              {t.name}
+            </Text>
+          </View>
+          <TagInput
+            value={['sci-fi', 'fantasy', 'dystopia']}
+            onChange={fn()}
+            placeholder="Add tags…"
+          />
+        </View>
+      ))}
+    </View>
+  ),
 }
