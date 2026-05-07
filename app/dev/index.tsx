@@ -28,6 +28,7 @@ const ROUTES = [
   { href: '/dev/toolbar', label: 'Toolbar' },
   { href: '/dev/delta-log-row', label: 'DeltaLogRow' },
   { href: '/dev/story-card', label: 'StoryCard' },
+  { href: '/dev/entry-card', label: 'EntryCard' },
   { href: '/dev/loading', label: 'Spinner + Skeleton' },
   { href: '/dev/tabs', label: 'Tabs' },
   { href: '/dev/chip-tag', label: 'Chip + Tag' },
