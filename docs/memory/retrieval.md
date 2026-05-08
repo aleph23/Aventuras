@@ -43,9 +43,10 @@ invalidate the prior memory model. The story remembers which mode it
 ran in; the future memory-probe affordance (parked) becomes
 load-bearing for debugging mode-3.
 
-### Storage — `embeddings` table
+### Storage
 
-Polymorphic FK shape mirroring the `translations` pattern:
+The conceptual / logical shape is a polymorphic FK mirroring the
+`translations` pattern:
 
 ```sql
 embeddings {
@@ -53,7 +54,7 @@ embeddings {
   target_kind TEXT,                             -- 'entity' | 'lore' | 'happening' | 'thread' | 'chapter'
   target_id TEXT,                               -- id in target_table
   field TEXT,                                   -- 'description' | 'body' | 'composite' | etc.
-  model_id TEXT,                                -- canonical embedding model id
+  model_id TEXT,                                -- canonical embedding model id; last model used (see below)
   dim INTEGER,                                  -- vector dimension
   vector BLOB,                                  -- packed float32 or float16
   source_hash TEXT,                             -- content hash of source fields at embed time
@@ -63,12 +64,35 @@ embeddings {
 }
 ```
 
-Embeddings are **not delta-logged** because they're deterministic
-from source content — re-computing reproduces them losslessly. But
-the source field can change without the embedding being aware
-(manual edit, rollback reverting a prior edit, branch-fork drift,
-schema migration). The fix is **hash-based lazy detection at
-retrieval time**:
+**Physical storage — per-type `vec0` virtual tables.** Production
+uses one [`sqlite-vec`](https://github.com/asg017/sqlite-vec) `vec0`
+virtual table per target kind: `entities_vec`, `lore_vec`,
+`happenings_vec`, `threads_vec`, `chapter_summaries_vec` — each
+joined to its metadata sibling by id. The polymorphic schema above
+is the logical view; vec0 doesn't filter efficiently across
+mixed-type rows, so per-type physical layout is the production
+shape. Validated in PoC; per-query KNN at ~11 / 43 / 61 / 122 ms at
+1k / 10k / 50k / 100k rows on a flagship Android device.
+`source_hash` placement (auxiliary vec0 column or per-type sidecar
+metadata table) is a production-integration detail, not pinned here.
+
+**Single active model only.** All vec0 rows are under whichever
+embedding model the user has currently selected. On swap (per
+[Model swap UX](#model-swap-ux)), vec0 tables drop and recreate.
+The `model_id` column carries the model that produced each row —
+by invariant the currently-active one — and serves as a label and
+cache key, not as a multi-model coexistence mechanism. Mixed-model
+retrieval is fundamentally broken (query and stored vectors must
+share a vector space); v1 doesn't support it and there's no path
+to add it without separate per-model indexes, which sqlite-vec
+doesn't make cheap.
+
+**Source-hash staleness detection.** Embeddings are not delta-
+logged because they're deterministic from source content — re-
+computing reproduces them losslessly. But the source field can
+change without the embedding being aware (manual edit, rollback
+reverting a prior edit, branch-fork drift, schema migration). The
+fix is hash-based lazy detection at retrieval time:
 
 - `source_hash` stores the content hash of the embedded fields at
   embed time (`xxhash(title + description)` or similar).
@@ -89,8 +113,6 @@ newer than embedding" check inverts, staleness goes undetected.
 Hashes are content-aware and immune to timeline-direction games.
 
 Branched (forks with the branch like every other branch-scoped table).
-Multi-model coexistence supported (different `model_id` rows for the
-same target — useful during model swaps).
 
 ### What gets embedded per type
 

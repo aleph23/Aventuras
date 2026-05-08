@@ -85,12 +85,9 @@ removed with this commit.
 **What's still open** lives in the memory folder's own followups:
 
 - [v1-blocking memory work](./memory/followups.md#v1-blocking) —
-  threshold tuning, local embedder selection, background classifier
-  UX, entity-merge UI, memory probe affordance, lore-creation cap
-  tuning.
-- [Cross-doc updates](./memory/followups.md#cross-doc-updates-this-design-forces) —
-  the integration commits across data-model, architecture,
-  followups, parked.
+  threshold tuning, embedder production integration, embedding
+  compute lifecycle, background classifier UX, entity-merge UI,
+  memory probe affordance, lore-creation cap tuning.
 - [Parked / post-v1 items](./memory/followups.md#parked--post-v1) —
   multi-axis salience, pin-contradiction reconciliation, spillover
   policy, polymorphic naming, etc.

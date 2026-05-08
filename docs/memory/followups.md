@@ -1,103 +1,10 @@
-# Followups, schema impact, and Settings UX
+# Followups and Settings UX
 
-What needs to happen for this design to land: schema changes,
-Settings UX implications, v1-blocking work, cross-doc updates, and
-parked / post-v1 items.
-
----
-
-## Schema impact summary
-
-Changes that need to land in [`data-model.md`](../data-model.md) for
-this design to be implementable:
-
-### `entities`
-
-- Add `name_collision_flag INTEGER DEFAULT 0` for collision review.
-- Existing authorship contract preserved (no change).
-
-### `lore`
-
-- Add `keywords TEXT` (JSON `string[]`) for the keyword retrieval
-  pathway. User-authored at create; lore-mgmt agent emits at chapter
-  close.
-
-### `happening_awareness`
-
-- Add `decay_resistance REAL DEFAULT 0` ∈ `[0, 1]`.
-- Add `retrieval_count INTEGER DEFAULT 0` — incremented by the
-  ranker when a row is injected (post budget-fill). Drives the
-  high-frequency candidate set surfaced to lore-mgmt phase 3d.
-  **Delta-logged** under each turn's `action_id` so rollback
-  cleanly reverses retrieval-driven counter increments along with
-  the prose-revert. Without this, counters would remember
-  retrievals from rolled-back turns, inflating phase 3d's
-  candidate set with phantom history.
-- Add `UNIQUE(branch_id, character_id, happening_id)` constraint.
-  Classifier and user-edit paths use upsert semantics — duplicate
-  awareness rows can't accumulate at the database level.
-- **Drop** `salience REAL` — replaced by the
-  `sim_blend × recency_factor` model in the ranker, where
-  `recency_factor` integrates `decay_resistance` for the ageing
-  story. Old `salience` was a content-blind single number per row;
-  the new model is content-aware (`sim_blend` recomputes per turn
-  against the current scene). `decay_resistance` carries the
-  "resistance to ageing" signal that `salience` implicitly bundled
-  with everything else.
-
-### Injection-mode enum
-
-- Rename `keyword_llm` → `auto` across `entities.injection_mode`,
-  `lore.injection_mode`, `threads.injection_mode`. Schema migration.
-
-### New table — `embeddings`
-
-- Polymorphic FK across `entity` / `lore` / `happening` / `thread` /
-  `chapter`, per-`field`, per-`model_id`, with `vector` blob and
-  `source_hash` for staleness detection. Forks with branch.
-  See [`retrieval.md → Storage`](./retrieval.md#storage--embeddings-table).
-- **Implementation update from PoC**: physical storage is
-  per-type `vec0` virtual tables (sqlite-vec, bundled with
-  expo-sqlite) — `entities_vec`, `lore_vec`, `happenings_vec`,
-  `threads_vec`, `chapter_summaries_vec` — paired with the regular
-  metadata tables and joined by id. The polymorphic-table model
-  above is the logical view; production uses one vec0 table per
-  entity type because vec0 doesn't filter efficiently across
-  mixed-type rows. **Multi-model coexistence dropped** — mixed-model
-  retrieval is fundamentally broken (queries are embedded under one
-  model and can't be compared to vectors in a different model's
-  space). Single active model at any time; on swap, vec0 tables
-  are dropped and recreated. `source_hash` placement (auxiliary
-  vec0 column or sidecar table) and the exact per-field embedding
-  shape are TBD in production-integration design.
-
-### `stories.settings`
-
-- Add `recentBuffer: number` (default 10).
-- Add `fullChapterInBuffer: boolean` (default false).
-- Add `classifierCadence: { mode, value }`.
-- Add `embeddingBackend: 'provider' | 'local'`.
-- Add `retrievalMode: 'embedding' | 'llm-only'` (set at creation,
-  immutable).
-- Add per-type budget fields:
-  `retrievalBudgets: { entities, lore, happenings, threads, chapters }`.
-- Add `piggybackMode: 'on' | 'off'` (capability-gated).
-- **Drop** `compactionDetail` (was a freeform user prose directive
-  for the deprecated memory-compaction agent; chapter-close lore-mgmt
-  subsumes its role and the soft-hint UX was deemed marginal value).
-
-### `app_settings`
-
-- Add `embedding_model_id` (canonical id; selectable in App Settings →
-  Memory).
-- Mirror the new `stories.settings` fields into
-  `default_story_settings`.
-
-### Tightening — `retired_reason` example list
-
-- Drop "wandered off" from the example set in the `entities` schema
-  description; the example contradicts the hard-finality retirement
-  model.
+What needs to happen for this design to land: Settings UX
+implications, v1-blocking work, and parked / post-v1 items. The
+schema delta and cross-doc updates this design forced have all
+landed in their canonical homes (`data-model.md`, `architecture.md`,
+top-level `followups.md`, `parked.md`).
 
 ---
 
@@ -324,42 +231,6 @@ Settings Memory tab pass.
   need to be lower for tight worlds, higher for first chapters of
   rich-worldbuilding stories). Belongs in the same empirical
   calibration pass as the threshold tuning.
-
-### Cross-doc updates this design forces
-
-These are integration-time changes to existing docs. Recommended to
-land alongside (or before) the v1-blocking work above:
-
-- **[`data-model.md`](../data-model.md)** — apply the
-  [Schema impact summary](#schema-impact-summary). Tighten the
-  `retired_reason` example list. Update the injection-mode enum. Add
-  cross-references back to this folder from the
-  [Chapters / memory system](../data-model.md#chapters--memory-system),
-  [Happenings & character knowledge](../data-model.md#happenings--character-knowledge),
-  and
-  [Injection modes](../data-model.md#injection-modes--unified-enum--structural-invariant)
-  sections.
-- **[`architecture.md`](../architecture.md)** — adjust the pipeline
-  phase model for piggyback-on-narrative; document the background
-  classifier as a `concurrent-allowed` agent (the first real consumer
-  of that declaration shape). Replace or shrink the
-  [Retrieval / injection phase](../architecture.md#retrieval--injection-phase)
-  section, linking to this folder as canonical.
-- **[`followups.md`](../followups.md)** — substantially resolves the
-  [Memory architecture — design landed](../followups.md#memory-architecture--design-landed)
-  entry (move resolution narrative into this folder). Partially
-  resolves the
-  [Pipeline consolidation](../followups.md#next-turn-suggestions--design-pass)
-  question (piggyback IS pipeline consolidation, with model-capability
-  gating). Add the v1-blocking followups above.
-- **[`parked.md`](../parked.md)** — the
-  [Multi-axis salience — long-term memory revisit](../parked.md#multi-axis-salience--long-term-memory-revisit)
-  parked entry partially resolves (multi-axis salience still parked,
-  but `decay_resistance` answers the "pinned forever" override
-  question and the "compaction philosophy" question). The
-  [Concurrent pipeline / agent coordination — first consumer landed](../parked.md#concurrent-pipeline--agent-coordination--first-consumer-landed)
-  parked entry is now answered (the periodic classifier is the first
-  agent that uses the gate-declaration shape).
 
 ### Parked / post-v1
 

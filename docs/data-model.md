@@ -202,14 +202,15 @@ erDiagram
         text target_kind "entity | lore | happening | thread | chapter"
         text target_id "id in the target table; polymorphic FK (no DB constraint)"
         text field "embedded field name (description, body, composite, etc.)"
-        text model_id "canonical embedding model id"
+        text model_id "canonical embedding model id; last model used. Single active model only — vec0 tables drop on swap, so by invariant every row is under the current model. Not for multi-model coexistence."
         integer dim "vector dimension"
         blob vector "packed float32/float16 vector"
         text source_hash "xxhash of source field at embed time; drives lazy staleness detection at retrieval"
         integer updated_at
     }
     %% UNIQUE(branch_id, target_kind, target_id, field, model_id)
-    %% Not delta-logged — embeddings are deterministic from source content; hash-mismatch triggers re-embed at retrieval. See docs/memory/retrieval.md → Embedding infrastructure
+    %% Not delta-logged — embeddings are deterministic from source content; hash-mismatch triggers re-embed at retrieval. See docs/memory/retrieval.md → Storage
+    %% Physical storage: per-type sqlite-vec `vec0` virtual tables (entities_vec, lore_vec, happenings_vec, threads_vec, chapter_summaries_vec) joined to metadata by id. The polymorphic shape above is the logical view; vec0 doesn't filter efficiently across mixed-type rows. See docs/memory/retrieval.md → Storage
 
     deltas {
         text id PK
