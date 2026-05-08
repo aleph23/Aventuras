@@ -79,6 +79,7 @@ erDiagram
         integer name_collision_flag "0 | 1; 1 = same-name collision detected at classifier extraction; surfaces in World panel for review. See docs/memory/edge-cases.md → Name collision"
         json state "typed per kind"
         json tags
+        integer embedding_stale "0 | 1; 1 = embedded field (name/description) was written but vec0 sync couldn't complete (embedder unavailable). Excluded from retrieval until worker drains. See docs/memory/retrieval.md → Storage"
         integer created_at
         integer updated_at
     }
@@ -93,6 +94,7 @@ erDiagram
         json keywords "string[]; user-authored at create OR lore-mgmt-emitted at chapter close. Drives keyword retrieval pathway alongside embedding similarity. See docs/memory/retrieval.md → Hybrid retrieval per type"
         text injection_mode "always | auto | disabled"
         integer priority "0..100; higher = more weight in retrieval ranker. See docs/memory/retrieval.md → The ranker"
+        integer embedding_stale "0 | 1; 1 = embedded field (title/body) was written but vec0 sync couldn't complete. Excluded from retrieval until worker drains. See docs/memory/retrieval.md → Storage"
         integer created_at
         integer updated_at
     }
@@ -108,6 +110,7 @@ erDiagram
         text injection_mode "always | auto | disabled"
         integer triggered_at_entry
         integer resolved_at_entry
+        integer embedding_stale "0 | 1; 1 = embedded field (title/description) was written but vec0 sync couldn't complete. Excluded from retrieval until worker drains. See docs/memory/retrieval.md → Storage"
         integer created_at
         integer updated_at
     }
@@ -122,6 +125,7 @@ erDiagram
         text temporal "in-world time anchor for happenings WITHOUT a narrative position; free-form (e.g. '1872 AR', 'future', 'ongoing', 'next solstice')"
         integer occurred_at_entry "narrative log position; null = outside narrative (use temporal instead). When set, in-world time derives from the entry's metadata.worldTime."
         integer common_knowledge "1 = everyone knows; skip awareness links"
+        integer embedding_stale "0 | 1; 1 = embedded field (title/description) was written but vec0 sync couldn't complete. Excluded from retrieval until worker drains. See docs/memory/retrieval.md → Storage"
         integer created_at
         integer updated_at
     }
@@ -155,6 +159,7 @@ erDiagram
         text end_entry_id FK "always set — only closed chapters exist as rows"
         integer token_count "accumulated across chapter entries"
         integer closed_at
+        integer embedding_stale "0 | 1; 1 = embedded field (summary/theme) was written but vec0 sync couldn't complete. Excluded from retrieval until worker drains. See docs/memory/retrieval.md → Storage"
         integer created_at
         integer updated_at
     }
@@ -202,15 +207,15 @@ erDiagram
         text target_kind "entity | lore | happening | thread | chapter"
         text target_id "id in the target table; polymorphic FK (no DB constraint)"
         text field "embedded field name (description, body, composite, etc.)"
-        text model_id "canonical embedding model id; last model used. Single active model only — vec0 tables drop on swap, so by invariant every row is under the current model. Not for multi-model coexistence."
+        text model_id "canonical embedding model id; the model that produced this row's vector. Within a single branch all rows share one model (vector-space invariant for retrieval); across the database different stories' rows may be under different models. See docs/memory/retrieval.md → Storage"
         integer dim "vector dimension"
         blob vector "packed float32/float16 vector"
-        text source_hash "xxhash of source field at embed time; drives lazy staleness detection at retrieval"
+        text source_hash "xxhash of source field at embed time. Tripwire — under eager-sync-on-write, vec0 stays in sync with source content; mismatch indicates a write path bypassed the embed step (bug)."
         integer updated_at
     }
     %% UNIQUE(branch_id, target_kind, target_id, field, model_id)
-    %% Not delta-logged — embeddings are deterministic from source content; hash-mismatch triggers re-embed at retrieval. See docs/memory/retrieval.md → Storage
-    %% Physical storage: per-type sqlite-vec `vec0` virtual tables (entities_vec, lore_vec, happenings_vec, threads_vec, chapter_summaries_vec) joined to metadata by id. The polymorphic shape above is the logical view; vec0 doesn't filter efficiently across mixed-type rows. See docs/memory/retrieval.md → Storage
+    %% Not delta-logged — embeddings are deterministic from source content. See docs/memory/retrieval.md → Storage
+    %% Physical storage: per-type sqlite-vec `vec0` virtual tables (entities_vec, lore_vec, happenings_vec, threads_vec, chapter_summaries_vec) joined to metadata by id, scoped per row by branch_id auxiliary column. The polymorphic shape above is the logical view; vec0 doesn't filter efficiently across mixed-type rows. See docs/memory/retrieval.md → Storage
 
     deltas {
         text id PK
@@ -775,6 +780,7 @@ stories.settings: {
   classifierCadence: { mode: 'turns' | 'token-trigger', value: number }  // when the periodic classifier runs in the background
   piggybackMode: 'on' | 'off'       // capability-gated; on = narrative emits structured trailing block; off = separate per-turn classifier pass
   embeddingBackend: 'provider' | 'local'   // embedding runtime (provider endpoint OR bundled local ONNX); both produce identical retrieval algorithm
+  embedding_model_id: string        // canonical embedding model id; copied from app_settings.embedding_model_id at story creation. Locked thereafter unless the user explicitly re-indexes via the model swap UX. Different stories may carry different model ids; vec0 partitions per branch. See docs/memory/retrieval.md → Storage and Model swap UX
   retrievalMode: 'embedding' | 'llm-only'  // set at story creation, immutable thereafter; llm-only is the embedding-unavailable fallback regime
   retrievalBudgets: {                // per-type token budgets, hard partitions in v1 (no spillover); see docs/memory/retrieval.md → Per-type retrieval budgets
     entities: number

@@ -54,7 +54,7 @@ embeddings {
   target_kind TEXT,                             -- 'entity' | 'lore' | 'happening' | 'thread' | 'chapter'
   target_id TEXT,                               -- id in target_table
   field TEXT,                                   -- 'description' | 'body' | 'composite' | etc.
-  model_id TEXT,                                -- canonical embedding model id; last model used (see below)
+  model_id TEXT,                                -- canonical embedding model id; the model that produced this row's vector
   dim INTEGER,                                  -- vector dimension
   vector BLOB,                                  -- packed float32 or float16
   source_hash TEXT,                             -- content hash of source fields at embed time
@@ -68,24 +68,35 @@ embeddings {
 uses one [`sqlite-vec`](https://github.com/asg017/sqlite-vec) `vec0`
 virtual table per target kind: `entities_vec`, `lore_vec`,
 `happenings_vec`, `threads_vec`, `chapter_summaries_vec` — each
-joined to its metadata sibling by id. The polymorphic schema above
-is the logical view; vec0 doesn't filter efficiently across
-mixed-type rows, so per-type physical layout is the production
-shape. Validated in PoC; per-query KNN at ~11 / 43 / 61 / 122 ms at
-1k / 10k / 50k / 100k rows on a flagship Android device.
-`source_hash` placement (auxiliary vec0 column or per-type sidecar
-metadata table) is a production-integration detail, not pinned here.
+joined to its metadata sibling by id, scoped per row by `branch_id`
+in an auxiliary column so retrieval queries can filter to a single
+story / branch. The polymorphic schema above is the logical view;
+vec0 doesn't filter efficiently across mixed-type rows, so per-type
+physical layout is the production shape. Validated in PoC; per-query
+KNN at ~11 / 43 / 61 / 122 ms at 1k / 10k / 50k / 100k rows on a
+flagship Android device. `source_hash` placement (auxiliary vec0
+column or per-type sidecar metadata table) is a production-
+integration detail, not pinned here.
 
-**Single active model only.** All vec0 rows are under whichever
-embedding model the user has currently selected. On swap (per
-[Model swap UX](#model-swap-ux)), vec0 tables drop and recreate.
-The `model_id` column carries the model that produced each row —
-by invariant the currently-active one — and serves as a label and
-cache key, not as a multi-model coexistence mechanism. Mixed-model
-retrieval is fundamentally broken (query and stored vectors must
-share a vector space); v1 doesn't support it and there's no path
-to add it without separate per-model indexes, which sqlite-vec
-doesn't make cheap.
+**Per-branch single-model invariant.** A retrieval pass is always
+scoped to one branch, and all vectors compared in that pass share
+one model — query and stored vectors must live in the same vector
+space or cosine similarity is meaningless. Each branch's rows are
+uniformly under the model that was active when those rows were
+embedded.
+
+**Multi-model coexistence across the database.** Different stories
+(and thus different branches) can use different embedding models.
+A story created when `app_settings.embedding_model_id` was "model-x"
+keeps its rows under model-x even after the user switches the app
+default to "model-y" — its `stories.settings.embedding_model_id`
+records "model-x" until an explicit re-index runs (see
+[Model swap UX](#model-swap-ux)). The same `*_vec` table holds rows
+from multiple models concurrently, partitioned by branch; each
+branch is internally consistent. The `model_id` column on each row
+labels the producing model (used as a cache key and to detect
+mismatch with the branch's recorded model id, signalling bug or
+ungated swap).
 
 **Source-hash staleness detection.** Embeddings are not delta-
 logged because they're deterministic from source content — re-
@@ -144,41 +155,54 @@ entity embedding itself.
 
 ### Model swap UX
 
-**Why a model swap is disruptive:** embeddings only have meaning
-inside the vector space of the model that produced them. After a
-swap, every stored vector is in the OLD model's space, but the
-query vector at the next turn will be embedded under the NEW model.
-Cosine similarities between them are not comparable — retrieval is
-effectively broken until every stored vector has been recomputed
-under the new model. A "lazy" or "on-demand" re-embed strategy
-doesn't degrade gracefully here; it just gives the user broken
-retrieval over a partial subset until convergence. The realistic
-options are full re-index (with the system temporarily limited
-while it runs) or accept the risk and skip.
+**Why a per-story model swap is disruptive.** Embeddings only have
+meaning inside the vector space of the model that produced them.
+A query embedded under model B can't be compared to vectors stored
+under model A — cosine similarities go nonsensical. Within one
+story, the clean paths to switch models are full re-index (rebuild
+every vector under the new model) or explicit user assertion that
+the underlying model is unchanged (label-only update, no rebuild).
+A partial / lazy re-embed gives broken retrieval over a mixed-state
+subset until convergence and is not on offer.
 
-The dialog fires whenever `app_settings.embedding_model_id`
-textually changes and cached embedding rows under the old value
-exist. No attempt to detect "same model, different label" cases —
-any ID change is treated as a swap. AlertDialog surfaces two
-options:
+**App-level vs per-story.** `app_settings.embedding_model_id` is
+the default for newly-created stories only. Existing stories carry
+their own `stories.settings.embedding_model_id`, set at story
+creation and unaffected by app-level changes. A user switching the
+app default doesn't disturb any existing story.
 
-- **Re-index in background.** Default. Background job re-embeds all
-  existing rows under the new model. While the job runs, retrieval
-  is in a degraded state — the system surfaces a "re-indexing X /
-  N — retrieval limited" indicator on UI surfaces that consume
-  retrieval (composer, history pane, world panel). Progress
-  visible; cancellable. On cancel, the swap is rolled back to the
-  previous `embedding_model_id` so retrieval recovers full quality.
-- **Skip re-index.** Bulk-updates the recorded model id to the new
-  value without recomputing vectors. Disclaimer shown ("retrieval
-  quality may silently degrade if the new model produces different
-  vectors than the cached ones"). Escape hatch — useful when the
-  user knows the underlying model is unchanged (relabeling a custom
-  import, canonical-id refactor, etc.) and accepts the risk.
+**Where the dialog fires.** Per-story, when the user explicitly
+moves a story to a different model — either via Story Settings
+("Change embedding model for this story") or by accepting an
+"upgrade to current default" prompt surfaced when opening a story
+whose model differs from the current app default. AlertDialog
+surfaces three options:
 
-A standalone "Re-index now" button stays available in the same
-settings panel for users who want to force a re-index without
-changing the model.
+- **Re-index this story.** Default. Background job re-embeds all
+  of this story's rows under the new model — `DELETE` the story's
+  rows from each `*_vec` table (scoped by `branch_id`), re-embed,
+  re-insert. Other stories' rows in those tables are untouched.
+  While the job runs, this story's retrieval is in a degraded
+  state; the system surfaces a "re-indexing X / N — retrieval
+  limited" indicator. Progress visible; cancellable. On cancel,
+  the story's recorded model id rolls back to the previous value
+  so retrieval recovers full quality.
+- **Keep on the current model.** Don't change anything. Story
+  stays on its existing model; the "current model differs from app
+  default" prompt stops nagging until the next manual swap
+  attempt.
+- **Skip with relabel.** Bulk-updates this story's recorded
+  `embedding_model_id` to the new value without recomputing
+  vectors or touching vec0. **Only safe when the user knows the
+  underlying model is unchanged** — relabeling a custom import,
+  canonical-id refactor, filename rename, quant-suffix change.
+  Disclaimer shown that this is the user's assertion; if the new
+  id actually points to a different model, retrieval quality
+  silently degrades and the system has no way to detect that.
+
+A standalone "Re-index this story now" button stays available in
+the same Story Settings panel for users who want to force a
+re-index without changing the model.
 
 ---
 
