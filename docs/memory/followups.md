@@ -193,26 +193,6 @@ Settings Memory tab pass.
   - Init-failure handling, EP selection per device, fallback to
     provider mode if local-embedder init fails.
 
-- **Embedding compute lifecycle** — when do new-record embeddings
-  get computed? Three plausible models:
-  - **Lazy reactive** — only embed when retrieval first asks for the
-    row. Cheap when no retrieval; pays the cost inline at the first
-    retrieval that wants it.
-  - **Eager queued** — embed proactively after classifier emit on a
-    background worker. Amortized cost, but adds a worker and queue.
-  - **Hybrid** — eager-queued for net-new records, lazy-at-retrieval
-    for staleness-flagged modifications (`source_hash` mismatch).
-    Probably the answer.
-
-  Decision interacts with mobile perf (concurrent embedder cost on
-  the device), classifier `'concurrent-allowed'` semantics (does
-  classifier emit ever overlap a narrative stream in practice?),
-  and the perf-demo findings. Lands once the embedder is wired into
-  the production app; the perf demo doesn't need to commit to a
-  lifecycle model going in. Contract boundary already named in
-  [`classifier.md → Embedding compute boundary`](./classifier.md#embedding-compute-boundary)
-  — classifier owns emit, not embed.
-
 - **Background classifier UX** — pill (visible) vs. invisible; Story
   Settings affordance; manual "Run classifier now" override for users
   who want to force a pass.

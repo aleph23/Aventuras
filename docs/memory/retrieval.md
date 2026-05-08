@@ -98,30 +98,22 @@ labels the producing model (used as a cache key and to detect
 mismatch with the branch's recorded model id, signalling bug or
 ungated swap).
 
-**Source-hash staleness detection.** Embeddings are not delta-
-logged because they're deterministic from source content — re-
-computing reproduces them losslessly. But the source field can
-change without the embedding being aware (manual edit, rollback
-reverting a prior edit, branch-fork drift, schema migration). The
-fix is hash-based lazy detection at retrieval time:
-
-- `source_hash` stores the content hash of the embedded fields at
-  embed time (`xxhash(title + description)` or similar).
-- At retrieval, compute the candidate row's current content hash;
-  compare to the stored `source_hash`.
-- **Mismatch → re-embed before scoring**, persist with the new
-  `source_hash`.
-
-Uniform: handles rollback-induced staleness, manual edits, schema
-migrations, anything that desyncs row content from its embedding.
-Cost is microseconds per candidate per turn (`xxhash` is fast); re-
-embed only fires when actually needed.
-
-**Why not timestamps for staleness detection.** Rollback restores
-a prior `row.updated_at` along with the rest of the row's state. So
-`row.updated_at < embedding.updated_at` post-rollback — the "row
-newer than embedding" check inverts, staleness goes undetected.
-Hashes are content-aware and immune to timeline-direction games.
+**Source-hash tripwire.** `source_hash` stores the content hash of
+the embedded fields at embed time (`xxhash(title + description)` or
+similar). Under the [Compute lifecycle](#compute-lifecycle) contract
+vec0 stays in sync with source content via eager-sync-on-write, so
+`source_hash` is a tripwire — at retrieval, a mismatch against the
+candidate's current content hash indicates a write path bypassed
+the embed step (bug, ungated direct DB write). Log the mismatch
+loudly; treat the row's vector as untrusted (exclude or flag, do
+not silently re-embed and continue). Hash is chosen over timestamps
+because rollback restores prior `updated_at` along with the rest of
+the row's state — a timestamp-based check would invert post-
+rollback and silently mask the bug it was meant to catch. Content
+hashes are timeline-direction-agnostic. Embeddings themselves are
+not delta-logged (deterministic from source); the
+[`embedding_stale`](#compute-lifecycle) flag carries explicit
+degradation state when the eager-sync invariant can't be met.
 
 Branched (forks with the branch like every other branch-scoped table).
 
@@ -143,15 +135,72 @@ mutations affect retrieval via the structural floor (active+in-scene
 short-circuit) and via the entity's role in scene digests, not via the
 entity embedding itself.
 
-### Refresh / cadence
+### Compute lifecycle
 
-- **After turn:** embed everything the turn produced (new lore, new
-  happenings, refreshed scene digest, edited descriptions). User is
-  reading; idle window is ~5-30 seconds. Background-job-scheduled.
-- **Before turn:** embed user action only. Short text; <20ms local,
-  <100ms API.
-- **Cache:** keyed by `(target_kind, target_id, field, model_id)`. If
-  source field unchanged and model unchanged, reuse.
+**Eager-sync-on-write contract.** Every write that mutates an
+embedded field embeds the new content and updates vec0 in the same
+transaction. Creates (classifier emit, wizard, chapter-close
+summary, branch-fork copies), updates (user-edit of a description,
+lore-mgmt refinement at chapter close), and rollback (delta-log
+reversal restoring prior content) all go through this path. By
+construction vec0 is never out of sync with source content.
+
+The asymmetry that forces this contract: vec0 KNN can only return
+rows that exist in vec0. A row written to its metadata table but
+lacking a vec0 entry is invisible to retrieval — there's no "lazy
+at first retrieval" path because retrieval can't discover what
+isn't indexed. Net-new rows must be embedded before retrieval can
+find them. Mutations of existing rows can't fall back to lazy
+either, because KNN ranks against the stored vector — a stale
+vector silently mis-ranks or excludes candidates that current
+content would have qualified.
+
+**Embedder unavailability — `embedding_stale` flag.** When an
+embedder isn't available at write time (local model still
+initializing; provider mode network down) the write succeeds in the
+metadata table, the row's `embedding_stale` is set to 1, and vec0
+is left without the row (for creates) or has the row removed (for
+updates that invalidate the existing vector). The flag captures the
+degradation explicitly — embeddings aren't delta-logged, so without
+it any drift between source content and stored vector would be
+silent.
+
+A worker drains flagged rows opportunistically: on embedder init
+completion, on next successful embed call (provider recovery), in
+idle windows between turns, or via an explicit user "retry sync"
+affordance in Story Settings. Drain re-embeds, inserts/updates
+vec0, and clears the flag in one transaction.
+
+**Retrieval excludes stale rows.** Stale rows aren't in vec0 — they
+don't surface as KNN candidates. Better known-absent than silently-
+wrong. The user-facing UX may surface "N rows pending re-embed" as
+a status signal on the affected story.
+
+**Per-turn cost.** With this contract, retrieval pays no embed cost
+inline for stored rows — vec0 is fresh by the time KNN runs. The
+query side still embeds three queries per pass; see
+[Query construction](#query-construction--three-vector-stack).
+
+- **Before turn:** embed the three queries (user action,
+  structural digest, scene context). Short text; <20 ms local
+  warm, <100 ms API.
+- **At each embedded-field write:** embed inline as part of the
+  write transaction. Atomic with metadata write. Local mode warm
+  CPU ~10–30 ms per row; provider mode ~100–300 ms per network
+  round-trip (batchable across multiple rows in one transaction).
+- **Cache:** keyed by `(target_kind, target_id, field, model_id)`.
+  If source field unchanged and model unchanged, reuse.
+
+**Bulk import** (loading a story from `.avts` or migrating an old
+database) needs an explicit batched-embed phase, not naive per-row
+eager. 100k rows × 10 ms is 16 minutes if you embed each inline
+during import; batch the embed calls (especially in provider mode,
+where each call is a network round-trip) and surface progress UI.
+Same machinery as the model-swap re-index path.
+
+**Edit storms** are not a concern because saves are explicit user
+actions in the v1 design — no autosave per keystroke. One save
+equals one embed.
 
 ### Model swap UX
 

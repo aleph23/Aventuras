@@ -28,20 +28,27 @@ retrieval queries against.
 
 ## Embedding compute boundary
 
-The classifier owns structural emit, not embedding compute. New
-happenings and first-introduction entity descriptions are net-new
-rows; their embeddings get computed on a separate path — never
-synchronously inline with the classifier write. The lifecycle
-mechanism (lazy / eager-queued / hybrid) is unsettled; see the
-**Embedding compute lifecycle** entry under
-[`followups.md → v1-blocking`](./followups.md#v1-blocking).
+The classifier emits rows and embeds them in the same transaction —
+new happenings, first-introduction entity descriptions, and any
+other write touching an embedded field go through the eager-sync-
+on-write contract specified in
+[`retrieval.md → Compute lifecycle`](./retrieval.md#compute-lifecycle).
+The classifier itself runs as a background agent (see
+[Background-task framing](#background-task-framing) below), so the
+inline embed cost stays off the user-facing critical path.
+
+If the embedder is unavailable at write time (local model still
+initializing, provider mode network down), the metadata write
+succeeds, the row is marked `embedding_stale = 1`, and a worker
+drains the flagged set when the embedder is healthy again. Same
+path as any other embedded-field write — no classifier-specific
+deferral mechanism.
 
 The classifier does not modify already-embedded fields on existing
-rows. Status flips touch `entities.status` only, which is not
+rows. Status flips touch `entities.status` only, which isn't
 embedded. If a future extension lets the classifier modify an
-embedded field, it bumps `source_hash` and lets the embedding
-lifecycle handle the re-embed out-of-band rather than blocking on
-it inline.
+embedded field, it goes through the same eager-sync contract — no
+special path required.
 
 The transient embedding computed in the disambiguation flow below
 (extracted description for the similarity check) is a decision-time
