@@ -69,14 +69,25 @@ explicit ID emission.
 
 ## Capability gate
 
-Piggyback is gated on the narrative model's structured-output
-capability (or its empirically-verified ability to emit reliable
-tagged blocks at narrative-generation temperatures). The
-`app_settings.providers[].cachedModels[].capabilities` schema already
-carries this metadata. Story Settings exposes a
-`piggybackMode: 'on' | 'off'` toggle — enabled only when the model
-declares the capability; falls back to a per-turn classifier pass when
-off.
+Piggyback's gate is the narrative model's **empirical reliability
+emitting tagged trailing blocks at narrative-generation
+temperatures** — not its structured-output capability. Forcing a
+strict structured-output mode would lock the entire response to a
+JSON schema and conflict with the prose narrative the same call
+must produce; it can't be the mechanism here. The actual signal
+is whether the model reliably appends a parseable tagged block
+after the prose without breaking the narrative flow.
+
+We track this via the standard provider-capability path:
+`app_settings.providers[].cachedModels[].capabilities` carries a
+flag for tagged-block reliability, populated from our curation +
+detection and overridable by the user (capabilities are always
+user-overridable — providers report inconsistently, and custom
+endpoints may run models the provider's metadata doesn't
+recognize). Story Settings exposes a
+`piggybackMode: 'on' | 'off'` toggle — on by default when the
+narrative model's capability flag is set; falls back to a per-turn
+classifier pass when off.
 
 ## Mode-mixing across a story
 

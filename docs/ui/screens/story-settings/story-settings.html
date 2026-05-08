@@ -641,6 +641,10 @@
 
       <!-- MEMORY -->
       <div class="tab-panel" data-panel="memory">
+        <div class="tab-section">
+          <div class="tab-section-title">Chapter close</div>
+        </div>
+
         <div class="field-row">
           <div class="field-label">chapter token threshold
             <span class="hint">auto-close the open region when it exceeds this</span>
@@ -676,6 +680,130 @@
           <div>
             <input class="input-text" value="10">
             <span style="font-size: 10px; color: var(--ink-faint); margin-left: 8px;">entries</span>
+          </div>
+        </div>
+
+        <div class="switch-row" role="switch" aria-checked="false">
+          <div class="switch-row-text">
+            <div class="switch-row-label">full chapter in buffer</div>
+            <div class="switch-row-hint">always include the current chapter verbatim, in addition to recent buffer &mdash; trades tokens for guaranteed coverage</div>
+          </div>
+          <span class="toggle off"></span>
+        </div>
+
+        <div class="tab-section">
+          <div class="tab-section-title">Classifier</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">cadence
+            <span class="hint">turns between background classifier runs</span>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: var(--ink-muted);">every</span>
+            <input class="input-text" value="10" style="width: 60px;">
+            <span style="font-size: 11px; color: var(--ink-muted); margin-left: 4px;">turns</span>
+            <div style="font-size: 10px; color: var(--ink-faint); margin-top: 4px;">buffer-aware overlap: <b>2 turns</b> &middot; cadence keeps pace with recent-buffer eviction</div>
+          </div>
+        </div>
+
+        <div class="switch-row" role="switch" aria-checked="true">
+          <div class="switch-row-text">
+            <div class="switch-row-label">use piggyback mode <span style="font-size: 10px; color: var(--ink-faint);">(recommended)</span></div>
+            <div class="switch-row-hint">narrative call emits a tagged trailing block &mdash; depends on the model's reliability with tagged blocks during prose generation; falls back to a per-turn classifier pass when off</div>
+          </div>
+          <span class="toggle on"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">status
+            <span class="hint">live state for the active branch &middot; <a href="#" style="color: var(--ink-faint);">demo states</a></span>
+          </div>
+          <div class="classifier-status">
+            <div class="status-tabs" style="display: flex; gap: 4px; margin-bottom: 8px; font-size: 10px;">
+              <span class="status-tab active" data-cstate="idle" style="padding: 3px 8px; border: 1px solid var(--border); background: var(--bg-highlight); cursor: pointer;">idle</span>
+              <span class="status-tab" data-cstate="running" style="padding: 3px 8px; border: 1px solid var(--border); cursor: pointer;">running</span>
+              <span class="status-tab" data-cstate="retrying" style="padding: 3px 8px; border: 1px solid var(--border); cursor: pointer;">retrying</span>
+              <span class="status-tab" data-cstate="failed" style="padding: 3px 8px; border: 1px solid var(--border); cursor: pointer;">failed-persistent</span>
+            </div>
+            <div class="status-body" data-cstate="idle">
+              <span style="font-size: 12px;">Last run <b>3 turns ago</b>, processed 4 happenings + 2 awareness rows.</span>
+            </div>
+            <div class="status-body" data-cstate="running" hidden>
+              <span style="font-size: 12px;">Running&hellip; processed <b>2 of 8</b> turns.</span>
+            </div>
+            <div class="status-body" data-cstate="retrying" hidden>
+              <span style="font-size: 12px; color: var(--warn);">&#9888; Last run failed (1 of 3 attempts), retrying in <b>2 minutes</b>.</span>
+            </div>
+            <div class="status-body" data-cstate="failed" hidden>
+              <div style="font-size: 12px; color: var(--warn); margin-bottom: 6px;">&#9888; Classifier failed after 3 attempts: <i>rate limit exceeded</i>.</div>
+              <span class="add-chip" style="padding: 3px 10px; font-size: 11px;">Retry</span>
+              <span class="add-chip" style="padding: 3px 10px; font-size: 11px;">View error details</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">&nbsp;</div>
+          <div>
+            <span class="add-chip" style="padding: 4px 14px; font-size: 11px;">Run classifier now</span>
+            <span style="font-size: 10px; color: var(--ink-faint); margin-left: 8px;">disabled while a run is in flight</span>
+          </div>
+        </div>
+
+        <div class="tab-section">
+          <div class="tab-section-title">Embedder</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">backend &middot; model
+            <span class="hint">locked once any vec0 row exists for this story; switch via the model-swap dialog</span>
+          </div>
+          <div>
+            <div style="font-size: 12px; margin-bottom: 4px;">
+              <span style="font-family: monospace; background: var(--bg-highlight); padding: 1px 6px; border: 1px solid var(--border);">local</span>
+              &middot;
+              <code style="font-size: 11px;">Xenova/all-MiniLM-L6-v2-q8</code>
+            </div>
+            <div style="font-size: 10px; color: var(--ink-faint); margin-bottom: 8px;">execution provider: <code>cpu</code> (catalog default)</div>
+            <span class="add-chip" style="padding: 4px 12px; font-size: 11px;">Switch embedder&hellip;</span>
+          </div>
+        </div>
+
+        <div class="tab-section">
+          <div class="tab-section-title">Retrieval budgets <span style="font-size: 10px; color: var(--ink-faint); font-weight: 400;">&middot; per-type token budgets, hard partitions</span></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">entities</div>
+          <div><input class="input-text" value="800" style="width: 90px;"> <span style="font-size: 10px; color: var(--ink-faint);">tokens</span></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">lore</div>
+          <div><input class="input-text" value="1200" style="width: 90px;"> <span style="font-size: 10px; color: var(--ink-faint);">tokens</span></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">happenings</div>
+          <div><input class="input-text" value="1500" style="width: 90px;"> <span style="font-size: 10px; color: var(--ink-faint);">tokens</span></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">threads</div>
+          <div><input class="input-text" value="500" style="width: 90px;"> <span style="font-size: 10px; color: var(--ink-faint);">tokens</span></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">chapter summaries</div>
+          <div><input class="input-text" value="600" style="width: 90px;"> <span style="font-size: 10px; color: var(--ink-faint);">tokens</span></div>
+        </div>
+
+        <div class="tab-section">
+          <div class="tab-section-title">Embedding status <span style="font-size: 10px; color: var(--ink-faint); font-weight: 400;">&middot; only renders when there's staleness &middot; <a href="#" id="staleness-toggle" style="color: var(--ink-faint);">show preview</a></span></div>
+        </div>
+
+        <div id="staleness-preview" style="display: none;">
+          <div class="warn-box" style="background: #fdf6e7; border-color: #d8c79b; border-left-color: #b89540; color: #6b5520;">
+            <div style="font-size: 12px; margin-bottom: 6px;"><b>12 rows pending re-embed</b> under MiniLM-L6.</div>
+            <div style="font-size: 11px; color: var(--ink-muted); margin-bottom: 10px;">Reason: model removed</div>
+            <span class="add-chip" style="padding: 4px 12px; font-size: 11px;">Switch embedder&hellip;</span>
           </div>
         </div>
 
@@ -1090,6 +1218,33 @@
   defModalBackdrop.addEventListener('click', e => {
     if (e.target === defModalBackdrop) defModalBackdrop.classList.remove('show');
   });
+})();
+
+// Memory tab — classifier status state-switcher + staleness preview toggle
+(function() {
+  document.querySelectorAll('.status-tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      const state = t.dataset.cstate;
+      document.querySelectorAll('.status-tab').forEach(function (x) {
+        x.classList.toggle('active', x === t);
+        x.style.background = (x === t) ? 'var(--bg-highlight)' : '';
+      });
+      document.querySelectorAll('.status-body').forEach(function (b) {
+        b.hidden = b.dataset.cstate !== state;
+      });
+    });
+  });
+
+  const stalenessToggle = document.getElementById('staleness-toggle');
+  const stalenessPreview = document.getElementById('staleness-preview');
+  if (stalenessToggle && stalenessPreview) {
+    stalenessToggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      const open = stalenessPreview.style.display !== 'none';
+      stalenessPreview.style.display = open ? 'none' : 'block';
+      stalenessToggle.textContent = open ? 'show preview' : 'hide preview';
+    });
+  }
 })();
 </script>
 

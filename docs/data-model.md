@@ -777,7 +777,7 @@ stories.settings: {
   chapterAutoClose: boolean         // auto-close at threshold; off = threshold is guidance only, user wraps manually; default true
   recentBuffer: number              // last N entries verbatim in LLM context, regardless of chapter boundaries; default 10
   fullChapterInBuffer: boolean      // current chapter always verbatim in LLM context, in addition to recentBuffer; default false
-  classifierCadence: { mode: 'turns' | 'token-trigger', value: number }  // when the periodic classifier runs in the background
+  classifierCadence: number          // turns between periodic classifier runs in the background; entry-counted to match recentBuffer's units
   piggybackMode: 'on' | 'off'       // capability-gated; on = narrative emits structured trailing block; off = separate per-turn classifier pass
   embeddingBackend: 'provider' | 'local'   // embedding runtime (provider endpoint OR bundled local ONNX); both produce identical retrieval algorithm
   embedding_model_id: string        // canonical embedding model id; copied from app_settings.embedding_model_id at story creation. Locked thereafter unless the user explicitly re-indexes via the model swap UX. Different stories may carry different model ids; vec0 partitions per branch. See docs/memory/retrieval.md → Storage and Model swap UX

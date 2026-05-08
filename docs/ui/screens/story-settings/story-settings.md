@@ -269,30 +269,37 @@ confirmation lives at the save-session commit step. Lead is **not**
 flagged — lead-switching is a first-class action per
 [principles → Mode, lead, narration](../../principles.md#mode-lead-and-narration--three-orthogonal-concepts).
 
-## Memory tab — chapter threshold + recent buffer
+## Memory tab
 
-**Chapter threshold** gets quick-pick preset buttons alongside the
+The Memory tab gathers chapter-close knobs, prompt-context buffer,
+classifier cadence + status, embedder selection, retrieval budgets,
+and any active embedding-staleness state for this story. Sub-
+sections within the tab match the schema groupings in
+[`stories.settings`](../../../data-model.md#story-settings-shape).
+
+### Chapter close
+
+**Chapter threshold.** Quick-pick preset buttons alongside the
 numeric input: `Short (8k)`, `Balanced (24k)`, `Long (48k)`,
-`Custom…`. Gentle guidance on typical choices without hiding the raw
-number.
+`Custom…`. Gentle guidance on typical choices without hiding the
+raw number.
 
-### Auto-close chapters
+**Auto-close chapters.** Per-story field
+`stories.settings.chapterAutoClose: boolean`. Default `true`. When
+off, the threshold becomes pure guidance — the user wraps chapters
+manually and the reader's chapter progress strip color (yellow at
+80%, red at 90%) is the primary signal. The toggle mirrors into
+App Settings · Memory as the same control bound to
+`app_settings.default_story_settings.chapterAutoClose`, since
+Memory is the form component reused across both surfaces.
 
-Per-story field: `stories.settings.chapterAutoClose: boolean`.
-Default `true`. When off, the threshold becomes pure guidance — the
-user wraps chapters manually and the reader's chapter progress strip
-color (yellow at 80%, red at 90%) is the primary signal. The toggle
-mirrors into App Settings · Memory as the same control bound to
-`app_settings.default_story_settings.chapterAutoClose`, since Memory
-is the form component reused across both surfaces.
+### Prompt context
 
-### Prompt context — recent buffer
-
-Per-story setting: `stories.settings.recentBuffer: number` (entries).
-Default 10. Governs how many entries from the **previous chapter**
-spill over into prompt context once a chapter has closed; current-
-chapter entries are always injected verbatim regardless of this
-value.
+**Recent buffer.** Per-story setting
+`stories.settings.recentBuffer: number` (entries). Default 10.
+Governs how many entries from the **previous chapter** spill over
+into prompt context once a chapter has closed; current-chapter
+entries are always injected verbatim regardless of this value.
 
 Concretely: if you're on entry 5 of a new chapter with
 `recentBuffer: 10`, you get those 5 plus the last 5 entries of the
@@ -301,17 +308,101 @@ entry 20 of the same chapter you get those 20 alone — the buffer
 has been "absorbed" by the current chapter. The setting therefore
 shapes the early-chapter handoff, not steady-state.
 
-The retrieval agent (deferred design — see
-[`architecture.md → Retrieval / injection phase`](../../../architecture.md))
-fills out remaining prompt context against the world state
-(entities, lore, threads, happenings) scored by scene presence,
-awareness graph, and `injection_mode`. It does **not** query the
-delta log — the delta log is rollback's substrate, not retrieval's.
+**Full chapter in buffer.** Per-story toggle
+`stories.settings.fullChapterInBuffer: boolean`. Default `false`.
+When on, the current chapter is always verbatim in addition to
+`recentBuffer`. Trades token cost (current-chapter prose may grow
+large near threshold) for guaranteed in-context coverage. UI shows
+projected token cost at the chapter threshold inline with the
+toggle.
 
 The structural floor — active+in-scene entities, current-location
 lore, awareness-driven happenings, always-injection rows — is not
-governed by `recentBuffer` either. Those reach the prompt
-unconditionally when their structural conditions hold.
+governed by these buffer settings. Those reach the prompt
+unconditionally when their structural conditions hold. See
+[`memory/retrieval.md → Structural floor`](../../../memory/retrieval.md#structural-floor--always-inject)
+for the full set.
+
+### Classifier
+
+Surfaces classifier controls and live state for the active branch.
+Full design in
+[`memory/classifier.md → Settings · Memory · Classifier panel`](../../../memory/classifier.md#settings--memory--classifier-panel);
+this section captures what the screen renders.
+
+- **Cadence config** — in-place edit of
+  `stories.settings.classifierCadence` (turns; v1 entry-counted
+  only) and the `piggybackMode` toggle. Buffer-aware cadence
+  indicator from
+  [`memory/cadence.md → User-tunable knobs`](../../../memory/cadence.md#user-tunable-knobs)
+  renders inline.
+- **Status block** — current state for the active branch, one of
+  _idle / running / retrying / failed-persistent_. Each state
+  carries its own copy and inline actions; failed-persistent
+  additionally surfaces as a top-bar error pill in the reader,
+  parallel to the cluster-1 staleness pill.
+- **`Run classifier now`** button. Disabled while a run is
+  actively in flight; enabled in idle and retrying states (lets
+  the user preempt the auto-retry backoff).
+
+### Embedder
+
+Embedder selection is locked once the story has any embedded
+content (any vec0 row exists for any of its branches). The panel
+renders compact and offers a single `Switch embedder` action that
+fires the [Model swap UX](../../../memory/retrieval.md#model-swap-ux)
+dialog. Full design context in
+[`memory/model-management.md → Embedder config — where it lives in Settings`](../../../memory/model-management.md#embedder-config--where-it-lives-in-settings).
+
+Displayed:
+
+- Backend (`local` or `provider`).
+- Model id + display name.
+- For local backends, the resolved execution provider (per-model
+  override if any, otherwise the catalog's `default_ep[platform]`
+  for curated entries or the user-picked EP for custom imports).
+- `[Switch embedder]` button.
+
+When `embeddingBackend = 'provider'`, both the provider and the
+model id are displayed together — the schema delta for
+`embedding_provider_id` is tracked at
+[`memory/followups.md → Per-story embedding provider id`](../../../memory/followups.md#v1-blocking).
+
+### Retrieval budgets
+
+Per-type token budgets for retrieval
+(`stories.settings.retrievalBudgets`). Five number inputs / sliders:
+
+- entities
+- lore
+- happenings
+- threads
+- chapter summaries
+
+Defaults seed from `app_settings.default_story_settings` at story
+creation. Hard partitions in v1 — no cross-type spillover. See
+[`memory/retrieval.md → Per-type retrieval budgets`](../../../memory/retrieval.md#per-type-retrieval-budgets)
+for the design and
+[`memory/parked.md → Spillover policy`](../../../memory/followups.md#parked--post-v1)
+for the post-v1 spillover question.
+
+### Embedding status
+
+Conditional. Only renders when the active branch has stale
+embedding rows (`embedding_stale > 0` count across embedded-field
+tables). Surfaces the per-story resolution panel from cluster 1:
+
+> 12 rows pending re-embed under MiniLM-L6.
+> Reason: model removed / embedder offline / init failure / ...
+> `[Switch embedder]`
+
+Single-story view — Story Settings is for THIS story. The
+cross-story aggregate (a list of every story with stale rows
+across the database) lives in App Settings · Memory. Tapping
+`Switch embedder` runs the same path as the Embedder section's
+button. See
+[`memory/model-management.md → Staleness UI`](../../../memory/model-management.md#staleness-ui)
+for the full surfacing design.
 
 ## Translation tab — display-only, opt-in, single target
 

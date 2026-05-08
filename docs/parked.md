@@ -542,6 +542,25 @@ Decide route at design pass; lean unique-item-as-batch for
 narrow cases, `entity_stacks` if/when broader stackable-with-
 description demand emerges.
 
+#### Token-trigger classifier cadence mode
+
+`stories.settings.classifierCadence` ships v1 as a single number
+(turns between background classifier runs). The original schema
+was a discriminated union — `{ mode: 'turns' | 'token-trigger',
+value: number }` — but the token-trigger variant was dropped from
+v1 because the buffer-aware overlap UX
+([`memory/cadence.md → User-tunable knobs`](./memory/cadence.md#user-tunable-knobs))
+pairs cadence with `recentBuffer`, which is entry-counted; pairing
+those across two different units (turns vs tokens) is hard to
+reason about and the indicator math gets noisy.
+
+Real signal that token-trigger is wanted (long entries pushing
+classifier work too far apart, or short entries running classifier
+too aggressively) would justify reintroducing the union.
+Reintroduction is additive — the schema goes from `number` to
+`{ mode, value }`, the UI adds a mode picker. No data migration
+beyond field-shape lifting.
+
 ### UX (parked)
 
 #### Reader font-size scaling generalized to all body prose

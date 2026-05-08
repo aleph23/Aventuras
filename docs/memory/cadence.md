@@ -44,11 +44,11 @@ them.
 Three orthogonal user-tunable settings per story. Defaults copied
 from `app_settings.default_story_settings` at story creation.
 
-| Knob                                         | Effect                                                                                      | Foot-shooting check                                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `recentBuffer` (entries)                     | Last N entries verbatim in LLM context, regardless of chapter boundaries                    | None directly; interacts with classifier cadence                                                                          |
-| `fullChapterInBuffer` (boolean)              | Current chapter always verbatim in LLM context, **in addition to** the `recentBuffer` slice | UI shows token cost at threshold ("at the chapter threshold this consumes ~X tokens")                                     |
-| `classifierCadence` (turns or token trigger) | When the periodic classifier runs in the background                                         | UI warns when cadence > buffer eviction horizon for un-classified turns; cadence relaxes when `fullChapterInBuffer` is on |
+| Knob                            | Effect                                                                                      | Foot-shooting check                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `recentBuffer` (entries)        | Last N entries verbatim in LLM context, regardless of chapter boundaries                    | None directly; interacts with classifier cadence                                                                          |
+| `fullChapterInBuffer` (boolean) | Current chapter always verbatim in LLM context, **in addition to** the `recentBuffer` slice | UI shows token cost at threshold ("at the chapter threshold this consumes ~X tokens")                                     |
+| `classifierCadence` (turns)     | When the periodic classifier runs in the background                                         | UI warns when cadence > buffer eviction horizon for un-classified turns; cadence relaxes when `fullChapterInBuffer` is on |
 
 The two buffer settings compose orthogonally. With
 `fullChapterInBuffer = true` and `recentBuffer = 10`, the LLM gets
@@ -76,7 +76,7 @@ the prose is always in LLM context regardless of cadence.
 {
   recentBuffer: number,           // entries; default 10
   fullChapterInBuffer: boolean,   // default false
-  classifierCadence: { mode: 'turns' | 'token-trigger', value: number }
+  classifierCadence: number       // turns; v1 ships entry-counted only — see parked.md → Token-trigger classifier cadence
   // existing memory knobs continue: chapterTokenThreshold, chapterAutoClose
 }
 ```
