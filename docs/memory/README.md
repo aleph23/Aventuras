@@ -60,6 +60,10 @@ the shape.
   query construction, candidate pools, hybrid retrieval per type,
   pinning (`decay_resistance`), per-type budgets, the ranker
   (scoring + MMR + budget-fill + bypass + chapter-match boost).
+- **[model-management.md](./model-management.md)** — embedding
+  model lifecycle: curated catalog, onboarding, on-disk layout,
+  download flow, license attestation, removal, init-failure
+  handling, staleness UI.
 - **[edge-cases.md](./edge-cases.md)** — name collision +
   disambiguation, staged-entity promotion, retirement, cutaway /
   multi-scene entries, v1 limitations.

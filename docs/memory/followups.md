@@ -180,18 +180,32 @@ Settings Memory tab pass.
   desktop-only / opt-in, leave provider as mobile default if low-end
   devices fail) remains on the table until cross-device data lands.
 
-  **Open — production integration.** What stays v1-blocking from
-  this entry's scope:
-  - Real downloader with progress UI, resumability, SHA256
-    verification (for curated entries we ship known hashes).
-  - License-fetch + agreement dialog at download time; agreed-to
-    license text persisted alongside the model.
-  - Settings UI: model picker, current-model display, re-index
-    dialog wiring (already specified —
-    [`retrieval.md → Model swap UX`](./retrieval.md#model-swap-ux)),
-    "remove downloaded model" affordance.
-  - Init-failure handling, EP selection per device, fallback to
-    provider mode if local-embedder init fails.
+  **Open — production integration.** Cluster-1 (catalog,
+  onboarding, on-disk layout, download flow, license attestation,
+  removal, init-failure handling, staleness UI) is designed in
+  [`model-management.md`](./model-management.md); v1-blocking work
+  there is the implementation (real downloader, SHA256 verification
+  against catalog hashes, license-dialog wiring, Settings · Memory
+  tab, the staleness panel + top-bar pill). Cluster-2 stays open
+  for design — execution-provider selection per device (PoC
+  surfaced `xnnpack` crashes; CPU + NNAPI both work) and
+  provider-mode fallback semantics on local-embedder init failure.
+
+- **Per-story embedding provider id.** The schema has
+  `stories.settings.embeddingBackend` (`provider | local`) and
+  `embedding_model_id`, but no `embedding_provider_id`. When backend
+  is `provider`, the system needs to resolve which provider
+  (configured under `app_settings.providers`) supplies the embedding
+  endpoint — users may run a different provider for embeddings than
+  for narrative LLM calls. Schema delta: add
+  `stories.settings.embedding_provider_id?: string` (required when
+  backend is `provider`); mirror in
+  `app_settings.default_story_settings`. UI surfaces in App
+  Settings · Memory and Story Settings · Memory (provider dropdown
+  grouped by configured providers, model dropdown filtered to that
+  provider's embedding-capable models). Not routed through the
+  Profiles tab — embedders share none of the LLM-profile parameter
+  shape (temperature, max output, thinking, structured-output).
 
 - **Background classifier UX** — pill (visible) vs. invisible; Story
   Settings affordance; manual "Run classifier now" override for users
