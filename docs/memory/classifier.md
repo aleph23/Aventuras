@@ -26,6 +26,28 @@ retrieval queries against.
   [`data-model.md → World-state storage`](../data-model.md#world-state-storage)
   remains intact).
 
+## Embedding compute boundary
+
+The classifier owns structural emit, not embedding compute. New
+happenings and first-introduction entity descriptions are net-new
+rows; their embeddings get computed on a separate path — never
+synchronously inline with the classifier write. The lifecycle
+mechanism (lazy / eager-queued / hybrid) is unsettled; see the
+**Embedding compute lifecycle** entry under
+[`followups.md → v1-blocking`](./followups.md#v1-blocking).
+
+The classifier does not modify already-embedded fields on existing
+rows. Status flips touch `entities.status` only, which is not
+embedded. If a future extension lets the classifier modify an
+embedded field, it bumps `source_hash` and lets the embedding
+lifecycle handle the re-embed out-of-band rather than blocking on
+it inline.
+
+The transient embedding computed in the disambiguation flow below
+(extracted description for the similarity check) is a decision-time
+computation, not a persisted embedding write — outside this
+boundary.
+
 ## Disambiguation on new-character mentions
 
 For every "new character" candidate the classifier extracts, code-side

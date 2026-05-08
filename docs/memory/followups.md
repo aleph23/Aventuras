@@ -122,8 +122,90 @@ Settings Memory tab pass.
   similarity, involvements overlap percentage, time-proximity
   window). Lands once test stories exist to calibrate against;
   defaults ship for v1, advanced settings expose them.
-- **Local embedder selection + bundling** — which ONNX model, bundle
-  size impact on mobile, license review.
+- **Local embedder integration + on-device perf demo** — selection,
+  runtime, tokenizer, sourcing, and the empirical pass that closes
+  the design.
+
+  **Runtime path.** ONNX everywhere — `onnxruntime-react-native` on
+  Expo, `onnxruntime-node` on Electron. Same ONNX file used on both
+  platforms for vector consistency. Transformers.js dropped from
+  consideration: pure-JS WASM inference unsuitable for mobile, and
+  ONNX-export embeddings differ from transformers.js outputs in
+  practice — going ONNX-only on both sides keeps stored vectors
+  comparable.
+
+  **Tokenizer.** `onnxruntime-extensions` custom ops, baked into the
+  ONNX graph. No JS tokenizer code path. Curated shortlist gets
+  paired bundles (model + tokenizer ONNX) generated offline once via
+  `gen_processing_models`; we host the bundles or republish to a
+  known HF location. WordPiece coverage spans the candidate models
+  (MiniLM, BGE-small, mxbai, snowflake-arctic).
+
+  **Sourcing.** Curated HF download is the in-app primary path with
+  **live model-card fetch** at download time so the user agrees to
+  the current license rather than a curation-time snapshot — defends
+  against authors editing model cards post-curation. We store the
+  agreed-to license text alongside the model file so the agreement
+  is frozen even if the source changes later. Custom-URL dropped
+  entirely; replaced with **custom file import** for power users:
+  user downloads model.onnx, runs `gen_processing_models` themselves
+  to produce the tokenizer ONNX, brings both files via file picker.
+  License is user-attested for custom imports (no live fetch). The
+  `gen_processing_models` step requires Python — we ship a small
+  recipe in docs, not in-app tooling.
+
+  **Perf demo.** Candidate bundle wired into a throwaway Expo build
+  (not a standalone bench), running the realistic per-turn workload —
+  sequential pipeline (embed input, retrieve, LLM generate, embed
+  results; classifier and narrative stream don't overlap by design).
+  Measures cold-start init, warm per-query latency, peak memory, and
+  thermal/battery over a multi-turn session on a representative
+  low-end Android target. Demo also sanity-checks **numerical
+  divergence across execution providers** (CPU vs CoreML vs NNAPI):
+  comparing output vectors for the same input across EPs tells us
+  whether EP changes need to trigger re-index in addition to
+  `embedding_model_id` changes. If divergence is non-trivial, the
+  re-index trigger broadens to `(model_id, execution_provider)` —
+  schema implication kept open until the demo decides.
+
+  Demo itself is disposable; the integration pattern (ORT loading,
+  model + tokenizer file management, init-failure handling, EP
+  selection, file-import flow) feeds forward to the production
+  embedder. Pass criteria: embedding cost is bounded and predictable
+  within a few-second pre-LLM gate — anchored to the prior app's
+
+  > 1 minute pre-turn baseline, users won't notice multi-second
+  > embedder cost as long as it stays bounded. The demo also informs
+  > whether one model serves all device tiers or whether a tiered
+  > selection (different ONNX models per detected device class,
+  > possibly user-selectable) is warranted — empirical finding, not a
+  > v1 commitment going in.
+
+  Failure mode: if no candidate meets the bar across the mobile
+  target range, demote local-embedder to desktop-only / opt-in,
+  leave provider as the mobile default — design pre-commits to this
+  off-ramp so the decision isn't blocked on "find a better model."
+
+- **Embedding compute lifecycle** — when do new-record embeddings
+  get computed? Three plausible models:
+  - **Lazy reactive** — only embed when retrieval first asks for the
+    row. Cheap when no retrieval; pays the cost inline at the first
+    retrieval that wants it.
+  - **Eager queued** — embed proactively after classifier emit on a
+    background worker. Amortized cost, but adds a worker and queue.
+  - **Hybrid** — eager-queued for net-new records, lazy-at-retrieval
+    for staleness-flagged modifications (`source_hash` mismatch).
+    Probably the answer.
+
+  Decision interacts with mobile perf (concurrent embedder cost on
+  the device), classifier `'concurrent-allowed'` semantics (does
+  classifier emit ever overlap a narrative stream in practice?),
+  and the perf-demo findings. Lands once the embedder is wired into
+  the production app; the perf demo doesn't need to commit to a
+  lifecycle model going in. Contract boundary already named in
+  [`classifier.md → Embedding compute boundary`](./classifier.md#embedding-compute-boundary)
+  — classifier owns emit, not embed.
+
 - **Background classifier UX** — pill (visible) vs. invisible; Story
   Settings affordance; manual "Run classifier now" override for users
   who want to force a pass.

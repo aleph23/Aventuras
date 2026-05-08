@@ -122,19 +122,21 @@ entity embedding itself.
 
 ### Model swap UX
 
-Model swap detected when `app_settings.embedding_model_id` changes
-and the cached `embeddings.model_id` doesn't match. AlertDialog
-surfaces with three options:
+The dialog fires whenever `app_settings.embedding_model_id` textually
+changes and cached `embeddings.model_id` rows under the old value
+exist. No attempt to detect "same model, different label" cases — any
+ID change is treated as a swap. AlertDialog surfaces three options:
 
 - **Re-index now.** Background job re-embeds existing rows under the
   new model. Progress visible; cancellable.
 - **Re-index lazily.** Default. Re-embeds on demand as candidates are
   touched. UX-graceful, spreads cost.
-- **Same model, different ID — skip re-index.** Escape hatch for
-  canonical-id mismatches (`Snowflake/snowflake-arctic-embed-m` vs.
-  `snowflake-arctic-embed-m`). Bulk-updates `embeddings.model_id`
-  without re-computing. Disclaimer shown ("if the model is actually
-  different, retrieval quality will silently degrade").
+- **Skip re-index.** Bulk-updates `embeddings.model_id` to the new
+  value without re-computing vectors. Disclaimer shown ("retrieval
+  quality may silently degrade if the new model produces different
+  vectors than the cached ones"). Escape hatch — useful when the user
+  knows the underlying model is unchanged (relabeling a custom
+  import, canonical-id refactor, etc.) and accepts the risk.
 
 A standalone "Re-index now" button stays available in the same
 settings panel for users who want to force a re-index without changing

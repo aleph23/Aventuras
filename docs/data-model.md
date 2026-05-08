@@ -241,7 +241,7 @@ erDiagram
         json assignments "Record<agentId, profileId>; which profile each agent uses by default"
         text default_provider_id "FK into providers[].id; seeds Narrative + 'Reset to defaults'"
         json default_models "Record<agentId, { providerId, modelId }>; resolver fallback for un-overridden story.settings.models"
-        text embedding_model_id "canonical embedding model id; used for the bundled local embedder OR a provider-side embedding endpoint. See docs/memory/retrieval.md → Embedding infrastructure"
+        text embedding_model_id "canonical embedding model id; filename-derived for local downloads (includes quant suffix), provider id for provider mode, user-supplied label for power-user file imports. Any textual change fires the re-index dialog unconditionally. See docs/memory/retrieval.md → Embedding infrastructure"
         json default_story_settings "see 'Story settings shape' — copy-at-creation source for new stories"
         text default_calendar_id "id into the merged calendar registry (built-ins from code + vault_calendars rows); seeds new stories' calendarSystemId"
         json appearance "{ themeId, readerFontScale, accentOverride?, density } — density: 'default'|'compact'|'regular'|'comfortable' (sentinel 'default' resolves per tier; see ui/foundations/spacing.md#density-toggle)"
