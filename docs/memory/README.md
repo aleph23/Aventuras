@@ -67,6 +67,13 @@ the shape.
 - **[edge-cases.md](./edge-cases.md)** — name collision +
   disambiguation, staged-entity promotion, retirement, cutaway /
   multi-scene entries, v1 limitations.
+- **[probe.md](./probe.md)** — memory probe contract: per-turn
+  capture model (light default, deep opt-in), simulator math
+  (re-rank captured state under edited params), FIFO eviction at
+  100 captures/story, cross-cuts for branch fork / model swap /
+  failure capture / param drift. Embedding-mode only. Screen UX
+  in
+  [`docs/ui/screens/memory-probe/memory-probe.md`](../ui/screens/memory-probe/memory-probe.md).
 - **[followups.md](./followups.md)** — schema impact summary,
   Settings UX implications, v1-blocking work, cross-doc updates,
   parked / post-v1 items.

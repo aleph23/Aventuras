@@ -569,6 +569,27 @@ export. Power-user / debug surface. Heavier observability tooling
 (global delta-log browser) lives in its own future panel — see
 followups.
 
+### Memory probe mode (master gate)
+
+Toggle bound to
+[`app_settings.diagnostics.probe_mode_enabled`](../../../data-model.md#diagram).
+Off by default. Master gate for the
+[memory probe](../memory-probe/memory-probe.md) — when on, stories
+whose own
+[`stories.settings.probe_mode_active`](../../../data-model.md#diagram)
+is on capture per-turn retrieval state for diagnostic inspection;
+when off, no captures are written across any story.
+
+The toggle affects writes only — captures already written stay
+inspectable until explicitly cleared. Adds a small per-turn
+serialization cost (light captures: <10 ms typical) only on
+stories where both flags are on; turning the master flag off zeros
+that cost across the whole app.
+
+Inline footer copy: short paragraph plus an `Open memory probe →`
+link that routes to the probe screen scoped to the most-recently-
+opened story (or a story-list picker if none).
+
 ## Save session
 
 Standard [save-session pattern](../../patterns/save-sessions.md).

@@ -371,12 +371,16 @@ write").
 
 ## Schema delta
 
-Lands in [`data-model.md`](../data-model.md):
+Landed in [`data-model.md`](../data-model.md):
 
 - New table `probe_captures` per the
   [Capture format](#capture-format) shape above.
-- New field `app_settings.probe_mode_enabled BOOLEAN DEFAULT 0`.
-- New field `stories.settings.probe_mode_active BOOLEAN DEFAULT 0`.
+- New field `app_settings.diagnostics.probe_mode_enabled` (boolean
+  inside the existing diagnostics JSON, not promoted to a column —
+  matches the placement pattern of every other debug toggle).
+  Default `false`.
+- New field `stories.settings.probe_mode_active` (boolean inside
+  the existing settings JSON). Default `false`.
 
 Both settings fields are explicit booleans rather than enum / mode
 strings — there's no third state. The settings UI surfaces them as

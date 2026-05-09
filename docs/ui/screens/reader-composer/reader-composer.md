@@ -175,25 +175,37 @@ Icon set (placeholder glyphs per the
 [shared glyph vocabulary](../../patterns/icon-actions.md#glyph-vocabulary);
 finalize with visual identity):
 
-| Action   | Glyph | Meaning                                                                                                                        |
-| -------- | ----- | ------------------------------------------------------------------------------------------------------------------------------ |
-| edit     | ✎     | Edit entry content                                                                                                             |
-| regen    | ↻     | Regenerate this AI reply                                                                                                       |
-| branch   | ⎇     | Branch from this entry — opens the [creation modal](./branch-navigator/branch-navigator.md#branch-creation--modal)             |
-| flip era | 📅    | Flip era from this entry — opens the [flip-era modal](#era-flip). Conditional: renders only when active calendar has eras.     |
-| delete   | ×     | Delete this entry — opens the [rollback confirmation](./rollback-confirm/rollback-confirm.md) (cascade preview + counts modal) |
+| Action   | Glyph | Meaning                                                                                                                                           |
+| -------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| edit     | ✎     | Edit entry content                                                                                                                                |
+| regen    | ↻     | Regenerate this AI reply                                                                                                                          |
+| branch   | ⎇     | Branch from this entry — opens the [creation modal](./branch-navigator/branch-navigator.md#branch-creation--modal)                                |
+| flip era | 📅    | Flip era from this entry — opens the [flip-era modal](#era-flip). Conditional: renders only when active calendar has eras.                        |
+| probe    | 🔍    | Open the [memory probe](../memory-probe/memory-probe.md) for this turn. Conditional: renders only when probe mode is active at app + story level. |
+| delete   | ×     | Delete this entry — opens the [rollback confirmation](./rollback-confirm/rollback-confirm.md) (cascade preview + counts modal)                    |
 
 Per-entry action sets:
 
-- **User entry:** edit, `[flip era]`, delete
-- **AI entry:** edit, regen, branch, `[flip era]`, delete
+- **User entry:** edit, `[flip era]`, `[probe]`, delete
+- **AI entry:** edit, regen, branch, `[flip era]`, `[probe]`, delete
 - **System entry:** content-level buttons (Retry / Details / Dismiss)
 - **Streaming entry:** no per-entry actions; cancel happens via the
   composer's Send→Cancel transform
 
-Bracketed `[flip era]` indicates conditional visibility — the icon
-renders only when the active calendar has `eras !== null`. See
-[Era flip](#era-flip) below.
+Bracketed `[flip era]` and `[probe]` indicate conditional
+visibility:
+
+- `[flip era]` renders only when the active calendar has
+  `eras !== null`. See [Era flip](#era-flip) below.
+- `[probe]` renders only when probe mode is active at both
+  `app_settings.diagnostics.probe_mode_enabled` and
+  `stories.settings.probe_mode_active`. Off by default — the
+  affordance is hidden, not greyed-out, to keep the daily-use
+  reader uncluttered for users who don't tune. See
+  [`memory-probe.md → Entry points → From reader-composer`](../memory-probe/memory-probe.md#from-reader-composer).
+  Per-turn deep-mode capture is opted in via a separate small
+  checkbox next to the composer's Send button when probe mode is
+  on; it resets after one turn.
 
 ## Era flip
 

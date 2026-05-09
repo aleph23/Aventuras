@@ -221,7 +221,7 @@ Known limitations the design accepts and documents rather than chases:
   the signal that drives a v1.x revisit.
 - **Pin contradiction reconciliation** — manual user un-pin in v1;
   lore-mgmt eventually catches at chapter close.
-- **Memory probe affordance** — debug UI to inspect "what did
-  retrieval surface this turn and why" is parked.
 - **Mode-3 (LLM-only retrieval)** — story-creation regime, no
-  mid-story switch.
+  mid-story switch. Out of scope for the
+  [memory probe](./probe.md) — its diagnostic surface covers
+  embedding-mode retrieval only.

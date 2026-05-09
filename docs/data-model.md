@@ -20,6 +20,7 @@ erDiagram
     branches ||--o{ branch_era_flips : "tracks era flips"
     branches ||--o{ translations : "owns snapshot of"
     branches ||--o{ embeddings : "owns snapshot of"
+    branches ||--o{ probe_captures : "captures retrieval state for"
     branches ||--o{ deltas : "logs changes in"
     story_entries ||--o{ deltas : "triggers"
     story_entries }o--|| chapters : "belongs to (once chaptered)"
@@ -217,6 +218,21 @@ erDiagram
     %% Not delta-logged — embeddings are deterministic from source content. See docs/memory/retrieval.md → Storage
     %% Physical storage: per-type sqlite-vec `vec0` virtual tables (entities_vec, lore_vec, happenings_vec, threads_vec, chapter_summaries_vec) joined to metadata by id, scoped per row by branch_id auxiliary column. The polymorphic shape above is the logical view; vec0 doesn't filter efficiently across mixed-type rows. See docs/memory/retrieval.md → Storage
 
+    probe_captures {
+        text id PK
+        text branch_id FK "composite PK with id; captures fork with branches"
+        text target_entry_id FK "the entry whose retrieval pass this capture diagnoses; FK into story_entries"
+        integer captured_at
+        text capture_mode "light | deep; light stores per-row sims + score components, deep adds candidate vectors. See docs/memory/probe.md → Capture model"
+        text embedding_model_id "model active at capture; bound to deep-mode vectors for vector-space validity. Light captures are model-agnostic post-capture (sims are pre-computed cosines)."
+        text failure_reason "nullable; set when retrieval failed at capture time (embedder unavailable, empty pool, KNN error). Banner-rendered in inspect UI; simulate disabled."
+        blob payload "gzipped JSON of full capture record per docs/memory/probe.md → Capture format (queries + per-type pool + funnel summary + structural floor + stale counts + params snapshot)"
+        integer payload_size "pre-compression byte count; surfaces as storage-usage indicator in capture-list UI"
+    }
+    %% Not delta-logged — captures are diagnostic, not story state. Rollback must NOT unwind probe data. See docs/memory/probe.md → Capture format
+    %% Forking does NOT copy captures to the new branch — they're meaningful only against the candidate pool that existed when written; new branch starts empty. See docs/memory/probe.md → Capture model
+    %% FIFO eviction at 100 captures per story (across all branches). New write past cap drops oldest in same transaction. Per-capture delete + "clear all" remain available as user actions. See docs/memory/probe.md → Eviction
+
     deltas {
         text id PK
         text branch_id FK
@@ -253,7 +269,7 @@ erDiagram
         json appearance "{ themeId, readerFontScale, accentOverride?, density } — density: 'default'|'compact'|'regular'|'comfortable' (sentinel 'default' resolves per tier; see ui/foundations/spacing.md#density-toggle)"
         text ui_language "ISO 639-1; defaults to OS locale on first launch"
         integer onboarding_completed_at "set on first dismissal of the onboarding wizard (Finish, Skip, or Step 2 footer-link exit); null = wizard renders as root on next boot"
-        json diagnostics "debug toggles, retry counts, view-logs prefs"
+        json diagnostics "debug toggles, retry counts, view-logs prefs. Includes probe_mode_enabled boolean (master gate for the memory probe; off by default — per-story activation in stories.settings.probe_mode_active is no-op while this is off). See docs/memory/probe.md → Scope"
         integer created_at
         integer updated_at
     }
@@ -789,6 +805,7 @@ stories.settings: {
     threads: number
     chapters: number                 // chapter summaries pool
   }
+  probe_mode_active: boolean        // per-story activation of the memory probe. No-op while app_settings.diagnostics.probe_mode_enabled is off. Default false. See docs/memory/probe.md
 
   // Composer
   composerModesEnabled: boolean     // adventure-only; creative ignores

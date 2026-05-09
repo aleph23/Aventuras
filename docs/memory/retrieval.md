@@ -40,8 +40,11 @@ regimes (embedding-driven vs. LLM-only) produce different memory
 behavior — different cost-per-turn, different failure modes, different
 retrieval-quality curve on long stories. Switching mid-story would
 invalidate the prior memory model. The story remembers which mode it
-ran in; the future memory-probe affordance (parked) becomes
-load-bearing for debugging mode-3.
+ran in; the [memory probe](./probe.md) currently covers embedding-
+mode only. Mode-3 stories don't have a numeric ranker to inspect, so
+debugging falls back to per-turn LLM-call logs until a mode-3-shaped
+probe surface lands (parked; see
+[`probe.md → Followups`](./probe.md#followups)).
 
 ### Storage
 
@@ -734,8 +737,8 @@ The risk — false-positive revivals where high embedding similarity
 isn't load-bearing narrative connection — is bounded by `τ_revive`
 height, by budget pressure, and by the lore-mgmt review path.
 Worst residual case: user notices via
-[memory probe](./followups.md#v1-blocking) that a row is being
-revived spuriously and manually unpins or demotes via World panel.
+[memory probe](./probe.md) that a row is being revived
+spuriously and manually unpins or demotes via World panel.
 
 ### Chapter-match boost on happenings
 

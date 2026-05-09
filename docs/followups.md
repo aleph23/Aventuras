@@ -87,7 +87,9 @@ removed with this commit.
 - [v1-blocking memory work](./memory/followups.md#v1-blocking) —
   threshold tuning, embedder production integration, embedding
   compute lifecycle, background classifier UX, memory probe
-  affordance, lore-creation cap tuning.
+  implementation (contract + screen UX landed; see
+  [`memory/probe.md`](./memory/probe.md)), lore-creation cap
+  tuning.
 - [Parked / post-v1 items](./memory/followups.md#parked--post-v1) —
   multi-axis salience, pin-contradiction reconciliation, spillover
   policy, polymorphic naming, etc.

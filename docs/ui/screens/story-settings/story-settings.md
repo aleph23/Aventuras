@@ -404,6 +404,39 @@ button. See
 [`memory/model-management.md → Staleness UI`](../../../memory/model-management.md#staleness-ui)
 for the full surfacing design.
 
+### Probe
+
+Per-story activation of the [memory probe](../memory-probe/memory-probe.md).
+Bound to
+[`stories.settings.probe_mode_active`](../../../data-model.md#diagram).
+No-op while
+[`app_settings.diagnostics.probe_mode_enabled`](../../../data-model.md#diagram)
+is off — when the master flag is off, the toggle here is disabled
+with a hint linking to App Settings · Diagnostics.
+
+**Section content:**
+
+- **Probe mode toggle** for this story.
+- **Capture stats** — count, total compressed size, oldest /
+  newest pointer (chapter + turn). Updates live as turns capture
+  or evict.
+- **`Open probe →` button** — routes to the
+  [memory-probe screen](../memory-probe/memory-probe.md) scoped
+  to this story.
+- **`Clear all captures`** destructive button with confirm dialog
+  ("Delete all N captures for this story? Cannot be undone.").
+
+Disabled-state hint when the master flag is off:
+
+> Probe mode is disabled at the app level. Enable in
+> `App Settings · Diagnostics → Memory probe mode` to start
+> capturing per-turn retrieval state.
+
+When the story is configured for LLM-only retrieval
+(`retrievalMode = 'llm-only'`), the section renders disabled with
+a one-liner: "Probe mode covers embedding-mode retrieval only.
+Mode-3 stories don't currently have a per-turn ranker to inspect."
+
 ## Translation tab — display-only, opt-in, single target
 
 **Architectural invariant: translations are display-only.** They

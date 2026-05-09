@@ -224,16 +224,18 @@ Settings Memory tab pass.
   Profiles tab — embedders share none of the LLM-profile parameter
   shape (temperature, max output, thinking, structured-output).
 
-- **Memory probe affordance** — debug UI for "what was retrieved and
-  why this turn." **Load-bearing for the empirical-tuning pass.**
-  Decay rates, similarity thresholds, MMR diversity, chapter-boost
-  magnitude all need testing against real stories at realistic
-  scale (thousands of happenings, tens of thousands of awareness
-  rows; see
-  [`retrieval.md → Scale assumptions`](./retrieval.md#scale-assumptions)).
-  Without the probe, tuning is guesswork. Surfaces rank scores and
-  budget-fill decisions per turn so users can see what fell off and
-  why.
+- **Memory probe affordance** — debug UI for "what was retrieved
+  and why this turn." **Load-bearing for the empirical-tuning
+  pass** — without it, calibrating decay rates, similarity
+  thresholds, MMR diversity, chapter-boost magnitude against
+  realistic-scale stories (thousands of happenings, tens of
+  thousands of awareness rows;
+  [scale assumptions](./retrieval.md#scale-assumptions)) is
+  guesswork. Contract + simulator math + screen UX landed in
+  [`probe.md`](./probe.md) and
+  [`docs/ui/screens/memory-probe/memory-probe.md`](../ui/screens/memory-probe/memory-probe.md);
+  what remains is implementation (capture writer, simulator
+  module, screen wiring, schema migrations).
 - **Lore-creation cap tuning** — default 3 lore creates per chapter
   is a starting guess. Real usage will tune the right cap (might
   need to be lower for tight worlds, higher for first chapters of
@@ -316,7 +318,7 @@ Settings Memory tab pass.
     "specialist" candidates can fall off entirely. Mitigated by
     raising K, but recall recovery isn't free.
   - **Lost per-query debug visibility.** The empirical-tuning pass
-    leans on the memory probe affordance to inspect per-query
+    leans on the [memory probe](./probe.md) to inspect per-query
     similarity contributions. Pre-blend collapses three signals
     into one; "why was this row retrieved" gets murkier.
   - **Forecloses non-linear blends.** Pre-blend can only express

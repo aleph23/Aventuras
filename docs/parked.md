@@ -115,7 +115,11 @@ addressed by the memory design pass in
   `happening_awareness` (user toggle, classifier severity at
   extraction, lore-mgmt at chapter close). See
   [`retrieval.md → Pinning`](./memory/retrieval.md#pinning--decay_resistance).
-- **"Memory probe" affordance** — bumped to v1-blocking; see
+- **"Memory probe" affordance** — bumped to v1-blocking and
+  designed; contract + simulator math in
+  [`memory/probe.md`](./memory/probe.md), screen UX in
+  [`docs/ui/screens/memory-probe/memory-probe.md`](./ui/screens/memory-probe/memory-probe.md),
+  implementation tracked under
   [`memory/followups.md → v1-blocking`](./memory/followups.md#v1-blocking).
 
 **What's still parked:**
