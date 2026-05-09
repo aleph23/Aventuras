@@ -291,6 +291,7 @@
     <button class="rb-btn" data-overlay="ai-list-result">list result</button>
     <button class="rb-btn" data-overlay="ai-chips-result">chips result</button>
     <button class="rb-btn" data-overlay="replace-confirm">replace confirm</button>
+    <button class="rb-btn" data-overlay="commit-error">commit error</button>
   </div>
   <span class="rb-label">Keyboard</span>
   <div class="rb-group" id="kbd-switcher">
@@ -842,6 +843,18 @@
           <button class="icon-btn" style="background: var(--ink); color: #fff; border-color: var(--ink);">Replace</button>
         </div>
       </div>
+
+      <!-- Overlay: commit error (Finish failed because embedder unavailable) -->
+      <div id="overlay-commit-error" class="modal-card hidden" style="border-left: 3px solid var(--warn);">
+        <h3 class="modal-title" style="color: var(--warn);">⚠ Couldn't initialize the embedder</h3>
+        <p class="modal-body">Provider request timed out after 3 retries. The story wasn't created — none of the wizard's data was committed.</p>
+        <p class="modal-body" style="font-size: 11px; color: var(--ink-muted);">Story creation requires the embedder to embed the initial cast and lore. Fix the embedder in Settings · Memory, then return here to retry. Your wizard state is auto-saved.</p>
+        <div class="modal-actions">
+          <button class="icon-btn">Cancel</button>
+          <button class="icon-btn">Open Memory settings</button>
+          <button class="icon-btn" style="background: var(--ink); color: #fff; border-color: var(--ink);">Retry</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -979,6 +992,7 @@
     'ai-list-result': document.getElementById('overlay-ai-list-result'),
     'ai-chips-result': document.getElementById('overlay-ai-chips-result'),
     'replace-confirm': document.getElementById('overlay-replace-confirm'),
+    'commit-error': document.getElementById('overlay-commit-error'),
   };
   function hideAllOverlays() { Object.values(overlays).forEach(o => o && o.classList.add('hidden')); }
   overlayBtns.forEach(b => b.addEventListener('click', () => {
@@ -988,7 +1002,7 @@
     const v = b.dataset.overlay;
     if (overlays[v]) {
       // make sure step 5 is shown when surfacing step-5 overlays
-      if (v === 'ai-prose-result' || v === 'ai-chips-result' || v === 'ai-list-result') setStep('5');
+      if (v === 'ai-prose-result' || v === 'ai-chips-result' || v === 'ai-list-result' || v === 'commit-error') setStep('5');
       if (v === 'replace-confirm') setStep('3');
       overlays[v].classList.remove('hidden');
     }

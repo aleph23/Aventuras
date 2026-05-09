@@ -658,11 +658,20 @@ One SQLite transaction, all or none:
    `app_settings.default_story_settings`, identity columns.
 2. Insert initial `branches` row.
 3. Insert wizard-authored `entities` rows (initial cast). Per-row:
-   `kind`, `name`, `description`, `status`, `state` JSON.
-4. Insert wizard-authored `lore` rows (initial world).
+   `kind`, `name`, `description`, `status`, `state` JSON. **Each
+   embedded-field write triggers an embed** per the
+   [eager-sync-on-write contract](../../../memory/retrieval.md#compute-lifecycle)
+   — entity `name + description` is the embedded composite. The
+   embed runs inline in the same transaction; `entities_vec` rows
+   land alongside the metadata.
+4. Insert wizard-authored `lore` rows (initial world). Each
+   triggers an embed of `title + body` into `lore_vec`, same path
+   as entities.
 5. Insert `story_entries[1]` with `kind='opening'`, prose,
    metadata. `metadata.model = <wizard-assist profile model>` if
-   AI-generated; else `null`.
+   AI-generated; else `null`. Story entries themselves aren't
+   embedded; the opening is exempt from the classifier pass per
+   [`architecture.md → Classifier does NOT run on the opening entry`](../../../architecture.md#agent-orchestration).
 6. **No deltas written.** Per
    [baseline doc decision 10](../../../explorations/2026-04-29-story-definition-baseline.md),
    wizard creation is delta-log-exempt.
@@ -670,7 +679,44 @@ One SQLite transaction, all or none:
 8. Route to reader-composer with the story open.
 
 If any step fails, transaction rolls back; user remains on step 5
-with an inline error.
+with an inline error. The most likely failure mode is the embed
+step (steps 3-4) when the embedder isn't available; that gets its
+own surfacing below.
+
+### Embedder-unavailable on Finish
+
+When the user's selected embedder isn't ready at commit time
+(local model not yet initialized, provider mode network down,
+embedder removed without replacement), the embed steps fail and
+the whole transaction rolls back. Surfaces as an inline error at
+step 5:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚠ Couldn't initialize the embedder                       │
+│   Provider request timed out after 3 retries.            │
+│                                                           │
+│   [ Retry ] [ Open Memory settings ] [ Cancel ]          │
+└─────────────────────────────────────────────────────────┘
+```
+
+Action choices:
+
+- **Retry** — re-attempts the atomic commit.
+- **Open Memory settings** — navigates to App Settings · Memory.
+  Wizard state stays auto-saved (per
+  [Save / cancel / draft semantics](#save--cancel--draft-semantics));
+  user returns to step 5 unchanged after fixing the embedder.
+- **Cancel** — abandons the wizard entirely. Drafts cleared. Same
+  shape as the existing Cancel affordance.
+
+If the embedder failure is recoverable (network blip, mid-init),
+the user just retries. If it's structural (embedder broken on this
+device, no provider configured for embedding), the Settings route
+is the resolution path. The wizard does not silently downgrade to
+a non-embedding mode — story creation requires retrieval to be
+configured, consistent with the
+[Onboarding · Skip-from-Step-4 hard gate](../onboarding/onboarding.md#step-4--pick-an-embedder).
 
 ## AI-assist pattern
 
