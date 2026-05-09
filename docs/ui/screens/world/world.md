@@ -867,10 +867,13 @@ overflows.
   3 lines with tap-to-expand. Relations summary stays
   single-column; always vertical. Action footer pins to the
   Sheet bottom.
-- **Top-bar review pill** mirrors the
-  [generation pill phone treatment](../../principles.md#universal-in-story-chrome) —
-  collapses to icon-only (`⚠ N`) at slim top-bar tier; full
-  label returns on tablet+.
+- **Top-bar review pill** collapses on phone parallel to the
+  [generation pill](../../principles.md#universal-in-story-chrome).
+  The `need review` label drops; the warn glyph and the count
+  number stay (`⚠ N`) so the at-a-glance signal survives without
+  competing with the breadcrumb and actions cluster for line
+  space. Full label returns at tablet+. The collapsed pill stays
+  click-targetable — same affordance as desktop.
 - **Per-row collision strip** wraps cleanly on phone — the
   collide-with link and Resolve button drop to a second row
   inside the strip when the row width can't fit them.

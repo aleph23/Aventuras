@@ -268,8 +268,9 @@
 
   /* Collision review + entity merge — see world.md → Collision review and entity merge.
      Three-layer surfacing: top-bar pill, list-toggle chip, per-row strip. */
-  .review-pill { display: none; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border: 1px solid var(--warn); border-radius: 999px; background: #fdf6e8; font-size: 11px; color: #7a4f1a; cursor: pointer; }
+  .review-pill { display: none; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border: 1px solid var(--warn); border-radius: 999px; background: #fdf6e8; font-size: 11px; color: #7a4f1a; cursor: pointer; white-space: nowrap; }
   .review-pill .glyph { font-size: 11px; line-height: 1; }
+  .review-pill .rp-count { font-weight: 600; }
   body[data-review-state="has-flags"] .review-pill { display: inline-flex; }
 
   .list-toggle.needs-review { display: none; border-color: var(--warn); color: #7a4f1a; gap: 4px; align-items: center; }
@@ -421,6 +422,12 @@
     .topbar-right { gap: 6px; }
     .gen-status > span:not(.dot) { display: none; }
     .gen-status { padding: 3px 6px; }
+
+    /* Review pill collapses to glyph + count on phone — parallel to gen-pill.
+       The .rp-label drops; .glyph and .rp-count stay so the user still
+       sees a numeric signal at a glance. Per world.md → Mobile expression. */
+    .review-pill .rp-label { display: none; }
+    .review-pill { padding: 3px 7px; gap: 4px; }
 
     /* sub-header tightens */
     .sub-head { padding: 8px 12px; }
@@ -595,10 +602,12 @@
     </div>
     <!-- Collision review pill — visible when data-review-state="has-flags".
          Click activates the list-pane needs-review filter. Doc:
-         world.md → Collision review and entity merge → Surfacing. -->
+         world.md → Collision review and entity merge → Surfacing.
+         Phone tier hides the .rp-label, keeping glyph + count only. -->
     <div class="review-pill" id="review-pill" title="Review collision flags">
       <span class="glyph">&#9888;</span>
-      <span>2 need review</span>
+      <span class="rp-count">2</span>
+      <span class="rp-label">need review</span>
     </div>
     <div class="icon-btn" title="Actions">&#9906;</div>
     <div class="icon-btn" title="Story settings">&#9965;</div>
