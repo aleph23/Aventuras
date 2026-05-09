@@ -1,0 +1,1282 @@
+<!-- prettier-ignore -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wireframe — Memory Probe</title>
+<style>
+  :root {
+    --ink: #333;
+    --ink-muted: #888;
+    --ink-faint: #aaa;
+    --line: #bbb;
+    --line-soft: #ddd;
+    --line-dashed: #ccc;
+    --bg: #fafafa;
+    --bg-region: #fff;
+    --bg-highlight: #eef;
+    --bg-dim: rgba(0,0,0,0.32);
+    --warn: #c94;
+    --warn-bg: #fdf3e3;
+    --danger: #c66;
+    --danger-bg: #fcebeb;
+    --ok: #4a8;
+    --ok-bg: #ecf6f1;
+    --diff-add: #2a7a4a;
+    --diff-add-bg: #e8f5ed;
+    --diff-rem: #b04040;
+    --diff-rem-bg: #fce8e8;
+    --diff-mod: #b07a20;
+    --diff-mod-bg: #fcf2dc;
+    --diff-bypass: #4060a0;
+    --diff-bypass-bg: #e8eef8;
+  }
+  html, body { margin: 0; padding: 0; font: 13px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: var(--bg); }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+
+  .screen-label { padding: 8px 16px; background: #eee; border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
+  .screen-label strong { color: var(--ink); }
+
+  /* review bar — mirrors other wireframes */
+  .review-bar { padding: 8px 16px; background: #f5f0e6; border-bottom: 1px solid #e3d8c0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 11px; }
+  .review-bar .rb-label { text-transform: uppercase; letter-spacing: 0.08em; color: #7a6a40; font-weight: 600; font-size: 10px; }
+  .review-bar .rb-group { display: flex; gap: 4px; align-items: center; }
+  .review-bar .rb-group > .gl { font-size: 10px; color: #967; margin-right: 4px; }
+  .rb-btn { padding: 3px 9px; border: 1px solid #d8c99a; border-radius: 3px; background: #fff; color: #5a4820; font-size: 11px; cursor: pointer; }
+  .rb-btn.active { background: #7a6a40; color: #fff; border-color: #7a6a40; }
+  .rb-note { margin-left: auto; font-size: 10px; color: #967; font-style: italic; }
+  kbd { font-family: monospace; background: #fff; padding: 1px 5px; border: 1px solid #d8c99a; border-radius: 3px; font-size: 10px; color: #5a4820; }
+
+  /* viewport stage */
+  .vp-stage { flex: 1; padding: 12px; background: var(--bg); display: flex; justify-content: center; box-sizing: border-box; min-height: 0; }
+  .vp-stage-wrap { display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%; min-height: 0; flex: 1; }
+  .vp-stage-meta { font-size: 11px; color: var(--ink-muted); font-family: monospace; }
+  .vp-stage-meta strong { color: var(--ink); }
+  .viewport { container-type: inline-size; background: var(--bg-region); border: 1px solid var(--line); border-radius: 4px; width: 100%; max-width: var(--vp-width, 1280px); transition: max-width 0.25s ease; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
+
+  /* top-bar */
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--bg-region); }
+  .logo { width: 28px; height: 28px; border: 1px dashed var(--line); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-faint); flex-shrink: 0; }
+  .crumbs { font-size: 13px; color: var(--ink); display: flex; gap: 8px; align-items: center; min-width: 0; }
+  .crumbs .crumb-primary { font-weight: 500; }
+  .crumbs .crumb-sep { color: var(--ink-faint); }
+  .crumbs .crumb-cap { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body[data-mode="list"] .crumbs .crumb-cap { display: none; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .icon-btn { width: 30px; height: 30px; border: 1px dashed var(--line); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 14px; cursor: pointer; background: transparent; }
+  .icon-btn:hover { background: var(--bg-highlight); color: var(--ink); }
+
+  /* status strip — capture-list only */
+  .status-strip { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--line-soft); background: var(--bg); font-size: 12px; color: var(--ink); flex-wrap: wrap; }
+  .status-strip .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg-region); font-size: 11px; }
+  .status-strip .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  body[data-probe="off-story"] .status-strip .status-pill .dot { background: var(--ink-faint); }
+  body[data-probe="off-app"] .status-strip .status-pill .dot { background: var(--ink-faint); }
+  body[data-probe="off-app"] .status-strip .status-pill,
+  body[data-probe="off-story"] .status-strip .status-pill { color: var(--ink-muted); }
+  .status-strip .status-pill .pill-label::before { content: "Probe mode: "; color: var(--ink-muted); }
+  .status-strip .status-pill .pill-state-on { display: inline; }
+  .status-strip .status-pill .pill-state-off-story { display: none; }
+  .status-strip .status-pill .pill-state-off-app { display: none; }
+  body[data-probe="off-story"] .status-strip .status-pill .pill-state-on { display: none; }
+  body[data-probe="off-story"] .status-strip .status-pill .pill-state-off-story { display: inline; }
+  body[data-probe="off-app"] .status-strip .status-pill .pill-state-on { display: none; }
+  body[data-probe="off-app"] .status-strip .status-pill .pill-state-off-app { display: inline; }
+  .status-strip .ss-meta { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 11px; }
+  .status-strip .ss-link { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .status-strip .ss-link:hover { color: var(--diff-bypass); }
+
+  /* filter row — capture-list only */
+  .filter-row { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--line-soft); background: var(--bg-region); flex-wrap: wrap; font-size: 12px; }
+  .filter-row .fr-group { display: flex; align-items: center; gap: 6px; }
+  .filter-row .fr-label { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .filter-row select { padding: 3px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-region); font: inherit; color: var(--ink); }
+  .fr-btn { padding: 4px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-region); color: var(--ink); cursor: pointer; font-size: 12px; font-family: inherit; }
+  .fr-btn:hover { background: var(--bg); border-color: var(--ink-muted); }
+  .fr-btn.danger { color: var(--danger); border-color: var(--line-soft); margin-left: auto; }
+  .fr-btn.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+
+  /* capture list */
+  .body-wrap { flex: 1; overflow-y: auto; padding: 18px 20px 24px; }
+  .capture-cards { display: flex; flex-direction: column; gap: 10px; }
+  .capture-card { background: var(--bg-region); border: 1px solid var(--line-soft); border-radius: 5px; padding: 12px 14px; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s; }
+  .capture-card:hover { border-color: var(--line); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .capture-card.selected { border-color: var(--ink); }
+  .capture-card.failed { border-left: 3px solid var(--danger); }
+  .capture-card.other-branch { opacity: 0.7; }
+  .cc-pointer { font-size: 12px; color: var(--ink); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .cc-pointer .pp-chap { font-weight: 600; }
+  .cc-pointer .pp-meta { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 11px; }
+  .cc-pointer .pp-mode { padding: 1px 6px; border: 1px solid var(--line-soft); border-radius: 3px; font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .cc-pointer .pp-mode.deep { color: var(--diff-bypass); border-color: var(--diff-bypass); background: var(--diff-bypass-bg); }
+  .cc-pointer .pp-recap { padding: 1px 6px; border: 1px solid var(--line-soft); border-radius: 3px; font-size: 10px; color: var(--ink-muted); }
+  .cc-pointer .pp-branch { font-size: 10px; color: var(--ink-muted); padding: 1px 6px; border: 1px solid var(--line-soft); border-radius: 999px; }
+  .cc-summary { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+  .cc-budget { font-size: 11px; color: var(--ink-muted); margin-top: 4px; font-family: ui-monospace, monospace; }
+  .cc-failure { font-size: 12px; color: var(--danger); margin-top: 4px; font-style: italic; }
+
+  /* empty / off states for list */
+  .list-empty { padding: 32px 20px; text-align: center; color: var(--ink-muted); font-style: italic; }
+  .list-empty p { margin: 0 0 12px; }
+  .list-empty .empty-link { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .list-empty .empty-cta { padding: 6px 14px; border: 1px solid var(--ink); border-radius: 3px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
+
+  body[data-mode="inspect"] .status-strip,
+  body[data-mode="inspect"] .filter-row,
+  body[data-mode="simulate"] .status-strip,
+  body[data-mode="simulate"] .filter-row { display: none; }
+  body[data-mode="list"] .inspect-stage,
+  body[data-mode="list"] .simulate-stage { display: none; }
+  body[data-mode="inspect"] .body-wrap,
+  body[data-mode="simulate"] .body-wrap { display: none; }
+  body[data-mode="simulate"] .inspect-stage { display: none; }
+  body[data-mode="inspect"] .simulate-stage { display: none; }
+
+  /* inspect / simulate header strip */
+  .insp-header { padding: 14px 20px 12px; border-bottom: 1px solid var(--line-soft); background: var(--bg-region); }
+  .insp-pointer { font-size: 12px; color: var(--ink); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .insp-pointer .pp-chap { font-weight: 600; }
+  .insp-pointer .pp-meta { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 11px; }
+  .insp-pointer .pp-mode { padding: 1px 6px; border: 1px solid var(--line-soft); border-radius: 3px; font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .insp-pointer .pp-mode.deep { color: var(--diff-bypass); border-color: var(--diff-bypass); background: var(--diff-bypass-bg); }
+  .insp-branch { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
+  .insp-branch .br-link { color: var(--ink); text-decoration: underline; cursor: pointer; }
+
+  /* drift / failure / branch banners */
+  .insp-banner { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; margin-top: 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+  .insp-banner.drift { background: var(--diff-mod-bg); border: 1px solid var(--diff-mod); color: var(--diff-mod); }
+  .insp-banner.branch-warn { background: var(--diff-bypass-bg); border: 1px solid var(--diff-bypass); color: var(--diff-bypass); }
+  .insp-banner.failure { background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); cursor: default; }
+  .insp-banner .ib-icon { font-size: 14px; line-height: 1; }
+  .insp-banner .ib-disclosure { margin-left: auto; font-size: 11px; opacity: 0.7; }
+  .insp-banner-body { display: none; padding: 10px 12px; margin-top: 4px; background: #fff; border: 1px solid var(--line-soft); border-radius: 4px; font-size: 11px; color: var(--ink-muted); }
+  .insp-banner.expanded ~ .insp-banner-body { display: block; }
+  .insp-banner-body table { border-collapse: collapse; width: 100%; font-family: ui-monospace, monospace; font-size: 11px; }
+  .insp-banner-body th, .insp-banner-body td { padding: 3px 8px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  .insp-banner-body th { color: var(--ink-muted); font-weight: 500; }
+
+  body[data-drift="match"] .insp-banner.drift,
+  body[data-drift="match"] .insp-banner-body { display: none; }
+  body[data-branch="current"] .insp-banner.branch-warn { display: none; }
+  body[data-capture-mode="failed"] .insp-banner.drift,
+  body[data-capture-mode="failed"] .insp-banner.branch-warn { display: none; }
+  body:not([data-capture-mode="failed"]) .insp-banner.failure { display: none; }
+
+  /* action row */
+  .insp-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .insp-action { padding: 5px 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-region); color: var(--ink); cursor: pointer; font-size: 12px; font-family: inherit; }
+  .insp-action.primary { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
+  .insp-action.danger { color: var(--danger); border-color: var(--line-soft); margin-left: auto; }
+  .insp-action.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+  body[data-capture-mode="failed"] .insp-action.primary { opacity: 0.4; pointer-events: none; cursor: not-allowed; }
+  body[data-mode="simulate"] .insp-action.simulate-toggle { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* simulate-only action subset */
+  .insp-actions .sim-only { display: none; }
+  body[data-mode="simulate"] .insp-actions .sim-only { display: inline-block; }
+  body[data-mode="simulate"] .insp-actions .insp-only { display: none; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); background: var(--bg-region); padding: 0 20px; overflow-x: auto; }
+  .tab { padding: 10px 14px; font-size: 12px; color: var(--ink-muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+
+  /* inspect / simulate body */
+  .insp-stage { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
+  body[data-mode="simulate"] .insp-stage { padding: 14px 20px 24px; }
+
+  /* funnel */
+  .funnel { display: flex; gap: 16px; margin-bottom: 12px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 4px; font-size: 11px; color: var(--ink-muted); flex-wrap: wrap; font-family: ui-monospace, monospace; }
+  .funnel b { color: var(--ink); font-weight: 600; }
+
+  /* filter chips above per-type tables */
+  .type-filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .type-filter-row .tfr-label { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
+  .filter-chip { padding: 3px 9px; border: 1px solid var(--line-soft); border-radius: 999px; background: var(--bg-region); font-size: 11px; color: var(--ink-muted); cursor: pointer; }
+  .filter-chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .filter-chip:hover:not(.active) { color: var(--ink); border-color: var(--line); }
+
+  /* per-type score table */
+  .score-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: ui-monospace, monospace; }
+  .score-table th, .score-table td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  .score-table th { font-weight: 500; color: var(--ink-muted); background: var(--bg); position: sticky; top: 0; z-index: 1; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .score-table th.text, .score-table td.text { text-align: left; }
+  .score-table tr.selected td { background: var(--ok-bg); }
+  .score-table tr.dropped td { color: var(--ink-muted); }
+  .score-table tr.bypass td { background: var(--diff-bypass-bg); }
+  .score-table tr.over-budget td { background: var(--diff-mod-bg); }
+  .score-table tr.too-large td { background: var(--danger-bg); color: var(--danger); }
+  .score-table tr.stale td .stale-flag { color: var(--warn); font-weight: 600; }
+  .res-cell { width: 24px; text-align: center; }
+  .res-glyph { display: inline-block; width: 16px; text-align: center; font-weight: 600; }
+  .res-glyph.ok { color: var(--diff-add); }
+  .res-glyph.dim { color: var(--ink-faint); }
+  .res-glyph.warn { color: var(--diff-mod); }
+  .res-glyph.danger { color: var(--danger); }
+
+  /* simulate-mode side-by-side */
+  .sim-split { display: grid; grid-template-columns: 1fr 1fr 280px; gap: 14px; }
+  .sim-col { border: 1px solid var(--line-soft); border-radius: 4px; padding: 10px 12px 12px; background: var(--bg-region); min-width: 0; }
+  .sim-col h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+  .sim-col.captured h4 { color: var(--ink-muted); }
+  .sim-col.simulated h4 { color: var(--diff-bypass); }
+  body[data-mode="inspect"] .sim-split { grid-template-columns: 1fr; }
+  body[data-mode="inspect"] .sim-split .sim-col.simulated { display: none; }
+  body[data-mode="inspect"] .sim-split .param-panel { display: none; }
+  body[data-mode="inspect"] .sim-col.captured h4 { display: none; }
+  body[data-mode="inspect"] .sim-col { border: none; padding: 0; background: transparent; }
+
+  /* diff banner above per-type content in simulate */
+  .diff-banner { display: none; padding: 8px 12px; margin-bottom: 12px; background: var(--bg); border-left: 3px solid var(--diff-bypass); border-radius: 3px; font-size: 11px; font-family: ui-monospace, monospace; color: var(--ink); }
+  body[data-mode="simulate"] .diff-banner { display: block; }
+  .diff-banner b.add { color: var(--diff-add); }
+  .diff-banner b.rem { color: var(--diff-rem); }
+  .diff-banner b.mod { color: var(--diff-mod); }
+  .diff-banner b.bypass { color: var(--diff-bypass); }
+
+  /* diff cell highlights — only render in simulate mode */
+  .score-table tr.diff-add td { background: var(--diff-add-bg); }
+  .score-table tr.diff-rem td { background: var(--diff-rem-bg); color: var(--diff-rem); text-decoration: line-through; text-decoration-color: rgba(176,64,64,0.4); }
+  .score-table tr.diff-mod td { background: var(--diff-mod-bg); }
+  .score-table tr.diff-bypass td { background: var(--diff-bypass-bg); }
+  .delta { font-size: 10px; opacity: 0.75; }
+  .delta.up::before { content: "▲ +"; color: var(--diff-add); }
+  .delta.down::before { content: "▼ "; color: var(--diff-rem); }
+
+  /* param panel */
+  .param-panel { padding: 0 12px; font-size: 12px; }
+  .pp-section { margin-bottom: 14px; }
+  .pp-section h5 { margin: 0 0 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+  .pp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-family: ui-monospace, monospace; }
+  .pp-row label { flex: 1; min-width: 0; color: var(--ink); font-size: 11px; }
+  .pp-row input { width: 64px; padding: 2px 5px; border: 1px solid var(--line); border-radius: 3px; font: inherit; font-size: 11px; text-align: right; background: var(--bg-region); }
+  .pp-row.diff input { background: var(--diff-mod-bg); border-color: var(--diff-mod); }
+  .pp-row .pp-reset { color: var(--ink-faint); font-size: 11px; cursor: pointer; padding: 0 4px; }
+  .pp-row .pp-reset:hover { color: var(--ink); }
+  .pp-row.disabled { opacity: 0.5; }
+  .pp-row.disabled input { cursor: not-allowed; }
+  .pp-note { font-size: 10px; color: var(--ink-muted); font-style: italic; margin-top: 4px; line-height: 1.4; }
+  .pp-hint { padding: 8px 10px; background: var(--bg); border: 1px dashed var(--line-soft); border-radius: 3px; font-size: 10px; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.4; }
+  .pp-hint b { color: var(--ink); font-weight: 600; }
+
+  /* tab content panes */
+  .tab-pane { display: none; }
+  body[data-tab="selected"] .tab-pane.selected,
+  body[data-tab="queries"] .tab-pane.queries,
+  body[data-tab="entities"] .tab-pane.entities,
+  body[data-tab="lore"] .tab-pane.lore,
+  body[data-tab="happenings"] .tab-pane.happenings,
+  body[data-tab="threads"] .tab-pane.threads,
+  body[data-tab="chapters"] .tab-pane.chapters { display: block; }
+
+  /* selected tab — unified output */
+  .selected-section { margin-bottom: 18px; }
+  .selected-section h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .selected-section .ss-budget { font-size: 11px; color: var(--ink-muted); font-family: ui-monospace, monospace; }
+  .selected-row { display: flex; gap: 10px; padding: 6px 10px; border-left: 2px solid var(--line-soft); margin: 4px 0; align-items: center; font-size: 12px; }
+  .selected-row:hover { background: var(--bg-highlight); }
+  .selected-row.struct { border-left-color: var(--ok); }
+  .selected-row.entity { border-left-color: #6080c0; }
+  .selected-row.lore { border-left-color: #a06860; }
+  .selected-row.happening { border-left-color: #6090a0; }
+  .selected-row.thread { border-left-color: #b08040; }
+  .selected-row.chapter { border-left-color: #707070; }
+  .selected-row .sr-kind { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 60px; }
+  .selected-row .sr-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .selected-row .sr-tokens { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; min-width: 70px; text-align: right; }
+  .selected-row .sr-link { color: var(--ink-faint); cursor: pointer; padding: 0 4px; }
+  .selected-row .sr-link:hover { color: var(--ink); }
+
+  /* queries tab */
+  .query-block { margin-bottom: 16px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 4px; }
+  .query-block .qb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 11px; color: var(--ink-muted); }
+  .query-block .qb-head .qb-name { font-weight: 600; color: var(--ink); }
+  .query-block .qb-text { font-size: 12px; color: var(--ink); font-style: italic; line-height: 1.5; padding: 6px 8px; background: var(--bg-region); border: 1px dashed var(--line-soft); border-radius: 3px; }
+  .query-block .qb-meta { font-size: 10px; color: var(--ink-muted); margin-top: 6px; font-family: ui-monospace, monospace; }
+  .query-block .qb-histogram { display: flex; align-items: flex-end; gap: 2px; height: 20px; margin-top: 6px; }
+  body:not([data-capture-mode="deep"]) .qb-histogram { display: none; }
+  .qb-histogram .bar { width: 8px; background: var(--diff-bypass); opacity: 0.6; }
+  .qb-histogram .bar.h1 { height: 8% } .qb-histogram .bar.h2 { height: 22% } .qb-histogram .bar.h3 { height: 48% } .qb-histogram .bar.h4 { height: 80% } .qb-histogram .bar.h5 { height: 92% } .qb-histogram .bar.h6 { height: 64% } .qb-histogram .bar.h7 { height: 38% } .qb-histogram .bar.h8 { height: 16% }
+
+  /* failure capture body styling — mostly re-uses banner */
+  body[data-capture-mode="failed"] .funnel,
+  body[data-capture-mode="failed"] .type-filter-row,
+  body[data-capture-mode="failed"] .score-table { opacity: 0.45; }
+
+  /* modals */
+  .modal-backdrop { position: absolute; inset: 0; background: var(--bg-dim); z-index: 6; display: none; align-items: center; justify-content: center; }
+  body[data-modal="apply"] .modal-backdrop.apply,
+  body[data-modal="delete"] .modal-backdrop.delete,
+  body[data-modal="export"] .modal-backdrop.export,
+  body[data-modal="clear"] .modal-backdrop.clear { display: flex; }
+  .modal { width: 460px; background: var(--bg-region); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden; }
+  .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; }
+  .modal-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .modal-close { margin-left: auto; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 14px; cursor: pointer; border-radius: 3px; }
+  .modal-close:hover { background: var(--bg-highlight); color: var(--ink); }
+  .modal-body { padding: 16px 20px; font-size: 13px; color: var(--ink); line-height: 1.55; }
+  .modal-body .modal-diff { margin: 10px 0; padding: 8px 10px; background: var(--bg); border-left: 3px solid var(--diff-bypass); font-family: ui-monospace, monospace; font-size: 11px; }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; gap: 10px; background: #fcfcfc; }
+  .modal-foot .btn { padding: 6px 16px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-region); color: var(--ink); font-size: 12px; cursor: pointer; font-family: inherit; }
+  .modal-foot .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
+  .modal-foot .btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 600; }
+
+  /* =========================================================
+     Tier overrides — phone reflow
+     ========================================================= */
+  @container (max-width: 639px) {
+    .topbar { padding: 8px 12px; gap: 8px; }
+    .topbar .logo { display: none; }
+    .crumbs .crumb-cap { font-size: 11px; }
+
+    .status-strip { padding: 8px 12px; gap: 8px; }
+    .filter-row { padding: 8px 12px; gap: 8px; }
+    .body-wrap { padding: 12px; }
+    .insp-header { padding: 10px 12px 8px; }
+    .insp-actions { gap: 6px; }
+    .insp-actions .insp-action { padding: 5px 10px; font-size: 11px; }
+    .tabs { padding: 0 12px; }
+    .tab { padding: 8px 10px; }
+    .insp-stage { padding: 12px 12px 24px; }
+
+    /* simulate side-by-side collapses to a Live | Simulated toggle. */
+    body[data-mode="simulate"] .sim-split { grid-template-columns: 1fr; }
+    body[data-mode="simulate"] .sim-col.simulated { display: var(--phone-sim-disp, none); }
+    body[data-mode="simulate"] .sim-col.captured { display: var(--phone-cap-disp, block); }
+    body[data-mode="simulate"][data-phone-sim="sim"] { --phone-sim-disp: block; --phone-cap-disp: none; }
+    .phone-sim-toggle { display: none; gap: 0; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+    body[data-mode="simulate"] .phone-sim-toggle { display: flex; }
+    .phone-sim-toggle button { flex: 1; padding: 6px 10px; border: none; background: var(--bg-region); color: var(--ink-muted); font: inherit; font-size: 11px; cursor: pointer; }
+    .phone-sim-toggle button.active { background: var(--ink); color: #fff; }
+
+    /* param panel becomes a slide-up sheet */
+    body[data-mode="simulate"] .param-panel {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: var(--bg-region);
+      border-top: 1px solid var(--line);
+      border-radius: 12px 12px 0 0;
+      padding: 12px;
+      max-height: 65%;
+      overflow-y: auto;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+      transform: translateY(100%);
+      transition: transform 0.18s ease;
+    }
+    body[data-mode="simulate"][data-phone-params="open"] .param-panel { transform: translateY(0); }
+    .phone-params-toggle { display: none; }
+    body[data-mode="simulate"] .phone-params-toggle {
+      display: inline-block;
+      padding: 5px 10px;
+      border: 1px solid var(--ink);
+      border-radius: 3px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* score-table tightens — stack into compact grid alternative could land
+       at a deeper polish pass; for v1 we let it horizontally scroll. */
+    .insp-stage > .sim-split > .sim-col { overflow-x: auto; }
+
+    /* modal sizing */
+    .modal { width: 100%; max-width: calc(100% - 24px); margin: 0 12px; max-height: 85vh; overflow-y: auto; }
+  }
+
+  @container (min-width: 640px) and (max-width: 1023px) {
+    /* tablet: simulate split stacks vertically; param panel becomes inline section */
+    body[data-mode="simulate"] .sim-split { grid-template-columns: 1fr; gap: 10px; }
+    body[data-mode="simulate"] .sim-col.simulated { border-top: 2px solid var(--diff-bypass); }
+    .param-panel { border-top: 1px solid var(--line-soft); padding-top: 12px; }
+  }
+</style>
+</head>
+<body data-mode="list" data-tab="selected" data-capture-mode="light" data-drift="match" data-branch="current" data-probe="on" data-modal="hidden">
+
+<div class="screen-label"><strong>Wireframe:</strong> Memory Probe &mdash; capture list / inspect / simulate &mdash; responsive across phone / tablet / desktop &mdash; low-fi, interactive</div>
+
+<div class="review-bar">
+  <div class="rb-group" role="group" aria-label="Viewport tier">
+    <span class="rb-label">Viewport</span>
+    <button class="rb-btn" data-vp="phone" data-width="390">Phone <kbd>1</kbd></button>
+    <button class="rb-btn" data-vp="tablet" data-width="768">Tablet <kbd>2</kbd></button>
+    <button class="rb-btn active" data-vp="desktop" data-width="1280">Desktop <kbd>3</kbd></button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">mode:</span>
+    <button class="rb-btn active" data-mode="list">capture list</button>
+    <button class="rb-btn" data-mode="inspect">inspect</button>
+    <button class="rb-btn" data-mode="simulate">simulate</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">capture:</span>
+    <button class="rb-btn active" data-capture="light">light</button>
+    <button class="rb-btn" data-capture="deep">deep</button>
+    <button class="rb-btn" data-capture="failed">failed</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">drift:</span>
+    <button class="rb-btn active" data-drift="match">match</button>
+    <button class="rb-btn" data-drift="drift">drifted</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">branch:</span>
+    <button class="rb-btn active" data-branch="current">current</button>
+    <button class="rb-btn" data-branch="other">other branch</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">probe state (list):</span>
+    <button class="rb-btn active" data-probe="on">on</button>
+    <button class="rb-btn" data-probe="off-story">off (story)</button>
+    <button class="rb-btn" data-probe="off-app">off (app)</button>
+    <button class="rb-btn" data-probe="never">never on</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">tab:</span>
+    <button class="rb-btn active" data-tab="selected">Selected</button>
+    <button class="rb-btn" data-tab="queries">Queries</button>
+    <button class="rb-btn" data-tab="entities">Entities</button>
+    <button class="rb-btn" data-tab="happenings">Happenings</button>
+  </div>
+  <div class="rb-group">
+    <span class="gl">modal:</span>
+    <button class="rb-btn active" data-modal="hidden">hidden</button>
+    <button class="rb-btn" data-modal="apply">apply</button>
+    <button class="rb-btn" data-modal="delete">delete</button>
+    <button class="rb-btn" data-modal="clear">clear all</button>
+    <button class="rb-btn" data-modal="export">export</button>
+  </div>
+  <span class="rb-note">flip controls to inspect each state &middot; viewport via 1/2/3</span>
+</div>
+
+<div class="vp-stage">
+  <div class="vp-stage-wrap">
+    <div class="vp-stage-meta">
+      Container width: <strong id="vp-width-readout">1280 px</strong> &middot; tier: <strong id="vp-tier-readout">desktop</strong>
+    </div>
+    <div class="viewport" id="viewport">
+
+<header class="topbar">
+  <div class="logo">A</div>
+  <div class="crumbs">
+    <span class="crumb-primary">Aria's Descent</span>
+    <span class="crumb-sep">/</span>
+    <span>Memory probe</span>
+    <span class="crumb-sep crumb-cap">/</span>
+    <span class="crumb-cap">ch.4 &middot; turn 87</span>
+  </div>
+  <div class="topbar-right">
+    <div class="icon-btn" title="Actions">&#9906;</div>
+    <div class="icon-btn" title="Story settings">&#9965;</div>
+    <div class="icon-btn" title="Back to reader">&larr;</div>
+  </div>
+</header>
+
+<!-- ============== CAPTURE LIST ============== -->
+
+<div class="status-strip">
+  <span class="status-pill">
+    <span class="dot"></span>
+    <span class="pill-label">
+      <span class="pill-state-on">ON</span>
+      <span class="pill-state-off-story">OFF (story)</span>
+      <span class="pill-state-off-app">OFF (app)</span>
+    </span>
+  </span>
+  <span class="ss-meta" id="ss-meta">47 / 100 captures &middot; 12.4 MB</span>
+  <span class="ss-meta" id="ss-app-link" style="display:none">— <span class="ss-link">enable in App Settings</span></span>
+</div>
+
+<div class="filter-row">
+  <div class="fr-group">
+    <span class="fr-label">Branch</span>
+    <select><option>main</option><option>fork-of-ch4-twist</option></select>
+  </div>
+  <div class="fr-group">
+    <span class="fr-label">Sort</span>
+    <select><option>recency</option><option>tokens used</option><option>drop count</option><option>capture size</option><option>capture age</option></select>
+  </div>
+  <button class="fr-btn" title="Refresh">&#10227;</button>
+  <button class="fr-btn danger" data-open-modal="clear">Clear all captures</button>
+</div>
+
+<div class="body-wrap">
+
+  <!-- normal list -->
+  <div class="capture-cards" id="captures-on">
+    <div class="capture-card selected" data-open-inspect>
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.4 &middot; turn 87</span>
+        <span class="pp-meta">2026-05-09 14:22</span>
+        <span class="pp-mode">light</span>
+        <span class="pp-meta">42 KB</span>
+      </div>
+      <div class="cc-summary">12 entities &middot; 5 lore &middot; 8 happenings &middot; 2 threads &middot; 1 chapter summary</div>
+      <div class="cc-budget">1840 / 1800 budget &middot; 3 over-budget skipped</div>
+    </div>
+
+    <div class="capture-card">
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.4 &middot; turn 86</span>
+        <span class="pp-meta">2026-05-09 14:11</span>
+        <span class="pp-mode deep">deep</span>
+        <span class="pp-meta">3.8 MB</span>
+      </div>
+      <div class="cc-summary">10 entities &middot; 5 lore &middot; 9 happenings &middot; 2 threads &middot; 1 chapter summary</div>
+      <div class="cc-budget">1812 / 1800 budget &middot; 1 over-budget skipped</div>
+    </div>
+
+    <div class="capture-card failed">
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.4 &middot; turn 85</span>
+        <span class="pp-meta">2026-05-09 13:58</span>
+        <span class="pp-mode">light</span>
+        <span class="pp-meta">4 KB</span>
+      </div>
+      <div class="cc-failure">Failed: embedder unavailable (init returned null)</div>
+    </div>
+
+    <div class="capture-card">
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.4 &middot; turn 84</span>
+        <span class="pp-meta">2026-05-09 13:50</span>
+        <span class="pp-mode">light</span>
+        <span class="pp-meta">38 KB</span>
+        <span class="pp-recap">recap</span>
+      </div>
+      <div class="cc-summary">11 entities &middot; 4 lore &middot; 7 happenings &middot; 2 threads &middot; 1 chapter summary</div>
+      <div class="cc-budget">1768 / 1800 budget</div>
+    </div>
+
+    <div class="capture-card other-branch">
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.4 &middot; turn 80</span>
+        <span class="pp-meta">2026-05-09 11:02</span>
+        <span class="pp-mode">light</span>
+        <span class="pp-meta">39 KB</span>
+        <span class="pp-branch">branch: fork-of-ch4-twist</span>
+      </div>
+      <div class="cc-summary">12 entities &middot; 5 lore &middot; 8 happenings &middot; 2 threads &middot; 1 chapter summary</div>
+      <div class="cc-budget">1822 / 1800 budget &middot; 2 over-budget skipped</div>
+    </div>
+
+    <div class="capture-card">
+      <div class="cc-pointer">
+        <span class="pp-chap">ch.3 &middot; turn 64</span>
+        <span class="pp-meta">2026-05-08 22:18</span>
+        <span class="pp-mode">light</span>
+        <span class="pp-meta">36 KB</span>
+      </div>
+      <div class="cc-summary">9 entities &middot; 6 lore &middot; 7 happenings &middot; 2 threads &middot; 0 chapter summaries</div>
+      <div class="cc-budget">1684 / 1800 budget</div>
+    </div>
+  </div>
+
+  <!-- empty state — probe just enabled, no captures yet -->
+  <div class="list-empty" id="empty-on" style="display:none">
+    <p>Probe mode is on but no captures yet.</p>
+    <p>Generate the next turn to capture &mdash; <span class="empty-link">open reader</span></p>
+  </div>
+
+  <!-- empty state — probe off, captures still around -->
+  <div class="list-empty" id="empty-off" style="display:none">
+    <p>Probe mode is off. Captured turns will appear here when enabled.</p>
+    <button class="empty-cta">Activate probe mode</button>
+  </div>
+
+  <!-- empty state — probe never on -->
+  <div class="list-empty" id="empty-never" style="display:none">
+    <p>Probe mode has never been enabled for this story.</p>
+    <p>It captures retrieval state per turn for diagnostic inspection. <span class="empty-link">Learn more</span></p>
+    <button class="empty-cta">Enable probe mode</button>
+  </div>
+
+</div>
+
+<!-- ============== INSPECT / SIMULATE STAGE ============== -->
+
+<div class="insp-stage">
+
+  <div class="insp-header">
+    <div class="insp-pointer">
+      <span class="pp-chap">ch.4 &middot; turn 87</span>
+      <span class="pp-meta">2026-05-09 14:22</span>
+      <span class="pp-mode" id="insp-mode-badge">light</span>
+    </div>
+    <div class="insp-branch">
+      branch: <span id="insp-branch-name">main</span> &middot; entry: e_2876 <span class="br-link">&rarr; open in reader</span>
+    </div>
+
+    <div class="insp-banner drift" id="banner-drift" data-toggle-banner>
+      <span class="ib-icon">&#9888;</span>
+      <span>Params differ from current story &middot; 3 changes</span>
+      <span class="ib-disclosure">&#9662;</span>
+    </div>
+    <div class="insp-banner-body" id="banner-drift-body">
+      <table>
+        <thead><tr><th>param</th><th>captured</th><th>current</th></tr></thead>
+        <tbody>
+          <tr><td>w_action</td><td>0.35</td><td>0.40</td></tr>
+          <tr><td>τ_revive</td><td>0.85</td><td>0.88</td></tr>
+          <tr><td>budget.lore</td><td>1800</td><td>1600</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insp-banner branch-warn">
+      <span class="ib-icon">&#9755;</span>
+      <span>This capture is from branch <b>fork-of-ch4-twist</b>. Switch to that branch to simulate, or use this view for read-only inspection.</span>
+    </div>
+
+    <div class="insp-banner failure">
+      <span class="ib-icon">&#9888;</span>
+      <span>Retrieval failed at capture time &middot; reason: embedder unavailable (init returned null) &middot; partial state: queries embedded, pool retrieval skipped.</span>
+    </div>
+
+    <div class="insp-actions">
+      <!-- inspect-only actions -->
+      <button class="insp-action primary insp-only simulate-toggle" data-set-mode="simulate">Simulate</button>
+      <button class="insp-action insp-only">Re-capture</button>
+      <button class="insp-action insp-only" data-open-modal="export">Export</button>
+
+      <!-- simulate-only actions -->
+      <button class="insp-action primary sim-only" data-open-modal="apply">Apply to story settings</button>
+      <button class="insp-action sim-only">Save snapshot</button>
+      <button class="insp-action sim-only" data-set-mode="inspect">Cancel simulation</button>
+
+      <!-- always present (right-aligned destructive) -->
+      <button class="insp-action danger" data-open-modal="delete">Delete capture</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab" data-tab="selected">Selected</div>
+    <div class="tab" data-tab="queries">Queries</div>
+    <div class="tab" data-tab="entities">Entities</div>
+    <div class="tab" data-tab="lore">Lore</div>
+    <div class="tab" data-tab="happenings">Happenings</div>
+    <div class="tab" data-tab="threads">Threads</div>
+    <div class="tab" data-tab="chapters">Chapter summaries</div>
+  </div>
+
+  <div class="insp-stage-body" style="flex:1; overflow-y: auto; padding: 14px 20px 24px;">
+
+    <!-- phone-only simulate live/sim toggle -->
+    <div class="phone-sim-toggle">
+      <button class="active" data-phone-sim="live">Live</button>
+      <button data-phone-sim="sim">Simulated</button>
+      <button class="phone-params-toggle" data-phone-params="open" style="border-left: 1px solid rgba(255,255,255,0.4);">Params &uarr;</button>
+    </div>
+
+    <!-- ============== SELECTED tab ============== -->
+    <div class="tab-pane selected">
+      <div class="selected-section">
+        <h3>Structural floor (fixed)</h3>
+        <div class="ss-budget">2400 tokens &middot; 4 sources</div>
+        <div class="selected-row struct">
+          <span class="sr-kind">Buffer</span>
+          <span class="sr-text">Recent buffer (12 entries)</span>
+          <span class="sr-tokens">1820 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row struct">
+          <span class="sr-kind">Entities</span>
+          <span class="sr-text">Active+in-scene: Aria, Kael</span>
+          <span class="sr-tokens">320 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row struct">
+          <span class="sr-kind">Location</span>
+          <span class="sr-text">the_study</span>
+          <span class="sr-tokens">110 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row struct">
+          <span class="sr-kind">Threads</span>
+          <span class="sr-text">2 active &middot; the locked letter, betrayal arc</span>
+          <span class="sr-tokens">150 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+      </div>
+
+      <div class="selected-section">
+        <h3>Retrieved &middot; injection order</h3>
+        <div class="ss-budget">1840 tokens / 1800 budget total &middot; 5 types</div>
+
+        <div class="selected-row entity">
+          <span class="sr-kind">Entity</span>
+          <span class="sr-text">Vael &mdash; staged, retrieved off scene match</span>
+          <span class="sr-tokens">280 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row entity">
+          <span class="sr-kind">Entity</span>
+          <span class="sr-text">Maelis &mdash; staged, retrieved off scene match</span>
+          <span class="sr-tokens">240 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+
+        <div class="selected-row lore">
+          <span class="sr-kind">Lore</span>
+          <span class="sr-text">The locked-letter custom</span>
+          <span class="sr-tokens">320 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row lore">
+          <span class="sr-kind">Lore</span>
+          <span class="sr-text">House Vaer succession law</span>
+          <span class="sr-tokens">280 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+
+        <div class="selected-row happening">
+          <span class="sr-kind">Happening</span>
+          <span class="sr-text">Kael's confession at chapter 2</span>
+          <span class="sr-tokens">180 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+        <div class="selected-row happening">
+          <span class="sr-kind">Happening</span>
+          <span class="sr-text">The diary's first opening</span>
+          <span class="sr-tokens">160 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+
+        <div class="selected-row thread">
+          <span class="sr-kind">Thread</span>
+          <span class="sr-text">The betrayal arc</span>
+          <span class="sr-tokens">220 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+
+        <div class="selected-row chapter">
+          <span class="sr-kind">Chapter</span>
+          <span class="sr-text">Chapter 2 &mdash; "The first letter"</span>
+          <span class="sr-tokens">160 tok</span>
+          <span class="sr-link">&rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== QUERIES tab ============== -->
+    <div class="tab-pane queries">
+
+      <div class="query-block">
+        <div class="qb-head">
+          <span class="qb-name">Q1 &mdash; User action</span>
+          <span>embedded &middot; 18 tokens</span>
+        </div>
+        <div class="qb-text">"Aria reaches for the locked drawer, hesitates, and looks up at Kael."</div>
+        <div class="qb-meta">source: entry e_2875 (the action delta committed in Pre)</div>
+        <div class="qb-histogram"><div class="bar h2"></div><div class="bar h3"></div><div class="bar h5"></div><div class="bar h7"></div><div class="bar h6"></div><div class="bar h4"></div><div class="bar h2"></div><div class="bar h1"></div></div>
+      </div>
+
+      <div class="query-block">
+        <div class="qb-head">
+          <span class="qb-name">Q2 &mdash; Structural digest</span>
+          <span>embedded &middot; 32 tokens</span>
+        </div>
+        <div class="qb-text">"Aria, Kael, the study. Active threads: the locked letter, betrayal arc. Era: Reform. The diary lay open to page seven."</div>
+        <div class="qb-meta">scene=2 entities &middot; location=the_study &middot; threads=2 active &middot; summary=piggyback (1 sentence)</div>
+        <div class="qb-histogram"><div class="bar h1"></div><div class="bar h2"></div><div class="bar h4"></div><div class="bar h6"></div><div class="bar h7"></div><div class="bar h6"></div><div class="bar h4"></div><div class="bar h2"></div></div>
+      </div>
+
+      <div class="query-block">
+        <div class="qb-head">
+          <span class="qb-name">Q3 &mdash; Heuristic prose extract</span>
+          <span>embedded &middot; 48 tokens</span>
+        </div>
+        <div class="qb-text">"She drew the iron key from her pocket." &middot; "Kael whispered, 'They mustn't know.'" &middot; "The diary lay open to page seven."</div>
+        <div class="qb-meta">top-3 of 12 sentences &middot; scores 1.4 / 1.1 / 0.9 &middot; signal: entity hits, lore-keyword, action-verb, dialogue, brevity</div>
+        <div class="qb-histogram"><div class="bar h2"></div><div class="bar h4"></div><div class="bar h7"></div><div class="bar h5"></div><div class="bar h3"></div><div class="bar h2"></div><div class="bar h1"></div><div class="bar h1"></div></div>
+      </div>
+
+    </div>
+
+    <!-- ============== ENTITIES tab — central per-type pattern ============== -->
+    <div class="tab-pane entities">
+
+      <div class="diff-banner">
+        <b class="add">+3 selected</b> &middot;
+        <b class="rem">-2 selected</b> &middot;
+        <b class="mod">4 score deltas</b> &middot;
+        <b class="bypass">1 newly bypassed</b>
+      </div>
+
+      <div class="funnel">
+        <span>pool: <b>248</b></span>
+        <span>pre-filter: <b>200</b></span>
+        <span>MMR: <b>14</b></span>
+        <span>selected: <b>8</b></span>
+        <span>tokens: <b>1180</b> / <b>1200</b> budget</span>
+        <span>over-budget skipped: <b>2</b></span>
+        <span>stale excluded: <b>3</b></span>
+      </div>
+
+      <div class="type-filter-row">
+        <span class="tfr-label">filter</span>
+        <button class="filter-chip active">all</button>
+        <button class="filter-chip">selected</button>
+        <button class="filter-chip">dropped</button>
+        <button class="filter-chip">bypassed</button>
+        <button class="filter-chip">stale</button>
+      </div>
+
+      <div class="sim-split">
+        <div class="sim-col captured">
+          <h4>Captured</h4>
+          <table class="score-table">
+            <thead><tr>
+              <th class="text">Name</th><th>Sts</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
+            </tr></thead>
+            <tbody>
+              <tr class="selected"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.51</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.44</td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="bypass selected"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td>.05</td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
+              <tr class="dropped"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.15</td><td>—</td><td class="res-cell"><span class="res-glyph dim">⊘</span></td></tr>
+              <tr class="dropped over-budget"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.42</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.38</td><td>5</td><td class="res-cell"><span class="res-glyph warn">⤴</span></td></tr>
+              <tr class="dropped"><td class="text">(202 more pre-filtered)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph dim">−</span></td></tr>
+              <tr class="dropped stale"><td class="text">Brann <span class="stale-flag">⚠ stale</span></td><td>◌</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph warn">⚠</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sim-col simulated">
+          <h4>Simulated</h4>
+          <table class="score-table">
+            <thead><tr>
+              <th class="text">Name</th><th>Sts</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
+            </tr></thead>
+            <tbody>
+              <tr class="selected diff-mod"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.52</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.45 <span class="delta up">.01</span></td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="bypass selected diff-bypass"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td>.07 <span class="delta up">.02</span></td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="selected diff-add"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.43</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.39 <span class="delta up">.01</span></td><td>5</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+              <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
+              <tr class="dropped diff-rem"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.14 <span class="delta down">.01</span></td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sim-col param-panel">
+          <button class="phone-params-toggle" data-phone-params="close" style="float: right; padding: 3px 8px;">close</button>
+
+          <div class="pp-hint">
+            <b>Tip:</b> simulate against multiple captures before applying. One turn's diff isn't enough signal.
+          </div>
+
+          <div class="pp-section">
+            <h5>Query weights</h5>
+            <div class="pp-row diff"><label>w_action</label><input value="0.40"><span class="pp-reset" title="reset to captured">↶</span></div>
+            <div class="pp-row"><label>w_digest</label><input value="0.35"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>w_prose</label><input value="0.25"><span class="pp-reset">↶</span></div>
+            <div class="pp-note">Sums to 1; editing one re-normalizes the others.</div>
+          </div>
+
+          <div class="pp-section">
+            <h5>Decay (per type)</h5>
+            <div class="pp-row"><label>λ happenings</label><input value="0.07"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>λ entity off-scene</label><input value="0.025"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>λ threads</label><input value="0.025"><span class="pp-reset">↶</span></div>
+          </div>
+
+          <div class="pp-section">
+            <h5>Boosts</h5>
+            <div class="pp-row"><label>kw_boost</label><input value="0.10"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>chapter_boost</label><input value="1.30"><span class="pp-reset">↶</span></div>
+          </div>
+
+          <div class="pp-section">
+            <h5>Bypass</h5>
+            <div class="pp-row diff"><label>τ_revive</label><input value="0.88"><span class="pp-reset">↶</span></div>
+          </div>
+
+          <div class="pp-section">
+            <h5>Threshold</h5>
+            <div class="pp-row"><label>min_score</label><input value="0.15"><span class="pp-reset">↶</span></div>
+          </div>
+
+          <div class="pp-section">
+            <h5>Budgets (tokens)</h5>
+            <div class="pp-row"><label>entities</label><input value="1200"><span class="pp-reset">↶</span></div>
+            <div class="pp-row diff"><label>lore</label><input value="1600"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>happenings</label><input value="1500"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>threads</label><input value="400"><span class="pp-reset">↶</span></div>
+            <div class="pp-row"><label>chapters</label><input value="300"><span class="pp-reset">↶</span></div>
+          </div>
+
+          <div class="pp-section">
+            <h5>MMR</h5>
+            <div class="pp-row disabled"><label>λ_div</label><input value="0.75" disabled><span class="pp-reset">↶</span></div>
+            <div class="pp-note">Disabled: light captures don't store candidate vectors. Recapture this turn with deep mode to tune MMR diversity.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== HAPPENINGS tab ============== -->
+    <div class="tab-pane happenings">
+
+      <div class="diff-banner">
+        <b class="add">+1 selected</b> &middot;
+        <b class="rem">-1 selected</b> &middot;
+        <b class="mod">3 score deltas</b>
+      </div>
+
+      <div class="funnel">
+        <span>pool: <b>1248</b></span>
+        <span>pre-filter: <b>200</b></span>
+        <span>MMR: <b>18</b></span>
+        <span>selected: <b>8</b></span>
+        <span>tokens: <b>1480</b> / <b>1500</b> budget</span>
+        <span>over-budget skipped: <b>2</b></span>
+        <span>stale excluded: <b>4</b></span>
+      </div>
+
+      <div class="type-filter-row">
+        <span class="tfr-label">filter</span>
+        <button class="filter-chip active">all</button>
+        <button class="filter-chip">selected</button>
+        <button class="filter-chip">dropped</button>
+        <button class="filter-chip">bypassed</button>
+      </div>
+
+      <table class="score-table">
+        <thead><tr>
+          <th class="text">Title</th><th>Ch</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>chB</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
+        </tr></thead>
+        <tbody>
+          <tr class="selected"><td class="text">Kael's confession</td><td>2</td><td>.66</td><td>.71</td><td>.62</td><td>.66</td><td>.84</td><td>.30</td><td>.10</td><td>×1.3</td><td>—</td><td>.85</td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+          <tr class="selected"><td class="text">The diary opening</td><td>3</td><td>.71</td><td>.68</td><td>.59</td><td>.66</td><td>.91</td><td>.00</td><td>.00</td><td>×1.3</td><td>—</td><td>.78</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+          <tr class="bypass selected"><td class="text">Linde's vow (ch.1)</td><td>1</td><td>.92</td><td>.86</td><td>.81</td><td>.86</td><td>.04</td><td>.00</td><td>.00</td><td>—</td><td>↗</td><td>.07</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+          <tr class="dropped"><td class="text">The river ambush</td><td>2</td><td>.41</td><td>.38</td><td>.35</td><td>.38</td><td>.84</td><td>.00</td><td>.00</td><td>×1.3</td><td>—</td><td>.42</td><td>5</td><td class="res-cell"><span class="res-glyph dim">⊘</span></td></tr>
+          <tr class="dropped over-budget"><td class="text">Old Hael's warning</td><td>2</td><td>.46</td><td>.40</td><td>.38</td><td>.41</td><td>.84</td><td>.10</td><td>.10</td><td>×1.3</td><td>—</td><td>.55</td><td>6</td><td class="res-cell"><span class="res-glyph warn">⤴</span></td></tr>
+          <tr class="dropped"><td class="text">(194 more pre-filtered)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph dim">−</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- placeholder panes for tabs not richly demoed in the wireframe -->
+    <div class="tab-pane lore">
+      <p style="color: var(--ink-muted); font-style: italic; text-align: center; padding: 24px 0;">
+        Lore tab uses the same shape as Entities &mdash; columns: Title, priority, sim Q1/Q2/Q3, blend, kw, score, MMR, result.
+      </p>
+    </div>
+    <div class="tab-pane threads">
+      <p style="color: var(--ink-muted); font-style: italic; text-align: center; padding: 24px 0;">
+        Threads tab &mdash; columns: Title, status, sim Q1/Q2/Q3, blend, recency, kw, score, MMR, result.
+      </p>
+    </div>
+    <div class="tab-pane chapters">
+      <p style="color: var(--ink-muted); font-style: italic; text-align: center; padding: 24px 0;">
+        Chapter summaries tab &mdash; columns: Chapter, Title, sim Q1/Q2/Q3, blend, kw, score, MMR, result.
+      </p>
+    </div>
+
+  </div><!-- /insp-stage-body -->
+</div><!-- /insp-stage -->
+
+<!-- ============== MODALS ============== -->
+
+<div class="modal-backdrop apply">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Apply simulated parameters to this story</span>
+      <span class="modal-close" data-close-modal>&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>These 4 params will change on this story:</p>
+      <div class="modal-diff">
+        w_action&nbsp;&nbsp;&nbsp;&nbsp;0.35 &rarr; 0.40<br>
+        τ_revive&nbsp;&nbsp;&nbsp;0.85 &rarr; 0.88<br>
+        budget.lore&nbsp;1800 &rarr; 1600<br>
+        kw_boost&nbsp;&nbsp;&nbsp;0.10 &rarr; 0.12
+      </div>
+      <p>This affects retrieval on every future turn. You can revert by re-editing in Story Settings.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal>Cancel</button>
+      <button class="btn primary" data-close-modal>Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop delete">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Delete this capture?</span>
+      <span class="modal-close" data-close-modal>&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Removes the probe capture for ch.4 &middot; turn 87. Cannot be undone.</p>
+      <p>The turn itself is unaffected.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal>Cancel</button>
+      <button class="btn danger" data-close-modal>Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop clear">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Delete all captures for this story?</span>
+      <span class="modal-close" data-close-modal>&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Removes all 47 probe captures across all branches of this story. Frees 12.4 MB.</p>
+      <p>Cannot be undone. Probe-mode toggles are unaffected; future turns capture as normal.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal>Cancel</button>
+      <button class="btn danger" data-close-modal>Delete all</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop export">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Export capture</span>
+      <span class="modal-close" data-close-modal>&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Export ch.4 &middot; turn 87 as a JSON file.</p>
+      <p style="color: var(--ink-muted); font-size: 12px; font-style: italic;">Exports include prose from the turn (queries, candidate display fields). Review before sharing externally.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal>Cancel</button>
+      <button class="btn primary" data-close-modal>Save JSON</button>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /viewport -->
+  </div><!-- /vp-stage-wrap -->
+</div><!-- /vp-stage -->
+
+<script>
+(function () {
+  const body = document.body;
+  const widthReadout = document.getElementById('vp-width-readout');
+  const tierReadout = document.getElementById('vp-tier-readout');
+  const viewport = document.getElementById('viewport');
+
+  // viewport tier
+  document.querySelectorAll('.review-bar [data-vp]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-vp]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const w = btn.dataset.width;
+      viewport.style.setProperty('--vp-width', w + 'px');
+      widthReadout.textContent = w + ' px';
+      const tier = btn.dataset.vp;
+      tierReadout.textContent = tier;
+    });
+  });
+
+  // mode (list / inspect / simulate)
+  document.querySelectorAll('.review-bar [data-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-mode]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.mode = btn.dataset.mode;
+    });
+  });
+
+  // capture mode
+  document.querySelectorAll('.review-bar [data-capture]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-capture]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.captureMode = btn.dataset.capture;
+      // Update visible inspect mode badge
+      const badge = document.getElementById('insp-mode-badge');
+      if (badge) {
+        badge.textContent = btn.dataset.capture;
+        badge.classList.toggle('deep', btn.dataset.capture === 'deep');
+      }
+    });
+  });
+
+  // drift toggle
+  document.querySelectorAll('.review-bar [data-drift]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-drift]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.drift = btn.dataset.drift;
+    });
+  });
+
+  // branch toggle
+  document.querySelectorAll('.review-bar [data-branch]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-branch]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.branch = btn.dataset.branch;
+      // also update header branch label
+      document.getElementById('insp-branch-name').textContent =
+        btn.dataset.branch === 'other' ? 'fork-of-ch4-twist' : 'main';
+    });
+  });
+
+  // probe state — list view variants
+  document.querySelectorAll('.review-bar [data-probe]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-probe]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const state = btn.dataset.probe;
+      body.dataset.probe = state;
+
+      // list visibility
+      const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+      const show = (id, disp) => { const el = document.getElementById(id); if (el) el.style.display = disp || 'block'; };
+      hide('captures-on'); hide('empty-on'); hide('empty-off'); hide('empty-never');
+      const appLink = document.getElementById('ss-app-link');
+      const ssMeta = document.getElementById('ss-meta');
+
+      if (state === 'on') {
+        show('captures-on', 'flex');
+        if (appLink) appLink.style.display = 'none';
+        if (ssMeta) ssMeta.textContent = '47 / 100 captures · 12.4 MB';
+      } else if (state === 'off-story') {
+        show('empty-off');
+        if (appLink) appLink.style.display = 'none';
+        if (ssMeta) ssMeta.textContent = '47 existing captures · 12.4 MB';
+      } else if (state === 'off-app') {
+        show('empty-off');
+        if (appLink) appLink.style.display = 'inline';
+        if (ssMeta) ssMeta.textContent = '47 existing captures · 12.4 MB';
+      } else if (state === 'never') {
+        show('empty-never');
+        if (appLink) appLink.style.display = 'none';
+        if (ssMeta) ssMeta.textContent = 'no captures yet';
+      }
+    });
+  });
+
+  // tab switching
+  document.querySelectorAll('.review-bar [data-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.tab = btn.dataset.tab;
+    });
+  });
+  document.querySelectorAll('.tabs .tab').forEach((t) => {
+    t.addEventListener('click', () => {
+      const target = t.dataset.tab;
+      body.dataset.tab = target;
+      // sync review-bar tab buttons
+      document.querySelectorAll('.review-bar [data-tab]').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === target);
+      });
+    });
+  });
+  // visual sync of in-page tabs
+  function syncTabsActive() {
+    document.querySelectorAll('.tabs .tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === body.dataset.tab);
+    });
+  }
+  const tabObserver = new MutationObserver(syncTabsActive);
+  tabObserver.observe(body, { attributes: true, attributeFilter: ['data-tab'] });
+  syncTabsActive();
+
+  // modal toggle
+  document.querySelectorAll('.review-bar [data-modal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.review-bar [data-modal]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.modal = btn.dataset.modal;
+    });
+  });
+  document.querySelectorAll('[data-open-modal]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const which = btn.dataset.openModal;
+      body.dataset.modal = which;
+      // sync review-bar modal buttons
+      document.querySelectorAll('.review-bar [data-modal]').forEach(b => {
+        b.classList.toggle('active', b.dataset.modal === which);
+      });
+    });
+  });
+  document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      body.dataset.modal = 'hidden';
+      document.querySelectorAll('.review-bar [data-modal]').forEach(b => {
+        b.classList.toggle('active', b.dataset.modal === 'hidden');
+      });
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && body.dataset.modal !== 'hidden') {
+      body.dataset.modal = 'hidden';
+      document.querySelectorAll('.review-bar [data-modal]').forEach(b => {
+        b.classList.toggle('active', b.dataset.modal === 'hidden');
+      });
+    }
+  });
+
+  // capture-card click → inspect mode
+  document.querySelectorAll('[data-open-inspect]').forEach((card) => {
+    card.addEventListener('click', () => {
+      body.dataset.mode = 'inspect';
+      document.querySelectorAll('.review-bar [data-mode]').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === 'inspect');
+      });
+    });
+  });
+
+  // simulate / cancel from inspect-action buttons
+  document.querySelectorAll('[data-set-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.setMode;
+      body.dataset.mode = m;
+      document.querySelectorAll('.review-bar [data-mode]').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === m);
+      });
+    });
+  });
+
+  // drift banner toggle
+  document.querySelectorAll('[data-toggle-banner]').forEach((banner) => {
+    banner.addEventListener('click', () => {
+      banner.classList.toggle('expanded');
+    });
+  });
+
+  // phone simulate live/sim toggle
+  document.querySelectorAll('.phone-sim-toggle button[data-phone-sim]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.phone-sim-toggle button[data-phone-sim]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      body.dataset.phoneSim = btn.dataset.phoneSim;
+    });
+  });
+  // phone params toggle
+  document.querySelectorAll('[data-phone-params]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      body.dataset.phoneParams = btn.dataset.phoneParams;
+    });
+  });
+
+  // viewport hotkeys
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === '1') document.querySelector('.review-bar [data-vp="phone"]').click();
+    if (e.key === '2') document.querySelector('.review-bar [data-vp="tablet"]').click();
+    if (e.key === '3') document.querySelector('.review-bar [data-vp="desktop"]').click();
+  });
+})();
+</script>
+</body>
+</html>
