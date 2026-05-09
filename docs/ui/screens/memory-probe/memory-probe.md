@@ -225,6 +225,16 @@ sentence scores and the signal contributions
 
 Each tab follows the same shape, with type-specific score columns.
 
+**Layout note — wide-table containment.** Score tables have 12-14
+columns and easily exceed available width at narrower viewports
+(phone tier, desktop simulate mode with the param panel taking
+280 px). The table MUST live inside a per-table wrapper element
+with `overflow-x: auto`; horizontal scroll stays scoped to the
+table while the chrome (diff banner, funnel summary, filter chips,
+tabs strip, top-bar) stays anchored. A bare `<table>` without the
+wrapper lets the surrounding surface widen — the user scrolls
+horizontally and the entire view slides off, banner included.
+
 ```
 Funnel: pool 1248 → pre-filter 200 → MMR 18 → selected 12
 Tokens: 1840 / 1800 budget · 3 over-budget skipped
