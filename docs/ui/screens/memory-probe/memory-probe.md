@@ -339,51 +339,73 @@ reads left-to-right.
 ## Simulate mode
 
 Toggling the **Simulate** action in the header switches the layout
-to side-by-side:
+to a single full-width score table with inline diff annotations,
+plus a sticky parameter panel:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ <story> / Memory probe / ch.4 · turn 87 · SIMULATING          │
 │ branch: main · entry: e_2876                                  │
-│ +3 selected · -2 selected · 4 score deltas · 1 newly bypassed │ ← diff banner
+│ +1 selected · -1 selected · 4 score deltas · 1 bypass change  │ ← diff banner
 │ [Apply to story settings] [Save snapshot] [Cancel]            │
-├──────────────────────┬───────────────────────────┬────────────┤
-│ Tabs: Selected | Queries | Entities | Lore | ... │ Param panel │
-├──────────────────────┴───────────────────────────┤             │
-│ ┌─────────────────────┬──────────────────────┐  │ Query weights│
-│ │ CAPTURED            │ SIMULATED            │  │ w_action  ▢ │
-│ │ (per-type table     │ (same shape, with    │  │ w_digest  ▢ │
-│ │  as inspect)        │  diff highlighting)  │  │ w_prose   ▢ │
-│ │                     │                      │  │             │
-│ │                     │                      │  │ Decay        │
-│ │                     │                      │  │ λ_happen  ▢ │
-│ │                     │                      │  │ λ_entity  ▢ │
-│ │                     │                      │  │ ...          │
-│ │                     │                      │  │             │
-│ │                     │                      │  │ Boosts       │
-│ │                     │                      │  │ kw_boost  ▢ │
-│ │                     │                      │  │ ch_boost  ▢ │
-│ │                     │                      │  │             │
-│ │                     │                      │  │ Bypass       │
-│ │                     │                      │  │ τ_revive  ▢ │
-│ │                     │                      │  │             │
-│ │                     │                      │  │ Budgets      │
-│ │                     │                      │  │ entities  ▢ │
-│ │                     │                      │  │ lore      ▢ │
-│ │                     │                      │  │ ...          │
-│ │                     │                      │  │             │
-│ │                     │                      │  │ MMR          │
-│ │                     │                      │  │ λ_div     ▢ │
-│ │                     │                      │  │  (deep only) │
-│ └─────────────────────┴──────────────────────┘  │             │
-└──────────────────────────────────────────────────┴────────────┘
+├──────────────────────────────────────────────────────────────┤
+│ Tabs: Selected | Queries | Entities | Lore | ...              │
+├──────────────────────────────────────────────┬────────────────┤
+│ Filter: [changes only] [all] [selected] ...  │ Param panel    │
+│                                              │ Query weights  │
+│ Name      Sts Q1 Q2 Q3 BL rec pin kw byp ... │ w_action  ▢   │
+│ ─────────────────────────────────────────    │ w_digest  ▢   │
+│ Vael       ◌ .61 ...        ▲.45 was .44  ✓  │ w_prose   ▢   │
+│ Linde      ◌ .91 ...    ↗  ▲.07 was .05  ✓  │ Decay          │
+│ Cap. Roen  ◌ .40 ...        ▲.39 was .38  ✓ NEW │ λ_happen ▢ │
+│ Sera       ◌ .29 ...        ▼.14 was .15  ↓ DROP│ ...        │
+│ ...                                          │ Bypass         │
+│                                              │ τ_revive  ▢   │
+│                                              │ ...            │
+└──────────────────────────────────────────────┴────────────────┘
 ```
+
+### Why single-table-with-diffs and not side-by-side
+
+Two parallel tables (captured | simulated) was the obvious framing
+but doesn't fit. The score table has 13 columns
+(name + status + Q1 / Q2 / Q3 + blend + recency + pin + kw + chapter
+boost + bypass + final score + MMR rank + result). Two of those
+side-by-side plus the 280-pixel parameter panel exceeds desktop
+container width before any column gets readable padding. Phone tier
+collapses to one or the other anyway.
+
+A single table with inline annotations carries the same comparison
+signal more compactly:
+
+- **Score cell**: simulated value with `▲` or `▼` delta arrow plus
+  a faint `was X.XX` tail for changed scores.
+- **Result cell**: glyph for the new result, plus a `NEW` or `DROP`
+  badge when the selection state itself flipped.
+- **Row tinting**: green for newly-selected (`diff-add`), red for
+  newly-dropped (`diff-rem`), yellow for score-only changes
+  (`diff-mod`), blue for bypass-state changes (`diff-bypass`).
+
+The "see them next to each other" intuition is preserved through
+the per-row "was X.XX" annotation; the loss is the ability to scan
+two unchanged values side-by-side, which isn't actually what tuners
+do.
 
 ### Diff banner
 
 Always visible above the type tabs. Counts changed cells across the
-whole capture; each type tab has its own per-tab diff summary
-matching this shape.
+whole capture (added selections, removed selections, score moves,
+bypass state changes). Each type tab repeats this banner scoped to
+its own pool.
+
+### Default filter — "changes only"
+
+Filter chips in simulate mode default to `changes only`, hiding
+unchanged rows. The remaining chips (`all`, `selected`, `dropped`,
+`bypassed`, `stale`) work the same as inspect mode. The default
+keeps the diff scannable — for a typical pool of hundreds of
+candidates, only ~5-15 rows actually move under a single param
+edit.
 
 ### Action buttons
 
@@ -395,27 +417,26 @@ matching this shape.
 - **Save snapshot** — persists the current simulator state
   alongside the parent capture (counts toward the FIFO cap as a
   separate row pointing at the parent). Useful for "I want to
-  compare three different param sets against this capture
-  side-by-side later." Snapshots are inspect-only; they can't be
-  re-simulated (would be simulating against a simulated state, a
-  meaning-loss).
+  compare three different param sets against this capture later."
+  Snapshots are inspect-only; they can't be re-simulated (would be
+  simulating against a simulated state, a meaning-loss).
 - **Cancel** — discards the simulator state, returns to inspect
   mode with no changes.
 
 ### Param panel
 
-Sticky right-side column on desktop, bottom drawer on phone. Param
-groups in fixed order:
+Sticky right-side column on desktop and tablet, slide-up sheet on
+phone. Param groups in fixed order:
 
 - **Query weights** — `w_action`, `w_digest`, `w_prose`. Sum-to-one
-  re-normalization on edit (drag one, others rebalance).
+  re-normalization on edit (edit one, others rebalance).
 - **Decay** — per-type `λ` (happenings, entities off-scene,
   threads). Lore and chapter-summary `λ` are 0 by design and not
   shown.
 - **Boosts** — `kw_boost` magnitude, `chapter_boost` magnitude.
 - **Bypass** — `τ_revive`.
 - **Threshold** — `min_score_threshold`.
-- **Budgets** — per-type token budgets (5 sliders).
+- **Budgets** — per-type token budgets (5 inputs).
 - **MMR** — `λ_div`. **Disabled in light captures** with the
   explanation: "Light captures don't store candidate vectors.
   Recapture this turn with deep mode to tune MMR diversity."
@@ -423,24 +444,11 @@ groups in fixed order:
 Each param input shows:
 
 - Current simulated value.
-- Reset arrows: ↶ to captured value, ↷ to current story value.
-- Diff color: green if equal to captured, blue if equal to current
-  story, yellow if different from both.
-
-### Diff highlighting
-
-Per-type tables in simulate mode add the diff column treatment:
-
-- Newly **selected** in simulated: green `+ ✓` cell.
-- No longer selected: red `− ✓` cell (was selected, now isn't).
-- Score changed but still selected: yellow `Δ` with the delta value
-  (e.g., `Δ +0.04`).
-- Newly bypassed: blue `↗`.
-- Lost bypass: blue `↘`.
-- Newly pre-filtered out: gray `+ -`.
-- Etc. for every state transition.
-
-Per-row tooltips show the captured-vs-simulated breakdown.
+- A reset arrow ↶ that snaps the input back to the captured
+  value. A header-level "Reset all to current story" button covers
+  the bulk-revert case.
+- Diff highlight: yellow background when the input differs from
+  the captured value.
 
 ### Single-capture-only — explicit limitation
 
@@ -464,26 +472,28 @@ Probe is desktop-primary. Phone-tier reflows:
 
 - **Capture list** — card list (already cards on desktop; mobile
   uses the same shape with tighter padding). Filter row collapses
-  to a two-row stack: branch+sort first, refresh+clear actions
+  to a two-row stack: branch / sort first, refresh / clear actions
   second.
 - **Capture detail** — tabs become a horizontally-scrollable strip;
-  per-type tables stack each row into a key-value mini-card with
-  expandable score breakdown. The dense numerical grid doesn't
-  reduce well to phone width — accept the friction. Power-users
-  doing serious tuning are expected on desktop.
-- **Selected tab** — natural fit on phone; structural floor +
+  per-type score tables overflow horizontally inside their column
+  rather than reflowing into stacked cards (the dense numerical
+  grid doesn't reduce well to phone width — accept the horizontal
+  scroll).
+- **Selected tab** — natural fit on phone; structural floor and
   per-type sections stack vertically.
-- **Simulate mode** — collapses side-by-side to a toggle:
-  `[Live | Simulated]` switch at the top of each tab, persistent
-  diff badge always visible. Param panel becomes a slide-up sheet
-  (Sheet pattern, ~85% height).
+- **Simulate mode** — same single-table layout as desktop. Diff
+  banner stays above the table; the param panel collapses to a
+  slide-up sheet (Sheet pattern, ~65 % height). An `Edit params ↑`
+  button above the table opens the sheet; a close button inside
+  the sheet header dismisses it.
 - **Drift badge / failure banner** — wrap onto two lines on phone.
 
 The mobile shape lets a user **inspect** comfortably (review
-captures, see what fell off, read scores) but **simulating** is
-intentionally cramped — the workflow is desktop-first. The phone
-shape exists so the user isn't locked out, not because it's the
-intended primary surface.
+captures, see what fell off, read scores) and run a basic
+simulation cycle (edit params in the sheet, see deltas in the
+table). Power-users doing serious empirical tuning are expected on
+desktop; the phone shape exists so the user isn't locked out, not
+because it's the intended primary surface.
 
 ## Entry points
 

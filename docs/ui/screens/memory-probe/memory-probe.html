@@ -215,17 +215,16 @@
   .res-glyph.warn { color: var(--diff-mod); }
   .res-glyph.danger { color: var(--danger); }
 
-  /* simulate-mode side-by-side */
-  .sim-split { display: grid; grid-template-columns: 1fr 1fr 280px; gap: 14px; }
-  .sim-col { border: 1px solid var(--line-soft); border-radius: 4px; padding: 10px 12px 12px; background: var(--bg-region); min-width: 0; }
-  .sim-col h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
-  .sim-col.captured h4 { color: var(--ink-muted); }
-  .sim-col.simulated h4 { color: var(--diff-bypass); }
-  body[data-mode="inspect"] .sim-split { grid-template-columns: 1fr; }
-  body[data-mode="inspect"] .sim-split .sim-col.simulated { display: none; }
-  body[data-mode="inspect"] .sim-split .param-panel { display: none; }
-  body[data-mode="inspect"] .sim-col.captured h4 { display: none; }
-  body[data-mode="inspect"] .sim-col { border: none; padding: 0; background: transparent; }
+  /* simulate-mode layout: single table + param panel
+     (Side-by-side captured/simulated rejected — 13-column tables × 2 +
+     panel exceeds desktop width. Single table with inline diff
+     annotations carries the comparison signal more compactly.) */
+  .sim-split { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  body[data-mode="simulate"] .sim-split { grid-template-columns: minmax(0, 1fr) 280px; }
+  .sim-col { min-width: 0; }
+  .sim-col.param-panel { display: none; }
+  body[data-mode="simulate"] .sim-col.param-panel { display: block; }
+  .sim-col .table-wrap { width: 100%; overflow-x: auto; }
 
   /* diff banner above per-type content in simulate */
   .diff-banner { display: none; padding: 8px 12px; margin-bottom: 12px; background: var(--bg); border-left: 3px solid var(--diff-bypass); border-radius: 3px; font-size: 11px; font-family: ui-monospace, monospace; color: var(--ink); }
@@ -235,14 +234,35 @@
   .diff-banner b.mod { color: var(--diff-mod); }
   .diff-banner b.bypass { color: var(--diff-bypass); }
 
-  /* diff cell highlights — only render in simulate mode */
+  /* diff row tinting — only render in simulate mode */
   .score-table tr.diff-add td { background: var(--diff-add-bg); }
-  .score-table tr.diff-rem td { background: var(--diff-rem-bg); color: var(--diff-rem); text-decoration: line-through; text-decoration-color: rgba(176,64,64,0.4); }
+  .score-table tr.diff-rem td { background: var(--diff-rem-bg); color: var(--diff-rem); }
   .score-table tr.diff-mod td { background: var(--diff-mod-bg); }
   .score-table tr.diff-bypass td { background: var(--diff-bypass-bg); }
-  .delta { font-size: 10px; opacity: 0.75; }
-  .delta.up::before { content: "▲ +"; color: var(--diff-add); }
-  .delta.down::before { content: "▼ "; color: var(--diff-rem); }
+
+  /* score-cell delta annotation: "▲ .45 was .44" inline */
+  .delta { font-size: 10px; }
+  .delta.up { color: var(--diff-add); font-weight: 600; }
+  .delta.down { color: var(--diff-rem); font-weight: 600; }
+  .delta.up::before { content: "▲ "; }
+  .delta.down::before { content: "▼ "; }
+  .cell-was { font-size: 10px; color: var(--ink-faint); margin-left: 4px; font-style: italic; }
+  .res-badge-add { display: inline-block; margin-left: 4px; padding: 0 5px; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; background: var(--diff-add); color: #fff; border-radius: 2px; vertical-align: middle; }
+  .res-badge-rem { display: inline-block; margin-left: 4px; padding: 0 5px; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; background: var(--diff-rem); color: #fff; border-radius: 2px; vertical-align: middle; }
+
+  /* inspect-only / simulate-only row variants — toggle via body[data-mode] */
+  tr.row-inspect-only { display: table-row; }
+  tr.row-sim-only { display: none; }
+  tbody.row-inspect-only { display: table-row-group; }
+  tbody.row-sim-only { display: none; }
+  body[data-mode="simulate"] tr.row-inspect-only,
+  body[data-mode="simulate"] tbody.row-inspect-only { display: none; }
+  body[data-mode="simulate"] tr.row-sim-only { display: table-row; }
+  body[data-mode="simulate"] tbody.row-sim-only { display: table-row-group; }
+  .chip-inspect-only { display: inline-flex; }
+  .chip-sim-only { display: none; }
+  body[data-mode="simulate"] .chip-inspect-only { display: none; }
+  body[data-mode="simulate"] .chip-sim-only { display: inline-flex; }
 
   /* param panel */
   .param-panel { padding: 0 12px; font-size: 12px; }
@@ -340,18 +360,10 @@
     .tab { padding: 8px 10px; }
     .insp-stage { padding: 12px 12px 24px; }
 
-    /* simulate side-by-side collapses to a Live | Simulated toggle. */
+    /* simulate panel becomes a slide-up sheet on phone — table stays
+       full-width-with-horizontal-scroll above the sheet. */
     body[data-mode="simulate"] .sim-split { grid-template-columns: 1fr; }
-    body[data-mode="simulate"] .sim-col.simulated { display: var(--phone-sim-disp, none); }
-    body[data-mode="simulate"] .sim-col.captured { display: var(--phone-cap-disp, block); }
-    body[data-mode="simulate"][data-phone-sim="sim"] { --phone-sim-disp: block; --phone-cap-disp: none; }
-    .phone-sim-toggle { display: none; gap: 0; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
-    body[data-mode="simulate"] .phone-sim-toggle { display: flex; }
-    .phone-sim-toggle button { flex: 1; padding: 6px 10px; border: none; background: var(--bg-region); color: var(--ink-muted); font: inherit; font-size: 11px; cursor: pointer; }
-    .phone-sim-toggle button.active { background: var(--ink); color: #fff; }
-
-    /* param panel becomes a slide-up sheet */
-    body[data-mode="simulate"] .param-panel {
+    body[data-mode="simulate"] .sim-col.param-panel {
       position: absolute;
       left: 0; right: 0; bottom: 0;
       background: var(--bg-region);
@@ -363,8 +375,11 @@
       box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
       transform: translateY(100%);
       transition: transform 0.18s ease;
+      z-index: 5;
     }
-    body[data-mode="simulate"][data-phone-params="open"] .param-panel { transform: translateY(0); }
+    body[data-mode="simulate"][data-phone-params="open"] .sim-col.param-panel { transform: translateY(0); }
+
+    /* phone-only "Edit params ↑" affordance */
     .phone-params-toggle { display: none; }
     body[data-mode="simulate"] .phone-params-toggle {
       display: inline-block;
@@ -376,21 +391,22 @@
       font-size: 11px;
       cursor: pointer;
       font-family: inherit;
+      margin-bottom: 10px;
     }
 
-    /* score-table tightens — stack into compact grid alternative could land
-       at a deeper polish pass; for v1 we let it horizontally scroll. */
-    .insp-stage > .sim-split > .sim-col { overflow-x: auto; }
+    /* close button inside the sheet header */
+    .pp-close { display: inline-block; }
 
     /* modal sizing */
     .modal { width: 100%; max-width: calc(100% - 24px); margin: 0 12px; max-height: 85vh; overflow-y: auto; }
   }
 
-  @container (min-width: 640px) and (max-width: 1023px) {
-    /* tablet: simulate split stacks vertically; param panel becomes inline section */
-    body[data-mode="simulate"] .sim-split { grid-template-columns: 1fr; gap: 10px; }
-    body[data-mode="simulate"] .sim-col.simulated { border-top: 2px solid var(--diff-bypass); }
-    .param-panel { border-top: 1px solid var(--line-soft); padding-top: 12px; }
+  /* desktop / tablet: hide phone-only affordances entirely.
+     Wrapped in min-width container query so phone-tier @container
+     rules above always win on phone regardless of source order. */
+  @container (min-width: 640px) {
+    .phone-params-toggle { display: none; }
+    .pp-close { display: none; }
   }
 </style>
 </head>
@@ -664,12 +680,10 @@
 
   <div class="insp-stage-body" style="flex:1; overflow-y: auto; padding: 14px 20px 24px;">
 
-    <!-- phone-only simulate live/sim toggle -->
-    <div class="phone-sim-toggle">
-      <button class="active" data-phone-sim="live">Live</button>
-      <button data-phone-sim="sim">Simulated</button>
-      <button class="phone-params-toggle" data-phone-params="open" style="border-left: 1px solid rgba(255,255,255,0.4);">Params &uarr;</button>
-    </div>
+    <!-- phone-only "Edit params" trigger — opens the param-panel sheet
+         on phone tier when in simulate mode. Hidden on tablet+ where
+         the panel sits beside the table as a third column. -->
+    <button class="phone-params-toggle" data-phone-params="open">Edit params &uarr;</button>
 
     <!-- ============== SELECTED tab ============== -->
     <div class="tab-pane selected">
@@ -818,7 +832,9 @@
 
       <div class="type-filter-row">
         <span class="tfr-label">filter</span>
-        <button class="filter-chip active">all</button>
+        <button class="filter-chip active chip-inspect-only">all</button>
+        <button class="filter-chip active chip-sim-only">changes only</button>
+        <button class="filter-chip chip-sim-only">all</button>
         <button class="filter-chip">selected</button>
         <button class="filter-chip">dropped</button>
         <button class="filter-chip">bypassed</button>
@@ -826,46 +842,48 @@
       </div>
 
       <div class="sim-split">
-        <div class="sim-col captured">
-          <h4>Captured</h4>
-          <table class="score-table">
-            <thead><tr>
-              <th class="text">Name</th><th>Sts</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
-            </tr></thead>
-            <tbody>
-              <tr class="selected"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.51</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.44</td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="bypass selected"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td>.05</td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
-              <tr class="dropped"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.15</td><td>—</td><td class="res-cell"><span class="res-glyph dim">⊘</span></td></tr>
-              <tr class="dropped over-budget"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.42</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.38</td><td>5</td><td class="res-cell"><span class="res-glyph warn">⤴</span></td></tr>
-              <tr class="dropped"><td class="text">(202 more pre-filtered)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph dim">−</span></td></tr>
-              <tr class="dropped stale"><td class="text">Brann <span class="stale-flag">⚠ stale</span></td><td>◌</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph warn">⚠</span></td></tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="sim-col">
+          <div class="table-wrap">
+            <table class="score-table">
+              <thead><tr>
+                <th class="text">Name</th><th>Sts</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
+              </tr></thead>
 
-        <div class="sim-col simulated">
-          <h4>Simulated</h4>
-          <table class="score-table">
-            <thead><tr>
-              <th class="text">Name</th><th>Sts</th><th>Q1</th><th>Q2</th><th>Q3</th><th>blend</th><th>rec</th><th>pin</th><th>kw</th><th>byp</th><th>score</th><th>MMR</th><th>res</th>
-            </tr></thead>
-            <tbody>
-              <tr class="selected diff-mod"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.52</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.45 <span class="delta up">.01</span></td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="bypass selected diff-bypass"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td>.07 <span class="delta up">.02</span></td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="selected diff-add"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.43</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.39 <span class="delta up">.01</span></td><td>5</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
-              <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
-              <tr class="dropped diff-rem"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.14 <span class="delta down">.01</span></td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
-            </tbody>
-          </table>
+              <!-- Inspect-mode rows: captured state, no diff annotations. -->
+              <tbody class="row-inspect-only">
+                <tr class="selected"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.51</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.44</td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="bypass selected"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td>.05</td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
+                <tr class="dropped"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.15</td><td>—</td><td class="res-cell"><span class="res-glyph dim">⊘</span></td></tr>
+                <tr class="dropped over-budget"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.42</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td>.38</td><td>5</td><td class="res-cell"><span class="res-glyph warn">⤴</span></td></tr>
+                <tr class="dropped"><td class="text">(202 more pre-filtered)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph dim">−</span></td></tr>
+                <tr class="dropped stale"><td class="text">Brann <span class="stale-flag">⚠ stale</span></td><td>◌</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="res-cell"><span class="res-glyph warn">⚠</span></td></tr>
+              </tbody>
+
+              <!-- Simulate-mode rows: simulated state with inline diff
+                   annotations (delta arrows, "was X.XX" tail, +NEW / -DROP
+                   badges in result column, row tinting per state change).
+                   In real use, "changes only" filter hides untouched rows;
+                   here we show a representative mix. -->
+              <tbody class="row-sim-only">
+                <tr class="selected diff-mod"><td class="text">Vael</td><td>◌</td><td>.61</td><td>.54</td><td>.38</td><td>.52</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td><span class="delta up">.45</span> <span class="cell-was">was .44</span></td><td>1</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="bypass selected diff-bypass"><td class="text">Linde (chapter 1)</td><td>◌</td><td>.91</td><td>.87</td><td>.83</td><td>.87</td><td>.06</td><td>—</td><td>.00</td><td>↗</td><td><span class="delta up">.07</span> <span class="cell-was">was .05</span></td><td>4</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="selected diff-add"><td class="text">Captain Roen</td><td>◌</td><td>.40</td><td>.46</td><td>.39</td><td>.43</td><td>.67</td><td>—</td><td>.10</td><td>—</td><td><span class="delta up">.39</span> <span class="cell-was">was .38</span></td><td>5</td><td class="res-cell"><span class="res-glyph ok">✓</span><span class="res-badge-add">NEW</span></td></tr>
+                <tr class="dropped diff-rem"><td class="text">Sera</td><td>◌</td><td>.29</td><td>.28</td><td>.22</td><td>.27</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td><span class="delta down">.14</span> <span class="cell-was">was .15</span></td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span><span class="res-badge-rem">DROP</span></td></tr>
+
+                <!-- Unchanged rows below — visible only when filter chip is "all". -->
+                <tr class="selected"><td class="text">Maelis</td><td>◌</td><td>.42</td><td>.58</td><td>.31</td><td>.44</td><td>.55</td><td>—</td><td>.00</td><td>—</td><td>.24</td><td>2</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="selected"><td class="text">Old Hael</td><td>◌</td><td>.38</td><td>.42</td><td>.40</td><td>.40</td><td>.45</td><td>—</td><td>.10</td><td>—</td><td>.28</td><td>3</td><td class="res-cell"><span class="res-glyph ok">✓</span></td></tr>
+                <tr class="dropped"><td class="text">Toren</td><td>◌</td><td>.34</td><td>.31</td><td>.28</td><td>.31</td><td>.40</td><td>—</td><td>.00</td><td>—</td><td>.12</td><td>—</td><td class="res-cell"><span class="res-glyph dim">↓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="sim-col param-panel">
-          <button class="phone-params-toggle" data-phone-params="close" style="float: right; padding: 3px 8px;">close</button>
+          <button class="pp-close" data-phone-params="close" style="float: right; padding: 3px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-region); cursor: pointer; font-size: 11px;">close</button>
 
           <div class="pp-hint">
             <b>Tip:</b> simulate against multiple captures before applying. One turn's diff isn't enough signal.
@@ -1254,15 +1272,7 @@
     });
   });
 
-  // phone simulate live/sim toggle
-  document.querySelectorAll('.phone-sim-toggle button[data-phone-sim]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.phone-sim-toggle button[data-phone-sim]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      body.dataset.phoneSim = btn.dataset.phoneSim;
-    });
-  });
-  // phone params toggle
+  // phone params sheet toggle
   document.querySelectorAll('[data-phone-params]').forEach((btn) => {
     btn.addEventListener('click', () => {
       body.dataset.phoneParams = btn.dataset.phoneParams;
