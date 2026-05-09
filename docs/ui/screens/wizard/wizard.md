@@ -666,18 +666,18 @@ Expanded body:
 
 ```
 Memory cost
-<copy: Provider model supports Matryoshka representation. Smaller dim = faster
-       retrieval and less storage, slight quality cost. Locked at story creation.>
+<copy: Provider model supports Matryoshka representation. Smaller dim
+       uses less storage; slight quality cost. Locked at story creation.>
 
 Effective dim
-○ 512 dim          ⚡ ~80 ms/turn   📦 ~2 MB / 30 ch
-○ 1024 dim         ⚡ ~160 ms/turn  📦 ~4 MB / 30 ch     ← suggested for mobile
-○ 2048 dim         ⚡ ~320 ms/turn  📦 ~8 MB / 30 ch
-● 3072 dim (native) ⚡ ~480 ms/turn  📦 ~12 MB / 30 ch    ← suggested for desktop
+○ 512 dim           📦 ~2 MB / 30 ch
+○ 1024 dim          📦 ~4 MB / 30 ch     ← suggested for mobile
+○ 2048 dim          📦 ~8 MB / 30 ch
+● 3072 dim (native) 📦 ~12 MB / 30 ch    ← suggested for desktop
 ○ Custom…
 
-[footer]: Estimates assume a 30-chapter story on this device's tier.
-         Actual latency depends on device and story length.
+[footer]: Storage estimate assumes a 30-chapter story; scales linearly
+         with story length.
 ```
 
 **Suggested default by platform.** At wizard load, the platform
@@ -701,15 +701,19 @@ native).
 constrained to `1 ≤ N ≤ native_dim`. Footer caveat: "Custom dims
 not on the model's curated ladder may exhibit quality cliffs."
 
-**Cost preview math.** Storage is precise (`dim × 4 bytes` per row
+**Cost preview math — storage only.** Storage is the only cost
+axis the preview claims. Math is precise: `dim × 4 bytes` per row
 × projected row count for a 30-chapter story, derived from
-[scale assumptions](../../../memory/retrieval.md#scale-assumptions)).
-Latency is order-of-magnitude per the
-[PoC findings](../../../memory/followups.md#v1-blocking) (per-query
-KNN scales linearly in dim; ~122 ms at 100k rows on flagship
-phone at 384 dim, scaled accordingly). Both numbers come with
-the footer disclaimer about device tier and story length — no
-false precision.
+[scale assumptions](../../../memory/retrieval.md#scale-assumptions).
+
+Retrieval latency is **deliberately not shown.** Per-query KNN
+scales linearly in dim (per
+[PoC findings](../../../memory/followups.md#v1-blocking)),
+so a smaller dim is mathematically faster, but the absolute
+ms vary with the user's device and we have PoC data for one
+device only. At realistic story scales the latency difference
+between dims is sub-second across all reasonable choices —
+storage is the load-bearing axis for the user's decision.
 
 **Lock semantics.** The chosen dim writes to
 `stories.settings.effectiveDim` at Finish, locked thereafter

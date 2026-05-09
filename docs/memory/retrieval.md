@@ -365,8 +365,9 @@ At story creation, the wizard suggests an effective dim based on
 the platform the user is creating on:
 
 - **Mobile** — smallest curated dim that's `≥ 512` (typical:
-  1024). Mobile-tier devices benefit most from the cost reduction;
-  retrieval latency on flagship phones is the binding constraint.
+  1024). Mobile-tier devices benefit most from the storage
+  reduction (smaller on-disk footprint matters more on phones than
+  on desktop).
 - **Desktop** — model native dim (no truncation). Desktop has
   enough headroom that the quality tail outweighs the
   cost reduction.
@@ -376,11 +377,18 @@ was created. The suggestion reflects that reality. The user can
 override either way — picking native on mobile is fine if the
 user has signal that the device handles it.
 
-The numbers in the wizard preview are derived from the PoC
-benchmark table in
-[`docs/memory/followups.md → PoC findings — retrieval pipeline`](./followups.md#v1-blocking)
-(per-query KNN at ~11 / 43 / 61 / 122 ms at 1k / 10k / 50k / 100k
-rows on a flagship Android at 384-dim, scaling linearly with dim).
+The wizard's cost preview shows **storage only** — `dim × 4 bytes`
+× projected row count for a 30-chapter story (per
+[scale assumptions](#scale-assumptions)). Retrieval latency is
+deliberately not shown: per-query KNN is linear in dim (PoC
+table in
+[`followups.md`](./followups.md#v1-blocking) — ~11 / 43 / 61 /
+122 ms at 1k / 10k / 50k / 100k rows on a flagship Android at
+384-dim), so smaller dim is mathematically faster, but absolute
+ms vary with the user's device and we have data for one device
+only. At realistic story scales the latency difference between
+dims is sub-second across all reasonable choices, so storage is
+the load-bearing axis.
 
 #### Per-turn pipeline impact
 
