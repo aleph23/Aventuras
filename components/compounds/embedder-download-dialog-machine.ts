@@ -78,7 +78,12 @@ export type DialogAction =
   | { type: 'card-fetch-failed'; message: string }
   | { type: 'license-accepted' }
   | { type: 'license-declined' }
+  // 'ep-picked' stages a new pickedEp on the current state without
+  // transitioning. 'ep-confirmed' is the explicit transition out of
+  // 'ep-picker' to 'downloading' — fired by the Continue button.
+  // (For 'import-confirm' the Import button fires 'license-accepted'.)
   | { type: 'ep-picked'; ep: ExecutionProvider }
+  | { type: 'ep-confirmed' }
   | {
       type: 'download-progress'
       file: string
@@ -203,11 +208,19 @@ export function reducer(state: DialogState, action: DialogAction): DialogState {
     }
     case 'ep-picker': {
       if (action.type === 'ep-picked') {
+        // Stage the new EP. Continue button confirms via 'ep-confirmed'.
+        return { ...state, pickedEp: action.ep }
+      }
+      if (action.type === 'ep-confirmed') {
         return { kind: 'downloading', meta: state.meta, progressByFile: {} }
       }
       return state
     }
     case 'import-confirm': {
+      if (action.type === 'ep-picked') {
+        // Stage the new EP. Import button confirms via 'license-accepted'.
+        return { ...state, pickedEp: action.ep }
+      }
       if (action.type === 'license-accepted') {
         // Container reuses 'license-accepted' as the import-confirm Import
         // CTA — semantic is the same (proceed past confirmation). Files

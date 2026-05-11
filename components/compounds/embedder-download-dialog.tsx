@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Select, type SelectOption } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Text } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,11 @@ import {
   reducer,
 } from './embedder-download-dialog-machine'
 
+// Degenerate fallback when the host doesn't supply `availableEps`.
+// Real hosts enumerate via the driver (platform detection + ORT
+// build introspection). v1 always-works fallback is plain CPU.
+const DEFAULT_AVAILABLE_EPS: readonly ExecutionProvider[] = ['cpu']
+
 type EmbedderDownloadDialogViewProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -34,6 +40,10 @@ type EmbedderDownloadDialogViewProps = {
   onDeclineLicense: () => void
   onSubmitHfInput: (id: string) => void
   onPickEp: (ep: ExecutionProvider) => void
+  /** Confirms the staged EP from the ep-picker state (Continue
+   * button). Distinct from `onPickEp` which only stages the
+   * choice without advancing the state machine. */
+  onContinueEp: () => void
   onConfirmImport: () => void
   onCancel: () => void
   onRetry: () => void
@@ -43,6 +53,12 @@ type EmbedderDownloadDialogViewProps = {
    * needed by Storybook's ThemeMatrix so each themed wrapper hosts
    * its own modal. */
   portalHost?: string
+  /** Execution providers the host's platform / ORT build supports.
+   * The dialog renders them as-is — no model-side filtering. Hosts
+   * enumerate via the driver (platform detection + bundled ORT
+   * introspection). Defaults to `['cpu']` if omitted, which yields
+   * a degenerate single-option picker. */
+  availableEps?: readonly ExecutionProvider[]
 }
 
 export function EmbedderDownloadDialogView(props: EmbedderDownloadDialogViewProps) {
@@ -160,10 +176,17 @@ function Body(
         />
       )
     case 'ep-picker':
-      return <EpPickerBody pickedEp={state.pickedEp} onPick={props.onPickEp} />
+      return (
+        <EpPickerBody
+          pickedEp={state.pickedEp}
+          onPick={props.onPickEp}
+          availableEps={props.availableEps ?? DEFAULT_AVAILABLE_EPS}
+        />
+      )
     case 'import-confirm':
       return (
         <ImportConfirmBody
+          availableEps={props.availableEps ?? DEFAULT_AVAILABLE_EPS}
           bundle={state.bundle}
           pickedEp={state.pickedEp}
           onPick={props.onPickEp}
@@ -271,34 +294,62 @@ function LicenseBody({
   )
 }
 
-function EpPickerBody({
+// Shared EP picker row used by both EpPickerBody (HF-id flow's
+// post-license step) and ImportConfirmBody (custom-import flow's
+// confirmation step). Renders the canonical `[ <ep> ▾ ]` dropdown
+// per the design spec, plus the warning copy from
+// docs/memory/model-management.md → Custom file import. The host
+// owns enumeration of platform-supported EPs; the dialog renders
+// the list as-is without model-side filtering.
+function EpSelectRow({
   pickedEp,
   onPick,
+  availableEps,
 }: {
   pickedEp: ExecutionProvider
   onPick: (ep: ExecutionProvider) => void
+  availableEps: readonly ExecutionProvider[]
+}) {
+  const options: SelectOption[] = React.useMemo(
+    () => availableEps.map((ep) => ({ value: ep, label: ep })),
+    [availableEps],
+  )
+  return (
+    <View className="gap-2">
+      <Text size="sm" variant="muted">
+        Execution provider
+      </Text>
+      <View className="self-start">
+        <Select
+          options={options}
+          value={pickedEp}
+          onValueChange={onPick}
+          mode="dropdown"
+          label="Execution provider"
+        />
+      </View>
+      <Text size="sm" variant="muted">
+        ⚠ Wrong choice may crash the app on next embed.
+      </Text>
+    </View>
+  )
+}
+
+function EpPickerBody({
+  pickedEp,
+  onPick,
+  availableEps,
+}: {
+  pickedEp: ExecutionProvider
+  onPick: (ep: ExecutionProvider) => void
+  availableEps: readonly ExecutionProvider[]
 }) {
   return (
     <View className="gap-3">
       <Text variant="secondary" size="sm">
         Pick the execution provider this model will run under.
       </Text>
-      {/* TODO: real EP picker once detection lands per
-          docs/memory/model-management.md → Execution provider. EP
-          values are platform-specific (cpu / webgpu / nnapi / …);
-          the binary toggle below is stub-grade and only round-trips
-          between cpu and webgpu. Real shape: enumerate platform-
-          supported EPs via the driver and render a segmented Chip
-          group. */}
-      <Pressable
-        onPress={() => onPick(pickedEp === 'cpu' ? 'webgpu' : 'cpu')}
-        className="self-start rounded-md border border-border px-3 py-2"
-      >
-        <Text>{pickedEp}</Text>
-      </Pressable>
-      <Text size="sm" variant="muted">
-        ⚠ Wrong choice may crash the app on next embed.
-      </Text>
+      <EpSelectRow pickedEp={pickedEp} onPick={onPick} availableEps={availableEps} />
     </View>
   )
 }
@@ -307,10 +358,12 @@ function ImportConfirmBody({
   bundle,
   pickedEp,
   onPick,
+  availableEps,
 }: {
   bundle: { modelId: string; files: readonly { name: string; sizeBytes: number }[] }
   pickedEp: ExecutionProvider
   onPick: (ep: ExecutionProvider) => void
+  availableEps: readonly ExecutionProvider[]
 }) {
   return (
     <View className="gap-3">
@@ -331,12 +384,7 @@ function ImportConfirmBody({
           </Text>
         ))}
       </View>
-      <Pressable
-        onPress={() => onPick(pickedEp === 'cpu' ? 'webgpu' : 'cpu')}
-        className="self-start rounded-md border border-border px-3 py-2"
-      >
-        <Text>Execution provider: {pickedEp}</Text>
-      </Pressable>
+      <EpSelectRow pickedEp={pickedEp} onPick={onPick} availableEps={availableEps} />
     </View>
   )
 }
@@ -545,7 +593,7 @@ function Footer(props: EmbedderDownloadDialogViewProps & { hfInputValue: string 
           <Button variant="secondary" onPress={props.onCancel}>
             <Text>Cancel</Text>
           </Button>
-          <Button variant="primary" onPress={() => props.onPickEp(state.pickedEp)}>
+          <Button variant="primary" onPress={props.onContinueEp}>
             <Text>Continue</Text>
           </Button>
         </DialogFooter>
@@ -807,6 +855,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
       onDeclineLicense={() => handleOpenChange(false)}
       onSubmitHfInput={(input) => dispatch({ type: 'submit-hf-input', input })}
       onPickEp={(ep) => dispatch({ type: 'ep-picked', ep })}
+      onContinueEp={() => dispatch({ type: 'ep-confirmed' })}
       onConfirmImport={() => dispatch({ type: 'license-accepted' })}
       onCancel={() => handleOpenChange(false)}
       onRetry={() => dispatch({ type: 'retry' })}

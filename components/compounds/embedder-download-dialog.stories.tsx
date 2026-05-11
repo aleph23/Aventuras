@@ -46,12 +46,18 @@ const handlers = {
   onDeclineLicense: fn(),
   onSubmitHfInput: fn(),
   onPickEp: fn(),
+  onContinueEp: fn(),
   onConfirmImport: fn(),
   onCancel: fn(),
   onRetry: fn(),
   onClose: fn(),
   onOpenChange: fn(),
 }
+
+// Cross-platform EP set for visual coverage. Real hosts enumerate
+// platform-supported EPs via the driver; stories show all canonical
+// options together so the dropdown has something to display.
+const sampleAvailableEps = ['cpu', 'nnapi', 'coreml', 'xnnpack'] as const
 
 // No `tags: ['autodocs']` — every story sets `open: true` to show
 // the modal state directly, so autodocs would render N overlapping
@@ -66,7 +72,7 @@ export default meta
 type Story = StoryObj<typeof EmbedderDownloadDialogView>
 
 const story = (state: DialogState): Story => ({
-  args: { open: true, state, ...handlers },
+  args: { open: true, state, availableEps: sampleAvailableEps, ...handlers },
 })
 
 export const HfInput = story({ kind: 'hf-input' })

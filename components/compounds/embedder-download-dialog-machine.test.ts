@@ -169,6 +169,40 @@ describe('reducer — import-confirm state', () => {
       expect(Object.keys(after.verifyByFile)).toHaveLength(0)
     }
   })
+
+  it('ep-picked stages the new EP without transitioning out of import-confirm', () => {
+    const before: DialogState = {
+      kind: 'import-confirm',
+      bundle: sampleBundle,
+      pickedEp: 'cpu',
+    }
+    const after = reducer(before, { type: 'ep-picked', ep: 'nnapi' })
+    expect(after.kind).toBe('import-confirm')
+    if (after.kind === 'import-confirm') {
+      expect(after.pickedEp).toBe('nnapi')
+      expect(after.bundle).toBe(sampleBundle)
+    }
+  })
+})
+
+describe('reducer — ep-picker state', () => {
+  it('ep-picked stages the new EP without transitioning out of ep-picker', () => {
+    const before: DialogState = { kind: 'ep-picker', meta: sampleMeta, pickedEp: 'cpu' }
+    const after = reducer(before, { type: 'ep-picked', ep: 'coreml' })
+    expect(after.kind).toBe('ep-picker')
+    if (after.kind === 'ep-picker') {
+      expect(after.pickedEp).toBe('coreml')
+    }
+  })
+
+  it('ep-confirmed transitions ep-picker to downloading', () => {
+    const before: DialogState = { kind: 'ep-picker', meta: sampleMeta, pickedEp: 'nnapi' }
+    const after = reducer(before, { type: 'ep-confirmed' })
+    expect(after.kind).toBe('downloading')
+    if (after.kind === 'downloading') {
+      expect(Object.keys(after.progressByFile)).toHaveLength(0)
+    }
+  })
 })
 
 describe('reducer — downloading state', () => {
