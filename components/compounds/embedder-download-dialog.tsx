@@ -111,9 +111,9 @@ function failedTitle(reason: FailReason): string {
     case 'cancelled':
       return 'Install cancelled'
     case 'card-fetch-failed':
-      return `⚠ Couldn't reach the model source`
+      return '⚠ Couldn’t reach the model source'
     case 'resolve-failed':
-      return `⚠ Couldn't resolve model`
+      return '⚠ Couldn’t resolve model'
     case 'download-failed':
       return '⚠ Download failed'
     case 'validation-failed':
