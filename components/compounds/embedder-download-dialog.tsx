@@ -36,12 +36,17 @@ type EmbedderDownloadDialogViewProps = {
 
 export function EmbedderDownloadDialogView(props: EmbedderDownloadDialogViewProps) {
   const { open, onOpenChange, state } = props
+  // hf-input value is view-local ephemera — the Footer's Resolve
+  // button reads the same value HfInputBody types into. Once
+  // onSubmitHfInput fires the host re-mounts the dialog with a
+  // new init, so this state resets naturally.
+  const [hfInputValue, setHfInputValue] = React.useState('')
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px]">
         <Header state={state} onCancel={props.onCancel} />
-        <Body {...props} />
-        <Footer {...props} />
+        <Body {...props} hfInputValue={hfInputValue} onHfInputChange={setHfInputValue} />
+        <Footer {...props} hfInputValue={hfInputValue} />
       </DialogContent>
     </Dialog>
   )
@@ -111,11 +116,22 @@ function failedTitle(reason: FailReason): string {
   }
 }
 
-function Body(props: EmbedderDownloadDialogViewProps) {
+function Body(
+  props: EmbedderDownloadDialogViewProps & {
+    hfInputValue: string
+    onHfInputChange: (value: string) => void
+  },
+) {
   const { state } = props
   switch (state.kind) {
     case 'hf-input':
-      return <HfInputBody onSubmit={props.onSubmitHfInput} />
+      return (
+        <HfInputBody
+          value={props.hfInputValue}
+          onChange={props.onHfInputChange}
+          onSubmit={props.onSubmitHfInput}
+        />
+      )
     case 'resolving':
       return <ResolvingBody />
     case 'card-fetch':
@@ -149,8 +165,15 @@ function Body(props: EmbedderDownloadDialogViewProps) {
   }
 }
 
-function HfInputBody({ onSubmit }: { onSubmit: (id: string) => void }) {
-  const [value, setValue] = React.useState('')
+function HfInputBody({
+  value,
+  onChange,
+  onSubmit,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onSubmit: (id: string) => void
+}) {
   return (
     <View className="gap-3">
       <Text variant="secondary" size="sm">
@@ -159,7 +182,7 @@ function HfInputBody({ onSubmit }: { onSubmit: (id: string) => void }) {
       <Input
         placeholder="namespace/model"
         value={value}
-        onChangeText={setValue}
+        onChangeText={onChange}
         onSubmitEditing={() => onSubmit(value)}
       />
     </View>
@@ -447,7 +470,7 @@ function FailedBody({ reason }: { reason: FailReason }) {
 // 'cancelled' reason is its own FailReason variant (not a sentinel
 // on card-fetch-failed.message anymore); retry only applies to
 // the network/resolve failure paths that are actually retryable.
-function Footer(props: EmbedderDownloadDialogViewProps) {
+function Footer(props: EmbedderDownloadDialogViewProps & { hfInputValue: string }) {
   const { state } = props
   switch (state.kind) {
     case 'hf-input':
@@ -456,7 +479,7 @@ function Footer(props: EmbedderDownloadDialogViewProps) {
           <Button variant="secondary" onPress={props.onCancel}>
             <Text>Cancel</Text>
           </Button>
-          <Button variant="primary" onPress={() => props.onSubmitHfInput('')}>
+          <Button variant="primary" onPress={() => props.onSubmitHfInput(props.hfInputValue)}>
             <Text>Resolve</Text>
           </Button>
         </DialogFooter>
