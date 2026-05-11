@@ -514,6 +514,22 @@
   }
 }
 
+/* Radix's popper-positioned content (Select / Popover / Dropdown)
+ * portals to body but the outer wrapper Radix injects
+ * (`[data-radix-popper-content-wrapper]`) carries no z-index, so when
+ * the popover renders inside a modal (Dialog / AlertDialog at z-50)
+ * it paints behind the modal panel. The rn-primitives Select.Content
+ * wrapper forwards className/style to an *inner* `<View>`, not to
+ * Radix's outer positioned wrapper, so styling from the call site
+ * never reaches the right element.
+ *
+ * Setting z-index here lifts every Radix popper-positioned popover
+ * above modal primitives uniformly. Matches the Toast convention
+ * (z-100, see toast.tsx:170 comment). */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
+}
+
 /* Themed scrollbars — Chromium (Electron) and Firefox.
  *
  * Defaults look bad on dark themes (white-on-black tracks, mismatch
