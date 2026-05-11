@@ -252,3 +252,6 @@ nul
 Aventuras.und/
 .roo/rules-merge-resolver/
 .roomodes
+.vs/
+.vscode/
+
