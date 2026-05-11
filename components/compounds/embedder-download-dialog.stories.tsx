@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { View } from 'react-native'
+import { fn } from 'storybook/test'
 
 import { Text } from '@/components/ui/text'
 import { themes } from '@/lib/themes/registry'
@@ -39,29 +40,29 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 const LONG_LICENSE = APACHE_2.repeat(20)
 
-const noop = () => {}
-const noopHandlers = {
-  onAcceptLicense: noop,
-  onDeclineLicense: noop,
-  onSubmitHfInput: noop,
-  onPickEp: noop,
-  onConfirmImport: noop,
-  onCancel: noop,
-  onRetry: noop,
-  onClose: noop,
-  onOpenChange: noop,
+const handlers = {
+  onAcceptLicense: fn(),
+  onDeclineLicense: fn(),
+  onSubmitHfInput: fn(),
+  onPickEp: fn(),
+  onConfirmImport: fn(),
+  onCancel: fn(),
+  onRetry: fn(),
+  onClose: fn(),
+  onOpenChange: fn(),
 }
 
 const meta: Meta<typeof EmbedderDownloadDialogView> = {
   title: 'Compounds/EmbedderDownloadDialog',
   component: EmbedderDownloadDialogView,
   parameters: { layout: 'centered' },
+  tags: ['autodocs'],
 }
 export default meta
 type Story = StoryObj<typeof EmbedderDownloadDialogView>
 
 const story = (state: DialogState): Story => ({
-  args: { open: true, state, ...noopHandlers },
+  args: { open: true, state, ...handlers },
 })
 
 export const HfInput = story({ kind: 'hf-input' })
@@ -154,6 +155,11 @@ export const Failed_Resolve = failed({
   kind: 'resolve-failed',
   message: 'Model not found on huggingface.co',
 })
+export const Failed_Download = failed({
+  kind: 'download-failed',
+  failingFile: 'model.onnx',
+  message: 'connection reset by peer',
+})
 export const Failed_Validation = failed({
   kind: 'validation-failed',
   missingFiles: ['tokenizer.json', 'tokenizer_config.json'],
@@ -189,7 +195,7 @@ export const ThemeMatrix: Story = {
               licenseText: APACHE_2,
               licenseName: 'Apache 2.0',
             }}
-            {...noopHandlers}
+            {...handlers}
           />
         </View>
       ))}

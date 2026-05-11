@@ -70,6 +70,20 @@ describe('initialState', () => {
   })
 })
 
+describe('reducer — hf-input state', () => {
+  it('submit-hf-input transitions to resolving with synthetic hf-id init', () => {
+    const before: DialogState = { kind: 'hf-input' }
+    const after = reducer(before, { type: 'submit-hf-input', input: 'Xenova/all-MiniLM-L6-v2-q8' })
+    expect(after.kind).toBe('resolving')
+    if (after.kind === 'resolving') {
+      expect(after.init.kind).toBe('hf-id')
+      if (after.init.kind === 'hf-id') {
+        expect(after.init.input).toBe('Xenova/all-MiniLM-L6-v2-q8')
+      }
+    }
+  })
+})
+
 describe('reducer — card-fetch state', () => {
   it('card-fetched transitions to license', () => {
     const before: DialogState = { kind: 'card-fetch', meta: sampleMeta }
@@ -191,7 +205,7 @@ describe('reducer — downloading state', () => {
     }
   })
 
-  it('download-failed transitions downloading to failed with card-fetch-failed reason', () => {
+  it('download-failed transitions downloading to failed with download-failed reason', () => {
     const before: DialogState = {
       kind: 'downloading',
       meta: sampleMeta,
@@ -206,10 +220,10 @@ describe('reducer — downloading state', () => {
     })
     expect(after.kind).toBe('failed')
     if (after.kind === 'failed') {
-      expect(after.reason.kind).toBe('card-fetch-failed')
-      if (after.reason.kind === 'card-fetch-failed') {
-        expect(after.reason.message).toContain('model.onnx')
-        expect(after.reason.message).toContain('connection reset')
+      expect(after.reason.kind).toBe('download-failed')
+      if (after.reason.kind === 'download-failed') {
+        expect(after.reason.failingFile).toBe('model.onnx')
+        expect(after.reason.message).toBe('connection reset')
       }
     }
   })

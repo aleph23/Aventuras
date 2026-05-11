@@ -111,9 +111,11 @@ function failedTitle(reason: FailReason): string {
     case 'cancelled':
       return 'Install cancelled'
     case 'card-fetch-failed':
-      return '⚠ Couldn’t reach the model source'
+      return `⚠ Couldn't reach the model source`
     case 'resolve-failed':
-      return '⚠ Couldn’t resolve model'
+      return `⚠ Couldn't resolve model`
+    case 'download-failed':
+      return '⚠ Download failed'
     case 'validation-failed':
       return '⚠ Missing required files'
     case 'hash-mismatch':
@@ -441,6 +443,20 @@ function FailedBody({ reason }: { reason: FailReason }) {
           </Text>
         </View>
       )
+    case 'download-failed':
+      return (
+        <View className="gap-2">
+          <Text>A file failed to download:</Text>
+          <Text size="sm">
+            <Text variant="muted">{reason.failingFile}: </Text>
+            {reason.message}
+          </Text>
+          <Text variant="muted" size="sm">
+            The partial install has been discarded. Close this dialog and try again from the picker
+            when the network is back.
+          </Text>
+        </View>
+      )
     case 'validation-failed':
       return (
         <View className="gap-2">
@@ -746,10 +762,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
         lastUserActionRef.current = 'declined'
         dispatch({ type: 'license-declined' })
       }}
-      // HF id flow re-routes through init at the host — the host
-      // closes this dialog and re-opens with a new DialogInit
-      // carrying the typed value. The dialog doesn't mutate init.
-      onSubmitHfInput={() => {}}
+      onSubmitHfInput={(input) => dispatch({ type: 'submit-hf-input', input })}
       onPickEp={(ep) => dispatch({ type: 'ep-picked', ep })}
       onConfirmImport={() => dispatch({ type: 'license-accepted' })}
       onCancel={() => {

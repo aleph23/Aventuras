@@ -35,6 +35,7 @@ export type FailReason =
   | { kind: 'cancelled' }
   | { kind: 'card-fetch-failed'; message: string }
   | { kind: 'resolve-failed'; message: string }
+  | { kind: 'download-failed'; failingFile: string; message: string }
   | { kind: 'validation-failed'; missingFiles: string[] }
   | { kind: 'hash-mismatch'; failingFile: string }
   | { kind: 'smoke-test-failed'; ep: ExecutionProvider }
@@ -45,9 +46,9 @@ export type DialogInit =
   | { kind: 'import'; files: ImportBundle; ep: ExecutionProvider }
 
 export type DialogState =
-  // 'hf-input' is a sink state in the reducer — the only exit is host
-  // closing the dialog and re-opening with a new DialogInit. Submitting
-  // an input changes `init` at the host layer.
+  // 'hf-input' transitions to 'resolving' on submit-hf-input.
+  // No other reducer exit — the dialog re-opens with a new init
+  // if the host wants to reset.
   | { kind: 'hf-input' }
   // 'ep-picker' is reserved for the HF id flow's post-license step
   // (per spec "EP picker appears as a final step before download").
@@ -72,6 +73,7 @@ export type DialogState =
   | { kind: 'failed'; meta: ModelMeta | null; reason: FailReason }
 
 export type DialogAction =
+  | { type: 'submit-hf-input'; input: string }
   | { type: 'card-fetched'; meta: ModelMeta; licenseText: string; licenseName: string }
   | { type: 'card-fetch-failed'; message: string }
   | { type: 'license-accepted' }
@@ -246,7 +248,7 @@ export function reducer(state: DialogState, action: DialogAction): DialogState {
         return {
           kind: 'failed',
           meta: state.meta,
-          reason: { kind: 'card-fetch-failed', message: `${action.file}: ${action.message}` },
+          reason: { kind: 'download-failed', failingFile: action.file, message: action.message },
         }
       }
       return state
@@ -281,7 +283,12 @@ export function reducer(state: DialogState, action: DialogAction): DialogState {
       }
       return state
     }
-    case 'hf-input':
+    case 'hf-input': {
+      if (action.type === 'submit-hf-input') {
+        return { kind: 'resolving', init: { kind: 'hf-id', input: action.input } }
+      }
+      return state
+    }
     case 'done':
       return state
     default: {
