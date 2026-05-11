@@ -319,7 +319,11 @@ function EpSelectRow({
       <Text size="sm" variant="muted">
         Execution provider
       </Text>
-      <View className="self-start">
+      {/* w-32 (= 8rem) matches the Select primitive's popover
+          min-width (min-w-[8rem] on SelectBase.Content). Without
+          this, the trigger sizes to its short EP label (cpu, ~60px)
+          while the popover hits its 128px floor — visual mismatch. */}
+      <View className="w-32 self-start">
         <Select
           options={options}
           value={pickedEp}
