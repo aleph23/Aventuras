@@ -102,6 +102,7 @@ DerivedData/
 # IDE & Editor
 # -----------------------------------------------------------------------------
 .idea/
+.vs/
 .vscode/
 *.swp
 *.swo
@@ -252,6 +253,3 @@ nul
 Aventuras.und/
 .roo/rules-merge-resolver/
 .roomodes
-.vs/
-.vscode/
-
