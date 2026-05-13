@@ -102,19 +102,22 @@ Aventuras is a desktop and mobile interactive fiction application offering multi
 
 ### Download Pre-built Binaries
 
-Pre-compiled binaries are available on the [Releases](https://github.com/aleph23/Aventuras/releases) page:
+Pre-compiled binaries are available on the [Releases](https://github.com/AventurasTeam/Aventuras/releases) page:
 
-| Platform | Download                        |
-| -------- |---------------------------------|
-| Windows  | `aventuras_x.x.x_x64-setup.exe` |
+| Platform | Download                                  |
+| -------- | ----------------------------------------- |
+| Windows  | `aventuras_x.x.x_x64-setup.exe`           |
+| macOS    | `aventuras_x.x.x_x64.dmg`                 |
+| Linux    | `aventuras_x.x.x_amd64.deb` / `.AppImage` |
+| Android  | `aventuras-release.apk`                   |
 
 ## Tech Stack
 
 - **Language**: TypeScript (strict mode)
 - **Frontend Framework**: SvelteKit 2
 - **State Management**: Svelte 5 runes (`$state`, `$derived`, `$props`)
-- **Backend Framework**: Tauri 2 (Rust)
-- **Styling**: Tailwind4, shadcn
+- **Backend Framework**: Tauri 2 (Desktop/Android via Rust)
+- **Styling**: Tailwind CSS, shadcn-svelte
 - **Database**: SQLite (via `@tauri-apps/plugin-sql`)
 - **AI**: OpenAI-compatible APIs (OpenRouter, AI SDK), Local NLP via Harper.js (WASM)
 - **Package Manager**: npm
@@ -123,7 +126,7 @@ Pre-compiled binaries are available on the [Releases](https://github.com/aleph23
 
 ### Requirements
 
-- Node.js 22+
+- Node.js 18+
 - Rust (latest stable)
 - (Optional) Android SDK, NDK, Java 17+ for Android builds
 

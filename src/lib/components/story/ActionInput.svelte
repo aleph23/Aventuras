@@ -1238,7 +1238,6 @@
             bind:value={inputValue}
             use:autoResize={inputValue}
             onkeydown={handleKeydown}
-            disabled={ui.isGenerating}
             placeholder="Describe what happens next in the story..."
             class="text-surface-200 placeholder-surface-500 max-h-40 min-h-6 w-full resize-none border-none bg-transparent px-2 text-base leading-relaxed focus:ring-0 focus:outline-none sm:min-h-6"
             rows="1"
