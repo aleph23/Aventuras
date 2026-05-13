@@ -57,6 +57,8 @@ export const SCALAR_FIELDS: ScalarField[] = [
 
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true
+  // `==` catches both null and undefined; falls back to strict so
+  // null vs undefined returns false.
   if (a == null || b == null) return a === b
   if (typeof a !== typeof b) return false
   if (typeof a !== 'object') return false
@@ -73,12 +75,8 @@ function deepEqual(a: unknown, b: unknown): boolean {
   )
 }
 
-function diffScalar(a: EntitySummary, b: EntitySummary, field: ScalarField): boolean {
-  return a[field] !== b[field]
-}
-
 export function computeDivergence(a: EntitySummary, b: EntitySummary): DiffPayload {
-  const divergentScalars = SCALAR_FIELDS.filter((f) => diffScalar(a, b, f))
+  const divergentScalars = SCALAR_FIELDS.filter((f) => a[f] !== b[f])
 
   const aTagSet = new Set(a.tags)
   const bTagSet = new Set(b.tags)
