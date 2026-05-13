@@ -103,6 +103,7 @@ export function CollisionResolveDialog({
           onValueChange={handleModeChange}
           mode="segment"
           label="Resolution path"
+          disabled={submitting}
         />
 
         {mode === 'merge' && (
@@ -216,6 +217,7 @@ function MergeBody({
           onValueChange={(id) => dispatch({ type: 'pick-canonical', id, entityAId: entityA.id })}
           mode="segment"
           label="Canonical"
+          disabled={submitting}
         />
       </View>
 
@@ -232,6 +234,7 @@ function MergeBody({
               valueB={String(entityB[field] ?? '—')}
               pick={state.fieldChoices[field]}
               onPick={(side) => dispatch({ type: 'pick-field', field, side })}
+              disabled={submitting}
             />
           ))}
         </View>
@@ -250,6 +253,7 @@ function MergeBody({
                   key={tag}
                   selected={!deselected}
                   onPress={() => dispatch({ type: 'toggle-tag', tag })}
+                  disabled={submitting}
                 >
                   <Text className={cn(deselected && 'line-through')}>{tag}</Text>
                 </Chip>
@@ -300,17 +304,28 @@ type FieldRowProps = {
   valueB: string
   pick: 'A' | 'B'
   onPick: (side: 'A' | 'B') => void
+  disabled?: boolean
 }
 
-function FieldRow({ field, valueA, valueB, pick, onPick }: FieldRowProps) {
+function FieldRow({ field, valueA, valueB, pick, onPick, disabled }: FieldRowProps) {
   return (
     <View className="gap-1">
       <Text size="sm" variant="muted">
         {SCALAR_LABELS[field]}
       </Text>
       <View className={Platform.select({ web: 'flex-row gap-2', default: 'gap-2' }) ?? 'gap-2'}>
-        <RadioCard label={valueA} selected={pick === 'A'} onPress={() => onPick('A')} />
-        <RadioCard label={valueB} selected={pick === 'B'} onPress={() => onPick('B')} />
+        <RadioCard
+          label={valueA}
+          selected={pick === 'A'}
+          onPress={() => onPick('A')}
+          disabled={disabled}
+        />
+        <RadioCard
+          label={valueB}
+          selected={pick === 'B'}
+          onPress={() => onPick('B')}
+          disabled={disabled}
+        />
       </View>
     </View>
   )
@@ -320,11 +335,12 @@ type RadioCardProps = {
   label: string
   selected: boolean
   onPress: () => void
+  disabled?: boolean
 }
 
-function RadioCard({ label, selected, onPress }: RadioCardProps) {
+function RadioCard({ label, selected, onPress, disabled }: RadioCardProps) {
   return (
-    <Chip selected={selected} onPress={onPress} className="flex-1">
+    <Chip selected={selected} onPress={onPress} className="flex-1" disabled={disabled}>
       <Text>{label}</Text>
     </Chip>
   )
