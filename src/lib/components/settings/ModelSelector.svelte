@@ -1,11 +1,15 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings.svelte'
-  import { Server, Check, RefreshCw, Star, AlertTriangle, Brain } from 'lucide-svelte'
+  import { Server, Check, RefreshCw, Star, AlertTriangle, Brain, Braces } from 'lucide-svelte'
   import Autocomplete from '$lib/components/ui/autocomplete/Autocomplete.svelte'
   import * as Select from '$lib/components/ui/select'
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
   import { cn } from '$lib/utils/cn'
+  import { modelHealth } from '$lib/stores/modelHealth.svelte'
+  import { isPingEligible, shouldShowHealthFor } from '$lib/services/modelHealthOrchestrator'
+  import { getEffectiveBaseUrl } from '$lib/services/ai/sdk/providers/modelPing'
+  import HealthIndicator from './HealthIndicator.svelte'
 
   interface Props {
     profileId: string | null
@@ -41,28 +45,18 @@
   // Get available models for the selected profile (excluding hidden, favorites first)
   let availableModels = $derived(settings.getAvailableModels(effectiveProfileId))
 
-  // Set of models that support reasoning (for brain icon)
-  let reasoningSet = $derived.by(() => {
-    if (!effectiveProfileId) return new Set<string>()
-    const profile = settings.getProfile(effectiveProfileId)
-    return new Set(profile?.reasoningModels ?? [])
-  })
-
   // Number of favorite models (for separator)
   let favoriteCount = $derived.by(() => {
     if (!effectiveProfileId) return 0
     const profile = settings.getProfile(effectiveProfileId)
     if (!profile) return 0
     const favSet = new Set(profile.favoriteModels ?? [])
-    const hidden = new Set(profile.hiddenModels ?? [])
-    return [...new Set([...profile.fetchedModels, ...profile.customModels])].filter(
-      (m) => !hidden.has(m) && favSet.has(m),
-    ).length
+    return availableModels.filter((m) => favSet.has(m.id)).length
   })
 
   // Check if currently selected model is missing from the profile
   let isModelMissing = $derived(
-    model.length > 0 && availableModels.length > 0 && !availableModels.includes(model),
+    model.length > 0 && availableModels.length > 0 && !availableModels.find((m) => m.id === model),
   )
 
   // Get selected profile name
@@ -79,6 +73,38 @@
       label: p.name + (settings.apiSettings.defaultProfileId === p.id ? ' (Default)' : ''),
     })),
   )
+
+  // Resolve the actual profile object (may be undefined if the resolved id doesn't exist)
+  let resolvedProfile = $derived(
+    effectiveProfileId ? settings.getProfile(effectiveProfileId) : undefined,
+  )
+  let healthEligible = $derived(isPingEligible(resolvedProfile))
+  let baseUrl = $derived(
+    healthEligible && resolvedProfile ? getEffectiveBaseUrl(resolvedProfile) : null,
+  )
+
+  $effect(() => {
+    if (!resolvedProfile || !baseUrl) return
+    const providerType = resolvedProfile.providerType
+    const url = baseUrl
+    void modelHealth.hydrateFromDb(providerType, url)
+  })
+
+  function getHealthFor(modelId: string) {
+    if (!resolvedProfile || !baseUrl) return undefined
+    if (!shouldShowHealthFor(resolvedProfile, modelId)) return undefined
+    return modelHealth.get(resolvedProfile.providerType, modelId, baseUrl)
+  }
+
+  function checkModelReasoningCapability(modelId: string): boolean {
+    const model = availableModels.find((m) => m.id === modelId)
+    return !!model?.reasoning
+  }
+
+  function checkModelStructuredCapability(modelId: string): boolean {
+    const model = availableModels.find((m) => m.id === modelId)
+    return !!model?.structuredOutput
+  }
 
   function handleSelectProfile(val: string) {
     onProfileChange(val)
@@ -149,7 +175,7 @@
       </div>
     </div>
     <Autocomplete
-      items={availableModels}
+      items={availableModels.map((m) => m.id)}
       selected={model}
       onSelect={(m) => onModelChange(m as string)}
       itemLabel={(m) => m}
@@ -167,8 +193,19 @@
           <Check class={cn('mr-2 h-4 w-4', model === modelOption ? 'opacity-100' : 'opacity-0')} />
         {/if}
         <span class="truncate">{modelOption}</span>
-        {#if reasoningSet.has(modelOption)}
-          <Brain class="ml-auto h-3 w-3 shrink-0 text-emerald-500" />
+        {@const health = healthEligible ? getHealthFor(modelOption) : undefined}
+        {#if health || checkModelReasoningCapability(modelOption) || checkModelStructuredCapability(modelOption)}
+          <span class="ml-auto flex shrink-0 items-center gap-1">
+            {#if health}
+              <HealthIndicator {health} providerType={resolvedProfile!.providerType} />
+            {/if}
+            {#if checkModelStructuredCapability(modelOption)}
+              <Braces class="h-3 w-3 text-blue-400" />
+            {/if}
+            {#if checkModelReasoningCapability(modelOption)}
+              <Brain class="h-3 w-3 text-emerald-500" />
+            {/if}
+          </span>
         {/if}
       {/snippet}
       {#snippet triggerSnippet()}

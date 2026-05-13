@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { ImageModelInfo } from '$lib/services/ai/image/modelListing'
+  import type { ImageModelInfo } from '$lib/services/ai/image'
   import { Autocomplete } from '$lib/components/ui/autocomplete'
   import { Button } from '$lib/components/ui/button'
-  import { RefreshCw, Loader2, Check } from 'lucide-svelte'
+  import { RefreshCw, Loader2, Check, ImagePlus } from 'lucide-svelte'
   import { cn } from '$lib/utils/cn'
   import {
     DEFAULT_AVG_PROMPT_TOKENS,
@@ -113,7 +113,14 @@
       {/if}
     </div>
   {:else if filteredModels.length === 0}
-    <p class="text-muted-foreground text-sm">No models available</p>
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-muted-foreground text-sm">No models available</p>
+      {#if showRefreshButton && onRefresh}
+        <Button variant="ghost" size="icon" onclick={onRefresh} aria-label="Refresh models">
+          <RefreshCw class="h-4 w-4" />
+        </Button>
+      {/if}
+    </div>
   {:else}
     <div class="flex items-center gap-2">
       <div class="flex-1">
@@ -139,7 +146,7 @@
                   <span class="truncate">{getModelLabel(model)}</span>
                 </div>
                 {#if showImg2ImgIndicator && model.supportsImg2Img}
-                  <span class="shrink-0">🖼️</span>
+                  <ImagePlus class="text-muted-foreground h-4 w-4 shrink-0" />
                 {/if}
               </div>
               {#if showDescription && model.description}
@@ -163,15 +170,15 @@
             <span class="flex w-full items-center justify-between gap-2 overflow-hidden">
               <span class="truncate">{selectedLabel}</span>
               {#if showImg2ImgIndicator && selectedModel?.supportsImg2Img}
-                <span class="shrink-0 text-xs">🖼️</span>
+                <ImagePlus class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
               {/if}
             </span>
           {/snippet}
         </Autocomplete>
       </div>
       {#if showRefreshButton && onRefresh}
-        <Button variant="ghost" size="icon" onclick={onRefresh} disabled={isLoading}>
-          <RefreshCw class="h-4 w-4 {isLoading ? 'animate-spin' : ''}" />
+        <Button variant="ghost" size="icon" onclick={onRefresh} aria-label="Refresh models">
+          <RefreshCw class="h-4 w-4" />
         </Button>
       {/if}
     </div>

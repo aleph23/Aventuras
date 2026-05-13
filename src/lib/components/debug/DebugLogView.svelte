@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { type DebugLogEntry } from '$lib/stores/ui.svelte'
+  import { type DebugLogEntry } from '$lib/stores/debug.svelte'
   import {
     ArrowUpCircle,
     ArrowDownCircle,
+    ArrowUp,
     Copy,
     Check,
     Filter,
@@ -17,7 +18,6 @@
   import { Separator } from '$lib/components/ui/separator'
   import { Autocomplete } from '$lib/components/ui/autocomplete'
   import { cn } from '$lib/utils/cn.js'
-  import { SvelteMap } from 'svelte/reactivity'
 
   interface Props {
     logs: DebugLogEntry[]
@@ -31,8 +31,7 @@
   let copiedId = $state<string | null>(null)
   let selectedCategories = $state<string[]>([])
   let scrollContainer: HTMLDivElement | null = $state(null)
-  let savedScrollTop = 0
-  let savedScrollHeight = 0
+  let userScrolledAway = $state(false)
 
   // Pagination
   let currentPage = $state(1)
@@ -62,27 +61,57 @@
     return `${(duration / 1000).toFixed(2)}s`
   }
 
-  const jsonCache = new SvelteMap<string, string>()
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- SvelteMap cannot be mutated inside template expressions (state_unsafe_mutation)
+  const jsonCache = new Map<string, string>()
+
+  const MAX_DISPLAY_CHARS = 200_000
 
   function formatJson(entry: DebugLogEntry): string {
     const cacheKey = `${entry.id}-${renderNewlines}`
     const cached = jsonCache.get(cacheKey)
     if (cached) return cached
 
+    let raw: string | undefined
     try {
-      let json = JSON.stringify(entry.data, null, 2)
-      if (renderNewlines) {
-        json = json.replace(/\\n/g, '\n')
-      }
-      if (jsonCache.size > 200) {
-        const firstKey = jsonCache.keys().next().value
-        if (firstKey) jsonCache.delete(firstKey)
-      }
-      jsonCache.set(cacheKey, json)
-      return json
+      raw = JSON.stringify(entry.data, null, 2)
     } catch {
-      return String(entry.data)
+      // Likely circular references — retry with a safe replacer
+      try {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- SvelteSet cannot be mutated inside template expressions (state_unsafe_mutation)
+        const seen = new Set()
+        raw = JSON.stringify(
+          entry.data,
+          (_key, value) => {
+            if (typeof value === 'object' && value !== null) {
+              if (seen.has(value)) return '[Circular]'
+              seen.add(value)
+            }
+            return value
+          },
+          2,
+        )
+      } catch (e) {
+        console.error('[DebugLogView] formatJson failed for entry', entry.id, e)
+        // Not cached — lets the next render retry in case the data changes
+        return `[Serialization error: ${e instanceof Error ? e.message : String(e)}]`
+      }
     }
+
+    let json = raw ?? '(no data)'
+    if (renderNewlines) {
+      json = json.replace(/\\n/g, '\n')
+    }
+    if (json.length > MAX_DISPLAY_CHARS) {
+      json =
+        json.slice(0, MAX_DISPLAY_CHARS) +
+        `\n\n... [truncated — ${json.length.toLocaleString()} total chars] ...`
+    }
+    if (jsonCache.size > 200) {
+      const firstKey = jsonCache.keys().next().value
+      if (firstKey) jsonCache.delete(firstKey)
+    }
+    jsonCache.set(cacheKey, json)
+    return json
   }
 
   async function copyToClipboard(entry: DebugLogEntry) {
@@ -113,7 +142,8 @@
     }
 
     const groups: { request?: DebugLogEntry; response?: DebugLogEntry }[] = []
-    const requestMap = new SvelteMap<string, number>()
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- SvelteMap cannot be mutated inside $derived (state_unsafe_mutation)
+    const requestMap = new Map<string, number>()
 
     for (const log of currentLogs) {
       if (log.type === 'request') {
@@ -140,21 +170,33 @@
     return groupedLogs.slice(start, start + pageSize)
   })
 
-  // Scroll management
-  $effect.pre(() => {
-    void groupedLogs
-    if (scrollContainer) {
-      savedScrollTop = scrollContainer.scrollTop
-      savedScrollHeight = scrollContainer.scrollHeight
-    }
-  })
+  // Auto-scroll to top when new logs arrive (newest logs appear at top)
+  let prevLogCount = 0
+
+  function scrollToTop() {
+    if (!scrollContainer) return
+    scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function isNearTop(): boolean {
+    if (!scrollContainer) return true
+    return scrollContainer.scrollTop < 50
+  }
+
+  function handleScroll() {
+    if (!scrollContainer) return
+    userScrolledAway = !isNearTop()
+  }
 
   $effect(() => {
-    void groupedLogs
-    if (scrollContainer && savedScrollHeight > 0) {
-      const heightDiff = scrollContainer.scrollHeight - savedScrollHeight
-      scrollContainer.scrollTop = savedScrollTop + heightDiff
+    const currentCount = logs.length
+    if (currentCount > prevLogCount && !userScrolledAway) {
+      // New logs arrived and user hasn't scrolled away — scroll to top
+      requestAnimationFrame(() => {
+        if (scrollContainer) scrollContainer.scrollTop = 0
+      })
     }
+    prevLogCount = currentCount
   })
 </script>
 
@@ -252,14 +294,18 @@
   </div>
 
   <!-- Logs Area -->
-  <div class="flex-1 overflow-y-auto px-6 py-4" bind:this={scrollContainer}>
+  <div
+    class="relative flex-1 overflow-y-auto px-6 py-4"
+    bind:this={scrollContainer}
+    onscroll={handleScroll}
+  >
     {#if pagedLogs.length === 0}
       <div class="text-muted-foreground flex h-48 flex-col items-center justify-center text-sm">
         <p>No API requests matching the current filter.</p>
       </div>
     {:else}
       <div class="space-y-4 pb-4">
-        {#each pagedLogs as group (group.request?.id)}
+        {#each pagedLogs as group, i (`${group.request?.id ?? group.response?.id ?? i}-${i}`)}
           <div class="border-border bg-card overflow-hidden rounded-lg border">
             <!-- Request -->
             {#if group.request}
@@ -346,6 +392,22 @@
             {/if}
           </div>
         {/each}
+      </div>
+    {/if}
+
+    <!-- Scroll to latest button -->
+    {#if userScrolledAway}
+      <div class="pointer-events-none sticky top-2 flex w-full justify-center">
+        <Button
+          variant="outline"
+          size="sm"
+          class="border-border bg-background/80 hover:bg-accent animate-in fade-in slide-in-from-top-2 pointer-events-auto h-8 rounded-full border px-3 shadow-lg backdrop-blur-sm"
+          onclick={scrollToTop}
+          aria-label="Scroll to latest"
+        >
+          <ArrowUp class="mr-1.5 h-3.5 w-3.5" />
+          <span class="text-xs">Latest</span>
+        </Button>
       </div>
     {/if}
   </div>

@@ -24,13 +24,10 @@
   import { parseMarkdown } from '$lib/utils/markdown'
   import { sanitizeTextForTTS } from '$lib/utils/htmlSanitize'
   import {
-    processContentWithImages,
-    processVisualProseWithImages,
-    processContentWithInlineImages,
-    processVisualProseWithInlineImages,
+    processStoryContent,
+    processVisualProseStoryContent,
     getPlacedImageIds,
   } from '$lib/services/image'
-  import { database } from '$lib/services/database'
   import {
     eventBus,
     type ImageReadyEvent,
@@ -39,7 +36,7 @@
     type TTSQueuedEvent,
   } from '$lib/services/events'
   import { inlineImageService, retryImageGeneration } from '$lib/services/ai/image'
-  import { promptService } from '$lib/services/prompts'
+  import { database } from '$lib/services/database'
   import { onMount } from 'svelte'
   import ReasoningBlock from './ReasoningBlock.svelte'
   import { countTokens } from '$lib/services/tokenizer'
@@ -78,9 +75,6 @@
 
   // Check if Visual Prose mode is enabled for this story
   const visualProseMode = $derived(story.currentStory?.settings?.visualProseMode ?? false)
-
-  // Check if Inline Image mode is enabled for this story
-  const inlineImageMode = $derived(story.currentStory?.settings?.imageGenerationMode === 'inline')
 
   // Check if this is the latest narration entry (for retry button)
   const isLatestNarration = $derived.by(() => {
@@ -186,9 +180,6 @@
   let branchName = $state('')
 
   // Inline image edit state
-  let _isEditingImage = $state(false)
-  let editingImageId = $state<string | null>(null)
-  let editingImagePrompt = $state('')
 
   // Timer for checking stuck images
   let now = $state(Date.now())
@@ -255,6 +246,19 @@
   // Can create checkpoint: latest entry, not a system entry, and no checkpoint exists yet
   const canCreateCheckpoint = $derived(isLatestEntry && entry.type !== 'system' && !entryCheckpoint)
 
+  // Is this the last user_action in the story? (used for the regeneration hint)
+  const isLastUserAction = $derived(
+    entry.type === 'user_action' && story.lastUserActionId === entry.id,
+  )
+
+  // Show regeneration hint when editing the last user_action and retry is available
+  const canSaveAndRegenerate = $derived(
+    isLastUserAction &&
+      !!ui.retryBackup &&
+      !!story.currentStory &&
+      ui.retryBackup.storyId === story.currentStory.id,
+  )
+
   async function handleCreateCheckpoint() {
     if (!checkpointName.trim()) return
     try {
@@ -304,6 +308,7 @@
   let isViewingImage = $state(false)
   let viewingImage = $state<(typeof embeddedImages)[0] | null>(null)
   let viewingImagePrompt = $state('')
+  let viewingImagePromptMode = $state<'chat' | 'custom'>('chat')
 
   // Track images currently being regenerated (for loading overlay)
   let regeneratingImageIds = $state<Set<string>>(new Set())
@@ -563,12 +568,53 @@
     }
   }
 
+  function stripStyleSuffix(prompt: string): string {
+    return prompt.split('. ').slice(0, -1).join('. ') || prompt
+  }
+
+  function getRawPrompt(image: (typeof embeddedImages)[0]): string {
+    if (image.generationMode === 'inline' && image.sourceText?.startsWith('<pic')) {
+      const match = image.sourceText.match(/prompt=["']([^"']+)["']/i)
+      if (match?.[1]) return match[1]
+    }
+    return stripStyleSuffix(image.prompt)
+  }
+
+  async function fetchCurrentStylePrompt(): Promise<string> {
+    const styleId = settings.systemServicesSettings.imageGeneration.styleId
+    try {
+      const template = await database.getPackTemplate('default-pack', styleId)
+      if (template?.content) {
+        return template.content
+      }
+    } catch {
+      // Template not found, use fallback
+    }
+    return DEFAULT_FALLBACK_STYLE_PROMPT
+  }
+
   // Open the image view/edit modal
   function openImageViewModal(image: (typeof embeddedImages)[0]) {
     viewingImage = image
-    // Extract original prompt (remove style suffix)
-    viewingImagePrompt = image.prompt.split('. ').slice(0, -1).join('. ') || image.prompt
+    viewingImagePrompt = getRawPrompt(image)
+    viewingImagePromptMode = 'chat'
     isViewingImage = true
+  }
+
+  async function handleViewModalRegenerate() {
+    if (!viewingImage) return
+    const imageId = viewingImage.id
+    isViewingImage = false
+    if (viewingImagePromptMode === 'chat') {
+      await regenerateInlineImage(imageId, viewingImage.prompt)
+    } else {
+      const stylePrompt = await fetchCurrentStylePrompt()
+      await regenerateInlineImage(
+        imageId,
+        `${viewingImagePrompt.trim().replace(/\.+$/, '')}. ${stylePrompt}`,
+        true,
+      )
+    }
   }
 
   // Handle click on embedded image link
@@ -644,19 +690,22 @@
     if (!image) return
 
     if (action === 'edit') {
-      // Open edit modal with current prompt
-      editingImageId = imageId
-      // Extract the original prompt from the stored prompt (remove style suffix)
-      editingImagePrompt = image.prompt.split('. ').slice(0, -1).join('. ') || image.prompt
-      _isEditingImage = true
+      openImageViewModal(image)
+      viewingImagePromptMode = 'custom'
     } else if (action === 'regenerate') {
       // Regenerate with same prompt
       await regenerateInlineImage(imageId, image.prompt)
     }
   }
 
-  // Regenerate an inline image with a new or existing prompt
-  async function regenerateInlineImage(imageId: string, prompt: string) {
+  // Regenerate an inline image with a new or existing prompt.
+  // Pass usePassedPromptAsIs=true when the caller has already built the final prompt
+  // (e.g. a user-edited custom prompt) and the sourceText reconstruction should be skipped.
+  async function regenerateInlineImage(
+    imageId: string,
+    prompt: string,
+    usePassedPromptAsIs = false,
+  ) {
     const image = embeddedImages.find((img) => img.id === imageId)
     if (!image) return
 
@@ -666,8 +715,10 @@
     let finalPrompt = prompt
 
     // If it's an inline image, try to reconstruct prompt with CURRENT style
-    // This allows style changes in settings to apply when retrying/regenerating
+    // This allows style changes in settings to apply when retrying/regenerating.
+    // Skip when usePassedPromptAsIs is true so a custom user prompt is honoured.
     if (
+      !usePassedPromptAsIs &&
       image.generationMode === 'inline' &&
       image.sourceText &&
       image.sourceText.startsWith('<pic')
@@ -677,24 +728,8 @@
       if (match && match[1]) {
         const rawPrompt = match[1]
 
-        // Get CURRENT style
-        const imageSettings = settings.systemServicesSettings.imageGeneration
-        const styleId = imageSettings.styleId
-        let stylePrompt = ''
-        try {
-          const promptContext = {
-            mode: 'adventure' as const,
-            pov: 'second' as const,
-            tense: 'present' as const,
-            protagonistName: '',
-          }
-          stylePrompt = promptService.getPrompt(styleId, promptContext) || ''
-        } catch {
-          stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT
-        }
-
-        // Reconstruct full prompt
-        finalPrompt = `${rawPrompt}. ${stylePrompt}`
+        const stylePrompt = await fetchCurrentStylePrompt()
+        finalPrompt = `${rawPrompt.replace(/\.+$/, '')}. ${stylePrompt}`
         console.log('[StoryEntry] Reconstructed prompt with new style:', finalPrompt)
       }
     }
@@ -711,38 +746,6 @@
       newSet.delete(imageId)
       regeneratingImageIds = newSet
     }
-  }
-
-  // Handle edit modal submission
-  async function handleEditImageSubmit() {
-    if (!editingImageId || !editingImagePrompt.trim()) return
-
-    const image = embeddedImages.find((img) => img.id === editingImageId)
-    if (!image) return
-
-    // Get style prompt and append it
-    const imageSettings = settings.systemServicesSettings.imageGeneration
-    const styleId = imageSettings.styleId
-    let stylePrompt = ''
-    try {
-      const promptContext = {
-        mode: 'adventure' as const,
-        pov: 'second' as const,
-        tense: 'present' as const,
-        protagonistName: '',
-      }
-      stylePrompt = promptService.getPrompt(styleId, promptContext) || ''
-    } catch {
-      stylePrompt = DEFAULT_FALLBACK_STYLE_PROMPT
-    }
-
-    const fullPrompt = `${editingImagePrompt.trim()}. ${stylePrompt}`
-
-    // Close modal and regenerate
-    _isEditingImage = false
-    await regenerateInlineImage(editingImageId, fullPrompt)
-    editingImageId = null
-    editingImagePrompt = ''
   }
 
   // Manage inline image display
@@ -815,6 +818,7 @@
       retryBtn.addEventListener('click', async () => {
         const imageId = retryBtn.getAttribute('data-image-id')
         if (imageId && expandedImage) {
+          ;(retryBtn as HTMLButtonElement).disabled = true
           await regenerateInlineImage(imageId, expandedImage.prompt)
           expandedImageId = null
           clickedElement = null
@@ -940,42 +944,16 @@
     }
 
     try {
-      // Check if this is the last user_action entry
-      const isLastUserAction = entry.type === 'user_action' && isLastUserActionEntry()
-
-      if (
-        isLastUserAction &&
-        ui.retryBackup &&
-        story.currentStory &&
-        ui.retryBackup.storyId === story.currentStory.id
-      ) {
-        // Update the backup with the new content and trigger retry
-        console.log('[StoryEntry] Editing last user action, triggering retry with new content')
+      await story.updateEntry(entry.id, newContent)
+      // Keep retry backup in sync so a subsequent Retry uses the updated text
+      if (canSaveAndRegenerate) {
         ui.updateRetryBackupContent(newContent)
-        isEditing = false
-        await ui.triggerRetryLastMessage()
-      } else {
-        // Normal edit - just update the entry
-        await story.updateEntry(entry.id, newContent)
-        isEditing = false
       }
+      isEditing = false
     } catch (error) {
       console.error('[StoryEntry] Failed to save edit:', error)
       alert(error instanceof Error ? error.message : 'Failed to save edit')
     }
-  }
-
-  /**
-   * Check if this entry is the last user_action in the story.
-   */
-  function isLastUserActionEntry(): boolean {
-    // Find all user_action entries
-    const userActions = story.entries.filter((e) => e.type === 'user_action')
-    if (userActions.length === 0) return false
-
-    // Check if this entry is the last one
-    const lastUserAction = userActions[userActions.length - 1]
-    return lastUserAction.id === entry.id
   }
 
   /**
@@ -1050,6 +1028,10 @@
         presentCharacters: story.characters,
         referenceMode: story.currentStory.settings?.referenceMode ?? false,
         translatedNarrative: entry.translatedContent ?? undefined,
+        imageGenerationMode: story.currentStory.settings?.imageGenerationMode,
+        allCharacters: story.characters,
+        imageSettings: settings.systemServicesSettings.imageGeneration,
+        getImageProfile: (id: string) => settings.getImageProfile(id),
       }
       await aiService.generateImagesForNarrative(context)
     } catch (error) {
@@ -1185,7 +1167,7 @@
             <Volume2 class="h-4 w-4" />
           {/if}
         </Button>
-        {#if isLatestNarration}
+        {#if isLatestNarration && story.currentStory?.settings?.imageGenerationMode === 'agentic'}
           <Button
             variant="text"
             size="icon"
@@ -1248,6 +1230,12 @@
         <p class="text-muted-foreground hidden text-xs sm:block">
           Ctrl+Enter to save, Esc to cancel
         </p>
+        {#if canSaveAndRegenerate}
+          <p class="hidden items-center gap-1 text-xs text-amber-500/80 sm:flex">
+            Regenerate narration after significant changes
+            <RotateCcw class="h-3 w-3" />
+          </p>
+        {/if}
       </div>
     {:else if isDeleting}
       <div class="space-y-2">
@@ -1375,32 +1363,17 @@
 
         {#if entry.type === 'narration'}
           {@const displayContent = entry.translatedContent ?? entry.content}
-          {#if visualProseMode && inlineImageMode}
-            <!-- Both Visual Prose and Inline Image mode -->
-            {@html processVisualProseWithInlineImages(
+          {#if visualProseMode}
+            <!-- Visual Prose mode (handles both agentic and inline images) -->
+            {@html processVisualProseStoryContent(
               displayContent,
               embeddedImages,
               entry.id,
-              regeneratingImageIds,
-            )}
-          {:else if visualProseMode}
-            <!-- Visual Prose mode only -->
-            {@html processVisualProseWithImages(
-              displayContent,
-              embeddedImages,
-              entry.id,
-              regeneratingImageIds,
-            )}
-          {:else if inlineImageMode}
-            <!-- Inline Image mode only -->
-            {@html processContentWithInlineImages(
-              displayContent,
-              embeddedImages,
               regeneratingImageIds,
             )}
           {:else}
-            <!-- Standard mode with analyzed images -->
-            {@html processContentWithImages(displayContent, embeddedImages, regeneratingImageIds)}
+            <!-- Standard mode (handles both agentic and inline images) -->
+            {@html processStoryContent(displayContent, embeddedImages, regeneratingImageIds)}
           {/if}
         {:else if entry.type === 'user_action'}
           <!-- User action: show original input (before translation) -->
@@ -1536,14 +1509,51 @@
 
     <!-- Edit area -->
     <div class="bg-surface-900 border-surface-800 border-t px-4 py-3">
-      <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label class="text-surface-400 mb-1.5 block text-xs">Image Prompt</label>
-      <Textarea
-        bind:value={viewingImagePrompt}
-        placeholder="Describe the image you want to generate..."
-        rows={3}
-        class="resize-none text-sm"
-      />
+      <!-- Prompt source toggle -->
+      <div class="mb-2 flex items-center gap-1">
+        <button
+          type="button"
+          onclick={() => {
+            viewingImagePromptMode = 'chat'
+            if (viewingImage) viewingImagePrompt = getRawPrompt(viewingImage)
+          }}
+          class="h-6 rounded px-2 text-xs font-medium transition-colors
+            {viewingImagePromptMode === 'chat'
+            ? 'bg-primary text-primary-foreground'
+            : 'text-surface-400 hover:text-surface-200'}"
+        >
+          From chat
+        </button>
+        <button
+          type="button"
+          onclick={() => (viewingImagePromptMode = 'custom')}
+          class="h-6 rounded px-2 text-xs font-medium transition-colors
+            {viewingImagePromptMode === 'custom'
+            ? 'bg-primary text-primary-foreground'
+            : 'text-surface-400 hover:text-surface-200'}"
+        >
+          Custom
+        </button>
+      </div>
+
+      {#if viewingImagePromptMode === 'chat'}
+        <!-- Read-only preview of the chat-derived prompt -->
+        <p
+          class="text-surface-400 border-surface-700 line-clamp-3 rounded border border-dashed px-2.5 py-2 text-xs leading-relaxed"
+        >
+          {viewingImagePrompt || 'No prompt available'}
+        </p>
+      {:else}
+        <!-- Editable custom prompt -->
+        <!-- svelte-ignore a11y_label_has_associated_control -->
+        <label class="text-surface-400 mb-1.5 block text-xs">Custom Prompt</label>
+        <Textarea
+          bind:value={viewingImagePrompt}
+          placeholder="Describe the image you want to generate..."
+          rows={3}
+          class="resize-none text-sm"
+        />
+      {/if}
     </div>
 
     <!-- Footer toolbar -->
@@ -1560,18 +1570,8 @@
       </Button>
       <Button
         size="sm"
-        onclick={async () => {
-          if (viewingImage && viewingImagePrompt.trim()) {
-            const imageId = viewingImage.id
-            // Close modal immediately - loading will show on inline image
-            isViewingImage = false
-            // Regenerate with the prompt from the textarea
-            editingImageId = imageId
-            editingImagePrompt = viewingImagePrompt
-            await handleEditImageSubmit()
-          }
-        }}
-        disabled={!viewingImagePrompt.trim()}
+        onclick={handleViewModalRegenerate}
+        disabled={viewingImagePromptMode === 'custom' && !viewingImagePrompt.trim()}
         class="h-8 gap-1.5 text-xs"
       >
         <RefreshCw class="h-3.5 w-3.5" />
@@ -1632,6 +1632,12 @@
     text-decoration-style: dashed;
   }
 
+  :global(.embedded-image-link.failed) {
+    color: var(--destructive);
+    text-decoration-style: wavy;
+    cursor: pointer;
+  }
+
   :global(.embedded-image-link.regenerating) {
     color: var(--accent-400);
     animation: pulse-glow 1s ease-in-out infinite;
@@ -1656,7 +1662,6 @@
 
   /* Inline image display styles */
   :global(.inline-image-display) {
-    margin: 0.75rem 0;
     border-radius: 0.5rem;
     overflow: hidden;
     border: 1px solid var(--surface-600);
@@ -1706,7 +1711,8 @@
   :global(.inline-image-content) {
     display: block;
     width: 100%;
-    max-width: 28rem;
+    max-height: 70vh;
+    object-fit: contain;
     margin: 0 auto;
   }
 
@@ -1732,6 +1738,7 @@
   :global(.inline-image-placeholder) {
     position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     margin: 1rem 0;
@@ -1752,6 +1759,31 @@
   :global(.inline-image-placeholder.failed) {
     border-color: var(--color-red-500, #ef4444);
     background: linear-gradient(135deg, var(--surface-800) 0%, rgba(239, 68, 68, 0.1) 100%);
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  :global(.placeholder-text) {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    text-align: center;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  :global(.inline-image-retry) {
+    margin-top: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    background-color: var(--surface-600);
+    color: var(--foreground);
+    border: 1px solid var(--surface-500);
+    cursor: pointer;
+  }
+
+  :global(.inline-image-retry:hover) {
+    background-color: var(--surface-500);
   }
 
   /* Shimmer effect */
@@ -1915,6 +1947,8 @@
     display: block;
     width: 100%;
     height: auto;
+    max-height: 70vh;
+    object-fit: contain;
     transition:
       filter 0.2s ease,
       transform 0.2s ease;

@@ -9,31 +9,57 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { createChutes } from '@chutes-ai/ai-sdk-provider'
 import { createPollinations } from 'ai-sdk-pollinations'
-import { createOllama } from 'ollama-ai-provider'
 import { createXai } from '@ai-sdk/xai'
 import { createGroq } from '@ai-sdk/groq'
-import { createZhipu } from 'zhipu-ai-provider'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createMistral } from '@ai-sdk/mistral'
 
 import type { APIProfile } from '$lib/types'
 import { createTimeoutFetch } from './fetch'
 import { PROVIDERS, getBaseUrl } from './config'
+import { settings } from '$lib/stores/settings.svelte'
+import type { LanguageModelV3 } from '@ai-sdk/provider'
 
-const DEFAULT_TIMEOUT_MS = 180000
+export function createModelFromProfile(options: {
+  profile: APIProfile
+  modelId: string
+  presetId: string
+  debugId?: string
+  structuredOutputs?: boolean
+  manualBody?: string
+}): LanguageModelV3 {
+  const { profile, modelId, presetId, debugId, structuredOutputs, manualBody } = options
+  const provider = createProviderFromProfile({
+    profile,
+    presetId,
+    debugId,
+    structuredOutputs,
+    manualBody,
+  })
 
-export function createProviderFromProfile(profile: APIProfile, presetId: string, debugId?: string) {
-  const fetch = createTimeoutFetch(DEFAULT_TIMEOUT_MS, presetId, debugId)
+  return provider(modelId) as LanguageModelV3
+}
+
+export function createProviderFromProfile(options: {
+  profile: APIProfile
+  presetId: string
+  debugId?: string
+  structuredOutputs?: boolean
+  manualBody?: string
+}) {
+  const { profile, presetId, debugId, structuredOutputs, manualBody } = options
+  const fetch = createTimeoutFetch(settings.apiSettings.llmTimeoutMs, presetId, manualBody, debugId)
   const baseURL = profile.baseUrl || getBaseUrl(profile.providerType)
+  const supportsStructuredOutputs = structuredOutputs ?? false
 
   switch (profile.providerType) {
     case 'openrouter':
       return createOpenRouter({
+        compatibility: 'strict',
         apiKey: profile.apiKey,
         baseURL: baseURL ?? PROVIDERS.openrouter.baseUrl,
-        headers: { 'HTTP-Referer': 'https://aventuras.ai', 'X-Title': 'Aventura' },
+        headers: { 'HTTP-Referer': 'https://aventura.camp', 'X-Title': 'Aventura' },
         fetch,
       })
 
@@ -52,39 +78,55 @@ export function createProviderFromProfile(profile: APIProfile, presetId: string,
         name: 'nanogpt',
         apiKey: profile.apiKey,
         baseURL: baseURL ?? PROVIDERS.nanogpt.baseUrl,
+        supportsStructuredOutputs,
         fetch,
       })
 
     case 'chutes':
-      return createChutes({ apiKey: profile.apiKey, fetch })
+      return createOpenAICompatible({
+        name: 'chutes',
+        apiKey: profile.apiKey,
+        baseURL: baseURL ?? PROVIDERS.chutes.baseUrl,
+        supportsStructuredOutputs,
+        fetch,
+      })
 
     case 'pollinations':
       return createPollinations({ apiKey: profile.apiKey || undefined, fetch })
 
     case 'ollama':
-      return createOllama({ baseURL: baseURL ?? PROVIDERS.ollama.baseUrl, fetch })
+      return createOpenAICompatible({
+        name: 'ollama',
+        apiKey: 'ollama',
+        baseURL: baseURL ?? PROVIDERS.ollama.baseUrl,
+        supportsStructuredOutputs,
+        fetch,
+      })
 
     case 'lmstudio':
-      return createOpenAI({
+      return createOpenAICompatible({
         name: 'lmstudio',
         apiKey: profile.apiKey || 'lm-studio',
         baseURL: baseURL ?? PROVIDERS.lmstudio.baseUrl,
+        supportsStructuredOutputs,
         fetch,
       })
 
     case 'llamacpp':
-      return createOpenAI({
+      return createOpenAICompatible({
         name: 'llamacpp',
         apiKey: profile.apiKey || 'llamacpp',
         baseURL: baseURL ?? PROVIDERS.llamacpp.baseUrl,
+        supportsStructuredOutputs,
         fetch,
       })
 
     case 'nvidia-nim':
-      return createOpenAI({
+      return createOpenAICompatible({
         name: 'nvidia-nim',
         apiKey: profile.apiKey,
         baseURL: baseURL ?? PROVIDERS['nvidia-nim'].baseUrl,
+        supportsStructuredOutputs,
         fetch,
       })
 
@@ -94,8 +136,9 @@ export function createProviderFromProfile(profile: APIProfile, presetId: string,
       }
       return createOpenAICompatible({
         name: 'openai-compatible',
-        apiKey: profile.apiKey,
+        apiKey: profile.apiKey ?? 'openai-compatible',
         baseURL,
+        supportsStructuredOutputs,
         fetch,
       })
 
@@ -106,7 +149,10 @@ export function createProviderFromProfile(profile: APIProfile, presetId: string,
       return createGroq({ apiKey: profile.apiKey, baseURL, fetch })
 
     case 'zhipu':
-      return createZhipu({ apiKey: profile.apiKey, baseURL, fetch })
+      if (!baseURL) {
+        throw new Error('Zhipu provider requires a custom base URL') // It does not
+      }
+      return createOpenAICompatible({ name: 'zhipu', apiKey: profile.apiKey, baseURL, fetch })
 
     case 'deepseek':
       return createDeepSeek({ apiKey: profile.apiKey, baseURL, fetch })

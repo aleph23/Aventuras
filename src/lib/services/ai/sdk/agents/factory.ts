@@ -5,14 +5,21 @@
  * Integrates with the existing settings and provider system.
  */
 
-import { ToolLoopAgent, type StopCondition, type ToolSet, type StepResult } from 'ai'
+import {
+  ToolLoopAgent,
+  wrapLanguageModel,
+  type StopCondition,
+  type ToolSet,
+  type StepResult,
+} from 'ai'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
 import { settings } from '$lib/stores/settings.svelte'
 import { createProviderFromProfile } from '../providers'
 import { buildProviderOptions } from '../generate'
+import { uniqueToolCallIdMiddleware } from '../middleware'
 import type { GenerationPreset, APIProfile, ProviderType } from '$lib/types'
-import { createLogger } from '../../core/config'
+import { createLogger } from '$lib/log'
 
 const log = createLogger('AgentFactory')
 
@@ -33,7 +40,11 @@ export interface ResolvedAgentConfig {
  *
  * @param presetId - The preset ID (e.g., 'agentic', 'loreManagement')
  */
-export function resolveAgentConfig(presetId: string, serviceId: string): ResolvedAgentConfig {
+export function resolveAgentConfig(
+  presetId: string,
+  serviceId: string,
+  debugId?: string,
+): ResolvedAgentConfig {
   const preset = settings.getPresetConfig(presetId)
   const profileId = preset.profileId ?? settings.apiSettings.mainNarrativeProfileId
   const profile = settings.getProfile(profileId)
@@ -42,9 +53,17 @@ export function resolveAgentConfig(presetId: string, serviceId: string): Resolve
     throw new Error(`Profile not found: ${profileId}`)
   }
 
-  const provider = createProviderFromProfile(profile, serviceId)
+  const provider = createProviderFromProfile({
+    profile,
+    presetId: serviceId,
+    debugId,
+    manualBody: preset.manualBody ?? '',
+  })
   // Call provider directly - all providers support provider(modelId) syntax
-  const model = provider(preset.model) as LanguageModelV3
+  const baseModel = provider(preset.model) as LanguageModelV3
+  // Wrap with uniqueToolCallIdMiddleware so providers that reuse IDs across steps
+  // (e.g. Google's `functions.tool:0` scheme) get globally unique tool call IDs.
+  const model = wrapLanguageModel({ model: baseModel, middleware: [uniqueToolCallIdMiddleware()] })
   const providerOptions = buildProviderOptions(preset, profile.providerType)
 
   return { preset, profile, providerType: profile.providerType, model, providerOptions }
@@ -112,8 +131,8 @@ export function createAgentFromPreset<TTools extends ToolSet>(
     instructions,
     tools,
     stopWhen,
-    temperature: preset.temperature,
-    maxOutputTokens: preset.maxTokens,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
     providerOptions,
   })
 
@@ -128,6 +147,65 @@ export function createAgentFromPreset<TTools extends ToolSet>(
   }
 }
 
+/**
+ * Options for creating a streaming assistant agent from a preset.
+ */
+export interface CreateAssistantOptions<TTools extends ToolSet> {
+  /** Preset ID for model configuration */
+  presetId: string
+  /** System instructions for the agent */
+  instructions: string
+  /** Tools available to the agent */
+  tools: TTools
+  /** Stop condition for the agentic loop */
+  stopWhen: StopCondition<TTools>
+  /** Optional abort signal for cancellation - passed to generate() calls */
+  signal?: AbortSignal
+}
+
+/**
+ * Extended streaming assistant agent interface that includes the abort signal.
+ */
+export interface AssistantWithSignal<TTools extends ToolSet> {
+  agent: ToolLoopAgent<never, TTools>
+  signal?: AbortSignal
+  stream: ToolLoopAgent<never, TTools>['stream']
+}
+
+export function createStreamingAgenticAssistant<TTools extends ToolSet>(
+  options: CreateAssistantOptions<TTools>,
+  serviceId: string,
+): AssistantWithSignal<TTools> {
+  const { presetId, instructions, tools, stopWhen, signal } = options
+  const { preset, providerType, model, providerOptions } = resolveAgentConfig(presetId, serviceId)
+
+  log('createStreamingAgenticAssistant', {
+    presetId,
+    model: preset.model,
+    providerType,
+    toolCount: Object.keys(tools).length,
+  })
+  console.log('manual mode:', settings.advancedRequestSettings.manualMode)
+  const agent = new ToolLoopAgent<never, TTools>({
+    model,
+    instructions,
+    tools,
+    stopWhen,
+    temperature: !settings.advancedRequestSettings.manualMode ? preset.temperature : undefined,
+    maxOutputTokens: !settings.advancedRequestSettings.manualMode ? preset.maxTokens : undefined,
+    providerOptions,
+  })
+
+  return {
+    agent,
+    signal,
+    stream: (params) =>
+      agent.stream({
+        ...params,
+        abortSignal: signal,
+      }),
+  }
+}
 /**
  * Agent result type helper.
  * Extracts the result type from a ToolLoopAgent.
