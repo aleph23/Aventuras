@@ -290,8 +290,8 @@ function MergeBody({
         <Button variant="secondary" onPress={onCancel} disabled={submitting}>
           <Text>Cancel</Text>
         </Button>
-        <Button variant="primary" onPress={handleConfirm} disabled={submitting}>
-          <Text>{submitting ? 'Merging…' : `Merge into ${canonical.name}`}</Text>
+        <Button variant="primary" onPress={handleConfirm} loading={submitting}>
+          <Text>{`Merge into ${canonical.name}`}</Text>
         </Button>
       </DialogFooter>
     </View>
@@ -416,8 +416,8 @@ function RenameBody({ entityA, entityB, onSubmit, onCancel, submitting, error }:
         <Button variant="secondary" onPress={onCancel} disabled={submitting}>
           <Text>Cancel</Text>
         </Button>
-        <Button variant="primary" onPress={handleConfirm} disabled={submitting || !dirty}>
-          <Text>{submitting ? 'Saving…' : 'Save renames'}</Text>
+        <Button variant="primary" onPress={handleConfirm} loading={submitting} disabled={!dirty}>
+          <Text>Save renames</Text>
         </Button>
       </DialogFooter>
     </View>
@@ -452,8 +452,8 @@ function KeepBody({ name, onSubmit, onCancel, submitting, error }: KeepBodyProps
         <Button variant="secondary" onPress={onCancel} disabled={submitting}>
           <Text>Cancel</Text>
         </Button>
-        <Button variant="primary" onPress={handleConfirm} disabled={submitting}>
-          <Text>{submitting ? 'Saving…' : 'Keep as distinct'}</Text>
+        <Button variant="primary" onPress={handleConfirm} loading={submitting}>
+          <Text>Keep as distinct</Text>
         </Button>
       </DialogFooter>
     </View>

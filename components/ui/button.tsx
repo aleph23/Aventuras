@@ -3,6 +3,7 @@ import { TextClassContext } from '@/components/ui/text'
 import type { ThemeColorSlots } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
 import { cva, type VariantProps } from 'class-variance-authority'
+import type * as React from 'react'
 import { Platform, Pressable, type PressableProps } from 'react-native'
 
 const buttonVariants = cva(
@@ -71,14 +72,16 @@ const SPINNER_SLOT_BY_VARIANT: Record<ButtonVariant, keyof ThemeColorSlots> = {
   destructive: '--danger-fg',
 }
 
-type ButtonProps = PressableProps &
+type ButtonProps = Omit<PressableProps, 'children'> &
   VariantProps<typeof buttonVariants> & {
     /**
-     * When `true`, renders a Spinner in place of children and treats
-     * the button as disabled (no presses, `aria-busy`). Spinner color
-     * resolves from the variant via `SPINNER_SLOT_BY_VARIANT`.
+     * When `true`, renders a Spinner alongside children (leading the
+     * label, separated by the variant gap) and treats the button as
+     * disabled (no presses, `aria-busy`). Spinner color resolves from
+     * the variant via `SPINNER_SLOT_BY_VARIANT`.
      */
     loading?: boolean
+    children?: React.ReactNode
     className?: string
   }
 
@@ -102,7 +105,8 @@ export function Button({
         className={cn(isDisabled && 'opacity-50', buttonVariants({ variant, size }), className)}
         {...props}
       >
-        {loading ? <Spinner size="sm" colorSlot={spinnerSlot} /> : children}
+        {loading ? <Spinner size="sm" colorSlot={spinnerSlot} /> : null}
+        {children}
       </Pressable>
     </TextClassContext.Provider>
   )
