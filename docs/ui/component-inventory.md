@@ -115,6 +115,6 @@ Top-level layout primitives.
 
 ### Shells — needs design
 
-| Shell         | Question                                                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| ComposerShell | Reader-composer's idiosyncratic layout. Likely all-locality; no extracted shell. Confirm during reader-composer build pass. |
+_Empty — every shell question is resolved. Reader-composer's
+chrome stays all-locality (no extracted shell); revisited at the
+reader-composer build pass only if cross-surface signal surfaces._
