@@ -1,6 +1,3 @@
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
-import { TextClassContext } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@rn-primitives/dialog'
 import { Fragment, useCallback, useMemo, type ComponentProps } from 'react'
 import { Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native'
@@ -20,6 +17,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 import { runOnJS } from 'react-native-worklets'
+
+import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
+import { TextClassContext } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 const Sheet = DialogPrimitive.Root
 const SheetTrigger = DialogPrimitive.Trigger

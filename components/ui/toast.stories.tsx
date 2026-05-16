@@ -2,12 +2,13 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { useEffect } from 'react'
 import { View } from 'react-native'
 
+import { themes } from '@/lib/themes/registry'
+import { toast } from '@/lib/toast'
+import { toastStore, type ToastItem } from '@/lib/toast/store'
+
 import { Button } from './button'
 import { Text } from './text'
 import { Toast, Toaster } from './toast'
-import { toast } from '@/lib/toast'
-import { toastStore, type ToastItem } from '@/lib/toast/store'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof Toaster> = {
   title: 'Primitives/Toast',

@@ -4,10 +4,6 @@
 //
 // Mount <Toaster /> once at the app root; fire toasts via the
 // imperative API in `lib/toast`.
-import { Icon } from '@/components/ui/icon'
-import { Text } from '@/components/ui/text'
-import { toastStore, type ToastItem, type ToastSeverity } from '@/lib/toast/store'
-import { cn } from '@/lib/utils'
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react-native'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Platform, Pressable, View, type ViewStyle } from 'react-native'
@@ -22,6 +18,12 @@ import {
   withTiming,
 } from 'react-native-reanimated'
 import { runOnJS } from 'react-native-worklets'
+
+import { Icon } from '@/components/ui/icon'
+import { Text } from '@/components/ui/text'
+import { toastStore, type ToastItem, type ToastSeverity } from '@/lib/toast/store'
+import { cn } from '@/lib/utils'
+
 import { NativeOnlyAnimatedView } from './native-only-animated-view'
 
 const DURATION_MS: Record<ToastSeverity, number> = {

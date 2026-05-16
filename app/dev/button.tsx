@@ -1,4 +1,5 @@
 import { ScrollView, View } from 'react-native'
+
 import { DensityPicker } from '@/components/foundations/sections/density-picker'
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Button } from '@/components/ui/button'

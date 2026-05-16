@@ -1,5 +1,6 @@
-import { ScrollView } from 'react-native'
 import { Link } from 'expo-router'
+import { ScrollView } from 'react-native'
+
 import { Button } from '@/components/ui/button'
 import { Text } from '@/components/ui/text'
 

@@ -1,8 +1,9 @@
-import { Text, TextClassContext } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import * as TabsPrimitive from '@rn-primitives/tabs'
 import { type ComponentProps, type ReactNode } from 'react'
 import { Platform } from 'react-native'
+
+import { Text, TextClassContext } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 function Tabs({ className, ...props }: ComponentProps<typeof TabsPrimitive.Root>) {
   return <TabsPrimitive.Root className={cn('flex flex-col gap-4', className)} {...props} />

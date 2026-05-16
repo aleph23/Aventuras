@@ -1,9 +1,3 @@
-import { Heading } from '@/components/ui/heading'
-import { Icon } from '@/components/ui/icon'
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
-import { Text, TextClassContext } from '@/components/ui/text'
-import { useTier } from '@/hooks/use-tier'
-import { cn } from '@/lib/utils'
 import * as RadioGroupBase from '@rn-primitives/radio-group'
 import * as SelectBase from '@rn-primitives/select'
 import { Check, ChevronDown, ChevronDownIcon, ChevronUpIcon } from 'lucide-react-native'
@@ -31,6 +25,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 import { runOnJS } from 'react-native-worklets'
+
+import { Heading } from '@/components/ui/heading'
+import { Icon } from '@/components/ui/icon'
+import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
+import { Text, TextClassContext } from '@/components/ui/text'
+import { useTier } from '@/hooks/use-tier'
+import { cn } from '@/lib/utils'
 
 const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 

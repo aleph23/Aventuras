@@ -18,7 +18,6 @@ import {
   User,
   X,
 } from 'lucide-react-native'
-
 import { ScrollView, View } from 'react-native'
 
 import { DensityPicker } from '@/components/foundations/sections/density-picker'

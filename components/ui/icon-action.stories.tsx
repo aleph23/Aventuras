@@ -3,9 +3,10 @@ import { CalendarClock, GitBranch, Pencil, RotateCw, Trash2 } from 'lucide-react
 import { View } from 'react-native'
 import { expect, fireEvent, fn, userEvent, waitFor } from 'storybook/test'
 
+import { themes } from '@/lib/themes/registry'
+
 import { IconAction } from './icon-action'
 import { Text } from './text'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof IconAction> = {
   title: 'Primitives/IconAction',

@@ -154,22 +154,16 @@ export function MasterDetailLayout({
           their own vertical scroll without pushing the parent. */}
       <View className={cn('min-h-0 flex-1', isPhone ? 'flex-col' : 'flex-row')}>
         {/* List pane.
-            - tablet / desktop: fixed width via inline style (Tailwind
+            - tablet / desktop: fixed width via inline style — Tailwind
               arbitrary classes can't be safely interpolated for
-              consumer-overridable values).
+              consumer-overridable values.
             - phone: full-width, display toggled by isRowSelected. */}
         <View
-          style={
-            isPhone
-              ? { display: showListOnPhone ? 'flex' : 'none' }
-              : { width: listPaneWidth, flexGrow: 0, flexShrink: 0 }
-          }
+          style={!isPhone ? { width: listPaneWidth } : undefined}
           className={cn(
             'flex-col',
-            isPhone ? 'min-h-0 flex-1' : 'min-h-0',
-            // On phone we want the visible pane to occupy the full
-            // surface; on wide tiers the list is fixed-width and the
-            // detail flexes.
+            isPhone ? 'min-h-0 flex-1' : 'min-h-0 flex-none',
+            isPhone && !showListOnPhone && 'hidden',
           )}
         >
           {listPane}
@@ -182,10 +176,10 @@ export function MasterDetailLayout({
             - phone: full-width, display toggled by isRowSelected.
               No divider on phone (panes never sit side-by-side). */}
         <View
-          style={isPhone ? { display: showDetailOnPhone ? 'flex' : 'none' } : undefined}
           className={cn(
             'flex-col',
             isPhone ? 'min-h-0 flex-1' : 'min-h-0 min-w-0 flex-1 border-l border-border',
+            isPhone && !showDetailOnPhone && 'hidden',
           )}
         >
           {detailPane}

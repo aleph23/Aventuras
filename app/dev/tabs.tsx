@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
+
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Heading } from '@/components/ui/heading'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

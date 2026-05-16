@@ -1,8 +1,9 @@
 import { View } from 'react-native'
+
 import { Button } from '@/components/ui/button'
 import { Text } from '@/components/ui/text'
-import { useDensity } from '@/lib/density/use-density'
 import type { DensitySetting } from '@/lib/density/types'
+import { useDensity } from '@/lib/density/use-density'
 
 const OPTIONS: { value: DensitySetting; label: string }[] = [
   { value: 'default', label: 'Default' },

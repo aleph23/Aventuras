@@ -336,37 +336,24 @@ function VirtualSuggestionListWeb({
 
   return (
     <div ref={parentRef} className={className} style={style}>
-      <div
-        style={{
-          height: virtualizer.getTotalSize(),
-          width: '100%',
-          position: 'relative',
-        }}
-      >
+      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {items.map((virtualRow) => {
           const idx = virtualRow.index
           const isTail = idx === suggestions.length
           const isLastSuggestion = idx === suggestions.length - 1
           const label = isTail ? createTailLabel(trimmed) : suggestions[idx]!
           return (
+            // `flex flex-col` so the inner Pressable inherits
+            // `align-items: stretch` and spans the full popover
+            // width — without it the Pressable sits at content
+            // width and the row's press-tint + divider end at the
+            // text edge instead of running edge-to-edge.
             <div
               key={virtualRow.key}
               ref={virtualizer.measureElement}
               data-index={idx}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                // `display: flex` so the inner Pressable inherits
-                // `align-items: stretch` and spans the full popover
-                // width — without it the Pressable sits at content
-                // width and the row's press-tint + divider end at
-                // the text edge instead of running edge-to-edge.
-                display: 'flex',
-                flexDirection: 'column',
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
+              className="absolute left-0 top-0 flex w-full flex-col"
+              style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
               <Pressable
                 onPress={() => (isTail ? onPickTail(trimmed) : onPickSuggestion(suggestions[idx]!))}
@@ -739,8 +726,7 @@ function AutocompleteSheet({
           <FlatList
             data={suggestions}
             keyExtractor={(s) => s}
-            className="-mx-6"
-            style={{ flex: 1 }}
+            className="-mx-6 flex-1"
             contentContainerStyle={{ paddingBottom: keyboardHeight }}
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={

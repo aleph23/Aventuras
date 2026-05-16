@@ -103,7 +103,7 @@ export function SaveBar({
         </Text>
         {notice != null ? (
           Platform.OS === 'web' ? (
-            <div title={notice} style={{ display: 'inline-flex' }} aria-label={notice}>
+            <div title={notice} className="inline-flex" aria-label={notice}>
               <Icon as={AlertTriangle} size="sm" className="text-warning" />
             </div>
           ) : (

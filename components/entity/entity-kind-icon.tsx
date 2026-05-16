@@ -1,5 +1,4 @@
 import { Flag, MapPin, Package, User, type LucideIcon } from 'lucide-react-native'
-
 import { View } from 'react-native'
 
 import { Icon } from '@/components/ui/icon'

@@ -103,6 +103,7 @@ function ImporterMenuItem({
       accessibilityState={{ disabled: isDisabled }}
       disabled={isDisabled}
       onPress={onSelect}
+      // eslint-disable-next-line react-native/no-inline-styles -- rn-primitives wrappers don't gate disabled clicks on web; inline pointerEvents is the documented workaround.
       style={isDisabled ? { pointerEvents: 'none' } : undefined}
       className={cn(
         'justify-center rounded-sm px-row-x-md py-row-y-md',
@@ -128,7 +129,7 @@ function ImporterMenuItem({
 
   if (isDisabled && option.disabledReason && Platform.OS === 'web') {
     return (
-      <div title={option.disabledReason} style={{ display: 'flex' }}>
+      <div title={option.disabledReason} className="flex">
         {row}
       </div>
     )

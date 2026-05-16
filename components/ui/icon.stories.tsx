@@ -26,12 +26,12 @@ import {
   User,
   X,
 } from 'lucide-react-native'
-
 import { View } from 'react-native'
+
+import { themes } from '@/lib/themes/registry'
 
 import { Icon } from './icon'
 import { Text } from './text'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof Icon> = {
   title: 'Primitives/Icon',

@@ -1,13 +1,14 @@
-import { Icon } from '@/components/ui/icon'
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
-import { Text } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@rn-primitives/dialog'
 import { X } from 'lucide-react-native'
 import { Fragment, type ComponentProps, type ReactNode } from 'react'
 import { Platform, View, type ViewProps } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
+
+import { Icon } from '@/components/ui/icon'
+import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
+import { Text } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 const Dialog = DialogPrimitive.Root
 const DialogTrigger = DialogPrimitive.Trigger

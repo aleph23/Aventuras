@@ -1,6 +1,3 @@
-import { Icon } from '@/components/ui/icon'
-import { TextClassContext } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import * as AccordionPrimitive from '@rn-primitives/accordion'
 import { ChevronDown } from 'lucide-react-native'
 import { type ComponentProps, type ReactNode } from 'react'
@@ -13,6 +10,10 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from 'react-native-reanimated'
+
+import { Icon } from '@/components/ui/icon'
+import { TextClassContext } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 function Accordion({
   children,

@@ -59,6 +59,13 @@ Prefer named imports. Wildcard / namespace imports (`import * as X
 from 'y'`) are banned **except** where the package is designed to be
 consumed as a namespace.
 
+**Mechanically enforced.** `eslint.config.js` carries a
+`no-restricted-syntax` selector that blocks every
+`ImportNamespaceSpecifier` whose source isn't `@rn-primitives/*`. The
+exception list there mirrors the list below — when adding a new
+permitted namespace package, update both this file and the selector
+regex in `eslint.config.js` in the same commit.
+
 **Required form for React:**
 
 ```ts

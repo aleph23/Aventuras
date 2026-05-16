@@ -3,10 +3,11 @@ import { Eye, EyeOff, Search } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 
+import { themes } from '@/lib/themes/registry'
+
 import { Icon } from './icon'
 import { Input } from './input'
 import { Text } from './text'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof Input> = {
   title: 'Primitives/Input',

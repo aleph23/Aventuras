@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+
 import type { DensitySetting, DensityValue } from './types'
 
 export type DensityContextValue = {

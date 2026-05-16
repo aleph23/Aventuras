@@ -1,8 +1,8 @@
 import { useState, type ComponentProps } from 'react'
 import { ScrollView, View } from 'react-native'
 
-import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { FormRow } from '@/components/compounds/form-row'
+import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Chip } from '@/components/ui/chip'
 import { Heading } from '@/components/ui/heading'
 import { Input } from '@/components/ui/input'

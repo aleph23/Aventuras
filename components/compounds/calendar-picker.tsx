@@ -169,12 +169,9 @@ export function CalendarPicker({
 
   return (
     <View className={cn(stacked ? 'flex-col gap-4' : 'flex-row items-start gap-6', className)}>
-      <View
-        className={stacked ? 'w-full' : 'shrink-0'}
-        style={stacked ? undefined : { width: 320 }}
-      >
+      <View className={stacked ? 'w-full' : 'w-80 shrink-0'}>
         {disabled && disabledReason && Platform.OS === 'web' ? (
-          <div title={disabledReason} style={{ width: '100%' }}>
+          <div title={disabledReason} className="w-full">
             {select}
           </div>
         ) : (
@@ -237,7 +234,7 @@ function CalendarRowContent({ option }: { option: CalendarOption }) {
   // pathologically deep calendars (8+ tiers) overflow the row.
   if (Platform.OS === 'web') {
     return (
-      <div title={option.tierPath} style={{ display: 'flex', width: '100%' }}>
+      <div title={option.tierPath} className="flex w-full">
         {row}
       </div>
     )
@@ -344,6 +341,7 @@ function EditAction({
       accessibilityRole="link"
       onPress={onPress}
       disabled={disabled}
+      // eslint-disable-next-line react-native/no-inline-styles -- rn-primitives wrappers don't gate disabled clicks on web; inline pointerEvents is the documented workaround.
       style={disabled ? { pointerEvents: 'none' } : undefined}
       className={cn(
         'self-start rounded-sm py-1',
@@ -362,7 +360,7 @@ function EditAction({
   )
   if (disabled && disabledReason && Platform.OS === 'web') {
     return (
-      <div title={disabledReason} style={{ display: 'inline-flex' }}>
+      <div title={disabledReason} className="inline-flex">
         {button}
       </div>
     )

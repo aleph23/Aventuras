@@ -1,8 +1,9 @@
-import { cn } from '@/lib/utils'
 import { Slot } from '@rn-primitives/slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { createContext, useContext } from 'react'
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native'
+
+import { cn } from '@/lib/utils'
 
 export const TextClassContext = createContext<string | undefined>(undefined)
 

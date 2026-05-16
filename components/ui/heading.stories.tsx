@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { View } from 'react-native'
 
+import { themes } from '@/lib/themes/registry'
+
 import { Heading } from './heading'
 import { Text } from './text'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof Heading> = {
   title: 'Primitives/Heading',

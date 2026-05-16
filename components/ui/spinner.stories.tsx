@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-
 import { View } from 'react-native'
 
+import { themes } from '@/lib/themes/registry'
+
+import { Button } from './button'
 import { Spinner } from './spinner'
 import { Text } from './text'
-import { Button } from './button'
-import { themes } from '@/lib/themes/registry'
 
 const meta: Meta<typeof Spinner> = {
   title: 'Primitives/Spinner',

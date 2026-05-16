@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { View } from 'react-native'
 
-import { Text } from './text'
 import { themes } from '@/lib/themes/registry'
+
+import { Text } from './text'
 
 const meta: Meta<typeof Text> = {
   title: 'Primitives/Text',

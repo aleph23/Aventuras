@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { themeToCssBlock, themesToFullCss } from './css-generator'
 import { themes } from './registry'
 

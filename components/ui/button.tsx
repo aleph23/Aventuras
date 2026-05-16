@@ -1,10 +1,11 @@
+import { cva, type VariantProps } from 'class-variance-authority'
+import type { ReactNode } from 'react'
+import { Platform, Pressable, type PressableProps } from 'react-native'
+
 import { Spinner } from '@/components/ui/spinner'
 import { TextClassContext } from '@/components/ui/text'
 import type { ThemeColorSlots } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
-import { cva, type VariantProps } from 'class-variance-authority'
-import type { ReactNode } from 'react'
-import { Platform, Pressable, type PressableProps } from 'react-native'
 
 const buttonVariants = cva(
   cn(

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { auditTheme, AUDIT_PAIRS } from './themes-audit'
 import { themes } from '../lib/themes/registry'
 

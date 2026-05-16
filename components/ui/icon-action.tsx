@@ -166,7 +166,7 @@ export function IconAction({
   // dedicated Tooltip primitive lands.
   if (disabled && disabledReason && Platform.OS === 'web') {
     return (
-      <div title={disabledReason} style={{ display: 'inline-flex' }}>
+      <div title={disabledReason} className="inline-flex">
         {pressable}
       </div>
     )

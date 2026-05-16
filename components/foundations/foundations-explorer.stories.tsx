@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
+
 import { FoundationsExplorer } from './foundations-explorer'
 
 const meta: Meta<typeof FoundationsExplorer> = {

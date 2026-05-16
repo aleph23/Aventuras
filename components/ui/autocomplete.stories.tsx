@@ -4,6 +4,7 @@ import { View } from 'react-native'
 import { expect, fireEvent, fn, screen, userEvent, waitFor } from 'storybook/test'
 
 import { themes } from '@/lib/themes/registry'
+
 import { Autocomplete } from './autocomplete'
 import { Text } from './text'
 

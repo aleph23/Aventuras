@@ -97,7 +97,7 @@ function ToolbarSearch({
   // arbitrary HTML attrs, so `title` doesn't reach the DOM otherwise.
   if (disabled && disabledReason && Platform.OS === 'web') {
     return (
-      <div title={disabledReason} style={{ width: '100%' }}>
+      <div title={disabledReason} className="w-full">
         {input}
       </div>
     )

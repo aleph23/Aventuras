@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react'
 import { Platform, ScrollView, View } from 'react-native'
 import Animated, { LinearTransition } from 'react-native-reanimated'
+
+import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Heading } from '@/components/ui/heading'
 import { Text } from '@/components/ui/text'
 

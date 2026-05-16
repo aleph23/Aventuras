@@ -1,4 +1,6 @@
 import { ScrollView, View } from 'react-native'
+
+import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +12,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Button } from '@/components/ui/button'
 import { Heading } from '@/components/ui/heading'
 import { Text } from '@/components/ui/text'

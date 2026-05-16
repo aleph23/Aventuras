@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from 'vitest'
+
 import { themes } from './registry'
 import { ThemeProvider } from './theme-provider'
 import { useTheme } from './use-theme'

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { densityTokens } from './registry'
 import { DENSITY_TOKEN_KEYS, DENSITY_VALUES } from './types'
 

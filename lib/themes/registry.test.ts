@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { themes } from './registry'
 import { COLOR_SLOT_KEYS } from './types'
 

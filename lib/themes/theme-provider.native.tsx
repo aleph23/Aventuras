@@ -1,6 +1,7 @@
+import { vars } from 'nativewind'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { View, useColorScheme } from 'react-native'
-import { vars } from 'nativewind'
+
 import { themes as registryThemes } from './registry'
 import { ThemeContext, type ThemeContextValue } from './theme-context'
 import type { Theme } from './types'
@@ -34,7 +35,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
   return (
     <ThemeContext.Provider value={value}>
-      <View style={[{ flex: 1 }, themeVars]}>{children}</View>
+      <View className="flex-1" style={themeVars}>
+        {children}
+      </View>
     </ThemeContext.Provider>
   )
 }

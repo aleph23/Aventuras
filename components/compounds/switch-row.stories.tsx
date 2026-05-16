@@ -2,9 +2,10 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { useState } from 'react'
 import { View } from 'react-native'
 
-import { SwitchRow } from './switch-row'
 import { Text } from '@/components/ui/text'
 import { themes } from '@/lib/themes/registry'
+
+import { SwitchRow } from './switch-row'
 
 const meta: Meta<typeof SwitchRow> = {
   title: 'Compounds/SwitchRow',

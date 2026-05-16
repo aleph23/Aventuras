@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { PortalHost } from '@rn-primitives/portal'
+import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { View } from 'react-native'
 import { fn } from 'storybook/test'
 

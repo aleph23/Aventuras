@@ -1,7 +1,8 @@
-import { Text, TextClassContext } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
+
+import { Text, TextClassContext } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 type ChipProps = {
   /**

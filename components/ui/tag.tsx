@@ -1,9 +1,10 @@
-import { Icon } from '@/components/ui/icon'
-import { Text, TextClassContext } from '@/components/ui/text'
-import { cn } from '@/lib/utils'
 import { X } from 'lucide-react-native'
 import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
+
+import { Icon } from '@/components/ui/icon'
+import { Text, TextClassContext } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
 
 type TagTone = 'default' | 'soft' | 'success' | 'warning' | 'danger' | 'accent'
 

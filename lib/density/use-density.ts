@@ -1,4 +1,5 @@
 import { useContext } from 'react'
+
 import { DensityContext, type DensityContextValue } from './density-context'
 
 export function useDensity(): DensityContextValue {

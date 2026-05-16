@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, net, protocol } from 'electron'
 import { join, normalize } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { app, BrowserWindow, ipcMain, net, protocol } from 'electron'
 
 const isDev = !app.isPackaged
 const APP_SCHEME = 'app'

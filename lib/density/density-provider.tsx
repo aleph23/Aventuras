@@ -3,7 +3,9 @@
 // (emitted by css-generator.ts into global.css) resolve from any
 // descendant.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+
 import { useTier } from '@/hooks/use-tier'
+
 import { DensityContext, type DensityContextValue } from './density-context'
 import { resolveDensity } from './resolve'
 import type { DensitySetting } from './types'
