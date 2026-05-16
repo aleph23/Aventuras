@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useEffect } from 'react'
 import { Platform, View, type ViewProps } from 'react-native'
 import Animated, {
   Easing,
@@ -39,7 +39,7 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
 // the same animate-pulse CSS does the work natively).
 function NativeSkeleton({ className, ...props }: SkeletonProps) {
   const opacity = useSharedValue(1)
-  React.useEffect(() => {
+  useEffect(() => {
     opacity.value = withRepeat(
       withTiming(0.5, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
       -1,

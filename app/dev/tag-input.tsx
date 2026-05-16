@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useCallback, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { TagInput } from '@/components/compounds/tag-input'
@@ -8,13 +8,13 @@ import { Heading } from '@/components/ui/heading'
 import { Text } from '@/components/ui/text'
 
 export default function TagInputDevRoute() {
-  const [storyTags, setStoryTags] = React.useState<string[]>(['sci-fi', 'fantasy', 'dystopia'])
-  const [entityTags, setEntityTags] = React.useState<string[]>([])
-  const [capped, setCapped] = React.useState<string[]>([])
-  const [genInFlight, setGenInFlight] = React.useState(false)
-  const [eventLog, setEventLog] = React.useState<string[]>([])
+  const [storyTags, setStoryTags] = useState<string[]>(['sci-fi', 'fantasy', 'dystopia'])
+  const [entityTags, setEntityTags] = useState<string[]>([])
+  const [capped, setCapped] = useState<string[]>([])
+  const [genInFlight, setGenInFlight] = useState(false)
+  const [eventLog, setEventLog] = useState<string[]>([])
 
-  const log = React.useCallback((msg: string) => {
+  const log = useCallback((msg: string) => {
     setEventLog((prev) => [`${new Date().toLocaleTimeString()} · ${msg}`, ...prev].slice(0, 8))
   }, [])
 

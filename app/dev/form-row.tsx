@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
@@ -11,13 +11,13 @@ import { Text } from '@/components/ui/text'
 const WIDTH_OPTIONS = [320, 480, 720, 960] as const
 type WidthOption = (typeof WIDTH_OPTIONS)[number]
 
-function ControlledInput(props: React.ComponentProps<typeof Input>) {
-  const [value, setValue] = React.useState('')
+function ControlledInput(props: ComponentProps<typeof Input>) {
+  const [value, setValue] = useState('')
   return <Input value={value} onChangeText={setValue} {...props} />
 }
 
 export default function FormRowDevRoute() {
-  const [width, setWidth] = React.useState<WidthOption>(720)
+  const [width, setWidth] = useState<WidthOption>(720)
   return (
     <ScrollView className="flex-1 bg-bg-base">
       <ThemePicker />

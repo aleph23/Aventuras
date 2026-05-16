@@ -26,7 +26,7 @@ import {
   User,
   X,
 } from 'lucide-react-native'
-import * as React from 'react'
+
 import { View } from 'react-native'
 
 import { Icon } from './icon'

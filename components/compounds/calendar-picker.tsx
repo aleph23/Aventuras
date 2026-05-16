@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Chip } from '@/components/ui/chip'
@@ -124,14 +124,14 @@ export function CalendarPicker({
 
   // Index by id so renderTrigger / renderRow can resolve back to
   // the rich CalendarOption the caller passed in. Cheap to recompute.
-  const optsById = React.useMemo(() => new Map(options.map((o) => [o.id, o])), [options])
+  const optsById = useMemo(() => new Map(options.map((o) => [o.id, o])), [options])
 
-  const selectOptions: SelectOption[] = React.useMemo(
+  const selectOptions: SelectOption[] = useMemo(
     () => options.map((o) => ({ value: o.id, label: o.name })),
     [options],
   )
 
-  const tailAction = React.useMemo(
+  const tailAction = useMemo(
     () =>
       showVaultTail
         ? {
@@ -304,7 +304,7 @@ function CalendarSummary({
   )
 }
 
-function SummarySection({ title, children }: { title: string; children: React.ReactNode }) {
+function SummarySection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="gap-1">
       <Text size="xs" variant="muted" className="uppercase tracking-wider">

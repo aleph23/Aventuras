@@ -1,6 +1,6 @@
 import type { LucideIcon, LucideProps } from 'lucide-react-native'
 import { cssInterop } from 'nativewind'
-import * as React from 'react'
+import { useContext } from 'react'
 
 import { TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
@@ -52,7 +52,7 @@ export function Icon({
   ...props
 }: IconProps) {
   ensureWired(IconComponent)
-  const textClass = React.useContext(TextClassContext)
+  const textClass = useContext(TextClassContext)
   const resolvedSize = typeof size === 'number' ? size : ICON_SIZE_PX[size]
   return (
     <IconComponent

@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@rn-primitives/dialog'
 import { X } from 'lucide-react-native'
-import * as React from 'react'
+import { Fragment, type ComponentProps, type ReactNode } from 'react'
 import { Platform, View, type ViewProps } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
@@ -14,14 +14,14 @@ const DialogTrigger = DialogPrimitive.Trigger
 const DialogPortal = DialogPrimitive.Portal
 const DialogClose = DialogPrimitive.Close
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 function DialogOverlay({
   className,
   children,
   ...props
-}: Omit<React.ComponentProps<typeof DialogPrimitive.Overlay>, 'asChild'> & {
-  children?: React.ReactNode
+}: Omit<ComponentProps<typeof DialogPrimitive.Overlay>, 'asChild'> & {
+  children?: ReactNode
 }) {
   return (
     <FullWindowOverlay>
@@ -52,7 +52,7 @@ function DialogContent({
   portalHost,
   children,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+}: ComponentProps<typeof DialogPrimitive.Content> & {
   portalHost?: string
 }) {
   return (
@@ -105,7 +105,7 @@ function DialogFooter({ className, ...props }: ViewProps) {
   )
 }
 
-function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
+function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       className={cn('text-lg font-semibold text-fg-primary', className)}
@@ -117,7 +117,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
 function DialogDescription({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+}: ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description className={cn('text-sm text-fg-muted', className)} {...props} />
   )

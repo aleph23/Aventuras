@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import * as RadioGroupBase from '@rn-primitives/radio-group'
 import * as SelectBase from '@rn-primitives/select'
 import { Check, ChevronDown, ChevronDownIcon, ChevronUpIcon } from 'lucide-react-native'
-import * as React from 'react'
+import { Fragment, useCallback, useMemo, type ComponentProps, type ReactNode } from 'react'
 import {
   Platform,
   Pressable,
@@ -32,7 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 import { runOnJS } from 'react-native-worklets'
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 const Root = SelectBase.Root
 const Group = SelectBase.Group
@@ -44,7 +44,7 @@ function Value({
 }: {
   className?: string
   placeholder?: string
-  children?: React.ReactNode
+  children?: ReactNode
 }) {
   const { value } = SelectBase.useRootContext()
   const display = value?.label ?? children ?? placeholder ?? ''
@@ -74,8 +74,8 @@ function Trigger({
   children,
   size = 'md',
   ...props
-}: React.ComponentProps<typeof SelectBase.Trigger> & {
-  children?: React.ReactNode
+}: ComponentProps<typeof SelectBase.Trigger> & {
+  children?: ReactNode
   size?: TriggerSize
 }) {
   return (
@@ -115,7 +115,7 @@ function PhoneSheetPanel({
   tailAction,
 }: {
   className?: string
-  children?: React.ReactNode
+  children?: ReactNode
   sheetSize: ContentSheetSize
   label?: string
   tailAction?: { label: string; onPress: () => void }
@@ -138,8 +138,8 @@ function PhoneSheetPanel({
     () => ({ transform: [{ translateY: dragOffset.value }] }),
     [],
   )
-  const closeFromGesture = React.useCallback(() => onOpenChange(false), [onOpenChange])
-  const panGesture = React.useMemo(() => {
+  const closeFromGesture = useCallback(() => onOpenChange(false), [onOpenChange])
+  const panGesture = useMemo(() => {
     const base = Gesture.Pan()
     return base
       .activeOffsetY([10, Number.POSITIVE_INFINITY])
@@ -228,7 +228,7 @@ function PhoneSheetContent({
   tailAction,
 }: {
   className?: string
-  children?: React.ReactNode
+  children?: ReactNode
   sheetSize?: ContentSheetSize
   portalHost?: string
   label?: string
@@ -276,7 +276,7 @@ function PopoverContent({
   portalHost,
   tailAction,
   ...props
-}: React.ComponentProps<typeof SelectBase.Content> & {
+}: ComponentProps<typeof SelectBase.Content> & {
   className?: string
   portalHost?: string
   tailAction?: { label: string; onPress: () => void }
@@ -355,7 +355,7 @@ function Content({
   label,
   tailAction,
   ...props
-}: React.ComponentProps<typeof SelectBase.Content> & {
+}: ComponentProps<typeof SelectBase.Content> & {
   className?: string
   portalHost?: string
   sheetSize?: ContentSheetSize
@@ -409,7 +409,7 @@ function TailActionRow({ label, onPress }: { label: string; onPress: () => void 
   )
 }
 
-function Label({ className, ...props }: React.ComponentProps<typeof SelectBase.Label>) {
+function Label({ className, ...props }: ComponentProps<typeof SelectBase.Label>) {
   return (
     <SelectBase.Label
       className={cn('px-2 py-2 text-xs text-fg-muted sm:py-1.5', className)}
@@ -423,8 +423,8 @@ function Item({
   children,
   customContent,
   ...props
-}: React.ComponentProps<typeof SelectBase.Item> & {
-  children?: React.ReactNode
+}: ComponentProps<typeof SelectBase.Item> & {
+  children?: ReactNode
   /**
    * When true, the default `<ItemText />` is suppressed and the
    * selection-indicator wrapper repositions to the LEFT of the row
@@ -487,12 +487,12 @@ function Item({
           <SelectBase.ItemText className="select-none text-base text-fg-primary" />
         </>
       )}
-      {children as React.ReactNode}
+      {children as ReactNode}
     </SelectBase.Item>
   )
 }
 
-function Separator({ className, ...props }: React.ComponentProps<typeof SelectBase.Separator>) {
+function Separator({ className, ...props }: ComponentProps<typeof SelectBase.Separator>) {
   return (
     <SelectBase.Separator
       className={cn(
@@ -505,10 +505,7 @@ function Separator({ className, ...props }: React.ComponentProps<typeof SelectBa
   )
 }
 
-function ScrollUpButton({
-  className,
-  ...props
-}: React.ComponentProps<typeof SelectBase.ScrollUpButton>) {
+function ScrollUpButton({ className, ...props }: ComponentProps<typeof SelectBase.ScrollUpButton>) {
   if (Platform.OS !== 'web') return null
   return (
     <SelectBase.ScrollUpButton
@@ -523,7 +520,7 @@ function ScrollUpButton({
 function ScrollDownButton({
   className,
   ...props
-}: React.ComponentProps<typeof SelectBase.ScrollDownButton>) {
+}: ComponentProps<typeof SelectBase.ScrollDownButton>) {
   if (Platform.OS !== 'web') return null
   return (
     <SelectBase.ScrollDownButton
@@ -615,7 +612,7 @@ export type SelectProps = {
    * trailing content (chips, badges) doesn't clash. Ignored for
    * `segment` and `radio` modes.
    */
-  renderRow?: (args: { option: SelectOption; selected: boolean }) => React.ReactNode
+  renderRow?: (args: { option: SelectOption; selected: boolean }) => ReactNode
 
   /**
    * Custom trigger content for `dropdown` mode. Replaces the
@@ -627,7 +624,7 @@ export type SelectProps = {
   renderTrigger?: (args: {
     selected: SelectOption | undefined
     placeholder: string | undefined
-  }) => React.ReactNode
+  }) => ReactNode
 
   /**
    * Optional fixed action surfaced at the bottom of the popover /

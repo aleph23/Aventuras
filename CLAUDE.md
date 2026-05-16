@@ -126,6 +126,10 @@ context lean; topic-specific rules surface contextually.
   (anchor-link discipline, heading stability, followups hygiene,
   wireframe template, doc-tooling). Loads on `docs/**` or
   `.claude/rules/**` reads.
+- [`code.md`](./.claude/rules/code.md) — source-edit rules
+  (commenting discipline, import-wildcard ban with rn-primitives
+  exception). Loads on `app/**`, `components/**`, `hooks/**`,
+  `lib/**`, `types/**`, `electron/**`, or `scripts/**` reads.
 
-Add new topic files (`code.md`, `testing.md`, etc.) when patterns
-emerge in those domains.
+Add new topic files (`testing.md`, etc.) when patterns emerge in
+those domains.

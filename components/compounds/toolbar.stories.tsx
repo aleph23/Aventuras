@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -35,9 +35,9 @@ export default meta
 type Story = StoryObj<typeof Toolbar>
 
 function FullHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<'all' | 'favorited' | 'archived'>('all')
-  const [sort, setSort] = React.useState('last-opened')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<'all' | 'favorited' | 'archived'>('all')
+  const [sort, setSort] = useState('last-opened')
   return (
     <Toolbar>
       <Toolbar.Search
@@ -68,7 +68,7 @@ export const FullStoryListShape: Story = {
 
 export const SearchOnly: Story = {
   render: () => {
-    const [query, setQuery] = React.useState('')
+    const [query, setQuery] = useState('')
     return (
       <Toolbar>
         <Toolbar.Search value={query} onChange={setQuery} placeholder="Search…" scope={['name']} />
@@ -79,8 +79,8 @@ export const SearchOnly: Story = {
 
 export const SearchAndFilterChips: Story = {
   render: () => {
-    const [query, setQuery] = React.useState('')
-    const [filter, setFilter] = React.useState<'all' | 'staged' | 'retired'>('all')
+    const [query, setQuery] = useState('')
+    const [filter, setFilter] = useState<'all' | 'staged' | 'retired'>('all')
     return (
       <Toolbar>
         <Toolbar.Search
@@ -150,7 +150,7 @@ export const DisabledSearch: Story = {
 
 export const SortForcesDropdownAtThreeOptions: Story = {
   render: () => {
-    const [sort, setSort] = React.useState('title')
+    const [sort, setSort] = useState('title')
     return (
       <Toolbar>
         <Toolbar.Search value="" onChange={fn()} placeholder="Search…" scope={['title']} />

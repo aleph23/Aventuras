@@ -1,5 +1,5 @@
 import { Info, Search as SearchIcon } from 'lucide-react-native'
-import * as React from 'react'
+import { Children, isValidElement, useState, type ReactElement, type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Icon } from '@/components/ui/icon'
@@ -107,7 +107,7 @@ function ToolbarSearch({
 
 type ToolbarFilterChipsProps = {
   className?: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function ToolbarFilterChips({ className, children }: ToolbarFilterChipsProps) {
@@ -163,12 +163,12 @@ function ToolbarSort({ value, onChange, options, label, disabled, className }: T
 
 type ToolbarProps = {
   className?: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function ToolbarRoot({ className, children }: ToolbarProps) {
   const initialTier = useTier()
-  const [containerWidth, setContainerWidth] = React.useState<number | null>(null)
+  const [containerWidth, setContainerWidth] = useState<number | null>(null)
   const isNarrow =
     containerWidth != null ? containerWidth < NARROW_THRESHOLD_PX : initialTier !== 'desktop'
 
@@ -177,16 +177,16 @@ function ToolbarRoot({ className, children }: ToolbarProps) {
   // specific extras), but the canonical three are the named ones.
   // Chips slot is typed explicitly so the narrow-tier layout can
   // reach into its children without TS narrowing failures.
-  let searchSlot: React.ReactNode = null
-  let chipsSlot: React.ReactElement<{ children?: React.ReactNode }> | null = null
-  let sortSlot: React.ReactNode = null
-  const others: React.ReactNode[] = []
+  let searchSlot: ReactNode = null
+  let chipsSlot: ReactElement<{ children?: ReactNode }> | null = null
+  let sortSlot: ReactNode = null
+  const others: ReactNode[] = []
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return
+  Children.forEach(children, (child) => {
+    if (!isValidElement(child)) return
     if (child.type === ToolbarSearch) searchSlot = child
     else if (child.type === ToolbarFilterChips) {
-      chipsSlot = child as React.ReactElement<{ children?: React.ReactNode }>
+      chipsSlot = child as ReactElement<{ children?: ReactNode }>
     } else if (child.type === ToolbarSort) sortSlot = child
     else others.push(child)
   })
@@ -201,8 +201,7 @@ function ToolbarRoot({ className, children }: ToolbarProps) {
           {searchSlot}
           {(chipsSlot != null || sortSlot != null) && (
             <View className="flex-row flex-wrap items-center gap-2">
-              {(chipsSlot as React.ReactElement<{ children?: React.ReactNode }> | null)?.props
-                .children ?? null}
+              {(chipsSlot as ReactElement<{ children?: ReactNode }> | null)?.props.children ?? null}
               {sortSlot}
             </View>
           )}

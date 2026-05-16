@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { StoryCard, type Story } from '@/components/compounds/story-card'
@@ -92,8 +92,8 @@ const SAMPLE_STORIES: Story[] = [
 ]
 
 export default function StoryCardDevRoute() {
-  const [stories, setStories] = React.useState(SAMPLE_STORIES)
-  const [lastAction, setLastAction] = React.useState<string | null>(null)
+  const [stories, setStories] = useState(SAMPLE_STORIES)
+  const [lastAction, setLastAction] = useState<string | null>(null)
   const tier = useTier()
   // Cross-platform multi-column: pick fractional widths via tier so
   // RN doesn't need calc(). Per pattern doc — phone:1, tablet:2-3,

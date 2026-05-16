@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useMemo, useState, type ComponentProps } from 'react'
 import { View } from 'react-native'
 import { expect, fireEvent, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -32,12 +32,12 @@ export default meta
 type Story = StoryObj<typeof Autocomplete>
 
 function ControlledAutocomplete(
-  props: Omit<React.ComponentProps<typeof Autocomplete>, 'value' | 'onValueChange'> & {
+  props: Omit<ComponentProps<typeof Autocomplete>, 'value' | 'onValueChange'> & {
     initialValue?: string
   },
 ) {
   const { initialValue = '', ...rest } = props
-  const [value, setValue] = React.useState(initialValue)
+  const [value, setValue] = useState(initialValue)
   return <Autocomplete value={value} onValueChange={setValue} {...rest} />
 }
 
@@ -286,7 +286,7 @@ export const ThemeMatrix: Story = {
  */
 export const VirtualizedManyRows: Story = {
   render: () => {
-    const MANY = React.useMemo(
+    const MANY = useMemo(
       () => Array.from({ length: 1000 }, (_, i) => `Entry ${String(i + 1).padStart(4, '0')}`),
       [],
     )

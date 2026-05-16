@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -123,7 +123,7 @@ function CalendarPickerHarness({
   disabled?: boolean
   disabledReason?: string
 }) {
-  const [selectedId, setSelectedId] = React.useState(initialId)
+  const [selectedId, setSelectedId] = useState(initialId)
   const summary = SUMMARY_BY_ID[selectedId] ?? EARTH_SUMMARY
   return (
     <View className="p-4" style={{ width: 720 }}>

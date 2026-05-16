@@ -1,14 +1,14 @@
 import { Text, TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as TabsPrimitive from '@rn-primitives/tabs'
-import * as React from 'react'
+import { type ComponentProps, type ReactNode } from 'react'
 import { Platform } from 'react-native'
 
-function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+function Tabs({ className, ...props }: ComponentProps<typeof TabsPrimitive.Root>) {
   return <TabsPrimitive.Root className={cn('flex flex-col gap-4', className)} {...props} />
 }
 
-function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
+function TabsList({ className, ...props }: ComponentProps<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
       className={cn(
@@ -21,14 +21,14 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
   )
 }
 
-type TabsTriggerProps = React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+type TabsTriggerProps = ComponentProps<typeof TabsPrimitive.Trigger> & {
   /**
    * Optional count rendered as muted small text after the label
    * (e.g. `Connections 3`). Consumers format `99+` themselves if
    * they want clamping; the primitive renders the value as-is.
    */
   count?: number
-  children?: React.ReactNode
+  children?: ReactNode
 }
 
 function TabsTrigger({ className, count, children, ...props }: TabsTriggerProps) {
@@ -71,7 +71,7 @@ function TabsTrigger({ className, count, children, ...props }: TabsTriggerProps)
   )
 }
 
-function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+function TabsContent({ className, ...props }: ComponentProps<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
       className={cn(Platform.select({ web: 'flex-1 outline-none' }), className)}

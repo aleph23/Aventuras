@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { DeltaLogRow, type Delta } from '@/components/compounds/delta-log-row'
@@ -108,7 +108,7 @@ const LONG_DELTA: Delta = {
 }
 
 export default function DeltaLogRowDevRoute() {
-  const [pressed, setPressed] = React.useState<string | null>(null)
+  const [pressed, setPressed] = useState<string | null>(null)
 
   return (
     <ScrollView className="flex-1 bg-bg-base">

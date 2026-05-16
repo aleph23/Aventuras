@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { DensityPicker } from '@/components/foundations/sections/density-picker'
@@ -10,16 +10,16 @@ import { SwitchRow } from '@/components/compounds/switch-row'
 import { Text } from '@/components/ui/text'
 
 export default function ChoiceDevRoute() {
-  const [switchValue, setSwitchValue] = React.useState(false)
-  const [checkboxValue, setCheckboxValue] = React.useState(false)
-  const [groupSelections, setGroupSelections] = React.useState<Record<string, boolean>>({
+  const [switchValue, setSwitchValue] = useState(false)
+  const [checkboxValue, setCheckboxValue] = useState(false)
+  const [groupSelections, setGroupSelections] = useState<Record<string, boolean>>({
     a: true,
     b: false,
     c: false,
   })
-  const [showHints, setShowHints] = React.useState(true)
-  const [autoSave, setAutoSave] = React.useState(true)
-  const [previewLastChapter, setPreviewLastChapter] = React.useState(false)
+  const [showHints, setShowHints] = useState(true)
+  const [autoSave, setAutoSave] = useState(true)
+  const [previewLastChapter, setPreviewLastChapter] = useState(false)
   const noop = () => {}
 
   return (

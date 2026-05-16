@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -12,13 +12,13 @@ import { JSONViewer } from './json-viewer'
 // pair it with a Trigger button that toggles open. The button stays
 // in-frame so the docs reader sees the affordance even before
 // clicking it.
-type Args = React.ComponentProps<typeof JSONViewer>
+type Args = ComponentProps<typeof JSONViewer>
 
 function JSONViewerHarness({
   initialOpen = false,
   ...args
 }: Omit<Args, 'open' | 'onOpenChange'> & { initialOpen?: boolean }) {
-  const [open, setOpen] = React.useState(initialOpen)
+  const [open, setOpen] = useState(initialOpen)
   return (
     <View className="items-start gap-3 p-6">
       <Button onPress={() => setOpen(true)}>

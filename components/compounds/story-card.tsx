@@ -1,5 +1,5 @@
 import { MoreHorizontal, Star } from 'lucide-react-native'
-import * as React from 'react'
+import { useRef, type ComponentRef } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Chip } from '@/components/ui/chip'
@@ -69,7 +69,7 @@ export function StoryCard({
   className,
 }: StoryCardProps) {
   const stripColor = story.accentColor ?? MODE_DEFAULT_COLOR[story.mode]
-  const overflowTriggerRef = React.useRef<React.ComponentRef<typeof PopoverTrigger>>(null)
+  const overflowTriggerRef = useRef<ComponentRef<typeof PopoverTrigger>>(null)
 
   const metaParts = [MODE_LABEL[story.mode], story.chapterLabel, story.lastOpenedRelative].filter(
     (part): part is string => part != null,

@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, type ReactNode } from 'react'
 import { View } from 'react-native'
 
 import { Text } from '@/components/ui/text'
@@ -35,7 +35,7 @@ type FormRowProps = {
    */
   stacked?: boolean
   /** The control (Input, Select, Autocomplete, Textarea, …). */
-  children: React.ReactNode
+  children: ReactNode
 }
 
 const NARROW_THRESHOLD_PX = 640
@@ -52,7 +52,7 @@ export function FormRow({
   children,
 }: FormRowProps) {
   const initialTier = useTier()
-  const [containerWidth, setContainerWidth] = React.useState<number | null>(null)
+  const [containerWidth, setContainerWidth] = useState<number | null>(null)
 
   const stacked =
     stackedOverride ??

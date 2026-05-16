@@ -3,7 +3,7 @@ import { TextClassContext } from '@/components/ui/text'
 import type { ThemeColorSlots } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
 import { cva, type VariantProps } from 'class-variance-authority'
-import type * as React from 'react'
+import type { ReactNode } from 'react'
 import { Platform, Pressable, type PressableProps } from 'react-native'
 
 const buttonVariants = cva(
@@ -81,7 +81,7 @@ type ButtonProps = Omit<PressableProps, 'children'> &
      * the variant via `SPINNER_SLOT_BY_VARIANT`.
      */
     loading?: boolean
-    children?: React.ReactNode
+    children?: ReactNode
     className?: string
   }
 

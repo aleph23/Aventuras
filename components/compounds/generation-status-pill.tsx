@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useRef, type ComponentRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -45,7 +45,7 @@ export function GenerationStatusPill({
   onErrorTap,
 }: GenerationStatusPillProps) {
   const tier = useTier()
-  const triggerRef = React.useRef<React.ComponentRef<typeof PopoverTrigger>>(null)
+  const triggerRef = useRef<ComponentRef<typeof PopoverTrigger>>(null)
 
   // Priority: active generation > error state > hidden.
   if (activePhase != null) {

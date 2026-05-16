@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { Platform, TextInput, type StyleProp, type TextStyle } from 'react-native'
 
 import { densityTokens } from '@/lib/density/registry'
@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 import { clamp, computeTextareaEnvelope } from './textarea-envelope'
 
-type TextareaProps = React.ComponentProps<typeof TextInput> & {
+type TextareaProps = ComponentProps<typeof TextInput> & {
   /**
    * Minimum visible rows. Sets the initial height. Default 3.
    */
@@ -46,12 +46,12 @@ export function Textarea({
   const ariaInvalidProp = props['aria-invalid']
   const isInvalid = ariaInvalidProp === true || ariaInvalidProp === 'true'
 
-  const [focused, setFocused] = React.useState(false)
-  const handleFocus: React.ComponentProps<typeof TextInput>['onFocus'] = (event) => {
+  const [focused, setFocused] = useState(false)
+  const handleFocus: ComponentProps<typeof TextInput>['onFocus'] = (event) => {
     setFocused(true)
     onFocus?.(event)
   }
-  const handleBlur: React.ComponentProps<typeof TextInput>['onBlur'] = (event) => {
+  const handleBlur: ComponentProps<typeof TextInput>['onBlur'] = (event) => {
     setFocused(false)
     onBlur?.(event)
   }
@@ -59,7 +59,7 @@ export function Textarea({
   const padY = parseInt(densityTokens[resolved]['--row-py-md'], 10) || 12
   const { minHeight, maxHeight } = computeTextareaEnvelope(rows, maxRows, padY)
 
-  const [measuredHeight, setMeasuredHeight] = React.useState(minHeight)
+  const [measuredHeight, setMeasuredHeight] = useState(minHeight)
   const handleContentSizeChange: TextareaProps['onContentSizeChange'] = (event) => {
     setMeasuredHeight(event.nativeEvent.contentSize.height)
     onContentSizeChange?.(event)

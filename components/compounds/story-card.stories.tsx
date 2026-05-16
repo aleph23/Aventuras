@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { type ReactElement } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -49,7 +49,7 @@ type StoryT = StoryObj<typeof StoryCard>
 // stacking puts story-level decorators INSIDE meta-level decorators,
 // which means a meta-level width cap blocks grid stories from
 // fanning out — caught during Electron testing.
-const cardCenteredDecorator = (Story: () => React.ReactElement) => (
+const cardCenteredDecorator = (Story: () => ReactElement) => (
   <View style={{ width: 320 }}>
     <Story />
   </View>

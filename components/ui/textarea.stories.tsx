@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { Text } from './text'
@@ -32,7 +32,7 @@ export const Default: Story = {
 
 export const Controlled: Story = {
   render: () => {
-    const [value, setValue] = React.useState('')
+    const [value, setValue] = useState('')
     return (
       <View style={{ width: 360 }} className="gap-2">
         <Textarea
@@ -94,7 +94,7 @@ export const AutoGrow: Story = {
     },
   },
   render: () => {
-    const [value, setValue] = React.useState(
+    const [value, setValue] = useState(
       'Short start.\nType more lines and watch the textarea grow up to maxRows={6}.\n',
     )
     return (

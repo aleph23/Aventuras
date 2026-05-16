@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
@@ -93,15 +93,15 @@ const STRESS_COUNTS = [100, 1_000, 10_000] as const
 type StressCount = (typeof STRESS_COUNTS)[number]
 
 export default function AutocompleteDevRoute() {
-  const [eraValue, setEraValue] = React.useState('')
-  const [eraCommitted, setEraCommitted] = React.useState<string | null>(null)
-  const [tagValue, setTagValue] = React.useState('')
-  const [freeFormValue, setFreeFormValue] = React.useState('')
-  const [stressCount, setStressCount] = React.useState<StressCount>(1_000)
-  const [stressValue, setStressValue] = React.useState('')
+  const [eraValue, setEraValue] = useState('')
+  const [eraCommitted, setEraCommitted] = useState<string | null>(null)
+  const [tagValue, setTagValue] = useState('')
+  const [freeFormValue, setFreeFormValue] = useState('')
+  const [stressCount, setStressCount] = useState<StressCount>(1_000)
+  const [stressValue, setStressValue] = useState('')
   // Generator runs only when count changes — typing in the input
   // re-renders the parent but doesn't regenerate the source list.
-  const stressEntries = React.useMemo(() => generateStressEntries(stressCount), [stressCount])
+  const stressEntries = useMemo(() => generateStressEntries(stressCount), [stressCount])
 
   return (
     <ScrollView className="flex-1 bg-bg-base">

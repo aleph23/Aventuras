@@ -9,7 +9,7 @@ import { Text } from '@/components/ui/text'
 import { toastStore, type ToastItem, type ToastSeverity } from '@/lib/toast/store'
 import { cn } from '@/lib/utils'
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react-native'
-import * as React from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Platform, Pressable, View, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import {
@@ -61,10 +61,10 @@ type ToastProps = {
 }
 
 function Toast({ item }: ToastProps) {
-  const dismiss = React.useCallback(() => toastStore.dismiss(item.id), [item.id])
+  const dismiss = useCallback(() => toastStore.dismiss(item.id), [item.id])
 
   // Auto-dismiss timer. Cleared on manual dismiss / unmount.
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(dismiss, DURATION_MS[item.severity])
     return () => clearTimeout(timer)
   }, [dismiss, item.severity])
@@ -76,7 +76,7 @@ function Toast({ item }: ToastProps) {
     () => ({ transform: [{ translateY: dragOffset.value }] }),
     [],
   )
-  const panGesture = React.useMemo(
+  const panGesture = useMemo(
     () =>
       Gesture.Pan()
         .onUpdate((event) => {
@@ -159,8 +159,8 @@ function Toast({ item }: ToastProps) {
  * renders the visible queue, top-center, above all surfaces.
  */
 export function Toaster() {
-  const [items, setItems] = React.useState<ToastItem[]>([])
-  React.useEffect(() => toastStore.subscribe(setItems), [])
+  const [items, setItems] = useState<ToastItem[]>([])
+  useEffect(() => toastStore.subscribe(setItems), [])
 
   if (items.length === 0) return null
 

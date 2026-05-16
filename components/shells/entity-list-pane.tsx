@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react-native'
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { View } from 'react-native'
 
 import { Toolbar, type ToolbarSearchProps } from '@/components/compounds/toolbar'
@@ -45,7 +45,7 @@ type EntityListPaneProps = {
    * Happenings toggle. Optional — a future single-kind list could
    * omit it.
    */
-  kindSelector?: React.ReactNode
+  kindSelector?: ReactNode
 
   /**
    * Right-anchored on the kind-selector row. Visual: minimalist `[+]`
@@ -70,20 +70,20 @@ type EntityListPaneProps = {
    * Chip strip — consumer renders chips with their own active state.
    * Active chip is what drives `addAction.label` upstream.
    */
-  filterChips: React.ReactNode
+  filterChips: ReactNode
 
   /**
    * Optional sort control (lore list uses this). Position is handled
    * by `Toolbar` — pass a `Toolbar.Sort` element (or any ReactNode;
    * Toolbar tolerates pass-throughs).
    */
-  sortControl?: React.ReactNode
+  sortControl?: ReactNode
 
   /**
    * The virtualized list — consumer renders rows. Shell wraps in a
    * scroll container with width pin.
    */
-  children: React.ReactNode
+  children: ReactNode
 
   /**
    * Shown when `isEmpty` is true. Required — every consumer must
@@ -92,7 +92,7 @@ type EntityListPaneProps = {
    * since the minimalist `[+]` icon-action is too subtle on an
    * empty pane.
    */
-  emptyState: React.ReactNode
+  emptyState: ReactNode
 
   /**
    * Consumer derives. Shell uses this to switch list vs empty

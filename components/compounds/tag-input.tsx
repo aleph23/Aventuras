@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   Platform,
   TextInput,
@@ -87,9 +87,9 @@ export function TagInput({
   maxCount,
   maxTagLength,
 }: TagInputProps) {
-  const [typed, setTyped] = React.useState('')
-  const [focused, setFocused] = React.useState(false)
-  const inputRef = React.useRef<TextInput>(null)
+  const [typed, setTyped] = useState('')
+  const [focused, setFocused] = useState(false)
+  const inputRef = useRef<TextInput>(null)
 
   const isInvalid = ariaInvalid === true || ariaInvalid === 'true'
   const atCap = maxCount != null && value.length >= maxCount
@@ -97,7 +97,7 @@ export function TagInput({
 
   // Commit the currently-typed value if non-empty + non-dupe.
   // Always clears `typed` afterward — even on dedupe-rejection.
-  const commitTyped = React.useCallback(() => {
+  const commitTyped = useCallback(() => {
     const trimmed = typed.trim()
     if (!trimmed) {
       if (typed !== '') setTyped('')
@@ -114,7 +114,7 @@ export function TagInput({
   // "type sci-fi, fa" mid-typing case and the "paste sci-fi,
   // fantasy" case (user can press Enter/comma to commit the
   // trailing fragment).
-  const handleChangeText = React.useCallback(
+  const handleChangeText = useCallback(
     (raw: string) => {
       const hasSep = raw.includes(',') || raw.includes('\n')
       if (hasSep) {
@@ -138,7 +138,7 @@ export function TagInput({
   // for Backspace reliably; native iOS has a known RN gotcha where
   // onKeyPress doesn't fire for Backspace on an already-empty
   // input — accepted as best-effort per the pattern doc.
-  const handleKeyPress = React.useCallback(
+  const handleKeyPress = useCallback(
     (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
       const key = e.nativeEvent.key
       if (key === 'Backspace' && typed === '' && value.length > 0) {
@@ -149,20 +149,20 @@ export function TagInput({
     [typed, value, onChange],
   )
 
-  const handleSubmitEditing = React.useCallback(() => {
+  const handleSubmitEditing = useCallback(() => {
     commitTyped()
   }, [commitTyped])
 
-  const handleBlur = React.useCallback(() => {
+  const handleBlur = useCallback(() => {
     setFocused(false)
     commitTyped()
   }, [commitTyped])
 
-  const handleFocus = React.useCallback(() => {
+  const handleFocus = useCallback(() => {
     setFocused(true)
   }, [])
 
-  const removeAt = React.useCallback(
+  const removeAt = useCallback(
     (idx: number) => {
       onChange(value.filter((_, i) => i !== idx))
     },

@@ -1,6 +1,6 @@
 import { Text, TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 type ChipProps = {
@@ -19,7 +19,7 @@ type ChipProps = {
   onPress?: () => void
   disabled?: boolean
   className?: string
-  children?: React.ReactNode
+  children?: ReactNode
 }
 
 export function Chip({ selected = false, onPress, disabled, className, children }: ChipProps) {

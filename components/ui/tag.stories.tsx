@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { Spinner } from '@/components/ui/spinner'
@@ -29,7 +29,7 @@ export const Static: Story = {
 
 export const Removable: Story = {
   render: () => {
-    const [tags, setTags] = React.useState(['fantasy', 'high-magic', 'ensemble'])
+    const [tags, setTags] = useState(['fantasy', 'high-magic', 'ensemble'])
     return (
       <View className="flex-row flex-wrap gap-2" style={{ maxWidth: 360 }}>
         {tags.map((t) => (

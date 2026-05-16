@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Platform, View } from 'react-native'
 
 import type { DensityValue } from '@/lib/density/types'

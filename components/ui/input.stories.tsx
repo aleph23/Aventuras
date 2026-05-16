@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { Eye, EyeOff, Search } from 'lucide-react-native'
-import * as React from 'react'
+import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 
 import { Icon } from './icon'
@@ -33,7 +33,7 @@ export const Default: Story = {
 
 export const Controlled: Story = {
   render: () => {
-    const [value, setValue] = React.useState('')
+    const [value, setValue] = useState('')
     return (
       <View style={{ width: 320 }} className="gap-2">
         <Input value={value} onChangeText={setValue} placeholder="Controlled input" />
@@ -87,7 +87,7 @@ export const AdornmentLeading: Story = {
 
 export const AdornmentTrailing: Story = {
   render: () => {
-    const [secure, setSecure] = React.useState(true)
+    const [secure, setSecure] = useState(true)
     return (
       <View style={{ width: 320 }}>
         <Input

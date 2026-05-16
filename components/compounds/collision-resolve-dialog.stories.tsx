@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 import { screen, userEvent } from 'storybook/test'
 
@@ -67,7 +67,7 @@ function ControlledDialog({
   entityB: EntitySummary
   onResolve: (r: Resolution) => Promise<void>
 }) {
-  const [open, setOpen] = React.useState(initialOpen)
+  const [open, setOpen] = useState(initialOpen)
   return (
     <View>
       <Button variant="secondary" onPress={() => setOpen(true)}>

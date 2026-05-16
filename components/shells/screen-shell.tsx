@@ -1,5 +1,5 @@
 import { ArrowLeft, BookOpen, MoreVertical, Settings, SlidersVertical } from 'lucide-react-native'
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { View } from 'react-native'
 
 import { Icon } from '@/components/ui/icon'
@@ -51,7 +51,7 @@ type ScreenShellProps = {
    * Consumers will eventually pass a BreadcrumbTitle compound; for
    * now any ReactNode is accepted.
    */
-  title?: React.ReactNode
+  title?: ReactNode
 
   /**
    * Tier-aware reader-only chips (chapter / time / branch chips).
@@ -59,20 +59,20 @@ type ScreenShellProps = {
    * - phone           → migrates to a chip strip below progress strip
    * Shell uses `useTier()` internally to reshuffle.
    */
-  centerExtras?: React.ReactNode
+  centerExtras?: ReactNode
 
   /**
    * Phone-only, right-anchored action chip in the chip strip
    * (e.g. Reader's [☰ Browse] trigger). Hidden ≥ 640 px tier.
    */
-  mobileChipAction?: React.ReactNode
+  mobileChipAction?: ReactNode
 
   /**
    * In-story only. Composes one or more status indicators
    * (GenerationStatusPill, future World review pill, etc.). Shell
    * wraps in a flex-row; consumer arranges contents.
    */
-  statusSlot?: React.ReactNode
+  statusSlot?: ReactNode
 
   /**
    * In-story only. 0–100. Drives the token-progress strip width.
@@ -86,7 +86,7 @@ type ScreenShellProps = {
    * future). Shell positions the slot; per-screen logic decides
    * what's in it.
    */
-  banners?: React.ReactNode
+  banners?: ReactNode
 
   /**
    * Story Settings → suppresses ⛭ (self-reference).
@@ -106,7 +106,7 @@ type ScreenShellProps = {
   /** Wires the ⚲ Actions icon (every variant). */
   onOpenActions?: () => void
 
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function clampProgress(n: number | undefined): number {

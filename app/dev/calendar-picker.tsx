@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useCallback, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import {
@@ -101,13 +101,13 @@ const SUMMARY_BY_ID: Record<string, CalendarSummaryData> = {
 }
 
 export default function CalendarPickerDevRoute() {
-  const [appSettingsId, setAppSettingsId] = React.useState('cal_earth')
-  const [storyId, setStoryId] = React.useState('cal_shire')
-  const [wizardId, setWizardId] = React.useState('cal_earth')
-  const [eventLog, setEventLog] = React.useState<string[]>([])
-  const [genInFlight, setGenInFlight] = React.useState(false)
+  const [appSettingsId, setAppSettingsId] = useState('cal_earth')
+  const [storyId, setStoryId] = useState('cal_shire')
+  const [wizardId, setWizardId] = useState('cal_earth')
+  const [eventLog, setEventLog] = useState<string[]>([])
+  const [genInFlight, setGenInFlight] = useState(false)
 
-  const log = React.useCallback((msg: string) => {
+  const log = useCallback((msg: string) => {
     setEventLog((prev) => [`${new Date().toLocaleTimeString()} · ${msg}`, ...prev].slice(0, 8))
   }, [])
 

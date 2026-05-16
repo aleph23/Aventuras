@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { View } from 'react-native'
 import { expect, screen } from 'storybook/test'
 
@@ -19,8 +19,8 @@ const meta: Meta<typeof FormRow> = {
 export default meta
 type Story = StoryObj<typeof FormRow>
 
-function ControlledInput(props: React.ComponentProps<typeof Input>) {
-  const [value, setValue] = React.useState('')
+function ControlledInput(props: ComponentProps<typeof Input>) {
+  const [value, setValue] = useState('')
   return <Input value={value} onChangeText={setValue} {...props} />
 }
 

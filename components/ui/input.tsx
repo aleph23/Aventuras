@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import { Platform, TextInput, View } from 'react-native'
 
 import { cn } from '@/lib/utils'
@@ -45,21 +45,21 @@ function disabledClasses(): string {
   )
 }
 
-type InputProps = React.ComponentProps<typeof TextInput> & {
+type InputProps = ComponentProps<typeof TextInput> & {
   size?: InputSize
   /**
    * Slot before the text input — typically a leading Icon (search
    * glyph, etc.). Renders inside the input frame, padded against
    * the input edge. Pass `<Icon as={Search} size="sm" />` shaped.
    */
-  leading?: React.ReactNode
+  leading?: ReactNode
   /**
    * Slot after the text input — typically a trailing affordance
    * (password show/hide toggle, clear button, info popover trigger).
    * Treat as interactive: wrap in `<Pressable>` if it should respond
    * to taps without focusing the input.
    */
-  trailing?: React.ReactNode
+  trailing?: ReactNode
   className?: string
   /**
    * Drives the error-state border + ring. Read JS-side and applied
@@ -85,12 +85,12 @@ export function Input({
   const ariaInvalidProp = props['aria-invalid']
   const isInvalid = ariaInvalidProp === true || ariaInvalidProp === 'true'
 
-  const [focused, setFocused] = React.useState(false)
-  const handleFocus: React.ComponentProps<typeof TextInput>['onFocus'] = (event) => {
+  const [focused, setFocused] = useState(false)
+  const handleFocus: ComponentProps<typeof TextInput>['onFocus'] = (event) => {
     setFocused(true)
     onFocus?.(event)
   }
-  const handleBlur: React.ComponentProps<typeof TextInput>['onBlur'] = (event) => {
+  const handleBlur: ComponentProps<typeof TextInput>['onBlur'] = (event) => {
     setFocused(false)
     onBlur?.(event)
   }

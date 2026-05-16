@@ -2,7 +2,7 @@ import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-vie
 import { TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as PopoverPrimitive from '@rn-primitives/popover'
-import * as React from 'react'
+import { Fragment, type ComponentProps } from 'react'
 import { Platform, StyleSheet } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
@@ -10,7 +10,7 @@ import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 const Popover = PopoverPrimitive.Root
 const PopoverTrigger = PopoverPrimitive.Trigger
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 function PopoverContent({
   className,
@@ -18,7 +18,7 @@ function PopoverContent({
   sideOffset = 4,
   portalHost,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content> & {
+}: ComponentProps<typeof PopoverPrimitive.Content> & {
   portalHost?: string
 }) {
   return (

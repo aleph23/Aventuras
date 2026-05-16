@@ -3,7 +3,7 @@ import { TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as AccordionPrimitive from '@rn-primitives/accordion'
 import { ChevronDown } from 'lucide-react-native'
-import * as React from 'react'
+import { type ComponentProps, type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 import Animated, {
   FadeOutUp,
@@ -17,7 +17,7 @@ import Animated, {
 function Accordion({
   children,
   ...props
-}: Omit<React.ComponentProps<typeof AccordionPrimitive.Root>, 'asChild'>) {
+}: Omit<ComponentProps<typeof AccordionPrimitive.Root>, 'asChild'>) {
   return (
     <LayoutAnimationConfig skipEntering>
       <AccordionPrimitive.Root
@@ -35,7 +35,7 @@ function AccordionItem({
   className,
   value,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Item>) {
+}: ComponentProps<typeof AccordionPrimitive.Item>) {
   return (
     <AccordionPrimitive.Item
       // Note: no `last:border-b-0` — that override clipped the
@@ -63,8 +63,8 @@ function AccordionTrigger({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & {
-  children?: React.ReactNode
+}: ComponentProps<typeof AccordionPrimitive.Trigger> & {
+  children?: ReactNode
 }) {
   const { isExpanded } = AccordionPrimitive.useItemContext()
 
@@ -137,7 +137,7 @@ function AccordionContent({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
+}: ComponentProps<typeof AccordionPrimitive.Content>) {
   const { isExpanded } = AccordionPrimitive.useItemContext()
   return (
     <TextClassContext.Provider value="text-sm text-fg-primary">

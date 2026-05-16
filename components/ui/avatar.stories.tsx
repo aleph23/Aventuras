@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { Flag, MapPin, Package, User } from 'lucide-react-native'
-import * as React from 'react'
+
 import { View } from 'react-native'
 
 import { Avatar } from './avatar'

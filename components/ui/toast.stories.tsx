@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useEffect } from 'react'
 import { View } from 'react-native'
 
 import { Button } from './button'
@@ -86,7 +86,7 @@ export const MultiLine: Story = {
 export const QueueStack: Story = {
   parameters: { layout: 'fullscreen' },
   render: () => {
-    React.useEffect(() => {
+    useEffect(() => {
       toastStore.__reset()
       toast.success('First — landed earliest, dismisses soonest.')
       toast.info('Second — middle of the stack.')

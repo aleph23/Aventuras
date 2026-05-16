@@ -10,7 +10,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react-native'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -98,7 +98,7 @@ export function EntryCard({
   onCancelEdit,
   className,
 }: EntryCardProps) {
-  const [expanded, setExpanded] = React.useState(false)
+  const [expanded, setExpanded] = useState(false)
   const hasReasoning = reasoning != null && reasoning.length > 0
   const isStreamingReasoning = kind === 'streaming' && streamingPhase === 'reasoning'
 
@@ -219,9 +219,7 @@ export function EntryCard({
             </View>
           )}
         </View>
-      ) : kind === 'streaming' &&
-        streamingPhase === 'reasoning' ? // until the stream transitions to 'reply'. // the live preview block above. The reply slot stays empty // Reasoning-phase streaming — content is already shown in
-      null : (
+      ) : kind === 'streaming' && streamingPhase === 'reasoning' ? null : ( // until the stream transitions to 'reply'. // the live preview block above. The reply slot stays empty // Reasoning-phase streaming — content is already shown in
         <Text size="sm">{content}</Text>
       )}
 

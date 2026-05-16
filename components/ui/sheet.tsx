@@ -2,7 +2,7 @@ import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-vie
 import { TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as DialogPrimitive from '@rn-primitives/dialog'
-import * as React from 'react'
+import { Fragment, useCallback, useMemo, type ComponentProps } from 'react'
 import { Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import {
@@ -24,7 +24,7 @@ import { runOnJS } from 'react-native-worklets'
 const Sheet = DialogPrimitive.Root
 const SheetTrigger = DialogPrimitive.Trigger
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 type SheetAnchor = 'bottom' | 'right'
 type SheetSize = 'short' | 'medium' | 'tall'
@@ -72,9 +72,9 @@ function getNativePanelStyle(
   }
 }
 
-type LayoutAnimation = React.ComponentProps<typeof NativeOnlyAnimatedView>['entering']
+type LayoutAnimation = ComponentProps<typeof NativeOnlyAnimatedView>['entering']
 
-type SheetPanelProps = React.ComponentProps<typeof DialogPrimitive.Content> & {
+type SheetPanelProps = ComponentProps<typeof DialogPrimitive.Content> & {
   isBottom: boolean
   size: SheetSize
   slideEnter: LayoutAnimation
@@ -103,8 +103,8 @@ function SheetPanel({
         : { transform: [{ translateX: dragOffset.value }] },
     [isBottom],
   )
-  const closeFromGesture = React.useCallback(() => onOpenChange(false), [onOpenChange])
-  const panGesture = React.useMemo(() => {
+  const closeFromGesture = useCallback(() => onOpenChange(false), [onOpenChange])
+  const panGesture = useMemo(() => {
     const base = Gesture.Pan()
     const directional = isBottom
       ? base.activeOffsetY([10, Number.POSITIVE_INFINITY])
@@ -207,7 +207,7 @@ function SheetContent({
   title = 'Sheet',
   children,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+}: ComponentProps<typeof DialogPrimitive.Content> & {
   anchor?: SheetAnchor
   size?: SheetSize
   portalHost?: string

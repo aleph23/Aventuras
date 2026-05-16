@@ -1,5 +1,6 @@
 import * as CheckboxPrimitive from '@rn-primitives/checkbox'
 import { Check } from 'lucide-react-native'
+import type { ComponentProps } from 'react'
 import { Platform } from 'react-native'
 
 import { Icon } from '@/components/ui/icon'
@@ -20,7 +21,7 @@ const CHECK_ICON_SIZE: Record<DensityValue, number> = {
   comfortable: 16,
 }
 
-type CheckboxProps = React.ComponentProps<typeof CheckboxPrimitive.Root> & {
+type CheckboxProps = ComponentProps<typeof CheckboxPrimitive.Root> & {
   className?: string
   /**
    * Drives the error-state border. The primitive reads this prop

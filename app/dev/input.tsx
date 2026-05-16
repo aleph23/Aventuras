@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Search } from 'lucide-react-native'
-import * as React from 'react'
+import { useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
 
 import { DensityPicker } from '@/components/foundations/sections/density-picker'
@@ -11,8 +11,8 @@ import { Text } from '@/components/ui/text'
 import { Textarea } from '@/components/ui/textarea'
 
 export default function InputDevRoute() {
-  const [secure, setSecure] = React.useState(true)
-  const [autoGrow, setAutoGrow] = React.useState(
+  const [secure, setSecure] = useState(true)
+  const [autoGrow, setAutoGrow] = useState(
     'Try typing — this textarea grows from rows=2 up to maxRows=6.\n',
   )
 

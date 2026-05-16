@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Platform, ScrollView, View } from 'react-native'
 import Animated, { LinearTransition } from 'react-native-reanimated'
 import {
@@ -19,7 +20,7 @@ import { Text } from '@/components/ui/text'
 // for the dev demo.
 const layoutAnim = Platform.select({ native: LinearTransition.duration(200) })
 
-function Section({ children }: { children: React.ReactNode }) {
+function Section({ children }: { children: ReactNode }) {
   return <Animated.View layout={layoutAnim}>{children}</Animated.View>
 }
 

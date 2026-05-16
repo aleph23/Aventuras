@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { EntryCard, type EntryCardProps } from '@/components/compounds/entry-card'
@@ -9,9 +9,9 @@ import { Text } from '@/components/ui/text'
 const aiMeta = { tokens: { reply: 312, reasoning: 87 } }
 
 export default function EntryCardDevRoute() {
-  const [editing, setEditing] = React.useState<string | null>(null)
-  const [drafts, setDrafts] = React.useState<Record<string, string>>({})
-  const [lastAction, setLastAction] = React.useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [lastAction, setLastAction] = useState<string | null>(null)
 
   const log = (action: string) => setLastAction(action)
 

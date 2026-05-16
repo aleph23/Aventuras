@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { ListRow } from '@/components/compounds/list-row'
@@ -76,7 +76,7 @@ const ROWS: Row[] = [
 ]
 
 export default function ListRowDevRoute() {
-  const [selectedId, setSelectedId] = React.useState<string>('aiko')
+  const [selectedId, setSelectedId] = useState<string>('aiko')
 
   return (
     <ScrollView className="flex-1 bg-bg-base">

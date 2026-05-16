@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Text } from '@/components/ui/text'

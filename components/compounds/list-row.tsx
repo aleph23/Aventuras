@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Text } from '@/components/ui/text'
@@ -20,19 +20,19 @@ type ListRowProps = {
    * rows. Renders inside the row's tap surface so taps on it still
    * fire `onPress`. Surfaces without a kind concept leave this null.
    */
-  leading?: React.ReactNode
+  leading?: ReactNode
   /**
    * Inline-after-label slot — typically the gold lead-badge pill
    * for the character lead. Sits adjacent to the label text on the
    * same line.
    */
-  meta?: React.ReactNode
+  meta?: ReactNode
   /**
    * Trailing-edge slot — typically a status pill. Per-domain
    * components own the pill itself (entity status enum ≠ thread
    * status enum); ListRow only slots it.
    */
-  trailing?: React.ReactNode
+  trailing?: ReactNode
   /**
    * Scene-presence channel — 3 px green left-edge stripe. Per the
    * channel separation rule in entity.md, left-edge is reserved

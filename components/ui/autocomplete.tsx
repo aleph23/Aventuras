@@ -1,7 +1,17 @@
 import { Portal } from '@rn-primitives/portal'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { X } from 'lucide-react-native'
-import * as React from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ComponentProps,
+} from 'react'
 import {
   FlatList,
   Platform,
@@ -95,7 +105,7 @@ type FilterResult = {
 }
 
 function useFilter(value: string, sourceList: readonly string[]): FilterResult {
-  return React.useMemo(() => {
+  return useMemo(() => {
     const trimmed = value.trim()
     const lc = trimmed.toLowerCase()
     const exactMatch = sourceList.find((s) => s.toLowerCase() === lc)
@@ -168,7 +178,7 @@ type SuggestionListProps = {
   onPickSuggestion: (s: string) => void
   onPickTail: (typed: string) => void
   createTailLabel: (typed: string) => string
-  style?: React.ComponentProps<typeof View>['style']
+  style?: ComponentProps<typeof View>['style']
   /**
    * `'inline'` — desktop / tablet popover. Compact rows
    * (`min-h-control-md`, density-aware horizontal + vertical
@@ -226,7 +236,7 @@ function SuggestionList({
       {suggestions.map((s, idx) => {
         const isLastSuggestion = idx === suggestions.length - 1
         return (
-          <React.Fragment key={s}>
+          <Fragment key={s}>
             <Pressable
               onPress={() => onPickSuggestion(s)}
               className={cn(
@@ -243,7 +253,7 @@ function SuggestionList({
               <Text className="text-sm text-fg-primary">{s}</Text>
             </Pressable>
             {isSheet && sheetDivider}
-          </React.Fragment>
+          </Fragment>
         )
       })}
       {showTail && (
@@ -278,7 +288,7 @@ type VirtualSuggestionListWebProps = {
   onPickSuggestion: (s: string) => void
   onPickTail: (typed: string) => void
   createTailLabel: (typed: string) => string
-  style?: React.CSSProperties
+  style?: CSSProperties
   className?: string
 }
 
@@ -302,7 +312,7 @@ function VirtualSuggestionListWeb({
   className,
   style,
 }: VirtualSuggestionListWebProps) {
-  const parentRef = React.useRef<HTMLDivElement>(null)
+  const parentRef = useRef<HTMLDivElement>(null)
   const totalItems = suggestions.length + (showTail ? 1 : 0)
 
   const virtualizer = useVirtualizer({
@@ -316,7 +326,7 @@ function VirtualSuggestionListWeb({
   // user arrows through long lists. `align: 'auto'` only scrolls
   // when the row is out of view, so it doesn't yank the viewport
   // when the highlight is already visible.
-  React.useEffect(() => {
+  useEffect(() => {
     if (highlightedIndex >= 0 && highlightedIndex < totalItems) {
       virtualizer.scrollToIndex(highlightedIndex, { align: 'auto' })
     }
@@ -405,22 +415,22 @@ function AutocompleteInline({
   inputClassName,
   popoverClassName,
 }: InlineProps) {
-  const [open, setOpen] = React.useState(false)
-  const [highlightedIndex, setHighlightedIndex] = React.useState(-1)
-  const [anchorRect, setAnchorRect] = React.useState<{
+  const [open, setOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [anchorRect, setAnchorRect] = useState<{
     x: number
     y: number
     width: number
     height: number
   } | null>(null)
-  const blurTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const wrapperRef = React.useRef<View>(null)
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<View>(null)
   // Each Autocomplete instance gets a stable Portal name so multiple
   // instances on the same page don't overwrite each other's portal
   // content (Portals keyed off the same name share a slot).
-  const portalName = React.useId()
+  const portalName = useId()
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
     }
@@ -433,7 +443,7 @@ function AutocompleteInline({
   // `position: fixed`) was getting clipped by parent ScrollViews on
   // Electron. RN-Web's style allowlist also drops `position: fixed`,
   // which is why fixed-positioning didn't work either.
-  const updateAnchor = React.useCallback(() => {
+  const updateAnchor = useCallback(() => {
     const node = wrapperRef.current
     if (!node) return
     node.measureInWindow((x, y, width, height) => {
@@ -441,7 +451,7 @@ function AutocompleteInline({
     })
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open || Platform.OS !== 'web') return undefined
     updateAnchor()
     const handler = () => updateAnchor()
@@ -459,11 +469,11 @@ function AutocompleteInline({
   const isOpen = !disabled && open && hasContent
 
   // Clamp highlightedIndex when filter results change.
-  React.useEffect(() => {
+  useEffect(() => {
     if (highlightedIndex >= totalItems) setHighlightedIndex(-1)
   }, [totalItems, highlightedIndex])
 
-  const commitValue = React.useCallback(
+  const commitValue = useCallback(
     (raw: string) => {
       const final = normalizeCommit(raw, sourceList, casingNormalization)
       if (final == null) return
@@ -593,7 +603,7 @@ function AutocompleteInline({
               onPickTail={commitValue}
               createTailLabel={tailLabel}
               className={popoverChromeClasses}
-              style={popoverStyle as React.CSSProperties}
+              style={popoverStyle as CSSProperties}
             />
           ) : (
             <SuggestionList
@@ -639,11 +649,11 @@ function AutocompleteSheet({
   className,
   inputClassName,
 }: SheetProps) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useState(false)
   const { trimmed, exactMatch, suggestions, showTail } = useFilter(value, sourceList)
   const keyboardHeight = useKeyboardHeight()
 
-  const commitValue = React.useCallback(
+  const commitValue = useCallback(
     (raw: string) => {
       const final = normalizeCommit(raw, sourceList, casingNormalization)
       if (final == null) return

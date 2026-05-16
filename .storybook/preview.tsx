@@ -1,6 +1,6 @@
 import { PortalHost } from '@rn-primitives/portal'
 import type { Preview } from '@storybook/react-native-web-vite'
-import React from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { DensityProvider } from '@/lib/density/density-provider'
@@ -12,21 +12,15 @@ import { useTheme } from '@/lib/themes/use-theme'
 
 import '../global.css'
 
-function ThemeApplier({ themeId, children }: { themeId: string; children: React.ReactNode }) {
+function ThemeApplier({ themeId, children }: { themeId: string; children: ReactNode }) {
   const { setTheme } = useTheme()
-  React.useEffect(() => setTheme(themeId), [themeId, setTheme])
+  useEffect(() => setTheme(themeId), [themeId, setTheme])
   return <>{children}</>
 }
 
-function DensityApplier({
-  setting,
-  children,
-}: {
-  setting: DensitySetting
-  children: React.ReactNode
-}) {
+function DensityApplier({ setting, children }: { setting: DensitySetting; children: ReactNode }) {
   const { setSetting } = useDensity()
-  React.useEffect(() => setSetting(setting), [setting, setSetting])
+  useEffect(() => setSetting(setting), [setting, setSetting])
   return <>{children}</>
 }
 

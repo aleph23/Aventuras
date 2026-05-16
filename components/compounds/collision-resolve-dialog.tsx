@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useMemo, useReducer, useRef, useState } from 'react'
 import { Platform, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -50,11 +50,11 @@ export function CollisionResolveDialog({
   entityB,
   onResolve,
 }: CollisionResolveDialogProps) {
-  const [mode, setMode] = React.useState<Mode>('merge')
-  const [submitting, setSubmitting] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>('merge')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const diff = React.useMemo(() => computeDivergence(entityA, entityB), [entityA, entityB])
+  const diff = useMemo(() => computeDivergence(entityA, entityB), [entityA, entityB])
 
   async function handleSubmit(resolution: Resolution) {
     setSubmitting(true)
@@ -160,14 +160,14 @@ function MergeBody({
   submitting,
   error,
 }: MergeBodyProps) {
-  const [state, dispatch] = React.useReducer(mergeReducer, undefined, () =>
+  const [state, dispatch] = useReducer(mergeReducer, undefined, () =>
     initMergeState(diff, entityA.id, entityA.id),
   )
 
   // Reset reducer state when entities change. Same render-cycle
   // ref-check pattern as embedder-download-dialog.tsx.
   const pairKey = `${entityA.id}::${entityB.id}`
-  const lastPairRef = React.useRef(pairKey)
+  const lastPairRef = useRef(pairKey)
   if (lastPairRef.current !== pairKey) {
     lastPairRef.current = pairKey
     dispatch({
@@ -186,12 +186,12 @@ function MergeBody({
     { value: entityB.id, label: `${entityB.name} · ${formatAgo(entityB.createdAt)}` },
   ]
 
-  const allTags = React.useMemo(() => {
+  const allTags = useMemo(() => {
     if (diff.tags == null) return [...entityA.tags].sort()
     return [...diff.tags.both, ...diff.tags.onlyInA, ...diff.tags.onlyInB].sort()
   }, [diff.tags, entityA.tags])
 
-  const finalTags = React.useMemo(
+  const finalTags = useMemo(
     () => allTags.filter((t) => !state.deselectedTags.includes(t)),
     [allTags, state.deselectedTags],
   )
@@ -367,12 +367,12 @@ type RenameBodyProps = {
 }
 
 function RenameBody({ entityA, entityB, onSubmit, onCancel, submitting, error }: RenameBodyProps) {
-  const [nameA, setNameA] = React.useState(entityA.name)
-  const [nameB, setNameB] = React.useState(entityB.name)
+  const [nameA, setNameA] = useState(entityA.name)
+  const [nameB, setNameB] = useState(entityB.name)
 
   // Reset names if entity inputs change.
   const pairKey = `${entityA.id}::${entityB.id}`
-  const lastPairRef = React.useRef(pairKey)
+  const lastPairRef = useRef(pairKey)
   if (lastPairRef.current !== pairKey) {
     lastPairRef.current = pairKey
     setNameA(entityA.name)

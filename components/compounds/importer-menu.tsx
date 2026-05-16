@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react-native'
-import * as React from 'react'
+import { useRef, type ComponentRef } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -56,7 +56,7 @@ export function ImporterMenu({
   disabled,
   className,
 }: ImporterMenuProps) {
-  const triggerRef = React.useRef<React.ComponentRef<typeof PopoverTrigger>>(null)
+  const triggerRef = useRef<ComponentRef<typeof PopoverTrigger>>(null)
 
   return (
     <Popover>

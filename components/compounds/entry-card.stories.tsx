@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { type ReactElement } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -31,7 +31,7 @@ const meta: Meta<typeof EntryCard> = {
 export default meta
 type StoryT = StoryObj<typeof EntryCard>
 
-const wrapDecorator = (Story: () => React.ReactElement) => (
+const wrapDecorator = (Story: () => ReactElement) => (
   <View style={{ width: 600 }}>
     <Story />
   </View>

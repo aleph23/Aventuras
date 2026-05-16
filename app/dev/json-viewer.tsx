@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { JSONViewer } from '@/components/compounds/json-viewer'
@@ -56,8 +56,8 @@ const SAMPLES: readonly Sample[] = [
 ] as const
 
 export default function JSONViewerDevRoute() {
-  const [open, setOpen] = React.useState(false)
-  const [sample, setSample] = React.useState<Sample>(SAMPLES[0])
+  const [open, setOpen] = useState(false)
+  const [sample, setSample] = useState<Sample>(SAMPLES[0])
 
   return (
     <ScrollView className="flex-1 bg-bg-base">

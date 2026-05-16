@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { Text } from '@/components/ui/text'
@@ -47,7 +47,7 @@ type DetailPaneProps = {
    * an [`Icon`](../ui/icon.tsx) or the shipped
    * [`EntityKindIcon`](../entity/entity-kind-icon.tsx) compound.
    */
-  kindIcon: React.ReactNode
+  kindIcon: ReactNode
 
   /**
    * Kind label rendered alongside `kindIcon`. e.g. `"character"`,
@@ -60,7 +60,7 @@ type DetailPaneProps = {
    * `<InlineEditableName value=... onChange=... size="lg" />`.
    * Shell only positions the slot; it never sees edit state.
    */
-  nameSlot: React.ReactNode
+  nameSlot: ReactNode
 
   /**
    * Optional badge cluster — recently-classified Tag,
@@ -68,7 +68,7 @@ type DetailPaneProps = {
    * composes (commonly one or two `<Tag>`s); shell positions
    * between `nameSlot` and `overflowMenu`.
    */
-  badges?: React.ReactNode
+  badges?: ReactNode
 
   /**
    * ⋯ menu content (Set as lead, Export entity, View raw JSON,
@@ -76,7 +76,7 @@ type DetailPaneProps = {
    * (using `ImporterMenu` or a Popover-with-trigger pattern); the
    * shell only anchors the slot on the right of the name row.
    */
-  overflowMenu: React.ReactNode
+  overflowMenu: ReactNode
 
   /**
    * Tabs primitive **strip** — consumer renders a `<TabsList>` of
@@ -111,20 +111,20 @@ type DetailPaneProps = {
    * container — a structural split the shell can only honor by
    * positioning the strip itself.
    */
-  tabs: React.ReactNode
+  tabs: ReactNode
 
   /**
    * Selected tab body — typically one or more `<TabsContent>`
    * elements (see `tabs` JSDoc). Shell owns the scroll container;
    * consumer renders the per-kind body (forms, lists, etc.).
    */
-  children: React.ReactNode
+  children: ReactNode
 
   /**
    * Optional `<SaveBar>` slot. Consumer mounts when its
    * save-session is dirty; shell pins to the bottom of the pane.
    */
-  saveBar?: React.ReactNode
+  saveBar?: ReactNode
 
   className?: string
 }

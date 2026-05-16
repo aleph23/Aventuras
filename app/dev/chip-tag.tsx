@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Chip } from '@/components/ui/chip'
@@ -7,8 +7,8 @@ import { Tag } from '@/components/ui/tag'
 import { Text } from '@/components/ui/text'
 
 export default function ChipTagDevRoute() {
-  const [activeFilter, setActiveFilter] = React.useState('all')
-  const [tags, setTags] = React.useState(['fantasy', 'high-magic', 'ensemble'])
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [tags, setTags] = useState(['fantasy', 'high-magic', 'ensemble'])
   const filters = [
     { id: 'all', label: 'All' },
     { id: 'in-scene', label: 'In scene' },

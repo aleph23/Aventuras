@@ -3,7 +3,7 @@ import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-vie
 import { TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog'
-import * as React from 'react'
+import { Fragment, type ComponentProps, type ReactNode } from 'react'
 import { Platform, View, type ViewProps } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
@@ -12,14 +12,14 @@ const AlertDialog = AlertDialogPrimitive.Root
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 function AlertDialogOverlay({
   className,
   children,
   ...props
-}: Omit<React.ComponentProps<typeof AlertDialogPrimitive.Overlay>, 'asChild'> & {
-  children?: React.ReactNode
+}: Omit<ComponentProps<typeof AlertDialogPrimitive.Overlay>, 'asChild'> & {
+  children?: ReactNode
 }) {
   return (
     <FullWindowOverlay>
@@ -46,7 +46,7 @@ function AlertDialogContent({
   className,
   portalHost,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
+}: ComponentProps<typeof AlertDialogPrimitive.Content> & {
   portalHost?: string
 }) {
   return (
@@ -89,7 +89,7 @@ function AlertDialogFooter({ className, ...props }: ViewProps) {
 function AlertDialogTitle({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+}: ComponentProps<typeof AlertDialogPrimitive.Title>) {
   return (
     <AlertDialogPrimitive.Title
       className={cn('text-lg font-semibold text-fg-primary', className)}
@@ -101,7 +101,7 @@ function AlertDialogTitle({
 function AlertDialogDescription({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+}: ComponentProps<typeof AlertDialogPrimitive.Description>) {
   return (
     <AlertDialogPrimitive.Description
       className={cn('text-sm text-fg-muted', className)}
@@ -119,7 +119,7 @@ function AlertDialogAction({
   className,
   asChild,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+}: ComponentProps<typeof AlertDialogPrimitive.Action>) {
   if (asChild) {
     return <AlertDialogPrimitive.Action asChild {...props} />
   }
@@ -136,7 +136,7 @@ function AlertDialogCancel({
   className,
   asChild,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+}: ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
   if (asChild) {
     return <AlertDialogPrimitive.Cancel asChild {...props} />
   }

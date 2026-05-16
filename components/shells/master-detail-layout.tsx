@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { View } from 'react-native'
 
 import { useTier } from '@/hooks/use-tier'
@@ -64,7 +64,7 @@ type MasterDetailLayoutProps = {
    * tablet / desktop (visible in the left column). On phone: visible
    * when `isRowSelected` is false (list-first state).
    */
-  listPane: React.ReactNode
+  listPane: ReactNode
 
   /**
    * Detail pane content — typically
@@ -72,7 +72,7 @@ type MasterDetailLayoutProps = {
    * desktop (visible in the right column). On phone: visible when
    * `isRowSelected` is true (full-screen route within the surface).
    */
-  detailPane: React.ReactNode
+  detailPane: ReactNode
 
   /**
    * Whether a row is currently selected. Drives phone tier
@@ -94,7 +94,7 @@ type MasterDetailLayoutProps = {
    * kind segment since no row is selected. Render is gated on
    * `subHeader != null` — when omitted, the panes start at the top.
    */
-  subHeader?: React.ReactNode
+  subHeader?: ReactNode
 
   /**
    * List pane width on tablet / desktop. Defaults to 340 px per

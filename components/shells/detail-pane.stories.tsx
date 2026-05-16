@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { MoreHorizontal, Sparkles } from 'lucide-react-native'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { SaveBar } from '@/components/compounds/save-bar'
@@ -79,8 +79,8 @@ type Story = StoryObj<typeof DetailPane>
 // ──────────────────────────────────────────────────────────────────
 
 function WorldCharacterHarness() {
-  const [name, setName] = React.useState('Kael Vex')
-  const [tab, setTab] = React.useState('overview')
+  const [name, setName] = useState('Kael Vex')
+  const [tab, setTab] = useState('overview')
 
   return (
     <View style={{ width: 560, height: 560 }} className="rounded-md border border-border">
@@ -156,8 +156,8 @@ export const WorldCharacter: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function WorldLoreHarness() {
-  const [name, setName] = React.useState('The Founding Pact')
-  const [tab, setTab] = React.useState('overview')
+  const [name, setName] = useState('The Founding Pact')
+  const [tab, setTab] = useState('overview')
 
   return (
     <View style={{ width: 560, height: 540 }} className="rounded-md border border-border">
@@ -215,8 +215,8 @@ export const WorldLore: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function PlotThreadHarness() {
-  const [name, setName] = React.useState("Crown's bargain")
-  const [tab, setTab] = React.useState('overview')
+  const [name, setName] = useState("Crown's bargain")
+  const [tab, setTab] = useState('overview')
 
   return (
     <View style={{ width: 560, height: 520 }} className="rounded-md border border-border">
@@ -265,8 +265,8 @@ export const PlotThread: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function DirtyHarness() {
-  const [name, setName] = React.useState('Kael Vex')
-  const [tab, setTab] = React.useState('identity')
+  const [name, setName] = useState('Kael Vex')
+  const [tab, setTab] = useState('identity')
 
   return (
     <View style={{ width: 560, height: 560 }} className="rounded-md border border-border">
@@ -329,8 +329,8 @@ export const Dirty: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function LongBodyHarness() {
-  const [name, setName] = React.useState('Kael Vex')
-  const [tab, setTab] = React.useState('overview')
+  const [name, setName] = useState('Kael Vex')
+  const [tab, setTab] = useState('overview')
 
   return (
     <View style={{ width: 560, height: 400 }} className="rounded-md border border-border">
@@ -370,7 +370,7 @@ export const LongBody: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function ThemeDetailSample() {
-  const [tab, setTab] = React.useState('overview')
+  const [tab, setTab] = useState('overview')
   return (
     <Tabs value={tab} onValueChange={setTab}>
       <DetailPane

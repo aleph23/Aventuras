@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState, type ReactNode } from 'react'
 import { View } from 'react-native'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
@@ -21,9 +21,9 @@ function ControlledTabs({
   children,
 }: {
   initial: string
-  children: (value: string, set: (v: string) => void) => React.ReactNode
+  children: (value: string, set: (v: string) => void) => ReactNode
 }) {
-  const [value, setValue] = React.useState(initial)
+  const [value, setValue] = useState(initial)
   return <>{children(value, setValue)}</>
 }
 

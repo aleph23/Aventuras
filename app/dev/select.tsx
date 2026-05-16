@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { DensityPicker } from '@/components/foundations/sections/density-picker'
@@ -49,14 +49,14 @@ function Stateful({
 }: {
   initial: string
   options: SelectOption[]
-  mode?: React.ComponentProps<typeof Select>['mode']
-  sheetSize?: React.ComponentProps<typeof Select>['sheetSize']
+  mode?: ComponentProps<typeof Select>['mode']
+  sheetSize?: ComponentProps<typeof Select>['sheetSize']
   placeholder?: string
   label?: string
   disabled?: boolean
   className?: string
 }) {
-  const [value, setValue] = React.useState(initial)
+  const [value, setValue] = useState(initial)
   return <Select options={options} value={value} onValueChange={setValue} {...rest} />
 }
 

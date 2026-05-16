@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Platform, Pressable } from 'react-native'
 
 import { SwitchVisual } from '@/components/ui/switch-visual'

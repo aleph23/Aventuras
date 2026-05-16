@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { themes } from '@/lib/themes/registry'
@@ -25,7 +25,7 @@ function Controlled({
   disabled?: boolean
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const [value, setValue] = React.useState(initial)
+  const [value, setValue] = useState(initial)
   return (
     <View className="gap-2" style={{ width: 360 }}>
       <InlineEditableName value={value} onChange={setValue} {...rest} />
@@ -42,9 +42,9 @@ export const Default: Story = {
 
 export const Sizes: Story = {
   render: () => {
-    const [a, setA] = React.useState('Aria Vex')
-    const [b, setB] = React.useState('Aria Vex')
-    const [c, setC] = React.useState('Aria Vex')
+    const [a, setA] = useState('Aria Vex')
+    const [b, setB] = useState('Aria Vex')
+    const [c, setC] = useState('Aria Vex')
     return (
       <View className="gap-4" style={{ width: 360 }}>
         <View className="gap-1">
@@ -76,7 +76,7 @@ export const EmptyPlaceholder: Story = {
 
 export const Disabled: Story = {
   render: () => {
-    const [value, setValue] = React.useState('Aria Vex')
+    const [value, setValue] = useState('Aria Vex')
     return (
       <View className="gap-2" style={{ width: 360 }}>
         <Text variant="muted" size="sm">
@@ -94,7 +94,7 @@ export const Disabled: Story = {
 
 export const LongName: Story = {
   render: () => {
-    const [value, setValue] = React.useState(
+    const [value, setValue] = useState(
       'The Compendium of Esoteric Cartomancy and Other Forgotten Arts of the Eastern Reach',
     )
     return (
@@ -131,8 +131,8 @@ export const ThemeMatrix: Story = {
 }
 
 function ThemeMatrixRow() {
-  const [a, setA] = React.useState('Aria Vex')
-  const [b, setB] = React.useState('')
+  const [a, setA] = useState('Aria Vex')
+  const [b, setB] = useState('')
   return (
     <View className="gap-2">
       <InlineEditableName value={a} onChange={setA} size="lg" />

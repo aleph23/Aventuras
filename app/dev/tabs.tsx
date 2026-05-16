@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Heading } from '@/components/ui/heading'
@@ -6,10 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Text } from '@/components/ui/text'
 
 export default function TabsDevRoute() {
-  const [basic, setBasic] = React.useState('overview')
-  const [counts, setCounts] = React.useState('overview')
-  const [withDisabled, setWithDisabled] = React.useState('overview')
-  const [kitchen, setKitchen] = React.useState('overview')
+  const [basic, setBasic] = useState('overview')
+  const [counts, setCounts] = useState('overview')
+  const [withDisabled, setWithDisabled] = useState('overview')
+  const [kitchen, setKitchen] = useState('overview')
 
   return (
     <ScrollView className="flex-1 bg-bg-base">

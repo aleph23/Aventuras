@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
 import { ChevronDown } from 'lucide-react-native'
-import * as React from 'react'
+import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
 
 import { Toolbar } from '@/components/compounds/toolbar'
@@ -109,8 +109,8 @@ const SORT_OPTIONS = [
 // ──────────────────────────────────────────────────────────────────
 
 function WorldCharactersHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<(typeof CHARACTER_FILTERS)[number]>('All')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<(typeof CHARACTER_FILTERS)[number]>('All')
 
   return (
     <View style={{ width: 340, height: 560 }} className="rounded-md border border-border">
@@ -150,9 +150,9 @@ export const WorldCharacters: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function PlotThreadsHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<(typeof THREAD_FILTERS)[number]>('All')
-  const [kind, setKind] = React.useState<'threads' | 'happenings'>('threads')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<(typeof THREAD_FILTERS)[number]>('All')
+  const [kind, setKind] = useState<'threads' | 'happenings'>('threads')
   const addLabel = kind === 'threads' ? 'New thread' : 'New happening'
 
   return (
@@ -204,8 +204,8 @@ export const PlotThreads: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function EmptyHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<(typeof CHARACTER_FILTERS)[number]>('All')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<(typeof CHARACTER_FILTERS)[number]>('All')
 
   return (
     <View style={{ width: 340, height: 560 }} className="rounded-md border border-border">
@@ -257,9 +257,9 @@ export const Empty: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function WithSortHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<(typeof LORE_FILTERS)[number]>('All')
-  const [sort, setSort] = React.useState('category')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<(typeof LORE_FILTERS)[number]>('All')
+  const [sort, setSort] = useState('category')
 
   return (
     <View style={{ width: 340, height: 560 }} className="rounded-md border border-border">
@@ -303,9 +303,9 @@ export const WithSort: Story = {
 // ──────────────────────────────────────────────────────────────────
 
 function LongListHarness() {
-  const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState<(typeof CHARACTER_FILTERS)[number]>('All')
-  const rows = React.useMemo(
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<(typeof CHARACTER_FILTERS)[number]>('All')
+  const rows = useMemo(
     () =>
       Array.from({ length: 30 }, (_, i) => ({
         name: `Character ${String(i + 1).padStart(2, '0')}`,

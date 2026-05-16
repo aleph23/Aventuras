@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 import { SwitchVisual } from '@/components/ui/switch-visual'
@@ -17,7 +17,7 @@ type SwitchRowProps = {
    * switch line up rather than the switch floating to the text-body's
    * vertical center.
    */
-  leading?: React.ReactNode
+  leading?: ReactNode
   checked: boolean
   onCheckedChange: (checked: boolean) => void
   disabled?: boolean

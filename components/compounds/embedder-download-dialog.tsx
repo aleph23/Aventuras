@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Platform, Pressable, ScrollView, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -63,7 +63,7 @@ type EmbedderDownloadDialogViewProps = {
 
 export function EmbedderDownloadDialogView(props: EmbedderDownloadDialogViewProps) {
   const { open, onOpenChange, state, portalHost } = props
-  const [hfInputValue, setHfInputValue] = React.useState('')
+  const [hfInputValue, setHfInputValue] = useState('')
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* 560px overrides the primitive's sm:max-w-lg (≈512px) per
@@ -299,7 +299,7 @@ function EpSelectRow({
   onPick: (ep: ExecutionProvider) => void
   availableEps: readonly ExecutionProvider[]
 }) {
-  const options: SelectOption[] = React.useMemo(
+  const options: SelectOption[] = useMemo(
     () => availableEps.map((ep) => ({ value: ep, label: ep })),
     [availableEps],
   )
@@ -631,11 +631,11 @@ type EmbedderDownloadDialogProps = {
 
 export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
   const { open, onOpenChange, init, driver, onResolve } = props
-  const [state, dispatch] = React.useReducer(reducer, init, initialState)
-  const resolvedRef = React.useRef(false)
-  const lastUserActionRef = React.useRef<'declined' | 'cancelled' | null>(null)
+  const [state, dispatch] = useReducer(reducer, init, initialState)
+  const resolvedRef = useRef(false)
+  const lastUserActionRef = useRef<'declined' | 'cancelled' | null>(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (state.kind !== 'card-fetch') return
     if (init.kind !== 'catalog') return
     let cancelled = false
@@ -662,7 +662,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
 
   const resolvingHfInput =
     state.kind === 'resolving' && state.init.kind === 'hf-id' ? state.init.input : null
-  React.useEffect(() => {
+  useEffect(() => {
     if (resolvingHfInput === null) return
     const id = resolvingHfInput
     let cancelled = false
@@ -687,7 +687,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
     }
   }, [driver, resolvingHfInput])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (state.kind !== 'downloading') return
     if (init.kind !== 'catalog') return
     let cancelled = false
@@ -722,7 +722,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
     }
   }, [state.kind, driver, init])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (state.kind !== 'verifying') return
     if (init.kind !== 'catalog') return
     let cancelled = false
@@ -774,7 +774,7 @@ export function EmbedderDownloadDialog(props: EmbedderDownloadDialogProps) {
     onResolve(res)
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (resolvedRef.current) return
     if (state.kind === 'done') {
       const res = computeResolution(state)

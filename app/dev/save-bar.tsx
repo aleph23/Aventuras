@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { FormRow } from '@/components/compounds/form-row'
@@ -27,10 +27,10 @@ const FIELD_LABELS: Record<keyof Settings, string> = {
 }
 
 export default function SaveBarDevRoute() {
-  const [persisted, setPersisted] = React.useState<Settings>(INITIAL)
-  const [draft, setDraft] = React.useState<Settings>(INITIAL)
-  const [saving, setSaving] = React.useState(false)
-  const [lastEvent, setLastEvent] = React.useState<string | null>(null)
+  const [persisted, setPersisted] = useState<Settings>(INITIAL)
+  const [draft, setDraft] = useState<Settings>(INITIAL)
+  const [saving, setSaving] = useState(false)
+  const [lastEvent, setLastEvent] = useState<string | null>(null)
 
   const dirtyKeys = (Object.keys(draft) as (keyof Settings)[]).filter(
     (k) => draft[k] !== persisted[k],

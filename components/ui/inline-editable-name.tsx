@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react-native'
-import * as React from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform, Pressable, type TextInputKeyPressEvent, View } from 'react-native'
 
 import { IconAction } from '@/components/ui/icon-action'
@@ -78,22 +78,22 @@ export function InlineEditableName({
   size = 'md',
   className,
 }: InlineEditableNameProps) {
-  const [editing, setEditing] = React.useState(false)
-  const [draft, setDraft] = React.useState(value)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
   // Escape, Enter, and disabled-mid-edit each exit edit mode by
   // unmounting the Input, which fires a synthetic blur on the way
   // out. Without a guard, blur would fire a redundant `onChange`
   // (Enter case — already committed) or commit an Escape-discarded
   // buffer. The ref short-circuits the post-exit blur. Refs avoid
   // an extra render pass.
-  const exitedRef = React.useRef(false)
+  const exitedRef = useRef(false)
 
   // When the consumer toggles `disabled` mid-edit, drop edit state to
   // keep the affordance consistent with the spec ("when disabled, row
   // not tappable"). Treat as a cancel — the in-progress draft is
   // discarded, not committed, because the consumer's disable signal
   // overrides the user's edit intent.
-  React.useEffect(() => {
+  useEffect(() => {
     if (disabled && editing) {
       exitedRef.current = true
       setEditing(false)
@@ -103,18 +103,18 @@ export function InlineEditableName({
 
   // If the consumer reassigns `value` while not editing, keep the
   // buffered draft aligned so the next edit starts from current truth.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!editing) setDraft(value)
   }, [value, editing])
 
-  const enterEdit = React.useCallback(() => {
+  const enterEdit = useCallback(() => {
     if (disabled) return
     exitedRef.current = false
     setDraft(value)
     setEditing(true)
   }, [disabled, value])
 
-  const commit = React.useCallback(
+  const commit = useCallback(
     (next: string) => {
       // Skip if Escape or a previous Enter / blur already handled the
       // exit — guards against the unmount-blur double-fire.
@@ -129,7 +129,7 @@ export function InlineEditableName({
     [onChange, value],
   )
 
-  const cancel = React.useCallback(() => {
+  const cancel = useCallback(() => {
     exitedRef.current = true
     setDraft(value)
     setEditing(false)

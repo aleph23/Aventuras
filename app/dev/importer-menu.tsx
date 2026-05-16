@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { ImporterMenu, type ImporterMenuOption } from '@/components/compounds/importer-menu'
@@ -10,8 +10,8 @@ import { Text } from '@/components/ui/text'
 // useful for sanity-checking the menu close-after-select behavior
 // against the caller's onPress wiring.
 function useEventLog() {
-  const [events, setEvents] = React.useState<string[]>([])
-  const log = React.useCallback((msg: string) => {
+  const [events, setEvents] = useState<string[]>([])
+  const log = useCallback((msg: string) => {
     const ts = new Date().toLocaleTimeString()
     setEvents((prev) => [`${ts} · ${msg}`, ...prev].slice(0, 8))
   }, [])
@@ -93,15 +93,7 @@ export default function ImporterMenuDevRoute() {
   )
 }
 
-function Section({
-  title,
-  log,
-  children,
-}: {
-  title: string
-  log: string[]
-  children: React.ReactNode
-}) {
+function Section({ title, log, children }: { title: string; log: string[]; children: ReactNode }) {
   return (
     <View className="gap-3">
       <Heading level={3}>{title}</Heading>

@@ -2,7 +2,7 @@ import { Icon } from '@/components/ui/icon'
 import { Text, TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react-native'
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
 
 type TagTone = 'default' | 'soft' | 'success' | 'warning' | 'danger' | 'accent'
@@ -80,8 +80,8 @@ type TagProps = {
    * for the tone — e.g. `<Spinner size="sm" colorSlot="--accent-fg" />`
    * inside a `tone="accent"` tag.
    */
-  leading?: React.ReactNode
-  children?: React.ReactNode
+  leading?: ReactNode
+  children?: ReactNode
 }
 
 export function Tag({

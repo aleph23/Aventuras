@@ -1,6 +1,6 @@
-import * as Clipboard from 'expo-clipboard'
+import { setStringAsync as setClipboardString } from 'expo-clipboard'
 import { X } from 'lucide-react-native'
-import * as React from 'react'
+import { useCallback, useMemo } from 'react'
 import { Platform, ScrollView, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,7 @@ export function JSONViewer({ open, onOpenChange, name, data, className }: JSONVi
   const anchor = tier === 'phone' ? 'bottom' : 'right'
   const showCloseButton = anchor !== 'bottom'
 
-  const formatted = React.useMemo(() => {
+  const formatted = useMemo(() => {
     try {
       return JSON.stringify(data, null, 2)
     } catch {
@@ -41,17 +41,17 @@ export function JSONViewer({ open, onOpenChange, name, data, className }: JSONVi
     }
   }, [data])
 
-  const handleCopy = React.useCallback(() => {
+  const handleCopy = useCallback(() => {
     if (Platform.OS === 'web') {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         navigator.clipboard.writeText(formatted).catch(() => {})
       }
       return
     }
-    Clipboard.setStringAsync(formatted).catch(() => {})
+    setClipboardString(formatted).catch(() => {})
   }, [formatted])
 
-  const handleClose = React.useCallback(() => onOpenChange(false), [onOpenChange])
+  const handleClose = useCallback(() => onOpenChange(false), [onOpenChange])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

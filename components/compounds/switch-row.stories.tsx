@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { SwitchRow } from './switch-row'
@@ -34,7 +34,7 @@ export const Default: Story = {
 
 export const Controlled: Story = {
   render: () => {
-    const [checked, setChecked] = React.useState(false)
+    const [checked, setChecked] = useState(false)
     return (
       <View style={{ width: 360 }}>
         <SwitchRow
@@ -50,7 +50,7 @@ export const Controlled: Story = {
 
 export const NoHint: Story = {
   render: () => {
-    const [checked, setChecked] = React.useState(true)
+    const [checked, setChecked] = useState(true)
     return (
       <View style={{ width: 360 }}>
         <SwitchRow label="Enable feature" checked={checked} onCheckedChange={setChecked} />
@@ -88,7 +88,7 @@ export const Disabled: Story = {
 
 export const WithLeading: Story = {
   render: () => {
-    const [ck, setCk] = React.useState(false)
+    const [ck, setCk] = useState(false)
     return (
       <View style={{ width: 360 }}>
         <SwitchRow
@@ -109,9 +109,9 @@ export const WithLeading: Story = {
 
 export const SettingsList: Story = {
   render: () => {
-    const [showHints, setShowHints] = React.useState(true)
-    const [autoSave, setAutoSave] = React.useState(true)
-    const [previewLastChapter, setPreviewLastChapter] = React.useState(false)
+    const [showHints, setShowHints] = useState(true)
+    const [autoSave, setAutoSave] = useState(true)
+    const [previewLastChapter, setPreviewLastChapter] = useState(false)
     return (
       <View style={{ width: 480 }} className="gap-1 rounded-lg border border-border bg-bg-base p-2">
         <SwitchRow

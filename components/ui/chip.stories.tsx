@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { Chip } from './chip'
@@ -27,7 +27,7 @@ export const Static: Story = {
 
 export const FilterRow: Story = {
   render: () => {
-    const [active, setActive] = React.useState('all')
+    const [active, setActive] = useState('all')
     const filters = ['all', 'in-scene', 'active', 'staged', 'retired']
     return (
       <View className="flex-row gap-2">

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { View } from 'react-native'
 import { expect, fn, screen, userEvent, waitFor } from 'storybook/test'
 
@@ -30,8 +30,8 @@ function Harness({
   ...rest
 }: {
   initial?: readonly string[]
-} & Omit<React.ComponentProps<typeof TagInput>, 'value' | 'onChange'>) {
-  const [value, setValue] = React.useState<string[]>(initial as string[])
+} & Omit<ComponentProps<typeof TagInput>, 'value' | 'onChange'>) {
+  const [value, setValue] = useState<string[]>(initial as string[])
   return <TagInput value={value} onChange={setValue} {...rest} />
 }
 

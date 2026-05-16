@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react-native'
-import * as React from 'react'
+import { useEffect, useMemo } from 'react'
 import { Platform, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -52,7 +52,7 @@ export function SaveBar({
   const count = dirtyCount ?? dirtyFields.length
   const fieldList = dirtyFields.length > 0 ? dirtyFields.join(', ') : null
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (Platform.OS !== 'web') return
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
@@ -65,7 +65,7 @@ export function SaveBar({
     return () => window.removeEventListener('keydown', handler, true)
   }, [onSave, saving])
 
-  const shortcutHint = React.useMemo(() => {
+  const shortcutHint = useMemo(() => {
     if (Platform.OS !== 'web') return null
     const isMac =
       typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent ?? '')

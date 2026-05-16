@@ -1,5 +1,5 @@
 import * as AvatarPrimitive from '@rn-primitives/avatar'
-import * as React from 'react'
+import { type ComponentProps, type ReactNode } from 'react'
 
 import { Text, TextClassContext } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
@@ -20,7 +20,7 @@ const FALLBACK_TEXT_SIZE = {
 
 type AvatarSize = keyof typeof SIZE_CLASSES
 
-type AvatarProps = React.ComponentProps<typeof AvatarPrimitive.Root> & {
+type AvatarProps = ComponentProps<typeof AvatarPrimitive.Root> & {
   /**
    * `'xs'` (24 px, mini portrait
    * row inside cards), `'sm'` (40 px, default row leading),
@@ -36,12 +36,12 @@ type AvatarProps = React.ComponentProps<typeof AvatarPrimitive.Root> & {
    * for a custom shape — typical: an `<Icon as={User} />` for an
    * entity-kind glyph. Inherits muted color via TextClassContext.
    */
-  fallback?: React.ReactNode | string
+  fallback?: ReactNode | string
   imageClassName?: string
   fallbackClassName?: string
 }
 
-function isStringFallback(v: React.ReactNode | string | undefined): v is string {
+function isStringFallback(v: ReactNode | string | undefined): v is string {
   return typeof v === 'string'
 }
 

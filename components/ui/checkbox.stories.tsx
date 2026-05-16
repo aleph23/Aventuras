@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
 import { Checkbox } from './checkbox'
@@ -28,7 +28,7 @@ export const Default: Story = {
 
 export const Controlled: Story = {
   render: () => {
-    const [checked, setChecked] = React.useState(false)
+    const [checked, setChecked] = useState(false)
     return (
       <View className="flex-row items-center gap-3">
         <Checkbox checked={checked} onCheckedChange={setChecked} />

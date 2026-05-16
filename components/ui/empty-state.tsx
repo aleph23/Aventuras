@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { type ReactNode } from 'react'
 import { View, type ViewProps } from 'react-native'
 
 import { Text } from '@/components/ui/text'
@@ -31,7 +31,7 @@ type EmptyStateProps = ViewProps & {
    * Accepts a `ReactNode` so consumers can include inline bold
    * (e.g. wrapping `+ Add` in `<Text className="font-medium">`).
    */
-  subtext?: React.ReactNode
+  subtext?: ReactNode
   className?: string
 }
 

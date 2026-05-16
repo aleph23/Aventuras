@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron'
-import * as path from 'node:path'
+import { join, normalize } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const isDev = !app.isPackaged
@@ -24,11 +24,11 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function resolveBundlePath(urlPath: string): string {
-  const distRoot = path.join(__dirname, '..', '..', 'dist')
+  const distRoot = join(__dirname, '..', '..', 'dist')
   const rel = decodeURIComponent(urlPath) || '/'
   const normalized = rel === '/' ? '/index.html' : rel
-  const resolved = path.normalize(path.join(distRoot, normalized))
-  return resolved.startsWith(distRoot) ? resolved : path.join(distRoot, 'index.html')
+  const resolved = normalize(join(distRoot, normalized))
+  return resolved.startsWith(distRoot) ? resolved : join(distRoot, 'index.html')
 }
 
 function registerBundleProtocol(): void {
@@ -46,7 +46,7 @@ function createWindow(): void {
     show: false,
     backgroundColor: '#000000',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

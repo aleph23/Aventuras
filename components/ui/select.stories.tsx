@@ -8,7 +8,7 @@
 // (native). Segment and radio render modes stay inline so they ARE
 // covered in ThemeMatrix below.
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
-import * as React from 'react'
+import { useState, type ComponentProps } from 'react'
 import { View } from 'react-native'
 
 import { Select, type SelectOption } from './select'
@@ -60,12 +60,12 @@ function Stateful({
 }: {
   initial: string
   options: SelectOption[]
-  mode?: React.ComponentProps<typeof Select>['mode']
+  mode?: ComponentProps<typeof Select>['mode']
   placeholder?: string
   disabled?: boolean
   className?: string
 }) {
-  const [value, setValue] = React.useState(initial)
+  const [value, setValue] = useState(initial)
   return <Select {...rest} value={value} onValueChange={setValue} />
 }
 
