@@ -372,23 +372,35 @@ Two agents from the prior design were collapsed:
   multi-turn batch). Either path covers the same write set; mode
   toggle is at `stories.settings.piggybackMode`.
 
-**Classifier contract — `metadata` fields.** Alongside entity / happening /
-awareness deltas, the classifier populates the new entry's metadata:
+### Classifier contract — metadata fields
+
+Alongside entity / happening / awareness deltas, the classifier
+populates the new entry's metadata:
 
 - `sceneEntities: string[]` — entity IDs (characters + items) present
   in the scene this entry depicts.
 - `currentLocationId: string | null` — the singleton location entity
   that IS the current scene.
 - `worldTime: number` — seconds delta (universal across calendars)
-  added to the previous entry's `worldTime`. Monotonically
-  non-decreasing. **For detected flashback / memory framing ("she
-  remembered...", "25 years earlier..."), the classifier emits 0** —
-  main-timeline clock doesn't advance during recalled scenes. Users
-  can manually correct drift via metadata edit (delta-logged). v1
-  doesn't model structural non-linear narrative — see data-model.md →
-  "In-world time tracking" for the limitation.
+  added to the previous entry's `worldTime`. The delta is
+  **non-negative — `delta ≥ 0` is a hard pipeline-layer invariant**.
+  Validation rejects classifier outputs with negative deltas; on
+  rejection, re-roll once, then clamp to `0` with a logged anomaly
+  if re-roll also fails. **For detected flashback / memory framing
+  ("she remembered...", "25 years earlier..."), the classifier emits
+  0** — main-timeline clock doesn't advance during recalled scenes.
+  Cumulative monotonicity holds when written by the classifier
+  alone; user manual `worldTime` edits (see
+  [`data-model.md → In-world time tracking`](./data-model.md#in-world-time-tracking))
+  may produce non-monotonic sequences, which the UI flags and
+  downstream consumers tolerate. v1 doesn't model structural
+  non-linear narrative — see
+  [`data-model.md → In-world time tracking`](./data-model.md#in-world-time-tracking)
+  for the limitation.
 
-**Classifier does NOT run on the opening entry** (`kind='opening'`).
+### Opening-entry classifier exception
+
+The classifier does NOT run on the opening entry (`kind='opening'`).
 Two paths populate opening metadata, both at wizard-commit time
 rather than via a classifier pass:
 
@@ -410,7 +422,9 @@ downstream feature. See
 [`data-model.md → Opening entry`](./data-model.md#opening-entry) for
 the full opening contract.
 
-**Chapter-close** is its own pipeline kind. Five phases under one
+### Chapter-close pipeline
+
+Chapter-close is its own pipeline kind. Five phases under one
 `actionId` (catch-up classifier, boundary selection, metadata,
 lore-mgmt with five sub-jobs, lifecycle review). A single CTRL-Z
 from the user reverses the entire chapter-close. Full design in

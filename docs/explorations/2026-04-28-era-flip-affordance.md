@@ -53,9 +53,13 @@ to the **latest entry's `worldTime`**. The per-entry path defaults
 to the chosen entry's `worldTime`.
 
 The time-chip popover positions naturally as the home for **other
-calendar-time affordances** when they land — the deferred
-[manual `worldTime` correction](../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
-fits here directly, instead of growing chrome again at that pass.
+calendar-time affordances** when they land — era flips today, with
+other calendar-domain actions sliding in cleanly. (Manual
+`worldTime` correction was provisionally earmarked here too, but
+the resolution in
+[`2026-05-17-manual-worldtime-correction.md`](./2026-05-17-manual-worldtime-correction.md)
+moved it to the per-entry world-time footer instead, so this
+popover stays narrow to calendar-domain affordances.)
 
 #### Per-entry icon — interaction with the existing icon row
 

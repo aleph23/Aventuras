@@ -34,6 +34,10 @@ Used by:
   than our Popover primitive — the two are sibling rn-primitives
   packages, so Popover here is _not_ Select's tablet / desktop
   surface.
+- [EntryCard pattern](./entry-card.md#world-time-footer): Popover
+  hosts the per-entry world-time edit overlay on desktop (anchored
+  to the footer); Sheet hosts it on phone. Both contain a
+  `TierTupleInput` matching the active calendar's tier shape.
 
 The Used-by list grows as primitives and patterns adopt the
 overlays. Future consumers will include the Actions menu, the

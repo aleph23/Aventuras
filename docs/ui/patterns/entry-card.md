@@ -32,6 +32,11 @@ type EntryCardProps = {
   onEdit?: () => void
   onDelete?: () => void // not for opening (block-delete) or system/streaming
 
+  // World-time editing — see "World-time footer" below
+  worldTimeRaw?: number // raw cumulative seconds; seeds the TierTupleInput in the edit Popover
+  onEditTime?: (nextWorldTime: number) => void // host writes the metadata.worldTime delta
+  worldTimeMonotonicityBreak?: { previousLabel: string } // presence fires the warning indicator + Popover banner
+
   // AI / opening:
   meta?: { tokens: { reply: number; reasoning?: number } }
   reasoning?: string
@@ -165,12 +170,51 @@ on its own; the behavior is owned by the parent ScrollView.
 - Hidden for `kind` ∈ { `system`, `streaming` } — system is
   generation-meta, streaming has no committed worldTime yet.
 - Hidden when `worldTimeLabel` undefined (host's choice — e.g.,
-  formatter failure or calendar omits this entry).
+  formatter failure, calendar omits this entry, or the entry has no
+  authored worldTime metadata).
 
-**Future hook:** the
-[manual worldTime correction](../../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
-followup will turn this footer into a click-to-edit affordance.
-Today: read-only display.
+**Click-to-edit (interactive when editable).** The footer becomes
+interactive when the host supplies `onEditTime` + `worldTimeRaw` —
+in practice on AI and opening entries (classifier-authored or
+wizard-authored worldTime). Hover-brighten + cursor pointer signal
+the affordance. Click opens an edit overlay anchored to the footer:
+**Popover on desktop, Sheet on phone** (per
+[`patterns/overlays.md`](./overlays.md) and the
+[mobile decision tree](../foundations/mobile/layout.md)). Tablet
+follows the standard breakpoint rule.
+
+The overlay body hosts a `TierTupleInput` matching the active
+calendar's tier shape (the same primitive the wizard's
+`worldTimeOrigin` step uses), pre-populated from `worldTimeRaw +
+worldTimeOrigin` walked through the calendar's tier stack. Save
+computes the new cumulative seconds and invokes `onEditTime(next)`;
+the host writes one `op=update` delta against
+`entries.metadata.worldTime`. Cancel discards.
+
+When `worldTimeMonotonicityBreak` is present, the overlay's body
+prepends a warning banner ("⚠ Earlier than previous entry
+(<previousLabel>)") above the input — this is the sole way the user
+sees the violation detail on mobile (the inline indicator has no
+own tap target there). Desktop hovering the indicator surfaces the
+same string as a tooltip without opening the overlay.
+
+**Monotonicity indicator.** When `worldTimeMonotonicityBreak` is
+present, a small warning glyph (`text-warning` color) renders
+inline preceding the footer label. The host computes the prop by
+walking entries once per list render, comparing each entry's
+`worldTime` against the most recent preceding entry with
+`worldTime > 0` (flashbacks with `worldTime = 0` are skipped — they
+use the existing non-main-timeline convention). The indicator
+persists as state, not event — present whenever the violation
+holds, cleared on next render when the user fixes it.
+
+**Edit-restrictions interaction.** Footer click respects the
+`disabled` prop (per
+[`principles.md → Edit restrictions during in-flight generation`](../principles.md#edit-restrictions-during-in-flight-generation))
+— same gating as content edit, regen, and delete. No new mechanism.
+
+Full design rationale and the downstream-consumer tolerance
+contract: [`explorations/2026-05-17-manual-worldtime-correction.md`](../../explorations/2026-05-17-manual-worldtime-correction.md).
 
 ## Action cluster
 
@@ -223,11 +267,7 @@ implementation begins.
 
 ## What this design defers
 
-- **Manual worldTime correction UI** — footer is the future
-  home; today read-only.
 - **Reasoning text in search scope** — provenance, not narrative
   content; lean: don't include. Revisit on demand.
 - **Reasoning text in export / backup** — yes by default;
   confirms with the export-shape pass when it lands.
-- **Click-to-edit on the world-time footer** — same future as
-  manual worldTime correction.

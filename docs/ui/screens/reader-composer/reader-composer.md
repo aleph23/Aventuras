@@ -117,8 +117,12 @@ inside the template.
 - **Chapter break (inline)** — each closed chapter's break in the
   entries list shows time at close (formatter applied to that
   chapter's `end_entry_id` worldTime).
-- **Chapter popover rows** — each row shows a time range (start → end
-  formatted via the same formatter).
+- **Chapter popover rows** — each row shows a time range. Range
+  endpoints are computed as `min(worldTime)` and `max(worldTime)`
+  across the chapter's entries (excluding flashbacks with
+  `worldTime = 0`), then formatted via the same formatter. The
+  min/max computation keeps the range coherent even when manual
+  `worldTime` edits put entries out of narrative order.
 
 **The formatter is the only place "calendar" logic lives.** UI doesn't
 parse, segment, or interpret the time string — it consumes whatever
@@ -156,10 +160,13 @@ When interactive, click → small popover anchored to the chip:
 
 Symmetric with the chapter chip ▾ pattern: both chips become
 interactive surfaces for their respective calendar-domain
-concerns. The popover is the **anchor point for future
-calendar-time affordances** — when the deferred
-[manual `worldTime` correction](../../../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
-gets its design pass, it lands here without growing chrome.
+concerns. The popover is the anchor point for future calendar-time
+affordances (era flips today; other calendar-domain actions as
+they land). Manual `worldTime` correction explicitly does NOT live
+here — it's per-entry, on the
+[world-time footer click](#per-entry-world-time-footer), so the
+user is editing the entry whose time is wrong rather than
+abstractly correcting "the latest entry" via top-bar chrome.
 
 ## Per-entry actions
 
@@ -337,12 +344,23 @@ takes the formatted label opaque. Calendar formatter failure or a
 calendar that omits per-entry display drops the footer cleanly via
 an undefined label.
 
-**Future affordance.** When the deferred
-[manual `worldTime` correction](../../../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
-gets its design pass, this footer becomes the click-to-edit
-surface — read-only display today, interactive correction trigger
-later. The footer's existence today is the surface that future
-correction UX wires to without growing chrome.
+**Click-to-edit on AI / opening entries.** The footer is the
+manual-correction surface for `metadata.worldTime`. Click opens an
+edit overlay anchored to the footer with a `TierTupleInput` for the
+active calendar; Save writes one `op=update` delta against
+`entries.metadata.worldTime`. Host contract (props, render rules,
+indicator behavior, cross-tier overlay shape):
+[`entry-card.md → World-time footer`](../../patterns/entry-card.md#world-time-footer).
+Design rationale, downstream-consumer tolerance contract, and the
+no-cascade decision:
+[`explorations/2026-05-17-manual-worldtime-correction.md`](../../../explorations/2026-05-17-manual-worldtime-correction.md).
+
+The host (`reader-composer`) is responsible for computing the
+monotonicity-break flag per entry (walk-back over the entries
+collection, compare against the most recent preceding entry with
+`worldTime > 0`) and passing `worldTimeMonotonicityBreak` to
+EntryCard. The walk is O(N) per list render, cached against the
+entries collection identity.
 
 ## Streaming entry — same structure, live state
 

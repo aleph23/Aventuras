@@ -245,6 +245,7 @@ binds to one primitive:
 | -------------------------------- | ------------------- | ------------------------- | ---------------------------------------------------------- |
 | Chapter chip popover (reader)    | Popover             | Sheet (medium)            | Multi-row content; exceeds tiny limit                      |
 | Time-chip popover                | Popover             | Popover                   | Tiny content                                               |
+| World-time edit (per-entry)      | Popover             | Sheet (short)             | TierTupleInput; multi-field form earns Sheet on phone      |
 | Actions menu (`⚲`)               | Popover             | Sheet (short)             | Edge-clipping risk on phone → Sheet                        |
 | Branch chip popover (`⎇`)        | Popover             | Sheet (short)             | Was "bottom drawer" pre-foundations; reconciled in Group B |
 | Branch creation                  | Modal               | Modal                     | Pre-foundations: "creation modal is unchanged on mobile"   |

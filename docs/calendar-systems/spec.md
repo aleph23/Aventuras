@@ -446,10 +446,11 @@ weekdayName, ... }`.
 3. Inverse (parse a user-typed date) is needed only at:
    - The wizard's `worldTimeOrigin` input — calendar-specific date
      picker, not free-form text.
-   - Manual worldTime correction UI (per the
-     [follow-up](../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)) —
-     date picker, not free-form text.
-     No generic free-form date parser is needed for v1.
+   - Manual worldTime correction UI (per
+     [`explorations/2026-05-17-manual-worldtime-correction.md`](../explorations/2026-05-17-manual-worldtime-correction.md)) —
+     TierTupleInput inside a Popover (desktop) / Sheet (phone), not
+     free-form text. No generic free-form date parser is needed for
+     v1.
 
 Caching: per-year cumulative-day lengths memoize lazily. A
 10,000-year story span = 10,000 small entries; bounded; fine.

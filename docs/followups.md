@@ -15,62 +15,33 @@ for the placement rule.
 
 ## Data-model
 
-### Manual worldTime correction — cascade vs. jump + downstream blast radius
+### Classifier delta validation
 
-Per [In-world time tracking](./data-model.md#in-world-time-tracking)
-users can manually edit `metadata.worldTime` on a single entry to
-correct classifier drift. The edit is delta-logged like any metadata
-mutation. What's NOT specified: what happens to subsequent entries
-and to anything that derives time from them. Two options, both with
-real costs:
+The classifier output spec requires per-entry `delta ≥ 0` as a hard
+pipeline-layer invariant, per
+[`architecture.md → Classifier contract — metadata fields`](./architecture.md#classifier-contract--metadata-fields).
+Pipeline validation rejects negative deltas; on rejection, re-rolls
+once, then clamps to `0` with a logged anomaly. The validator lands
+alongside the classifier output Zod schema when classifier output
+validation is next touched. Promoted from implicit assumption to
+explicit hard contract by
+[`explorations/2026-05-17-manual-worldtime-correction.md`](./explorations/2026-05-17-manual-worldtime-correction.md).
 
-- **Cascade correction** — shift every entry after N by the
-  correction delta. Preserves the monotonically non-decreasing
-  invariant. Costs: one user edit produces N writes; either each
-  gets its own delta (loud log) or they batch under a single
-  `action_id` (cleaner, but a larger atomic operation). Also racy
-  if a classifier pass is mid-stream on a new entry.
-- **Jump (leave subsequent alone)** — only entry N changes;
-  entries > N retain their original worldTimes. Breaks the
-  "monotonically non-decreasing" promise between N and N+1.
-  Downstream consumers reading worldTime arithmetic (character
-  ageing, scheduled-happening firing checks, freshness-based
-  retrieval decay) misbehave in subtle ways.
+### User-entry worldTime contract
 
-Secondary concerns the design needs to answer:
-
-- **Derived happening times.** A happening with
-  `occurred_at_entry = E` derives its in-world time from entry E's
-  worldTime (per the [`happenings` decision](./data-model.md#happenings--character-knowledge)).
-  Editing entry E's worldTime semantically shifts every such
-  happening's time. The shift is audit-visible via the delta log,
-  but the UX needs to surface "this edit changes N derived times"
-  before the user commits.
-- **Flashback / non-linear corrections.** The classifier emits `0`
-  for detected flashbacks, but a user might manually set a
-  worldTime on a flashback entry to mean "this scene depicts 1872
-  AR." That collides with the "metadata.worldTime is always
-  main-timeline elapsed" contract. The future `sceneTime` exit
-  (documented in
-  [`data-model.md → In-world time tracking`](./data-model.md#in-world-time-tracking))
-  is the cleaner home for this — manual worldTime edits on
-  flashback entries should probably be blocked with guidance
-  pointing at sceneTime once it lands.
-- **Non-linear narratives** generalize the flashback case.
-  Single-`worldTime` was already flagged a v1 limitation; manual
-  correction makes the limitation more user-visible, since users
-  in those genres will reach for the edit affordance.
-
-Decisions needed:
-
-- Cascade vs. jump (or a third option — interactive confirmation
-  showing the affected entries + happenings and letting the user
-  pick).
-- UX for blast-radius preview before commit.
-- Guardrails (if any) blocking edits that would break
-  monotonicity or shift derived times the user didn't intend.
-- How `sceneTime` (when it lands) co-exists with manual
-  `worldTime` edits.
+The classifier doesn't run on `user_action` entries, so their
+`metadata.worldTime` is never authored by the pipeline. Yet
+[`entry-card.md → World-time footer`](./ui/patterns/entry-card.md#world-time-footer)'s
+per-kind structure table lists the footer as "shown" on user
+entries — the rendering rule "hidden when `worldTimeLabel`
+undefined" silently handles the empty case, but the contract is
+not explicit. Open: is user-entry `worldTime` always undefined,
+does it inherit from the preceding AI entry, or will it eventually
+get classifier-tagged via a pass over user actions? The manual
+edit affordance
+([per-entry world-time footer click](./ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer))
+gates on `worldTime` presence regardless and isn't blocked by this
+ambiguity. Lands before reader-composer integration ships.
 
 ### Memory architecture — design landed
 
@@ -252,10 +223,13 @@ Autocomplete's portaled popover via Electron's RN-Web build) +
 `measureElement` on web and FlatList's native layout on phone.
 
 What **isn't** resolved: when the reader narrative auto-loads older
-entries (insertion above the viewport) or when a reasoning body
-expands above the current scroll, the user's apparent scroll
-position must stay anchored — content above the fold can shift, but
-what's in front of the user must not jump.
+entries (insertion above the viewport), when a reasoning body
+expands above the current scroll, or when an above-the-fold entry's
+world-time footer label re-renders post-Save after a manual
+[world-time edit](./ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer)
+(label width change can wrap or de-wrap the footer row), the user's
+apparent scroll position must stay anchored — content above the
+fold can shift, but what's in front of the user must not jump.
 `@tanstack/react-virtual` does not preserve native browser
 scroll-anchoring across prepend out of the box; community recipes
 (measure prepended block, add equivalent top padding, scroll by

@@ -122,6 +122,33 @@
   .gen-banner { display: none; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--bg-region); align-items: center; gap: 12px; font-size: 12px; color: var(--ink); }
   .gen-banner.visible { display: flex; }
 
+  /* per-entry world-time footer — bottom-right of bubble; click-to-edit on AI/opening */
+  .wt-footer { margin-top: 8px; display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 10.5px; color: var(--ink-muted); cursor: pointer; user-select: none; }
+  .wt-footer:hover { color: var(--ink); }
+  .wt-footer .wt-icon { font-size: 10px; opacity: 0.7; }
+  .wt-footer.has-break .wt-mono-break { color: var(--warn); }
+  .wt-mono-break { font-size: 11px; line-height: 1; }
+  .wt-mono-break[title] { cursor: help; }
+
+  /* world-time edit popover (desktop) — anchored to footer.
+     Static centered overlay in the wireframe for review; real impl anchors to the footer click. */
+  .wt-edit-popover { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .wt-edit-popover.open { display: flex; }
+  .wt-edit-popover .dialog { background: var(--bg-region); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 12px 32px rgba(0,0,0,0.18); width: 320px; max-width: 100%; }
+  .wt-edit-popover .dialog-head { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: space-between; }
+  .wt-edit-popover .dialog-head h3 { margin: 0; font-size: 13px; color: var(--ink); font-weight: 600; }
+  .wt-edit-popover .dialog-close { font-size: 18px; color: var(--ink-faint); cursor: pointer; line-height: 1; padding: 0 4px; }
+  .wt-edit-popover .dialog-body { padding: 12px 14px; }
+  .wt-edit-popover .mono-banner { display: none; padding: 6px 8px; margin-bottom: 10px; border: 1px solid var(--warn); background: var(--warn-bg); color: #765; font-size: 11px; border-radius: 3px; }
+  .wt-edit-popover.has-break .mono-banner { display: block; }
+  .wt-edit-popover .tier-row { display: flex; gap: 6px; align-items: flex-end; }
+  .wt-edit-popover .tier-field { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .wt-edit-popover .tier-label { font-size: 9px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .wt-edit-popover .tier-input { padding: 4px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); font-size: 12px; font-family: inherit; box-sizing: border-box; width: 100%; }
+  .wt-edit-popover .dialog-foot { padding: 8px 14px; border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; gap: 6px; background: var(--bg); }
+  .wt-edit-popover .btn { padding: 4px 12px; border: 1px solid var(--line); border-radius: 3px; font-size: 11px; cursor: pointer; background: var(--bg); color: var(--ink); font-family: inherit; }
+  .wt-edit-popover .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+
   /* flip-era modal — uses the Autocomplete-with-create primitive (patterns/forms.md) */
   .flip-era-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
   .flip-era-modal.open { display: flex; }
@@ -773,6 +800,36 @@
             <span class="entry-action probe" title="Probe this turn — open the memory probe scoped to this entry (visible only when probe mode is on)">&#128270;</span>
             <span class="entry-action danger" title="Delete (rollback to before this entry)">&times;</span>
           </div>
+          <!-- per-entry world-time footer (normal state) — click to edit -->
+          <div class="wt-footer" title="Edit in-world time" onclick="document.getElementById('wt-edit-popover').classList.add('open')">
+            <span class="wt-icon">&#9201;</span>Day 12 &middot; 14:30
+          </div>
+        </div>
+      </div>
+
+      <!-- Second AI entry showing the monotonicity-break state — user edited this entry's worldTime
+           to a value less than its predecessor; warning indicator + tooltip + has-break flag on popover. -->
+      <div class="entry ai">
+        <div class="bubble">
+          <div class="bubble-kind">
+            <span class="bubble-meta">
+              <span class="bubble-glyph" title="Narrative" aria-label="Narrative">&#128218;</span>
+              <span class="tok-display" title="reply tok / reasoning tok">2.1k / &mdash;</span>
+            </span>
+          </div>
+          <div class="bubble-content placeholder">[narrative response &mdash; whose worldTime has been manually edited backward, e.g. the user noticed this scene took place earlier than the classifier inferred and dragged it back to 13:45.]</div>
+          <div class="entry-actions">
+            <span class="entry-action" title="Edit">&#x270E;</span>
+            <span class="entry-action" title="Regenerate this reply">&#x21BB;</span>
+            <span class="entry-action" title="Branch from this entry">&#x2387;</span>
+            <span class="entry-action danger" title="Delete (rollback to before this entry)">&times;</span>
+          </div>
+          <!-- per-entry world-time footer (monotonicity-break state) — warning glyph + tooltip on desktop;
+               click opens the popover with the break banner shown above the tier input. -->
+          <div class="wt-footer has-break" title="Edit in-world time" onclick="(function(){ var p=document.getElementById('wt-edit-popover'); p.classList.add('open','has-break'); })()">
+            <span class="wt-mono-break" title="Earlier than previous entry (Day 12 &middot; 14:30)">&#9888;</span>
+            <span class="wt-icon">&#9201;</span>Day 12 &middot; 13:45
+          </div>
         </div>
       </div>
 
@@ -1156,6 +1213,39 @@
     </div><!-- /.viewport -->
   </div><!-- /.vp-stage-wrap -->
 </div><!-- /.vp-stage -->
+
+<!-- World-time edit overlay — Popover on desktop, Sheet on phone. The wireframe renders
+     a static centered overlay; the real implementation anchors to the clicked footer
+     (desktop) or opens as a bottom Sheet (phone) per patterns/overlays.md. Click any
+     entry's world-time footer to open. The "has-break" class shows the warning banner
+     above the input — only fires when the entry's worldTime is less than the previous
+     main-timeline entry's. -->
+<div class="wt-edit-popover" id="wt-edit-popover">
+  <div class="dialog">
+    <div class="dialog-head">
+      <h3>Edit in-world time</h3>
+      <span class="dialog-close" onclick="(function(){ var p=document.getElementById('wt-edit-popover'); p.classList.remove('open','has-break'); })()">&times;</span>
+    </div>
+    <div class="dialog-body">
+      <div class="mono-banner">&#9888; Earlier than previous entry (Day 12 &middot; 14:30).</div>
+      <!-- TierTupleInput — calendar-aware; fields match the active calendar's tier shape.
+           Earth shown: year / month / day / hour / minute / second. Shire/Mayan/Stardate
+           would render with their own tier fields. -->
+      <div class="tier-row">
+        <div class="tier-field"><span class="tier-label">Year</span><input class="tier-input" type="number" value="1024"></div>
+        <div class="tier-field"><span class="tier-label">Mo</span><input class="tier-input" type="number" value="6"></div>
+        <div class="tier-field"><span class="tier-label">Day</span><input class="tier-input" type="number" value="12"></div>
+        <div class="tier-field"><span class="tier-label">Hr</span><input class="tier-input" type="number" value="13"></div>
+        <div class="tier-field"><span class="tier-label">Min</span><input class="tier-input" type="number" value="45"></div>
+        <div class="tier-field"><span class="tier-label">Sec</span><input class="tier-input" type="number" value="0"></div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" onclick="(function(){ var p=document.getElementById('wt-edit-popover'); p.classList.remove('open','has-break'); })()">Cancel</button>
+      <button class="btn primary" onclick="(function(){ var p=document.getElementById('wt-edit-popover'); p.classList.remove('open','has-break'); })()">Save</button>
+    </div>
+  </div>
+</div>
 
 <!-- Flip-era modal — triggered from time-chip popover, Actions menu, or per-entry icon.
      Sits outside .viewport so position:fixed centers against the document, not the container. -->

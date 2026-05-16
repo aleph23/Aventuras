@@ -1427,7 +1427,7 @@ story_entries.metadata: {
   currentLocationId: string | null  // location entity that IS the current scene; singleton
 
   // In-world time — classifier-authored, user-editable
-  worldTime: number                 // physical seconds since story start; calendar-uniform; monotonically non-decreasing within a branch
+  worldTime: number                 // physical seconds since story start; calendar-uniform. Storage invariant: ≥ 0. Classifier writes are monotonically non-decreasing (delta ≥ 0 hard); user manual edits may produce non-monotonic sequences which the UI flags and consumers tolerate. See "In-world time tracking" below.
 }
 ```
 
@@ -1523,14 +1523,33 @@ delete is suppressed by the block-delete invariant.
 
 ### In-world time tracking
 
-**Decided:** time is modeled as a single monotonically non-decreasing
-integer `worldTime` on each entry's metadata, in **physical seconds
-since story start**. The base unit is universal — every calendar uses
-the same physical-seconds integer. The calendar's role is to map that
+**Decided:** time is modeled as a single non-negative integer
+`worldTime` on each entry's metadata, in **physical seconds since
+story start**. The base unit is universal — every calendar uses the
+same physical-seconds integer. The calendar's role is to map that
 integer to its tier-tuple via a `secondsPerBaseUnit` anchor (1 for
 Earth, 86400 for Shire's day-grain, 86400 for Mayan kin) plus its
 tier rollover stack. See [`calendar-systems/spec.md`](./calendar-systems/spec.md)
 for the calendar primitive.
+
+**Invariants split across three layers.** The "monotonically
+non-decreasing" claim splits by source:
+
+- **Storage** (hard): `worldTime ≥ 0`. The integer is non-negative;
+  the action layer rejects writes outside this range.
+- **Classifier** (hard, see
+  [`architecture.md → Classifier contract — metadata fields`](./architecture.md#classifier-contract--metadata-fields)):
+  per-entry delta `≥ 0`. Flashbacks emit `0`. The classifier is
+  structurally incapable of producing a non-monotonic cumulative
+  sequence on its own.
+- **Cumulative monotonicity** (soft): the sequence is monotonically
+  non-decreasing **when written by the classifier alone**. User
+  manual `worldTime` edits (via the
+  [per-entry world-time footer click](./ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer))
+  may produce non-monotonic sequences. The UI surfaces violations
+  with an inline indicator on the offending entry; downstream
+  consumers read whatever value is stored and tolerate any
+  non-negative `worldTime`.
 
 `stories.definition.worldTimeOrigin: TierTuple` — a `Record<string,
 number>` keyed by the active calendar's tier names — anchors
@@ -1571,8 +1590,33 @@ its arithmetic output is always in seconds, regardless of calendar.
 For detected flashback/memory framing ("she remembered...", "25 years
 earlier..."), the classifier emits `0` — main-timeline clock doesn't
 advance during recalled scenes. Estimation errors are unavoidable;
-users can manually edit `metadata.worldTime` (delta-logged like any
-metadata mutation) to correct drift.
+users can manually edit `metadata.worldTime` directly on each entry
+via the
+[per-entry world-time footer](./ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer)
+(delta-logged like any metadata mutation). Edits are direct
+manipulation with no cascade — one user edit writes one delta; the
+[monotonicity indicator](./ui/patterns/entry-card.md#world-time-footer)
+flags entries whose `worldTime` is less than the most recent
+preceding main-timeline entry.
+
+**Editing a flashback entry's `worldTime`** (away from `0`)
+effectively promotes it out of flashback framing under the current
+convention — the entry becomes indistinguishable from a regular
+main-timeline entry at the chosen time. The future `sceneTime` exit
+(see below), when it lands, restores the distinction by separating
+"scene-depicted time" from "main-timeline elapsed." Until then,
+treat manual `worldTime` edits on flashback entries as deliberate
+promotion.
+
+**Downstream consumers tolerate any non-negative `worldTime`.**
+Happenings derivation, threads, retrieval recency, character ageing,
+and scheduled-happening firing checks all read each entry's stored
+`worldTime` independently and do NOT assume monotonic order. Edits
+that produce out-of-order sequences cause derived values
+(happening times via `occurred_at_entry`, thread positions) to
+shift silently on the next read — that is the accepted consequence
+of the no-cascade contract. The delta log entry on the edited
+entry is the audit trail.
 
 **v1 limitation — non-linear narrative.** Single-`worldTime` cleanly
 models linear narrative plus short flashbacks (main clock just

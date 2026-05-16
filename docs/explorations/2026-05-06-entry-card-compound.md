@@ -188,11 +188,12 @@ text-xs`).
 - Hidden when `worldTimeLabel` undefined (host's choice — e.g.,
   formatter failure or calendar omits this entry).
 
-**Future hook:** when
-[manual worldTime correction](../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius)
-lands, this footer becomes click-to-edit (or hover-action).
-Today: read-only display. The footer's existence is the surface
-the future correction UX wires to.
+**Future hook (resolved 2026-05-17):** the footer became
+click-to-edit per
+[`2026-05-17-manual-worldtime-correction.md`](./2026-05-17-manual-worldtime-correction.md) —
+click opens a Popover (desktop) / Sheet (phone) with a
+TierTupleInput; Save writes one delta. The footer's existence at
+this design's landing was the surface that correction UX wired to.
 
 ## Action cluster
 
@@ -270,16 +271,17 @@ text post-stream, not just count.
 
 ## What this design defers
 
-- **Manual worldTime correction UI** — the footer is the future
-  home; today read-only. Lives in
-  [the existing followup](../followups.md#manual-worldtime-correction--cascade-vs-jump--downstream-blast-radius).
+- **Manual worldTime correction UI** — resolved 2026-05-17 in
+  [`2026-05-17-manual-worldtime-correction.md`](./2026-05-17-manual-worldtime-correction.md);
+  the footer is now click-to-edit (Popover / Sheet with
+  TierTupleInput) when the entry has authored worldTime metadata.
 - **Reasoning text in search scope** — provenance, not narrative
   content; lean: don't include. Revisit if real demand surfaces.
 - **Reasoning text in export / backup** — yes by default
   (provenance is part of the entry record); confirms with the
   existing export shape when that pass lands.
-- **Click-to-edit on the world-time footer** — same future as
-  manual worldTime correction.
+- **Click-to-edit on the world-time footer** — resolved 2026-05-17
+  alongside manual worldTime correction (same design pass).
 
 ## Adversarial summary
 
