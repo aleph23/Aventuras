@@ -61,3 +61,7 @@ storybook-static
 # Superpowers brainstorming scratch dir (visual companion mockups)
 .superpowers/
 superpowers/
+
+# Python virtualenvs (poc-embedder, future PoCs)
+**/.venv/
+**/__pycache__/

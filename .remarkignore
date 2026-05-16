@@ -5,3 +5,5 @@ dist/
 release/
 storybook-static/
 electron/dist/
+**/.venv/
+scripts/poc-embedder/.venv/

@@ -26,7 +26,8 @@ here but pick their own gate behavior at their own design pass.
 
 The constraint isn't UX — it's a coherence requirement between two
 writers (user, pipeline) racing on the same Zustand store. Per
-[`architecture.md → Pipeline principles`](../architecture.md#pipeline-principles),
+[`generation-pipeline.md → Pipeline declaration`](../generation-pipeline.md#pipeline-declaration)
+(originally lived under `architecture.md → Pipeline principles`),
 phases read directly from `useStoryStore` / `useGenerationStore`
 and the orchestrator dispatches actions that write back to the
 same stores. The classifier writes deltas mid-turn (entities,
@@ -112,7 +113,8 @@ story, or pipeline-level fatal error. Orchestrator:
 1. Calls `abortController.abort()`. Every phase's
    `abortSignal.aborted` becomes true; LLM calls cancel; running
    generators return `{ aborted: true }` per
-   [`architecture.md → AbortSignal threaded through everything`](../architecture.md#abortsignal-threaded-through-everything).
+   [`generation-pipeline.md → Abort`](../generation-pipeline.md#abort)
+   (originally lived under `architecture.md → AbortSignal threaded through everything`).
 2. Reverse-replays the `actionId`'s deltas against SQLite + the
    live store. The undo information needed is the same the
    delta log records for user CTRL-Z (per
@@ -123,7 +125,8 @@ story, or pipeline-level fatal error. Orchestrator:
    transitions `in-progress → idle`. UI gate releases.
 
 **Streaming partial entries.** Per
-[`architecture.md → Why intermediates aren't persisted`](../architecture.md#why-intermediates-arent-persisted):
+[`generation-pipeline.md → Streaming partial-entry on abort`](../generation-pipeline.md#streaming-partial-entry-on-abort)
+(originally lived under `architecture.md → Why intermediates aren't persisted`):
 the narrative content streams into the AI entry's row as a
 side-channel write; the `op=create` delta only commits at stream
 completion. On abort, no `op=create` exists yet — the live-store
