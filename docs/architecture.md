@@ -582,6 +582,172 @@ See
 
 ---
 
+## Delta history diff resolution
+
+History surfaces (entity and lore History tabs in
+[`world.md`](./ui/screens/world/world.md#history-tab), thread and
+happening History tabs in [`plot.md`](./ui/screens/plot/plot.md),
+and the
+[Diagnostics Hub Delta log tab](./ui/screens/diagnostics/diagnostics.md#tab-5--delta-log))
+render rows via the
+[`DeltaLogRow`](./ui/patterns/delta-log-row.md) pattern, whose
+`summary: string` slot takes pre-formatted diff prose
+(`Added "former soldier"; was ["brave", "loyal"]`). Forming that
+prose for `op=update` deltas requires both the OLD value and the
+NEW value: OLD lives in
+[`deltas.undo_payload`](./data-model.md#diagram) directly, but
+NEW is not stored anywhere — the live target row holds "state
+right now," which equals "state right after this delta" only for
+the most recent delta on that target.
+
+The diff cache is the read-side substrate that resolves NEW
+on demand. It is **in-memory only, lazy, per-delta-keyed, and
+display-only.** No schema change, no persistence, no involvement
+with search. Search continues to use raw SQL over `deltas` per
+the scopes declared in each per-screen doc.
+
+### Walk algorithm
+
+For a target `op=update` delta D, fetch the chain of deltas on
+the same `(branch_id, target_table, target_id)` with
+`log_position >= D.log_position`, plus the current state of the
+target row, **both inside a single SQLite read transaction**
+(WAL gives a consistent snapshot, so a fresh delta committing
+mid-walk cannot produce an off-by-one between the two reads).
+
+Walk newest-to-oldest from the live row. The seed state comes
+from the live row, unless the head of the chain is an `op=delete`
+— in which case the delete's `undo_payload` (full pre-delete
+row JSON per the
+[delta storage economy decision](./data-model.md#entry-mutability--rollback))
+seeds the walk. For each `op=update` delta on the path:
+
+1. `new_partial = pick(state, keys(delta.undo_payload))`.
+2. `old_partial = delta.undo_payload`.
+3. Cache `{ new: new_partial, old: old_partial }` keyed by
+   `delta.id`.
+4. `state = merge(state, delta.undo_payload)` to step backward
+   one delta.
+
+The `merge` step matches the semantics rollback already uses to
+apply `undo_payload` to a row — same observable behavior on the
+same input, not necessarily the same function. The exact
+encoding of nested-field changes inside `undo_payload` is a
+pre-existing data-model gap tracked under
+[followups](./followups.md#undo_payload-encoding-for-nested-fields);
+the cache walk and rollback both depend on whatever encoding the
+write layer pins.
+
+`op=create` and `op=delete` never go through the cache —
+[`DeltaLogRow`](./ui/patterns/delta-log-row.md#summary) renders
+them as one-liners directly.
+
+### Cache shape and lifecycle
+
+A process-wide singleton (proposed home `lib/deltas/diff-cache.ts`,
+exact path is implementation-time):
+
+```ts
+type DiffCacheEntry = {
+  old: Record<string, unknown>
+  new: Record<string, unknown>
+}
+
+peek(deltaId: string): DiffCacheEntry | undefined  // sync, render-safe
+populate(delta: Delta): Promise<DiffCacheEntry>    // async; runs the walk
+populateBatch(deltas: Delta[]): Promise<void>      // groups by target
+```
+
+LRU eviction, hard cap **2000 entries**. Conservative estimate
+~500 bytes per entry, ~1 MB at cap. Process lifetime; no
+persistence. Cleared on app restart only; cold every launch by
+design. `delta.id` is a globally-unique kind-prefixed UUID
+([`data-model.md → ID shape`](./data-model.md#id-shape--kind-prefixed-uuids-throughout)),
+so cross-story and cross-branch sharing in the same cache is
+safe.
+
+The walk's chain query relies on a composite index
+`deltas (branch_id, target_id, log_position)` for acceptable
+performance on active stories — tracked under
+[followups](./followups.md#composite-index--deltas-branch_id-target_id-log_position).
+Without the index, every populate degrades to a `deltas`-wide
+scan.
+
+### Consumer flow
+
+Each row's host (per-screen page) renders via:
+
+1. `delta.op !== 'update'` → format one-liner directly. Cache
+   not involved.
+2. `delta.op === 'update'`:
+   - `peek(delta.id)` first.
+   - **Hit:** format rich `(old, new)` prose, pass as `summary`.
+   - **Miss:** kick off `populate(delta)`, fall back to a
+     summary derived from `undo_payload` keys alone (e.g.,
+     `Modified traits, drives`). On populate resolution, the
+     host's normal re-render path picks up the new entry and
+     the row upgrades to the rich form.
+
+The fallback keeps `DeltaLogRow`'s `summary: string` contract
+unchanged. Pre-walk and post-walk are both real strings; the
+post-walk version is richer.
+
+Re-render trigger mechanism is host-determined and not
+load-bearing for the cache contract (TanStack Query keyed on
+`['diff', delta.id]` is the natural fit given the existing
+stack).
+
+`populate` coalesces concurrent calls for the same `delta.id`
+via an internal in-flight promise map; `populateBatch` groups
+by target so a visible window of N deltas across M targets runs
+M walks, not N. Cross-delta-within-target coalescing is
+deliberately not implemented — its worst case is one redundant
+SQL query.
+
+### Concurrency, rollback, error path
+
+Reads happen concurrently with writes under WAL; the single-txn
+read snapshot is the entire concurrency contract. New deltas
+committing after a walk completes don't affect cached entries
+(historical `(old, new)` is immutable for a given delta).
+
+Rollback and CTRL-Z reverse-and-delete deltas
+([`data-model.md → Entry mutability & rollback`](./data-model.md#entry-mutability--rollback));
+cache entries for deleted delta IDs become stranded. Nothing
+reads them — the deltas don't render on any surface anymore —
+and LRU evicts naturally. **No invalidation API.**
+
+Single renderer process at v1; cross-window coordination would
+require IPC and is out of scope until multi-window support
+ships.
+
+On walk failure (DB error, corrupt state with target row missing
+and no `op=delete` in the chain), `populate` rejects; the host
+falls back permanently to the `undo_payload`-keys summary for
+that row and emits a `debug`-level log per
+[`observability.md → Logger contract`](./observability.md#logger-contract).
+The row stays usable.
+
+### Search is orthogonal
+
+Search uses SQL over persistent deltas; the cache is not
+queryable from search. Per-surface scope is preserved as
+written: World History tab does `LIKE` plus `json_extract` over
+`undo_payload`
+([`world.md → History tab`](./ui/screens/world/world.md#history-tab));
+Diagnostics Hub Delta log narrows further to target names and
+field paths only
+([`diagnostics.md → Tab 5 — Delta log`](./ui/screens/diagnostics/diagnostics.md#tab-5--delta-log)).
+Neither scope reaches NEW-side-only value strings (a value just
+added and not yet replaced lives only on the current row, not
+in any `undo_payload`); accepted as a v1 limitation.
+
+Full design rationale, trade-off discussion, and adversarial
+review live in
+[`explorations/2026-05-17-delta-diff-cache.md`](./explorations/2026-05-17-delta-diff-cache.md).
+
+---
+
 ## What this doc does not yet cover
 
 Flag for future sessions:

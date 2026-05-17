@@ -572,7 +572,7 @@ present on the delta AND the corresponding turn capture is still
 in the ring buffer. When the turn has aged out, chip is
 informational only.
 
-**Prerequisite:** the [delta diff cache followup](../followups.md#delta-diff-cache-for-history-surfaces)
+**Prerequisite:** the [delta diff cache followup](../architecture.md#delta-history-diff-resolution)
 covers `(old → new)` rendering for ALL history surfaces. Tab 5
 inherits the prerequisite; doesn't add a new one. Fallback while
 cache is pending: raw `undo_payload` JSON viewer, less readable

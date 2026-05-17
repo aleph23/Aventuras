@@ -98,6 +98,15 @@ Host owns rendering — for an entity update, this humanizes the
 `undo_payload` JSON; for create / delete, this can be a one-liner
 (`Created`, `Deleted`).
 
+For `op=update` rows, the `(old, new)` pair needed to form the
+diff prose comes from the in-memory
+[delta diff cache](../../architecture.md#delta-history-diff-resolution).
+On cache miss, the host falls back to a summary derived from
+`undo_payload` keys alone (e.g., `Modified traits, drives`) and
+upgrades to the rich prose on populate. The pattern's
+`summary: string` contract stays unchanged in either state.
+`op=create` and `op=delete` never go through the cache.
+
 ### Meta line
 
 Muted foreground (`text-fg-muted text-xs`), middle-dot separators:

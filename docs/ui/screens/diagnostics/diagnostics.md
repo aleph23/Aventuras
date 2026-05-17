@@ -192,11 +192,15 @@ informational only (clicking shows "this turn's diagnostic data
 has aged out").
 
 **Prerequisite:** the
-[delta diff cache followup](../../../followups.md#delta-diff-cache-for-history-surfaces)
-covers `(old → new)` rendering for ALL history surfaces. This
+[delta diff cache](../../../architecture.md#delta-history-diff-resolution)
+resolves `(old → new)` rendering for ALL history surfaces. This
 tab inherits the prerequisite; doesn't add a new one. Fallback
-while cache is pending: raw `undo_payload` JSON viewer, less
-readable but functional.
+while a row's cache entry is pending: a summary derived from
+`undo_payload` keys alone (e.g., `Modified traits, drives`),
+upgrading to the rich `(old, new)` prose on populate. Raw
+`undo_payload` JSON viewing is the pattern's separately-deferred
+[inline diff expansion](../../patterns/delta-log-row.md#what-this-design-defers)
+affordance, not the populate-pending state.
 
 **Cost:** unlike the other tabs, this one queries a persisted,
 growing table. Active stories accumulate dozens of deltas per

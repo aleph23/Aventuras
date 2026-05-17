@@ -188,7 +188,7 @@ The reversal writes the old worldTime back; the monotonicity
 indicator re-evaluates on the next render.
 
 **Delta-snapshot cache compatibility.** Per the unresolved
-[delta diff cache followup](../followups.md#delta-diff-cache-for-history-surfaces),
+[delta diff cache followup](../architecture.md#delta-history-diff-resolution),
 the cache stores per-field post-state. A worldTime edit is exactly
 a per-field update — fits the cache shape with no special handling.
 

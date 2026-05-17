@@ -60,54 +60,58 @@ deferred as a UI concern (independent of memory design) — until
 that UI lands, classifier writes description only at first
 introduction per the existing authorship contract.
 
-### Delta diff cache for history surfaces
+### undo_payload encoding for nested fields
 
-The [`deltas`](./data-model.md#diagram) table stores `undo_payload` —
-the data needed to reverse a change — but not the post-state. To
-render the host-formatted `summary` strings the
-[DeltaLogRow pattern](./ui/patterns/delta-log-row.md) takes opaque
-(e.g., `Added "former soldier"; was ["brave", "loyal"]`), the host
-needs both the OLD value (in `undo_payload`) and the NEW value
-(absent). Walking the deltas chain forward to derive each
-post-state on read is fine for a single per-target history view,
-but expensive for the cross-cutting global delta-log surface.
+[`deltas.undo_payload`](./data-model.md#diagram) is described as
+"partial diff of changed fields with their PRE-change values"
+(per
+[Delta storage economy](./data-model.md#entry-mutability--rollback)),
+but the encoding for **nested field paths** is not pinned. A
+touch to `entity.state.traits` could be recorded as
+`{ state: { traits: [...] } }`, `{ "state.traits": [...] }`, or
+`{ state: <whole pre-state object> }`. The choice affects both
+the rollback merge function (applies `undo_payload` to a SQLite
+row) and the
+[delta diff cache walk](./architecture.md#delta-history-diff-resolution)
+(applies the same payload to an in-memory state object). Both
+paths depend on a shared, unspecified contract today.
 
-Direction agreed (informal — pending design pass for schema and
-SQL shape):
+Resolution lands when the write layer is next touched —
+naturally alongside the
+[classifier delta validation](#classifier-delta-validation)
+Zod schema work or when classifier output validation needs the
+encoding to commit to a shape. Until then, both rollback and
+the diff cache work against the implicit "whatever the writer
+produces" contract.
 
-- **Cache shape: post-state JSON, separate table.** Mirror the
-  shape of `undo_payload` but for the new value, in a separate
-  cache table (e.g., `delta_redo` or `delta_snapshots`). Keeps
-  the `deltas` table narrow as the canonical reversal log; cache
-  is fully disposable + rebuilable from `deltas` + current target
-  state.
-- **Per-field, not full row.** Match `undo_payload`'s scope —
-  only the touched fields. Tiny edits don't blow up to full-row
-  snapshots.
-- **Lazy population.** Fill on first view of a target chain;
-  history surfaces sort newest → oldest so a user typically only
-  pages a small window before navigating away. Write-time
-  population was rejected because most deltas are never browsed.
-- **Display layer formats prose at render time** from `(old, new)`
-  diff inputs. Keeps the cache language- and format-agnostic;
-  translation and prose-tuning don't need cache rebuilds.
+### Composite index — deltas (branch_id, target_id, log_position)
 
-Decisions deferred to the design session:
+The
+[delta diff cache walk](./architecture.md#delta-history-diff-resolution)
+issues a chain query per populated delta:
 
-- Concrete table schema (PK shape, indexes, branch-scoping).
-- Eviction / bounded-size policy, or unbounded with vacuum on
-  manual command.
-- Cold-read strategy for the global delta-log surface — does it
-  precompute on idle, constrain to the most recent N deltas with
-  on-demand expansion, or accept the first-paint cost?
-- Backfill / rebuild ergonomics — single command, branch-scoped,
-  per-target?
-- Concurrency between an in-progress walk and a fresh delta write
-  on the same target (single-writer SQLite makes this less
-  fraught, but the policy still needs to be named).
+```sql
+SELECT * FROM deltas
+WHERE branch_id = ?
+  AND target_table = ?
+  AND target_id = ?
+  AND log_position >= ?
+ORDER BY log_position DESC
+```
 
-Lands before any history surface goes interactive in v1
-(World history tab, Plot history tab, future global delta-log).
+Without a composite index covering `(branch_id, target_id,
+log_position)`, every populate scans the `deltas` table —
+degrading the cache from sub-100 ms hidden cost to noticeable
+latency on any non-trivial story (~5 MB deltas per
+[the storage ceiling estimate](./data-model.md#entry-mutability--rollback)).
+The index is mandatory for the cache to perform, not a
+nice-to-have.
+
+Lands either as a one-line addition to `data-model.md`'s deltas
+schema declaration or in whichever migration introduces SQLite
+indexes for `deltas` (whichever convention the project ends up
+using; not yet pinned). Either way, must land before history
+surfaces go interactive in v1.
 
 ### Classifier prompt — character-to-character relationship extraction
 
