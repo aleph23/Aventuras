@@ -21,3 +21,8 @@ pre-commit:
     remark:
       glob: '*.md'
       run: node_modules/.bin/remark --quiet --frail --silently-ignore {staged_files}
+
+commit-msg:
+  commands:
+    body-length:
+      run: ./scripts/check-commit-msg.sh {1}
