@@ -7,3 +7,4 @@ storybook-static/
 electron/dist/
 **/.venv/
 scripts/poc-embedder/.venv/
+.agents
