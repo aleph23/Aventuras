@@ -812,17 +812,17 @@ CREATE TABLE pipeline_runs (
   run_id      TEXT PRIMARY KEY,
   kind        TEXT NOT NULL,
   action_id   TEXT NOT NULL,
+  story_id    TEXT NULL,       -- populated at beginRun from calling context;
+                               -- NULL for hypothetical non-story-scoped runs
   started_at  INTEGER NOT NULL,
   finished_at INTEGER NULL,
   outcome     TEXT    NULL    -- 'completed' | 'aborted' | 'failed' | 'recovered'
 )
 ```
 
-- `beginRun` writes the row with `finished_at = NULL`.
+- `beginRun` writes the row with `finished_at = NULL` and populates
+  `story_id` from the run's calling context.
 - `commitRun` / `abortRun` set `finished_at` + `outcome`.
-- **Startup recovery:** `SELECT * FROM pipeline_runs WHERE finished_at IS NULL`
-  → for each, reverse-replay deltas under its `actionId`, mark
-  `outcome = 'recovered'`.
 
 Atomicity windows worth being honest about:
 
@@ -839,9 +839,147 @@ Atomicity windows worth being honest about:
 Rows are kept after `finished_at` is set — diagnostic surface (run
 history, recovery audit). Pruning policy is a future concern.
 
-The startup recovery wiring itself lives with the broader app
-startup design; see
-[`followups.md → Crash recovery for in-flight transactions`](./followups.md#crash-recovery-for-in-flight-transactions).
+#### Startup recovery pass
+
+Recovery runs in a fixed boot slot:
+
+1. Native shell ready.
+2. SQLite handle opened, **migrations applied** — `deltas` and
+   `pipeline_runs` guaranteed at current schema.
+3. Zustand stores constructed at empty default state.
+4. **Crash recovery pass runs here.**
+5. Theme / settings hydration, provider and embedder readiness
+   checks, first user-facing surface renders.
+6. Story-load and background-task startup gated until recovery
+   resolves.
+
+Migrations-first is load-bearing: a migration that mutated a column
+an orphan's `undo_payload` references will surface the failure
+through the same `DeltaReplayError` path. The
+[`encoding_version`](./data-model.md#diagram) stamp lands at v1
+(every writer stamps `1`, every reader assumes v1 semantics); the
+multi-version apply-dispatcher that would route a stamp-`1` orphan
+through legacy-compatible apply rules after a schema change is
+deferred (see [`parked.md`](./parked.md)). Ordering recovery after
+migrations means stale-encoding orphans fail-into that future
+dispatcher rather than ahead of it.
+
+Invocation contract:
+
+```ts
+async function recoverInFlightRuns(): Promise<RecoveryReport> {
+  const orphans = await db.query(
+    'SELECT * FROM pipeline_runs WHERE finished_at IS NULL ORDER BY started_at ASC',
+  )
+  const reversed: RecoveredRun[] = []
+  const failures: RecoveryFailure[] = []
+
+  for (const orphan of orphans) {
+    try {
+      const deltaCount = await reverseReplayDeltas(orphan.action_id)
+      if (deltaCount === 0) {
+        // Pre-first-delta orphan: no diagnostic value in retaining the row.
+        await db.exec('DELETE FROM pipeline_runs WHERE run_id = ?', [orphan.run_id])
+      } else {
+        await db.exec(
+          "UPDATE pipeline_runs SET finished_at = ?, outcome = 'recovered' WHERE run_id = ?",
+          [Date.now(), orphan.run_id],
+        )
+        reversed.push({
+          runId: orphan.run_id,
+          kind: orphan.kind,
+          actionId: orphan.action_id,
+          storyId: orphan.story_id,
+          deltas: deltaCount,
+        })
+        logger.info('pipeline.recovered', {
+          runId: orphan.run_id,
+          kind: orphan.kind,
+          deltas: deltaCount,
+        })
+      }
+    } catch (e) {
+      failures.push({ runId: orphan.run_id, kind: orphan.kind, error: e })
+      logger.error('pipeline.recovery_failed', {
+        runId: orphan.run_id,
+        kind: orphan.kind,
+        actionId: orphan.action_id,
+        error: e,
+      })
+      // Orphan row stays with finished_at = NULL; next boot retries.
+    }
+  }
+  return { reversed, failures }
+}
+```
+
+The post-Zustand-construct ordering is safe because of a
+load-bearing invariant: **data-model Zustand slices (entries,
+entities, lore, happenings, threads, deltas, etc.) do not
+rehydrate from SQLite at construct time; they query lazily on
+first surface read.** Only UI-pref slices (theme id,
+last-opened-story id, etc.) may rehydrate at construct. Without
+this invariant, a data-model slice with construct-time
+rehydration would pick up pre-recovery state and stay stale until
+invalidated. With it, the first surface to render after recovery
+hydrates fresh from the post-recovery rows.
+
+The recovery hook's specific module path (where `recoverInFlightRuns`
+lives in the codebase) lands with the broader startup-flow design
+that
+[`architecture.md → What this doc does not yet cover`](./architecture.md#what-this-doc-does-not-yet-cover)
+also tracks.
+
+#### Recovery modal
+
+When `recoverInFlightRuns` returns with `reversed.length > 0`,
+the recovery report goes into a `pendingRecoveryReport` slot in a
+UI-state Zustand slice. The first user-facing surface that renders
+after boot drains the slot via `useEffect` and mounts an
+[`AlertDialog`](./ui/patterns/alert-dialog.md) with a single `OK`
+action and kind-aware copy naming the affected story:
+
+- `per-turn` → _"An interrupted shutdown was detected in
+  `{storyName}`. Your last AI response was reverted to keep the
+  story consistent."_
+- `chapter-close` → _"An interrupted shutdown was detected in
+  `{storyName}`. The chapter-close pass was reverted; your story
+  content is intact."_
+- `periodic-classifier` → _"An interrupted shutdown was detected
+  in `{storyName}`. A background memory update was reverted; your
+  story content is intact."_
+
+`{storyName}` resolves from the orphan's `story_id`; if NULL,
+copy substitutes a non-named variant. Multi-orphan modals
+concatenate orphans into one paragraph rather than chaining N
+modals — the case is vanishingly rare (concurrent same-kind runs
+can't happen; chained runs don't run simultaneously), so pretty UI
+for it isn't worth designing.
+
+Zero-reverse orphans (the pre-first-delta case) and recovery
+failures don't mount the modal; they surface via observability
+only.
+
+#### Recovery-failure policy
+
+When `reverseReplayDeltas` throws `DeltaReplayError` during startup
+recovery, the loop catches per-orphan and continues; boot is not
+blocked. The orphan row stays with `finished_at = NULL` so the next
+boot retries, and the failure emits `pipeline.recovery_failed` at
+`error` severity via observability — visible in the Diagnostics Hub
+Logs tab. The modal layer stays silent: the user's state is
+consistent (SQLite ROLLBACK undid any partial replay), the failure
+is almost always cross-version-related (an orphan's `undo_payload`
+references a column shape that no longer exists post-migration —
+the deferred multi-version apply-dispatcher case), and the orphan
+retries transparently on next boot.
+
+No max-retry counter and no admin "drop orphan" affordance for v1;
+stuck orphans remain visible in Logs across boots. The real fix
+lives with the multi-version apply-dispatcher work.
+
+The design exploration for this consumer-side wiring is
+[`explorations/2026-05-17-crash-recovery-startup.md`](./explorations/2026-05-17-crash-recovery-startup.md).
 
 ### `chainsTo` on predecessor
 
@@ -901,10 +1039,11 @@ in tests if a state-library swap ever happens.)
 ### Reverse-replay
 
 ```ts
-async function reverseReplayDeltas(actionId: string): Promise<void> {
+async function reverseReplayDeltas(actionId: string): Promise<number> {
   const deltas = await db.query('SELECT * FROM deltas WHERE action_id = ? ORDER BY seq DESC', [
     actionId,
   ])
+  if (deltas.length === 0) return 0
 
   await db.exec('BEGIN')
   try {
@@ -914,12 +1053,23 @@ async function reverseReplayDeltas(actionId: string): Promise<void> {
     await db.exec('COMMIT')
   } catch (e) {
     await db.exec('ROLLBACK')
-    throw new PipelineError('Reverse-replay failed', e)
+    throw new DeltaReplayError('Reverse-replay failed', { cause: e, actionId })
   }
+  return deltas.length
 
-  // Re-fetch affected rows into Zustand store from reversed SQLite state
+  // Runtime callers re-fetch affected rows into Zustand from the reversed
+  // SQLite state. Startup recovery has no store state to refresh — the
+  // first story-open after boot hydrates fresh.
 }
 ```
+
+The primitive is substrate-level and consumed by two callers:
+runtime `abortRun` (re-wraps the thrown `DeltaReplayError` as a
+`PipelineError` so the orchestrator's pipeline-failure path handles
+it) and startup `recoverInFlightRuns` (catches `DeltaReplayError`
+directly and routes to the recovery-failure policy above). The
+return value is the delta count so callers can distinguish a
+pre-first-delta zero-delta case from a real recovery.
 
 Abort is conceptually identical to user CTRL-Z — same
 `undo_payload` primitive, same reverse-replay path. Whether the
@@ -1025,7 +1175,7 @@ type PipelineError =
   | { kind: 'provider'; reason: 'auth' | 'network' | 'timeout' | 'unknown'; detail?: string }
   | { kind: 'phase-logic'; detail: string } // malformed output, contract violation
   | { kind: 'action-layer'; detail: string } // schema/constraint failure on persisted write
-  | { kind: 'orchestrator'; detail: string } // reverse-replay failed, etc.
+  | { kind: 'orchestrator'; detail: string } // abort-path wrap (catches DeltaReplayError, etc.)
 ```
 
 Categories drive how UI surfaces them — toast for transient,

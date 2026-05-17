@@ -781,11 +781,13 @@ Flag for future sessions:
   per the
   [v1-blocking threshold-tuning followup](./memory/followups.md#v1-blocking).
 - **Startup + migration flow** — first-boot initialization, schema
-  migration on version bump, crash recovery (the framework contributes
-  the `pipeline_runs` marker table and the recovery contract per
-  [`generation-pipeline.md → Crash recovery`](./generation-pipeline.md#crash-recovery-via-pipeline_runs-marker-table);
-  the startup wiring itself lands with the broader startup design),
-  loading current story on app launch.
+  migration on version bump, loading current story on app launch.
+  Crash recovery is now pinned end-to-end in
+  [`generation-pipeline.md → Crash recovery`](./generation-pipeline.md#crash-recovery-via-pipeline_runs-marker-table)
+  (marker table, boot-ordering slot, `recoverInFlightRuns` contract,
+  modal UX, failure policy); only the recovery hook's specific
+  module path is unspecified, landing alongside the rest of the
+  startup-flow design.
 - **Secrets storage** — API keys in SQLite (per data strategy), whether
   encrypted at rest, how they flow from settings UI into AI SDK calls
 - **Observability + debugging** — substrate designed in

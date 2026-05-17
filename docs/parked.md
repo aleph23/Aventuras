@@ -56,6 +56,34 @@ as "zod-validated parse"). At that point the data-model schemas
 get authored as Zod, and the compound APIs that mirror them
 switch to inferred types.
 
+#### Multi-version `undo_payload` apply-dispatcher
+
+The deltas
+[`encoding_version`](./data-model.md#diagram) column ships at v1
+with every writer stamping `1` and every reader assuming v1
+semantics — the column exists to enable a future dispatcher that
+routes each delta through a version-appropriate apply path. The
+dispatcher itself is post-v1 work, landing when a migration first
+needs to change encoding rules (column rename, sub-field type
+change, encoding-rule revision) on a column that already carries
+v1 deltas.
+
+Two consumers care:
+
+- **CTRL-Z rollback** — reverse-replay over a chain that spans an
+  encoding-rule change must apply each delta with its writer-era
+  rules, not the current reader's.
+- **Crash recovery startup pass** — an orphan written by an older
+  app version, recovered after a migration that changed the
+  referenced column shape, hits `DeltaReplayError` today and waits
+  out the stuck-orphan state (per
+  [`generation-pipeline.md → Recovery-failure policy`](./generation-pipeline.md#recovery-failure-policy)).
+  The dispatcher resolves the stuck case.
+
+Out of scope for v1: app version churn is single-developer-local
+and migrations between v1 sub-releases don't touch delta-logged
+column shapes. Lands at the first post-v1 migration that does.
+
 #### Vault content storage pattern
 
 When Vault gets wireframed (currently deferred per
