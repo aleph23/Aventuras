@@ -146,9 +146,9 @@ addressed by the memory design pass in
 - **"Memory probe" affordance** — bumped to v1-blocking and
   designed; contract + simulator math in
   [`memory/probe.md`](./memory/probe.md), screen UX in
-  [`docs/ui/screens/memory-probe/memory-probe.md`](./ui/screens/memory-probe/memory-probe.md),
-  implementation tracked under
-  [`memory/followups.md → v1-blocking`](./memory/followups.md#v1-blocking).
+  [`docs/ui/screens/memory-probe/memory-probe.md`](./ui/screens/memory-probe/memory-probe.md).
+  Implementation (capture writer, simulator module, screen wiring,
+  schema migrations) pending.
 
 **What's still parked:**
 
@@ -660,6 +660,112 @@ too aggressively) would justify reintroducing the union.
 Reintroduction is additive — the schema goes from `number` to
 `{ mode, value }`, the UI adds a mode picker. No data migration
 beyond field-shape lifting.
+
+### Memory pipeline (parked)
+
+Subsystem-scoped deferrals for the memory pipeline (retrieval,
+classifier cadence, chapter-close, embedding). All parked-until-
+signal — v1 ships without them and they revisit only when real
+usage produces concrete evidence the gap bites.
+
+#### Multi-axis salience
+
+Single-number `decay_resistance` collapses orthogonal relevance
+dimensions ("emotionally resonant" vs "plot-relevant" vs
+"character-defining"). Real signal where retrieval misses
+load-bearing facts in scene-mismatched contexts triggers the
+design. Tracked alongside the v1 limitations in
+[`memory/edge-cases.md → v1 limitations`](./memory/edge-cases.md#v1-limitations).
+
+#### Pin contradiction reconciliation
+
+Auto-detection that a `death` pin is invalidated by a later
+"actually alive" reveal. v1 floor: manual unpin.
+
+#### Spillover policy on per-type budgets
+
+Hard partitions in v1; cross-type spillover when one type
+underfills lands post-v1.
+
+#### Polymorphic naming support
+
+Schema-level support for two distinct entities with the same name
+(without one being renamed).
+
+#### Auto-promotion `retired → active`
+
+Agent-driven path; v1 is user-only.
+
+#### Per-type query pools
+
+Different queries per candidate type (e.g. lore retrieved against
+thematic queries vs happenings against scene queries). v1 uses a
+uniform query bundle.
+
+#### Cutaway / multi-scene entries
+
+Full structural support for meanwhile-style prose with multiple
+scenes per entry. v1 ships single-scene-per-entry.
+
+#### Cross-chapter semantic dedup of happenings
+
+Phase 3e
+([`chapter-close.md → 3e happenings consolidation`](./memory/chapter-close.md#3e--happenings-consolidation))
+handles the within-chapter case (clusters happenings by similarity
+
+- cast + time, agent decides merge / keep distinct / delete
+  redundant; awareness rows merge as a side effect). The residual
+  case is happenings that describe related events across chapter
+  boundaries — phase 3e operates on the closed range only, so
+  cross-chapter related happenings stay distinct. Probably rare;
+  parked until signal.
+
+#### Lore-mgmt cross-arc callback detection
+
+Agent at chapter close identifies "this chapter calls back to
+chapter 3" patterns and re-pins relevant old rows. Powerful but
+expensive (agent needs wide context window) and hard to do reliably
+(LLM judgment on cross-chapter relationships at scale). v1 relies
+on the high-similarity bypass + retrieval-frequency feedback to
+surface revivals organically. Lands if real signal shows callbacks
+consistently miss.
+
+#### Storage-tier triggers
+
+Periodic stale pruning of cold awareness rows, per-character
+awareness volume cap, retrieval-frequency-driven pruning. Not in
+v1; levers if testing shows the awareness-graph long tail genuinely
+bites.
+
+#### Pre-blended query vector — escape hatch for high-dim provider on mobile
+
+Three-query KNN scales linearly with dim and triples per-pass cost
+vs single-query. For users running heavy provider embeddings
+(Qwen3-Embedding-8B at 4096-dim, OpenAI `text-embedding-3-large`)
+on mobile, retrieval-pass cost grows into multi-second territory at
+100k pools. Pre-blending the three query vectors before KNN is
+mathematically rank-equivalent to weighted score-blend for
+L2-normalized embeddings (with per-batch-constant scaling). Real
+trade-offs:
+
+- **Recall at top-K cutoff.** Score-blend retrieves top-K from each
+  query separately; candidates that excel at one query but average
+  poorly still enter the candidate pool. Pre-blend operates on a
+  single top-K of the blended query — those "specialist" candidates
+  can fall off entirely. Mitigated by raising K, but recall recovery
+  isn't free.
+- **Lost per-query debug visibility.** The empirical-tuning pass
+  leans on the [memory probe](./memory/probe.md) to inspect
+  per-query similarity contributions. Pre-blend collapses three
+  signals into one; "why was this row retrieved" gets murkier.
+- **Forecloses non-linear blends.** Pre-blend can only express
+  linear combinations of query vectors. Future levers like
+  per-query thresholds, max-of-cosines, or harmonic mean become
+  impossible without going back to score-blend.
+
+Lands as a story-level toggle ("Use combined query — faster, less
+precise") if cross-device data shows mid-range mobile users with
+high-dim provider models hitting unworkable retrieval latency.
 
 ### UX (parked)
 

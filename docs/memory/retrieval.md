@@ -214,6 +214,72 @@ Same machinery as the model-swap re-index path.
 actions in the v1 design — no autosave per keystroke. One save
 equals one embed.
 
+### Performance characteristics — PoC findings
+
+Measured on Galaxy Fold 7 (last-gen flagship Android); low-end
+device testing remains open. The numbers below validate the design
+choices above and inform per-turn budget realism. Mobile feasibility
+is settled with significant headroom on flagship hardware; a
+4-year-old mid-range device could be 10x slower and still pass.
+
+**Embedder cost (local mode, `Xenova/all-MiniLM-L6-v2-q8` via
+ORT-RN).**
+
+- **Warm per-embed:** CPU 10 ms mean / 1–30 ms range; NNAPI 13 ms
+  mean, much tighter distribution. NNAPI's stability is more
+  valuable for P99-bounded budgeting than its slightly higher mean.
+- **Single-shot vs tight-loop variance.** Tight-loop microbenchmark
+  measures ~10 ms warm; single-shot embeds (with idle gaps) come in
+  closer to ~30 ms. CPU governor downclock between calls accounts
+  for the gap. Same pattern under both CPU and NNAPI EPs. **Per-turn
+  budgeting uses the single-shot number** — three single-shot query
+  embeds is realistically ~100 ms under normal use, not 30 ms.
+- **Cold init:** ~270 ms (asset extraction from APK dominates,
+  ~150 ms). Warm re-init: ~120 ms.
+- **EP determinism:** CPU vs NNAPI cosine = 1.000000. Either ORT
+  enforces fp32 at partition boundaries or the quantized-int8 ops
+  are deterministic across implementations. The single-key
+  `embedding_model_id` cache key is sufficient — no need to broaden
+  to `(model_id, execution_provider)`.
+- **xnnpack EP** crashes the app on embed; not blocking since CPU +
+  NNAPI both work and are interchangeable.
+
+**Retrieval pipeline (sqlite-vec via expo-sqlite SDK 55).** Drizzle
+wrapper packages were rejected (single-version, no source link,
+~zero downloads); Drizzle's `sql` template-literal escape hatch
+handles vec0 operations natively.
+
+- **Per-query KNN against vec0:** ~11 / 43 / 61 / 122 ms at
+  1k / 10k / 50k / 100k candidates. Three queries per pass →
+  total retrieval (incl. embed + merge) is ~478 ms at 100k —
+  ~5-8x faster than JS-side cosine at large pools, comparable at
+  1-10k. Slower than the published 75 ms@100k benchmark — likely a
+  mix of mobile ARM lacking AVX2 SIMD, expo-sqlite bridge overhead,
+  and 3-query vs 1-query workload.
+- **Insert cost:** ~600 µs/row → 60 s to populate 100k vectors.
+  Bulk-population events (first-story embed, model-swap re-index)
+  need progress UI. Per-turn incremental writes are not a concern.
+- **JS-side cosine scan + ranker + MMR (alternative path,
+  rejected).** Cosine scales linearly: ~24–30 µs per 384-dim dot
+  product on Hermes. Initial MMR was ~280 ms regardless of pool size
+  (iteration overhead dominated FLOPs); a `Uint8Array` bitmap +
+  incremental `maxSimToSelected[]` rewrite dropped it to ~15-18 ms
+  (~17x). A contiguous flat `Float32Array(N×dim)` pool was **worse**
+  than per-vector `Float32Array[]` — Hermes pays a tax on
+  offset-indexed typed-array access that exceeds cache benefit.
+  JS-only retrieval is comfortable up to ~10-15k effective
+  candidates; at 50k it's ~1.5 s; at 100k ~3.5 s. **vec0 is the
+  canonical retrieval path for v1** — splitting paths just for the
+  early-game window where JS is competitive adds maintenance cost
+  without real benefit.
+
+**Cross-device tier-finding (open).** PoC tested only the flagship.
+Whether one model serves all device classes vs tiered selection per
+detected class is genuinely unanswered. The off-ramp (demote local
+to desktop-only / opt-in, leave provider as mobile default if
+low-end devices fail) remains on the table until cross-device data
+lands.
+
 ### Model swap UX
 
 **Why a per-story model swap is disruptive.** Embeddings only have
@@ -382,9 +448,10 @@ The wizard's cost preview shows **storage only** — `dim × 4 bytes`
 [scale assumptions](#scale-assumptions)). Retrieval latency is
 deliberately not shown: per-query KNN is linear in dim (PoC
 table in
-[`followups.md`](./followups.md#v1-blocking) — ~11 / 43 / 61 /
-122 ms at 1k / 10k / 50k / 100k rows on a flagship Android at
-384-dim), so smaller dim is mathematically faster, but absolute
+[`Performance — PoC findings`](#performance-characteristics--poc-findings) —
+~11 / 43 / 61 / 122 ms at 1k / 10k / 50k / 100k rows on a
+flagship Android at 384-dim), so smaller dim is mathematically
+faster, but absolute
 ms vary with the user's device and we have data for one device
 only. At realistic story scales the latency difference between
 dims is sub-second across all reasonable choices, so storage is
@@ -952,10 +1019,10 @@ The decay-rate defaults below are **guesses calibrated for these
 volumes** — calibrated in the sense of "λ=0.07 produces sensible-
 looking ranking on toy data," not "λ=0.07 has been validated against
 real stories." Real testing on real stories will move these numbers,
-possibly by 2× or more in either direction. The
-[empirical-tuning followup](./followups.md#v1-blocking) covers the
-calibration pass; until that lands, these are starting points
-exposed for power-user override in advanced settings.
+possibly by 2× or more in either direction. v1 ships these
+starting points exposed for power-user override in advanced
+settings; empirical calibration happens organically once test
+stories surface real ranking-quality signal.
 
 Architecturally, these volumes drove several choices we already
 made: pre-filter to top-200 before MMR (otherwise ranking thousands
@@ -1198,6 +1265,6 @@ Settings → Memory → Advanced:
 - Per-query weights (`w_action`, `w_digest`, `w_prose`) — already in
   the [query stack](#query-construction--three-vector-stack).
 
-Real signal from testing tunes these. v1 ships with defaults; the
-[Threshold tuning followup](./followups.md#v1-blocking) covers the
-empirical calibration pass once test stories exist.
+Real signal from testing tunes these. v1 ships with defaults;
+empirical calibration happens once test stories surface real
+ranking-quality signal.

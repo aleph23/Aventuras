@@ -708,12 +708,12 @@ axis the preview claims. Math is precise: `dim × 4 bytes` per row
 
 Retrieval latency is **deliberately not shown.** Per-query KNN
 scales linearly in dim (per
-[PoC findings](../../../memory/followups.md#v1-blocking)),
-so a smaller dim is mathematically faster, but the absolute
-ms vary with the user's device and we have PoC data for one
-device only. At realistic story scales the latency difference
-between dims is sub-second across all reasonable choices —
-storage is the load-bearing axis for the user's decision.
+[Performance — PoC findings](../../../memory/retrieval.md#performance-characteristics--poc-findings)),
+so a smaller dim is mathematically faster, but the absolute ms vary
+with the user's device and we have PoC data for one device only.
+At realistic story scales the latency difference between dims is
+sub-second across all reasonable choices — storage is the
+load-bearing axis for the user's decision.
 
 **Lock semantics.** The chosen dim writes to
 `stories.settings.effectiveDim` at Finish, locked thereafter

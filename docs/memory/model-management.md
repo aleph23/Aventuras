@@ -499,13 +499,13 @@ explicitly triggers the model-swap re-index path.
 
 ## Open items
 
-- **Per-story embedding provider id.** The current schema has
-  `stories.settings.embedding_model_id` and `embeddingBackend` but
-  no `embedding_provider_id`. When `embeddingBackend = 'provider'`
-  the system needs to resolve which provider's embedding endpoint
-  to call — the user may run a different provider for embeddings
-  than for narrative. Tracked in
-  [`followups.md → v1-blocking`](./followups.md#v1-blocking).
+- **Per-story embedding provider id.** Schema landed in
+  [`data-model.md`](../data-model.md#app-settings-storage) —
+  `embedding_provider_id` is FK into `app_settings.providers[].id`,
+  required when `embeddingBackend === 'provider'`. UI surfaces in
+  App Settings · Memory and Story Settings · Memory (provider
+  dropdown grouped by configured providers, model dropdown filtered
+  to that provider's embedding-capable models).
 - **Per-story EP override.** Parked. The app-level `Execution
 provider` picker covers the v1 use case; per-story override
   could revisit if real signal shows users wanting a different EP

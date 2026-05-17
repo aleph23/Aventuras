@@ -370,9 +370,9 @@ Displayed:
 - `[Switch embedder]` button.
 
 When `embeddingBackend = 'provider'`, both the provider and the
-model id are displayed together — the schema delta for
-`embedding_provider_id` is tracked at
-[`memory/followups.md → Per-story embedding provider id`](../../../memory/followups.md#v1-blocking).
+model id are displayed together — see
+[`data-model.md → app_settings storage`](../../../data-model.md#app-settings-storage)
+for the `embedding_provider_id` schema.
 
 Changing the effective dim post-creation requires the same
 [Model swap UX](../../../memory/retrieval.md#model-swap-ux) ramp
@@ -397,7 +397,7 @@ Defaults seed from `app_settings.default_story_settings` at story
 creation. Hard partitions in v1 — no cross-type spillover. See
 [`memory/retrieval.md → Per-type retrieval budgets`](../../../memory/retrieval.md#per-type-retrieval-budgets)
 for the design and
-[`memory/parked.md → Spillover policy`](../../../memory/followups.md#parked--post-v1)
+[`parked.md → Spillover policy`](../../../parked.md#spillover-policy-on-per-type-budgets)
 for the post-v1 spillover question.
 
 ### Embedding status

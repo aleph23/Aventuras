@@ -74,9 +74,11 @@ the shape.
   failure capture / param drift. Embedding-mode only. Screen UX
   in
   [`docs/ui/screens/memory-probe/memory-probe.md`](../ui/screens/memory-probe/memory-probe.md).
-- **[followups.md](./followups.md)** — schema impact summary,
-  Settings UX implications, v1-blocking work, cross-doc updates,
-  parked / post-v1 items.
+
+Memory-pipeline deferrals live in the top-level
+[`parked.md → Memory pipeline (parked)`](../parked.md#memory-pipeline-parked).
+Calibration and implementation followups are inline in the
+canonical docs above (retrieval.md, model-management.md, probe.md).
 
 ---
 

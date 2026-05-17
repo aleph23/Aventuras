@@ -11,11 +11,6 @@ the two files is normal as scope clarifies; see
 [`conventions.md → Followups vs parked`](./conventions.md#followups-vs-parked)
 for the placement rule.
 
-Subsystem-scoped followups live in their subsystem's followups
-file — currently
-[`memory/followups.md`](./memory/followups.md) for memory-pipeline
-work. This top-level file tracks cross-cutting items only.
-
 ---
 
 ## UX

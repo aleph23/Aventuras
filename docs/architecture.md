@@ -778,8 +778,9 @@ Flag for future sessions:
 - **Retrieval — empirical tuning** — substantially designed in
   [`memory/retrieval.md`](./memory/retrieval.md). What remains is
   decay rates, similarity thresholds, MMR diversity, budget defaults
-  per the
-  [v1-blocking threshold-tuning followup](./memory/followups.md#v1-blocking).
+  (calibrated against the
+  [scale-assumed pool sizes](./memory/retrieval.md#scale-assumptions)
+  once test stories exist).
 - **Startup + migration flow** — first-boot initialization, schema
   migration on version bump, loading current story on app launch.
   Crash recovery is now pinned end-to-end in

@@ -2,9 +2,10 @@
 
 Diagnostic affordance for inspecting per-turn retrieval state and
 re-tuning ranker parameters against captured state. Load-bearing for
-the [empirical-tuning followup](./followups.md#v1-blocking) — without
-it, calibrating `λ_type`, `λ_div`, `kw_boost`, `τ_revive`, per-query
-weights, and per-type budgets is guesswork.
+the empirical-tuning pass against the
+[scale-assumed pool sizes](./retrieval.md#scale-assumptions) —
+without it, calibrating `λ_type`, `λ_div`, `kw_boost`, `τ_revive`,
+per-query weights, and per-type budgets is guesswork.
 
 This doc owns the **capture model** and the **simulator contract**.
 The user-facing screen (capture browse, inspect, simulate) lives in

@@ -282,6 +282,7 @@ erDiagram
         text default_provider_id "FK into providers[].id; seeds Narrative + 'Reset to defaults'"
         json default_models "Record<agentId, { providerId, modelId }>; resolver fallback for un-overridden story.settings.models"
         text embedding_model_id "canonical embedding model id; filename-derived for local downloads (includes quant suffix), provider id for provider mode, user-supplied label for power-user file imports. Any textual change fires the re-index dialog unconditionally. See docs/memory/retrieval.md → Embedding infrastructure"
+        text embedding_provider_id "FK into providers[].id when embedding_backend defaults to 'provider'; null when defaults to 'local'. Users may run a different provider for embeddings than for narrative LLM calls. Distinct from default_provider_id (narrative) — embedders have no LLM-profile parameter shape (no temperature, max output, thinking, structured-output) so they don't route through the Profiles tab."
         json default_story_settings "see 'Story settings shape' — copy-at-creation source for new stories"
         text default_calendar_id "id into the merged calendar registry (built-ins from code + vault_calendars rows); seeds new stories' calendarSystemId"
         json appearance "{ themeId, readerFontScale, accentOverride?, density } — density: 'default'|'compact'|'regular'|'comfortable' (sentinel 'default' resolves per tier; see ui/foundations/spacing.md#density-toggle)"
@@ -1079,6 +1080,7 @@ stories.settings: {
   piggybackMode: 'on' | 'off'       // capability-gated; on = narrative emits structured trailing block; off = separate per-turn classifier pass
   embeddingBackend: 'provider' | 'local'   // embedding runtime (provider endpoint OR bundled local ONNX); both produce identical retrieval algorithm
   embedding_model_id: string        // canonical embedding model id; copied from app_settings.embedding_model_id at story creation. Locked thereafter unless the user explicitly re-indexes via the model swap UX. Different stories may carry different model ids; vec0 partitions per branch. See docs/memory/retrieval.md → Storage and Model swap UX
+  embedding_provider_id?: string    // required when embeddingBackend === 'provider'; FK into app_settings.providers[].id picking which provider supplies the embedding endpoint. Distinct from the narrative-side provider routing (a user may run e.g. OpenAI for narrative and a local embedding provider, or vice versa). Null / undefined when embeddingBackend === 'local'.
   retrievalMode: 'embedding' | 'llm-only'  // set at story creation, immutable thereafter; llm-only is the embedding-unavailable fallback regime
   retrievalBudgets: {                // per-type token budgets, hard partitions in v1 (no spillover); see docs/memory/retrieval.md → Per-type retrieval budgets
     entities: number

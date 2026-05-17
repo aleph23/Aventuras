@@ -344,9 +344,9 @@ Selecting a provider entry and clicking `Finish`:
 2. Seeds:
    - `app_settings.default_story_settings.embeddingBackend = 'provider'`
    - `app_settings.default_story_settings.embedding_model_id = '<picked-id>'`
-   - (Per-story `embedding_provider_id` lands once the
-     [v1 followup](../../../memory/followups.md#v1-blocking)
-     resolves; until then the provider is implicitly the default.)
+   - `app_settings.default_story_settings.embedding_provider_id = '<picked-provider-id>'`
+     (see
+     [`data-model.md → app_settings storage`](../../../data-model.md#app-settings-storage)).
 3. Routes to Story list (no banner).
 
 ### Skip on Step 4
