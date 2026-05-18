@@ -535,8 +535,18 @@ theme has
 — their accent is part of the personality and isn't user-tweakable.
 The override persists across theme switches; switching to an
 opinionated theme silently dormants it; switching back re-applies
-it. One picker UI handles all accent-overridable themes
-uniformly.
+it. The
+[ColorPicker primitive](../../patterns/color-picker.md) renders
+the swatch row and the `+ custom` affordance; the wrapper passes
+the
+[curated palette](../../foundations/color.md#curated-accent-palette),
+the active theme's authored `--accent` as `fallbackColor` (label:
+`Use theme accent`), and a `customWarning` that runs
+[`deriveAccent`](../../foundations/color.md#accent-derivation-algorithm)
+and surfaces a warning when the resulting `--accent-fg × --accent`
+pair falls below 4.5:1 (warn-but-allow, per the
+[Known limitations](../../foundations/color.md#known-limitations)
+posture).
 
 **Density picker.** Four options: `Default` (recommended,
 sentinel that resolves per tier — compact on desktop, regular on

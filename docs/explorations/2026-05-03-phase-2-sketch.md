@@ -188,11 +188,11 @@ ships the registry data with `accentOverridable: true` on the
 default-light + default-dark pair only, but no UI consumes the
 override and `deriveAccent` is unimplemented.
 
-Phase 2 doesn't strictly need this, BUT — when the
-[Accent color picker UI](../followups.md#accent-color-picker-ui)
-lands (which is itself a separate followup design pass), the
-runtime-side `deriveAccent` work it needs to consume. Worth
-queuing as a small phase 2 sub-task once that picker design lands.
+Phase 2 doesn't strictly need this, BUT — the
+[ColorPicker primitive](../ui/patterns/color-picker.md) (since
+landed) is the runtime-side consumer of `deriveAccent`. Worth
+queuing as a small phase 2 sub-task whenever the App Settings
+accent-override wrapper is wired.
 
 ### Theme-audit CI gate
 

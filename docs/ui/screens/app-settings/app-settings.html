@@ -97,6 +97,9 @@
       .chip-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
       .add-chip { font-size: 11px; color: var(--ink-muted); cursor: pointer; padding: 3px 9px; border: 1px dashed var(--line); border-radius: 999px; }
       .add-chip:hover { color: var(--ink); border-color: var(--ink); }
+      .color-swatch-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+      .color-swatch { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-soft); cursor: pointer; }
+      .color-swatch.active { box-shadow: 0 0 0 2px var(--ink); }
       .segment > .seg { padding: 6px 14px; font-size: 12px; color: var(--ink-muted); cursor: pointer; background: var(--bg-region); }
       .segment > .seg.active { background: var(--ink); color: #fff; }
       .segment > .seg + .seg { border-left: 1px solid var(--line); }
@@ -1277,9 +1280,25 @@
           </div>
           <div class="field-row">
             <div class="field-label">accent
-              <span class="hint">visible only when the active theme is accent-overridable</span>
+              <span class="hint">visible only when the active theme is accent-overridable &mdash; fallback: theme's authored accent</span>
             </div>
-            <div style="font-size: 11px; color: var(--ink-faint); padding-top: 7px;">(swatch picker + custom hue &mdash; conditional; hidden for opinionated themes)</div>
+            <div class="color-swatch-row">
+              <div class="color-swatch" title="Use theme accent" style="background: #2563eb; border-style: dashed;"></div>
+              <div class="color-swatch" title="red" style="background: #dc2626;"></div>
+              <div class="color-swatch" title="orange" style="background: #ea580c;"></div>
+              <div class="color-swatch" title="green" style="background: #16a34a;"></div>
+              <div class="color-swatch" title="teal" style="background: #0d9488;"></div>
+              <div class="color-swatch active" title="blue" style="background: #2563eb;"></div>
+              <div class="color-swatch" title="indigo" style="background: #4f46e5;"></div>
+              <div class="color-swatch" title="pink" style="background: #db2777;"></div>
+              <div class="add-chip" style="padding: 2px 7px;">+ custom</div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label"></div>
+            <div style="font-size: 11px; color: var(--ink-faint); padding-top: 0;">
+              (custom opens Popover &middot; desktop / Sheet &middot; mobile: [cross-platform color picker library] + hex field + preview swatch + &#9888; contrast warning if derived `--accent-fg &times; --accent` &lt; 4.5:1 + [Cancel] [Apply]; warn-but-allow)
+            </div>
           </div>
         </div>
 

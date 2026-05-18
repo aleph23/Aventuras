@@ -93,7 +93,8 @@ card `⋯ → Edit info` routes to `About` directly.
   notes / log line, shown on library cards; not injected into any
   LLM prompt),
   [tags](../../patterns/chips.md#tag--pill-labeled-content), cover,
-  accent color, library status
+  [accent color](../../patterns/color-picker.md) (fallback: the
+  story's mode-derived strip color), library status
   (`active` / `archived` — segment per
   [Select primitive rule](../../patterns/forms.md#select-primitive)),
   favorite (orthogonal SwitchRow with a leading star icon — own row,
@@ -839,13 +840,12 @@ anywhere` to break long monospace strings cleanly when 2-col
   input column when room allows; below ~440 px combined they wrap
   to stack (preset on top, label below). The prose textarea
   underneath always takes full input-column width.
-- **Accent color swatch row wraps on narrow tiers.** Seven
-  curated swatches plus the `+ custom` chip flow horizontally
-  via `flex-wrap` — extras drop to a second row at narrower
-  widths. The production accent-picker UI is parked per
-  [`followups.md → Accent color picker UI`](../../../followups.md#accent-color-picker-ui);
-  the wireframe's swatch row is interim until that design
-  pass lands.
+- **Accent color picker** wraps on narrow tiers as part of the
+  [ColorPicker primitive](../../patterns/color-picker.md)'s own
+  responsive contract — `(none)` swatch plus seven curated
+  swatches plus the `+ custom` chip flow horizontally via
+  `flex-wrap`, with the `+ custom` overlay routing to Sheet at
+  narrow tiers per the picker's overlay rules.
 - **Chapter token threshold uses a chip-row preset+custom
   hybrid** (Short / Balanced / Long / Custom…) — `.chip-row`
   with `.add-chip` cells, wrapping naturally at narrow tiers.
@@ -884,9 +884,6 @@ anywhere` to break long monospace strings cleanly when 2-col
 
 ## Screen-specific open questions
 
-- **Accent color picker**: the current swatch row is a quick-pick.
-  Custom color (full color picker) is an `+ custom` affordance.
-  Actual picker UI deferred.
 - **Cover upload**: drag-drop + pick-from-assets. Detailed UX (crop,
   aspect enforcement) deferred.
 - **Advanced tab depth**: currently shows identifiers + an export

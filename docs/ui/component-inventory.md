@@ -37,7 +37,9 @@ utility wrapper.
 
 ### Primitives — build-ready
 
-_Empty — every build-ready primitive has shipped._
+| Primitive   | Baseline | Notes                                                                                                                                                                                                                                                    |
+| ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ColorPicker | `_none_` | Curated swatch row + `(none)` fallback swatch + `+ custom` affordance opening a Popover (desktop) / Sheet (narrow) that hosts a cross-platform RN color picker library (lib TBD at implementation). Spec: [color-picker.md](./patterns/color-picker.md). |
 
 ### Primitives — needs design
 

@@ -144,7 +144,7 @@
   .portrait-slot, .cover-slot { height: 110px; max-width: 380px; border: 1px dashed var(--line); border-radius: 3px; background: var(--bg-region); display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 12px; font-style: italic; }
 
   .color-swatch-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .color-swatch { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--line-soft); cursor: pointer; }
+  .color-swatch { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-soft); cursor: pointer; }
   .color-swatch.active { box-shadow: 0 0 0 2px var(--ink); }
 
   /* warn panels */
@@ -422,17 +422,24 @@
 
         <div class="field-row">
           <div class="field-label">accent color
-            <span class="hint">fallback: mode-derived</span>
+            <span class="hint">color shown on this story's card &mdash; fallback: mode-derived strip</span>
           </div>
           <div class="color-swatch-row">
-            <div class="color-swatch" title="Use mode default" style="background: repeating-linear-gradient(45deg, var(--line-soft), var(--line-soft) 4px, var(--bg-region) 4px, var(--bg-region) 8px);"></div>
-            <div class="color-swatch active" title="Blue (mode: adventure)" style="background: #3d5a7a;"></div>
-            <div class="color-swatch" style="background: #5c4478;"></div>
-            <div class="color-swatch" style="background: #3d6e46;"></div>
-            <div class="color-swatch" style="background: #8a5528;"></div>
-            <div class="color-swatch" style="background: #7a3030;"></div>
-            <div class="color-swatch" style="background: #444;"></div>
+            <div class="color-swatch" title="Use mode-derived strip color" style="background: #3d5a7a; border-style: dashed;"></div>
+            <div class="color-swatch active" title="red" style="background: #dc2626;"></div>
+            <div class="color-swatch" title="orange" style="background: #ea580c;"></div>
+            <div class="color-swatch" title="green" style="background: #16a34a;"></div>
+            <div class="color-swatch" title="teal" style="background: #0d9488;"></div>
+            <div class="color-swatch" title="blue" style="background: #2563eb;"></div>
+            <div class="color-swatch" title="indigo" style="background: #4f46e5;"></div>
+            <div class="color-swatch" title="pink" style="background: #db2777;"></div>
             <div class="add-chip" style="padding: 2px 7px;">+ custom</div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label"></div>
+          <div style="font-size: 11px; color: var(--ink-faint); padding-top: 0;">
+            (custom opens Popover &middot; desktop / Sheet &middot; mobile: [cross-platform color picker library] + hex field + preview swatch + [Cancel] [Apply]; no contrast warning on story accent)
           </div>
         </div>
 

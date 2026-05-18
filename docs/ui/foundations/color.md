@@ -317,6 +317,78 @@ selection-bg stays close to bgBase.
   deterministic (`< 0.5` → white, `>= 0.5` → near-black) — at the
   bisector, behavior is consistent run-to-run.
 
+## Curated accent palette
+
+The shared swatch source consumed by the
+[ColorPicker primitive](../patterns/color-picker.md). Two surfaces
+pick from it — App Settings · Appearance · Accent override and
+Story Settings · About · Accent color — and both reach for the
+same constant. Theme-independent and mode-agnostic.
+
+### Why fixed (not theme-derived)
+
+Theme-derived palettes would mean Story Settings's picker varies
+by the app's active theme, which is semantically wrong (story
+accent is per-story personalization, not theme-coupled). A fixed
+palette also avoids per-theme curation work the gallery doesn't
+need yet.
+
+### Why mode-agnostic
+
+The derivation algorithm above already absorbs mode-aware
+adjustments — `accentHover` darkens on light themes and lightens
+on dark; `selectionBg` mixes at 0.20 / 0.30 by mode. The base
+accent value is mode-agnostic by design, so a single set of hex
+values works for both light and dark theme rendering.
+
+### Selection criteria
+
+Every value in the palette must:
+
+1. Produce `accentFg × accent ≥ 4.5:1` after the WCAG 0.5 auto-flip
+   in [`deriveAccent`](#accent-derivation-algorithm) — every swatch
+   yields a button that reads.
+2. Produce `--accent × --bg-base ≥ 3:1` against every theme's
+   canvas (light + dark) — swatch perceivable as a control surface
+   on every theme.
+3. Produce `selectionBg × bgBase ≥ 3:1` after derivation under
+   both mode ratios — selection visible on every theme.
+4. Together, distribute across the color wheel.
+
+### Recommended starting palette
+
+Seven swatches, Tailwind 600-level baseline. Three values align
+with the [audit utility](#theme-audit-utility) sample set so
+derivation coverage naturally extends.
+
+| Slot     | Hex       | Notes                    |
+| -------- | --------- | ------------------------ |
+| `red`    | `#dc2626` | matches audit sample set |
+| `orange` | `#ea580c` |                          |
+| `green`  | `#16a34a` | matches audit sample set |
+| `teal`   | `#0d9488` |                          |
+| `blue`   | `#2563eb` | matches audit sample set |
+| `indigo` | `#4f46e5` |                          |
+| `pink`   | `#db2777` |                          |
+
+Slot names double as `aria-label` and hover tooltips on the picker
+UI; the picker has no separate visible labels per swatch.
+
+### Yellow / amber omission
+
+Pure yellows fail criterion 1 — `accentFg × accent` lands sub-4.5:1
+under auto-flip with either output. Amber-600 would pass but sits
+visually adjacent to orange-600; dropping it keeps the row
+visually distinct.
+
+### Why no per-theme override hook
+
+Out of scope at v1. The constant is exported as
+`CURATED_ACCENT_PALETTE` from a single location; if a future theme
+authoring need surfaces a real case for overriding it per-theme,
+the export shape can grow a theme-aware variant without changing
+the picker primitive's contract.
+
 ## Recently-classified slot
 
 One slot, two visual states via opacity. Ties to
@@ -408,11 +480,12 @@ For each theme in the registry:
 3. **Faint-signal pair.** `--recently-classified-bg` × `--bg-base` —
    reports the contrast value for review; **never fails**.
 4. **Accent-overridable themes only — derivation sweep.** Runs
-   `deriveAccent` against a fixed sample set (saturated red
-   `#dc2626`, blue `#2563eb`, green `#16a34a`, plus pastel
-   variants) and checks each derived `--accent-fg` × `--accent`
-   pair clears 4.5:1 and `--fg-primary` × `--selection-bg` clears
-   the 3:1 selection-visibility target. Surfaces inputs where the
+   `deriveAccent` against every value in the
+   [Curated accent palette](#curated-accent-palette) plus a
+   pastel-variant set (pastels cover the custom-hex range), and
+   checks each derived `--accent-fg` × `--accent` pair clears
+   4.5:1 and `--fg-primary` × `--selection-bg` clears the 3:1
+   selection-visibility target. Surfaces inputs where the
    derivation produces a sub-floor pair.
 
 ### Output shape
