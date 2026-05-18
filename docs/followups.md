@@ -279,17 +279,6 @@ Open questions for the design pass:
 
 Lands when the profile editor UI gets a focused pass.
 
-### `prof_` ID prefix — confirm intent
-
-[`data-model.md → ID shape`](./data-model.md#id-shape--kind-prefixed-uuids-throughout)
-reserves three distinct ID prefixes for provider-side concepts —
-`prov_` (provider instance), `prof_`, and `mod_` (model profile) —
-but only `prov_` and `mod_` map to schema in active use. The `prof_`
-slot has no current consumer. Either remove (if the historical
-concept has been fully absorbed into `prov_` / `mod_`) or annotate
-the row as reserved-for-future. Investigation belongs with a
-doc-cleanup pass, not a design pass.
-
 ### Translation graceful degradation
 
 A translation phase fatal failure currently aborts the entire

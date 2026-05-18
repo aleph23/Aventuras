@@ -334,8 +334,7 @@ in storage but load-bearing for the placeholder substitution layer
 | Story entry                    | `entry_`  |
 | Action (delta grouping)        | `act_`    |
 | Pipeline run                   | `run_`    |
-| Provider profile               | `prof_`   |
-| Model profile                  | `mod_`    |
+| Profile                        | `prof_`   |
 | Provider                       | `prov_`   |
 | Pack                           | `pack_`   |
 | Calendar definition            | `cal_`    |
@@ -1257,7 +1256,7 @@ app_settings.providers: Array<{
 default seeds Narrative profile creation and "Reset to defaults"
 actions across the rest of the app.
 
-**Model profiles — narrative + agents.**
+**Profiles — narrative + agents.**
 
 ```ts
 app_settings.profiles: Array<{
