@@ -923,8 +923,8 @@ right edge slides left/right in lockstep.
 Search is **category-aware** — scope changes with the active
 category in the dropdown:
 
-- **Characters / locations / items / factions** (entity rows):
-  `name`, `description`, `tags`
+- **Characters / locations / items / factions** (entity rows) —
+  per [`patterns/entity.md → Search scope`](../../patterns/entity.md#search-scope).
 - **Lore**: `title`, `body`, `category`, `tags`
 - **Threads**: `title`, `description`, `category`, `tags`
 - **Happenings**: `title`, `description`, `category`, `tags`

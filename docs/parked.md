@@ -1393,6 +1393,36 @@ debugging case; aggregate analysis is the "I'm tuning
 performance" workflow, which isn't a v1 motivator. Lands when
 performance tuning becomes a focused workflow.
 
+#### Structured filters on entity rows
+
+Entity search in v1 is text-substring `LIKE` + `json_extract`
+over a fixed per-kind scope (see
+[`patterns/entity.md → Search scope`](./ui/patterns/entity.md#search-scope)).
+Four trigger-distinct extensions wait for signal:
+
+- **FK target name resolution.** Searching `Iron Tavern` doesn't
+  currently match characters whose `state.current_location_id`
+  resolves to a location named Iron Tavern. Add when
+  narrative-relation queries become a real user motion (likely
+  once stories cross a scale where memorizing character locations
+  stops working).
+- **`stackables` filtering.** Both text ("characters with gold")
+  and numeric ("gold > 0") shapes are out. Structured-filter
+  territory, not text scope. Lands at the first design pass that
+  touches inventory-management UX (post-v1 RPG-flavored work).
+- **Per-`visual.*` sub-field toggle.** `visual.*` participates in
+  scope today with an acknowledged flooding risk on broad terms
+  (`dark`, `red`). If real use flags flooding, add a per-sub-field
+  toggle in the ⓘ popover or a kind-specific filter chip row.
+  Lean: defer until signal exists; don't pre-build the guardrail.
+- **Cross-field multi-word query language.** `hair:red AND
+attire:cloak`-style queries. Significant scope; only earns its
+  way in if simple substring stops covering use cases.
+
+Lands as one design pass once two or more triggers fire
+concurrently — they share enough query-layer machinery that
+piecemeal work is wasteful.
+
 ### Two-stage touch feedback (light hover + stronger press)
 
 Some mobile apps (Discord noted) ship a two-stage feedback on

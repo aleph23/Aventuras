@@ -133,37 +133,6 @@ Decisions needed at gate-wiring time:
 Lands at the gate's own design pass — session 6's palette data
 is in hand, ready to inform the exempt-list shape.
 
-### Search scope on state fields
-
-Per
-[`reader-composer.md → Browse rail — search scope`](./ui/screens/reader-composer/reader-composer.md#browse-rail--search-scope)
-and
-[`world.md → List pane — search scope`](./ui/screens/world/world.md#list-pane--search-scope),
-entity search currently scans `name`, `description`, `tags`. With
-the new
-[`entities.state` shape](./data-model.md#world-state-storage),
-several state fields carry user-facing text content worth
-including in search:
-
-- **Likely yes — `traits`, `drives`** (CharacterState chip lists,
-  `agenda` for FactionState). Users will want to filter "all
-  characters with `former soldier` trait" or "factions whose agenda
-  mentions Vex."
-- **Likely no — `voice`** (low search-value; prose stylistic note
-  rather than searchable identity).
-- **Edge cases — `visual.*`** sub-fields. "All red-haired
-  characters" feels like a search you'd want, but the chip-style
-  noise (every character has 6 visual slots, mostly populated) may
-  flood unrelated search results.
-- **Stackables keys** — searching "all characters with gold > 0" is
-  a different shape (numeric filter, not text search); treat
-  separately if real demand surfaces.
-
-Decision lands with the next pass over the World panel + Browse
-rail search-scope definition. Lean: include `traits` + `drives` +
-`agenda` immediately when implementing the new shape; defer
-`visual.*` until UX testing surfaces flooding-or-not-flooding signal.
-
 ### Translation rows in per-story export / import
 
 Per-story exports now strip `stories.settings.models`,

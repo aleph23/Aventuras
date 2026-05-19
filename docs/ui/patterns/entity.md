@@ -172,6 +172,139 @@ without changing the rendering primitive.
 
 ---
 
+## Search scope
+
+Entity search is **category-aware** and **per-active-kind** — the
+kind selector on the consuming surface ([Reader Browse
+rail](../screens/reader-composer/reader-composer.md#browse-rail--search-scope),
+[World list pane](../screens/world/world.md#list-pane--search-scope))
+is mutually exclusive, so only the active kind's scope contributes
+to a query. This is the canonical scope spec; consumers point in.
+
+### Row-level fields — every kind
+
+| Field            | Notes                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `name`           |                                                                                          |
+| `description`    |                                                                                          |
+| `tags`           |                                                                                          |
+| `retired_reason` | Populated only when `status=retired`; `NULL` on active / staged rows (no match overhead) |
+
+### State fields — kind-discriminated
+
+Names trace into [`entities.state`](../../data-model.md#world-state-storage)
+via `json_extract` / `json_each` (see [SQLite
+mechanics](#sqlite-mechanics) below).
+
+| Kind      | State fields in scope                                                                                                                       |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Character | `traits[]`, `drives[]`, `voice`, `visual.physique`, `visual.face`, `visual.hair`, `visual.eyes`, `visual.attire`, `visual.distinguishing[]` |
+| Location  | `condition`                                                                                                                                 |
+| Item      | `condition`                                                                                                                                 |
+| Faction   | `standing`, `agenda[]`                                                                                                                      |
+
+### Explicitly out of scope
+
+- **FK references on `state`** — `current_location_id`,
+  `equipped_items`, `inventory`, `faction_id` on CharacterState;
+  `parent_location_id` on LocationState; `at_location_id` on
+  ItemState. Text-matching FK id strings is meaningless; users
+  searching `Iron Tavern` find the location directly by name.
+  FK-target-name resolution into searched text is
+  structured-relation querying — deferred under
+  [`parked.md → Structured filters on entity rows`](../../parked.md#structured-filters-on-entity-rows).
+- **`stackables`** on CharacterState — both text-key
+  ("characters with gold") and numeric ("gold > 0") shapes are
+  structured-filter territory, not text scope. Deferred to the
+  same parked entry.
+- **`lastSeenAt`** on CharacterState — denormalized recency cache,
+  not user-authored prose. Surfacing it in search would conflate
+  identity with recency.
+
+**`visual.*` flooding** is an accepted trade-off. Broad terms
+(`dark`, `red`) match many characters since every character has
+~6 visual slots, mostly populated. Mitigation lives at the user
+level (narrow the query, use filter chips); no implementation
+guardrail in v1. A per-sub-field toggle is the additive next
+step if real use surfaces flooding signal — parked under the same
+structured-filters entry.
+
+### SQLite mechanics
+
+No schema work — consumption-side decision over an already-settled
+shape.
+
+- **Top-level columns** (`name`, `description`, `tags`,
+  `retired_reason`) — `LIKE` (existing).
+- **Single-string state fields** (`voice`, `condition`,
+  `standing`, `visual.physique`, etc.) —
+  `json_extract(state, '$.<path>') LIKE '%query%'`. NULL-safe
+  (`NULL LIKE x` is NULL → falsy).
+- **Array state fields** (`traits`, `drives`, `agenda`,
+  `visual.distinguishing`) **must use `json_each`** with `LIKE`
+  on the `value` column — same shape `tags` already uses.
+  Partial-`LIKE` on raw `json_extract` of an array would match
+  against JSON syntax (commas, brackets, quotes) and is brittle.
+- **Composition** — `WHERE kind = ? AND (row LIKEs OR state
+extracts / each-matches)`. The per-kind clause is composed by
+  the active category; Locations never get Character-state
+  extracts in their WHERE.
+
+FTS5 upgrade path is unchanged — [`patterns/lists.md → Search bar
+scope`](./lists.md#search-bar-scope) names the threshold; [`parked.md
+→ FTS5 upgrade for search`](../../parked.md#fts5-upgrade-for-search)
+carries the deferred work. v1 stays on LIKE + JSON1.
+
+**Translation rows are not searched.** Search runs over
+source-language text only; the
+[`translations`](../../data-model.md#translation) table is
+display-only per locale. A reader on a translated locale searching
+a translated term won't match entities whose source state carries
+the concept. Future translation-aware search lands alongside the
+broader [`Translation rows in per-story
+export/import`](../../followups.md#translation-rows-in-per-story-export--import)
+followup.
+
+### Tooltip + ⓘ popover copy
+
+The placeholder + tooltip + ⓘ help affordance contract lives in
+[`patterns/lists.md → Search bar scope`](./lists.md#search-bar-scope).
+This section owns the per-kind copy.
+
+**Tooltip on focus / hover** — single line, every entity kind:
+
+> Searches name, description, tags, retired-reason, and per-kind
+> state fields.
+
+**ⓘ popover** — kind-aware two-tier rendering. The popover content
+variant is keyed by the active category — the same signal both
+surfaces already track for placeholder rotation and filter
+behavior. Host-rendered; no primitive contract change.
+
+For Characters:
+
+> **Identity:** name, description, tags, retired-reason
+>
+> **State:** traits, drives, voice, visual (physique, face, hair,
+> eyes, attire, distinguishing)
+
+For Locations / Items:
+
+> **Identity:** name, description, tags, retired-reason
+>
+> **State:** condition
+
+For Factions:
+
+> **Identity:** name, description, tags, retired-reason
+>
+> **State:** standing, agenda
+
+Lore / threads / happenings categories keep their pre-existing
+single-tier popover content (they have no `state` JSON column).
+
+---
+
 ## Entity detail-pane composition
 
 `entities.state` is a typed discriminated union (CharacterState /

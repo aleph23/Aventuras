@@ -361,8 +361,8 @@ Unchanged from prior design.
 Search is **category-aware** — scope changes with the active
 category dropdown:
 
-- **Characters / locations / items / factions** (entity rows):
-  `name`, `description`, `tags`
+- **Characters / locations / items / factions** (entity rows) —
+  per [`patterns/entity.md → Search scope`](../../patterns/entity.md#search-scope).
 - **Lore**: `title`, `body`, `category`, `tags`
 
 Affordances (placeholder + tooltip + ⓘ help icon) follow the

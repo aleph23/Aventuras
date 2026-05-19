@@ -133,18 +133,20 @@ stories, **FTS5** is the upgrade path (mirror searchable text into
 an FTS virtual table, triggers keep it in sync). v1 stays on
 LIKE + JSON-extract; revisit when a real story hits the wall.
 
-**Per-surface scope** — each surface's per-screen doc carries the
-authoritative version; this is the cross-cutting summary:
+**Per-surface scope** — the authoritative version lives either in
+the per-screen doc or, for entity rows, in
+[`patterns/entity.md → Search scope`](./entity.md#search-scope);
+this is the cross-cutting summary:
 
-| Surface                 | Searches                                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Story list              | `title`, `description`, `definition.genre.label`, `tags`                                                                                                |
-| Reader Browse rail      | category-aware (entity: `name`/`description`/`tags`; lore: `title`/`body`/`category`/`tags`; thread/happening: `title`/`description`/`category`/`tags`) |
-| World panel list        | category-aware (same as Browse rail equivalents)                                                                                                        |
-| Plot panel — threads    | `title`, `description`, `category`, `tags`                                                                                                              |
-| Plot panel — happenings | `title`, `description`, `category`, `tags`                                                                                                              |
-| Vault calendars         | `name`                                                                                                                                                  |
-| History tab (any panel) | structurally different — field-path strings, op (`create`/`update`/`delete`), rendered change-summary text                                              |
+| Surface                 | Searches                                                                                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Story list              | `title`, `description`, `definition.genre.label`, `tags`                                                                                                                                            |
+| Reader Browse rail      | category-aware — entity rows per [`patterns/entity.md → Search scope`](./entity.md#search-scope); lore: `title`/`body`/`category`/`tags`; thread/happening: `title`/`description`/`category`/`tags` |
+| World panel list        | category-aware — entity rows per [`patterns/entity.md → Search scope`](./entity.md#search-scope); lore: `title`/`body`/`category`/`tags`                                                            |
+| Plot panel — threads    | `title`, `description`, `category`, `tags`                                                                                                                                                          |
+| Plot panel — happenings | `title`, `description`, `category`, `tags`                                                                                                                                                          |
+| Vault calendars         | `name`                                                                                                                                                                                              |
+| History tab (any panel) | structurally different — field-path strings, op (`create`/`update`/`delete`), rendered change-summary text                                                                                          |
 
 ---
 
