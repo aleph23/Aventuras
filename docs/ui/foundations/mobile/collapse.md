@@ -62,11 +62,15 @@ Phone (< 640 px):
   layout on phone.
 - **Rail is not visible in-place on phone.** Phone width is a
   strict subset of the existing viewport-forced-collapse range
-  (~900 px). The right-edge strip — a desktop folded-rail
-  affordance — is dropped on phone; right-edge trigger plus a
-  bottom-anchored sheet creates a directional mismatch the strip
-  was carrying as vestigial desktop chrome. The rail column hides
-  entirely.
+  (~900 px). The right-edge strip — a desktop / tablet
+  vertical-dashboard affordance (per
+  [`reader-composer.md → Collapsed state`](../../screens/reader-composer/reader-composer.md#browse-rail--collapse--expand))
+  — doesn't translate to phone; right-edge trigger plus a
+  bottom-anchored sheet creates a directional mismatch, and the
+  strip's per-kind cell layout assumes desktop / tablet real
+  estate that phone doesn't have. The rail column hides entirely;
+  the chip-strip Browse chip carries the awareness signal in
+  aggregate form instead.
 - **Browse trigger lives in the reader chip strip on phone** as a
   right-anchored `[☰ Browse]` chip per
   [`navigation.md → Reader chip strip`](./navigation.md#reader-chip-strip-phone-only).

@@ -710,27 +710,82 @@ to reduce chrome during pure reading. It also adapts to small
 Electron windows (responsive auto-collapse below a viewport
 threshold) without committing to a mobile shape.
 
-### Collapsed state — full-height edge strip
+### Collapsed state — compact persistent dashboard
 
-Collapsed, the rail squeezes to a full-height vertical strip on
-the screen's right edge (~16–24px wide; exact value finalized in
-the visual identity pass). The strip:
+Collapsed, the rail squeezes to a vertical strip on the screen's
+right edge (~28–32px wide; precise value finalized in the visual
+identity pass — the mobile foundation docs already reference 28
+px). The strip is **not** a passive silhouette: it carries a
+compact information dashboard that doubles as the classifier-
+awareness surface, with the expand affordance called out
+explicitly so the strip reads as interactive at a glance.
 
-- Provides a **visual silhouette** so the rail stays
-  discoverable — a continuous vertical region telegraphs "the
-  rail lives here," matching OS sidebar conventions.
-- Is the **expand affordance**: clicking anywhere on it restores
-  the rail.
-- Has **no functional content** — no indicators, no kind icons,
-  no awareness signals. Pure click target plus silhouette.
+Vertical anatomy, top to bottom:
 
-The strip sits at muted opacity and brightens slightly on hover
-(tooltip: `Expand rail`).
+1. **Affordance chevron.** A small inward-pointing `‹` at
+   top-center, full opacity (independent of any muted hover-
+   baseline). Geometrically mirrors the `›` collapse trigger in
+   the expanded rail's header. Always visible — the strip's
+   "expandable" affordance is explicit, not inferred from a
+   silhouette.
+2. **Group A — counted cells.** Characters and Items. Each cell
+   renders the
+   [kind glyph](../../patterns/entity.md#entity-kind-indicators--icons-not-text)
+   plus a count of that kind's rows in the latest entry's
+   `metadata.sceneEntities`. Count `0` renders with muted text;
+   counts greater than 9 render as `9+` to keep cell width
+   stable.
+3. **Group separator.** A small vertical gap (~4–6px) telegraphs
+   "different unit below" between counted and quick-access cells.
+   Visual identity may promote the gap to an explicit hairline if
+   real-world rendering reads it as accidental.
+4. **Group B — quick-access cells.** Location and Factions. Glyph
+   only, no count. `currentLocationId` is a 0-or-1 singleton —
+   the count would be the same value for the whole story past the
+   initial scene; factions are not scene-tagged per
+   [`data-model.md → Entry metadata shape`](../../../data-model.md#entry-metadata-shape),
+   so a faction count is undefined.
+5. **Empty clickable region** filling the remaining strip height.
 
-The strip is intentionally not a "what's new on the rail since
-you last looked" awareness surface; cross-surface classification
-awareness is parked as a separate pattern design (see
-[`followups.md → Classification awareness pattern`](../../../followups.md#classification-awareness-pattern)).
+**Per-cell classifier-tint composition.** Every cell, both
+groups, carries the per-kind tint. Cell tint strength equals the
+highest strength of any row of that kind currently in the
+recently-classified window — fresh if any contributor is fresh,
+fading if all contributors are fading-only, untinted when all
+have aged out. Mirrors the
+[row-tint decay rule](../../patterns/entity.md#recently-classified-row-accent)
+exactly; same `--recently-classified-bg` slot, no new color
+tokens. Cell aggregation reads the rail's current row set —
+deleted rows contribute nothing, so a cell naturally untints if
+all contributors leave (no phantom tint with nothing tinted
+underneath when the user expands). Glyph and count keep
+full-strength contrast over the tint; legibility is the
+constraint.
+
+**Click semantics — three hit zones.**
+
+- **Affordance chevron** — expand rail, preserve current
+  category. Tooltip: `Expand rail`.
+- **Cell** — expand rail **and** switch its category to that
+  kind. Tooltip: `<Kind> in scene: <count>` for Group A;
+  `<Kind>` for Group B.
+- **Empty region** — expand rail, preserve current category.
+
+Hover decoration brightens per zone independently — cells aren't
+brightened by hovering empty area, and vice versa. Cell tints
+from classifier activity remain stable on hover (tint is
+information; hover is interaction feedback — distinct
+primitives). The existing `Cmd/Ctrl+\` shortcut continues to
+toggle expand / collapse without strip-internal keyboard
+traversal.
+
+On tablet (inheriting desktop), the same hit zones become tap
+targets. Tooltip disclosure surfaces via long-press per the
+[touch.md → Tap-to-tooltip on inert chrome text](../../foundations/mobile/touch.md#tap-to-tooltip-on-inert-chrome-text)
+pattern. Cells fall under the 44-px iOS recommended hit-target;
+a tap-miss lands on the chevron or empty region (both also
+expand) — worst case is "expand without category-switch," no
+destructive cost.
 
 ### Open state — collapse trigger
 
@@ -951,6 +1006,21 @@ specifics below.
   desktop / tablet keep the right-edge strip and expand the rail
   in place; **phone uses the chip and a Sheet (bottom, medium
   initial)**.
+- **Browse chip classifier-awareness tint.** The chip background
+  tints with `--recently-classified-bg` whenever any row across
+  any rail-surfaceable category (characters, locations, items,
+  factions, lore, threads, happenings) has classifier activity
+  in the current fresh-or-fading window. Two-state decay mirrors
+  the
+  [row-tint rule](../../patterns/entity.md#recently-classified-row-accent):
+  full strength on the turn of write, 50% strength on the
+  following turn, gone after. Single aggregate signal — no
+  per-kind disambiguation on phone (the chip is too small;
+  per-kind discovery surfaces inside the rail-as-Sheet via the
+  existing row tint once the user taps in). The chip's tap
+  behavior, label, and the rail-as-Sheet flow are unchanged;
+  tint is purely informational, no tooltip or long-press
+  disclosure added.
 - **Rail-as-sheet contents.** Full rail vocabulary — category
   dropdown, filter chips, search, row list, Import affordance.
   Tap a row inside the sheet → sheet swaps to peek view (height

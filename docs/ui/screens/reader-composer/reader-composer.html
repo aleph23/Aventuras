@@ -179,14 +179,33 @@
 
   /* layout */
   .layout { flex: 1; display: grid; grid-template-columns: 1fr 300px; min-height: 0; position: relative; transition: grid-template-columns 150ms ease-out; }
-  /* collapsed rail: layout grid squeezes the right column to a thin strip;
-     aside.right still occupies the cell but its inner content is hidden,
-     leaving the strip as a click target + visual silhouette. */
-  body.rail-collapsed .layout { grid-template-columns: 1fr 20px; }
-  body.rail-collapsed aside.right { overflow: hidden; cursor: pointer; }
-  body.rail-collapsed aside.right > * { display: none; }
-  body.rail-collapsed aside.right::before { content: ""; display: block; flex: 1; }
-  body.rail-collapsed aside.right:hover { background: var(--bg); }
+  /* collapsed rail: layout grid squeezes the right column to a ~30px strip;
+     the strip carries a compact persistent dashboard — affordance chevron at
+     top, per-kind cells (counted: chars/items; quick-access: location/factions),
+     group separator, and an empty click region below. Cells double as the
+     classifier-awareness surface via the per-kind tint composition (recent-1
+     fresh / recent-2 fading, mirroring the row-tint rule). */
+  body.rail-collapsed .layout { grid-template-columns: 1fr 30px; }
+  body.rail-collapsed aside.right { overflow: hidden; cursor: pointer; padding: 0; background: var(--bg-region); }
+  body.rail-collapsed aside.right > *:not(.collapsed-strip) { display: none; }
+  .collapsed-strip { display: none; flex-direction: column; height: 100%; padding: 4px 0 8px; user-select: none; }
+  body.rail-collapsed .collapsed-strip { display: flex; }
+  .collapsed-strip-chev { font-size: 14px; color: var(--ink); cursor: pointer; padding: 4px 0; line-height: 1; text-align: center; }
+  .collapsed-strip-chev:hover { background: var(--bg); }
+  .collapsed-strip-cells { display: flex; flex-direction: column; padding: 4px 0; }
+  .collapsed-strip-cell { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 4px 0; font-size: 11px; color: var(--ink); cursor: pointer; line-height: 1; }
+  .collapsed-strip-cell:hover { background: var(--bg); }
+  .collapsed-strip-cell .glyph { font-size: 13px; }
+  .collapsed-strip-cell .count { font-size: 10px; }
+  .collapsed-strip-cell .count.zero { color: var(--ink-faint); }
+  .collapsed-strip-cell.recent-1 { background: rgba(85,136,170,0.18); }
+  .collapsed-strip-cell.recent-2 { background: rgba(85,136,170,0.09); }
+  .collapsed-strip-separator { height: 1px; background: var(--line-soft); margin: 4px 6px; }
+  .collapsed-strip-empty { flex: 1; cursor: pointer; }
+  .collapsed-strip-empty:hover { background: var(--bg); }
+  /* phone Browse chip awareness tint — aggregate across all rail-surfaceable categories */
+  .phone-chip-strip .chip.browse.recent-1 { background: rgba(85,136,170,0.18); border-color: var(--ink-faint); }
+  .phone-chip-strip .chip.browse.recent-2 { background: rgba(85,136,170,0.09); }
   /* chevron in rail header — collapses on click */
   .rail-collapse-chev { font-size: 14px; color: var(--ink-faint); cursor: pointer; padding: 0 4px; line-height: 1; user-select: none; transition: color 0.12s; }
   .rail-collapse-chev:hover { color: var(--ink); }
@@ -744,7 +763,7 @@
   <span class="chip">Chapter 3 <span class="chev">&#9662;</span></span>
   <span class="chip">&#9201; Day 3, dusk <span class="chev">&#9662;</span></span>
   <span class="chip">&#x2387;3</span>
-  <span class="chip browse" id="phone-browse-chip" title="Open Browse (rail) as Sheet">&#9776; Browse</span>
+  <span class="chip browse recent-1" id="phone-browse-chip" title="Open Browse (rail) as Sheet — background tints when any rail-surfaceable category has recent classifier activity (aggregate across all 7 categories)">&#9776; Browse</span>
 </div>
 
 <!-- Chapter-close banner — sticky below chrome during chapter-close transaction -->
@@ -942,6 +961,28 @@
   </main>
 
   <aside class="right">
+    <!-- Collapsed strip — compact dashboard. Renders only when body.rail-collapsed
+         is active. Per reader-composer.md → Collapsed state. -->
+    <div class="collapsed-strip" id="collapsed-strip" aria-label="Browse rail (collapsed)">
+      <div class="collapsed-strip-chev" id="collapsed-strip-chev" title="Expand rail">&lsaquo;</div>
+      <div class="collapsed-strip-cells">
+        <div class="collapsed-strip-cell recent-1" title="Characters in scene: 3 (recently classified — fresh)">
+          <span class="glyph">&#9786;</span><span class="count">3</span>
+        </div>
+        <div class="collapsed-strip-cell" title="Items in scene: 1">
+          <span class="glyph">&#9670;</span><span class="count">1</span>
+        </div>
+        <div class="collapsed-strip-separator"></div>
+        <div class="collapsed-strip-cell recent-2" title="Location (recently classified — fading)">
+          <span class="glyph">&#8962;</span>
+        </div>
+        <div class="collapsed-strip-cell" title="Factions">
+          <span class="glyph">&#9873;</span>
+        </div>
+      </div>
+      <div class="collapsed-strip-empty" id="collapsed-strip-empty" title="Expand rail"></div>
+    </div>
+
     <div class="rail-scope-chip" id="scope-chip">
       <span>Filtered through Aria's awareness</span>
       <span class="clear" id="scope-clear" title="Clear filter">&times;</span>

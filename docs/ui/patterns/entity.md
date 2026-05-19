@@ -93,13 +93,13 @@ absence that makes "nothing shown" ambiguous):
 - **Scene presence** (left-edge stripe): an in-scene row gets a
   3px green accent stripe along the left edge. Steady-state signal —
   "which rows matter right now."
-- **Recently-classified** (background tint): rows whose source data
-  the classifier wrote in the last 1-2 turns get a faint
-  theme-defined background tint that decays. Transient signal —
-  the tint color is theme-authored per
+- **Recently-classified** (background tint): rows the classifier
+  (or any pipeline agent) touched in the last 1-2 turns get a
+  faint theme-defined background tint that decays. Transient
+  signal — the tint color is theme-authored per
   [`foundations/color.md → Recently-classified slot`](../foundations/color.md#recently-classified-slot);
   see [Recently-classified row accent](#recently-classified-row-accent)
-  for the full rule.
+  for the full rule, including what counts as "touched."
 
 **Edge vs tint — load-bearing decoupling.** Scene-presence owns the
 left-edge stripe; recently-classified owns the background tint. Both
@@ -331,9 +331,9 @@ pencil edits are the documented quick-edit exception.
 
 ## Recently-classified row accent
 
-Cross-cutting visual signal: rows whose underlying data was written
-by the classifier (or any agent) in the last 1-2 turns get a faint
-theme-defined background tint that decays. The tint color is the
+Cross-cutting visual signal: rows the classifier (or any pipeline
+agent) touched in the last 1-2 turns get a faint theme-defined
+background tint that decays. The tint color is the
 `--recently-classified-bg` slot, theme-authored per
 [`foundations/color.md → Recently-classified slot`](../foundations/color.md#recently-classified-slot)
 (values vary across the palette set; the slot is the constraint, not
@@ -348,10 +348,25 @@ encode them as `recent-1` / `recent-2` CSS classes, but that's a
 rendering detail. Per-screen specs and prose refer to fresh /
 fading by name.
 
-**Where it applies:** any list-pane row whose source data the
-classifier writes — entities and lore (World panel + Browse rail),
-threads and happenings (Plot panel). Same tint, same color, same
-decay rule across all panels.
+**What counts as "touched."** Any classifier-authored change
+concerning the row — writes to the entity's stored state JSON,
+scene-presence transitions on the latest entry's
+`metadata.sceneEntities` or `metadata.currentLocationId`, and any
+future classifier-authored signal touching the row. The signal is
+about classifier-driven world change, not about which storage
+location got written: a character whose only change this turn is
+"left the kitchen" tints, even though the entity's own state JSON
+didn't change. Manual user edits (peek-drawer pencil edits,
+World-panel form saves) do **not** fire the tint — the rule is
+classifier-output, not write-event.
+
+**Where it applies:** any list-pane row the classifier touches —
+entities and lore (World panel + Browse rail), threads and
+happenings (Plot panel). Same tint, same color, same decay rule
+across all panels. The reader's collapsed Browse rail strip
+surfaces a per-kind aggregate of this signal on its cells (per
+[`reader-composer.md → Collapsed state`](../screens/reader-composer/reader-composer.md#browse-rail--collapse--expand));
+that aggregation reads the same window, no separate rule.
 
 **Channel separation.** Recently-classified owns the row background
 tint; scene-presence owns the left-edge stripe (per
