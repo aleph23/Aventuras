@@ -37,6 +37,12 @@ agent can follow with much less discretion.
   amendment from a `needs-slice-amendment` Resolution Path, or to
   propose a brief `Implementation notes` addition. Both require
   explicit approval; neither is auto-committed.
+- Do not apply a slice-doc amendment while the working branch is
+  `main` or `master` without explicit developer consent. Writing the
+  git-ignored `.impl-plans/` plan is safe on any branch; editing a
+  tracked slice doc on a trunk branch is not.
+- Do not hand off into execution until the developer has chosen an
+  execution skill. Recommend, present both options, then wait.
 
 ## Direct External Skills
 
@@ -162,11 +168,11 @@ Read in parallel where possible:
 - `docs/followups.md`
 - `.claude/rules/docs.md`
 - `.claude/rules/code.md` if source files are likely involved
-- `git status --short`
+- `git status --short --branch`
 
 Extract the slice identity, path, goal, dependencies, blockers, scope
 boundaries, required reading anchors, acceptance criteria, tests, open
-questions, and current worktree state.
+questions, and current branch and worktree state.
 
 ### 2. Required Reading
 
@@ -330,6 +336,32 @@ and plan now agree.
 
 Update `Status: approved` only after explicit developer approval.
 
+### 8. Recommend An Executor
+
+This step runs for an `approved` plan the developer is ready to
+execute. A `draft` plan has no executor to choose yet.
+
+Two execution skills consume the plan:
+
+- `aventuras-slice-execute` — runs the plan inline in one session.
+  Fits a small or tightly-coupled slice, or a plan whose clusters
+  mostly share files and must stay coherent.
+- `aventuras-slice-execute-subagents` — runs the plan with a
+  controller, parallel workers, and per-cluster review loops. Fits a
+  plan that decomposes into several dependency-free clusters with
+  disjoint write ownership, where parallelism and review pay off.
+
+Read the Task Clusters and pick the better fit: count the clusters
+with no dependency edge between them and disjoint files, and weigh
+slice size and risk. Record the choice and a one-line reason in the
+plan's `## Recommended Executor` section.
+
+Then present both skills to the developer with the recommendation and
+its reasoning, and let them choose. Hand off to the chosen skill only
+after the developer chooses — never auto-proceed into execution. If
+the developer is not executing now, stop; the recommendation stays in
+the plan for a later session.
+
 ## Stop Conditions
 
 These conditions mean the plan cannot reach `approved` on this pass.
@@ -358,6 +390,8 @@ with its Resolution Path (Step 4), and hand back.
 - Every acceptance criterion maps to evidence.
 - Skill usage is classified as recommended for execution or not
   needed.
+- For an approved plan, the developer was offered both execution
+  skills with a reasoned recommendation.
 - Stop conditions are explicit.
 - Any slice-doc amendment was developer-approved, mechanical, and
   left uncommitted.

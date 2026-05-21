@@ -112,6 +112,14 @@ the execution skill decides how to dispatch them.
 - Recommend a developer-run `aventuras-design` session if:
 - Recommend a developer-owned slice-doc amendment if:
 
+## Recommended Executor
+
+Filled by `aventuras-slice-plan` at approval time. The developer
+makes the final call; this records the recommendation and why.
+
+- Recommended: aventuras-slice-execute | aventuras-slice-execute-subagents
+- Reason:
+
 ## Approval
 
 - Approved by:
