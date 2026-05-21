@@ -113,8 +113,5 @@ design; a slice that needs a spec decision is handed back to
   offers merge or PR) need narrowing to match the project's stance
   that push and PR are a human gate, or is its consent-gated menu
   enough?
-- Should `AGENTS.md` carry a one-line pointer to the `.agents/skills/`
-  workflow so it is discoverable without relying on description-field
-  triggering alone?
 - Pilot slice: Slice 1.1 is process-heavy and low-code; Slice 1.2 is
   the first real code, migration, and cross-platform stress test.
