@@ -30,8 +30,10 @@ Three levels:
   if a slice keeps stretching.
 - **Task** — bite-sized work step inside a slice. Tasks live in
   the PR description (or the team's tracker), **not** in `docs/`.
-  The slice doc describes what to build; the PR holds the checklist
-  of how it's being built.
+  During local AI-assisted planning, full execution plans live in
+  the ignored `.impl-plans/` directory until a PR body exists. The
+  slice doc describes what to build; the execution plan / PR holds
+  the checklist of how it's being built.
 
 ## Directory layout
 
@@ -177,6 +179,42 @@ to surface during implementation. If a question turns into a
 decision during implementation, the canonical doc is updated and
 the slice doc is amended accordingly.
 
+**Implementation notes.** Optional final section for brief
+implementation rationale that should persist near the slice. Use it
+sparingly: why a notable route was chosen, what constraint the
+executor should remember, or what implementation decision affected
+future slices. Do **not** put task checklists, step-by-step plans,
+verification logs, or work journals here. Full execution plans live
+outside `docs/` in `.impl-plans/`.
+
+## Slice planning
+
+Slice docs are intentionally not exhaustive. They define the
+PR-sized contract, but implementation can still require a
+collaborative planning pass before code changes begin. That pass
+turns the slice contract into a run-specific execution plan:
+
+- Resolve open questions into developer decisions, implementer
+  choices, monitor-during-work items, or blockers.
+- Translate acceptance criteria into a verification / evidence
+  matrix.
+- Pick the implementation route at module or file-boundary level.
+- Decide whether subagents are useful, and if so, assign explicit
+  read or write ownership.
+- Confirm scope boundaries, especially anything listed under
+  **Scope: out**.
+
+The default home for the full plan is a root-level ignored file under
+`.impl-plans/`, named by milestone and slice, for example
+`.impl-plans/M01-02-drizzle-schema.md`. Once a PR exists, the PR body
+may carry the same checklist. The plan is run-specific working state,
+not project documentation.
+
+If planning reveals that the slice brief itself is wrong, amend the
+slice doc. If it reveals a canonical product or architecture decision
+needs to change, pause implementation and run the design workflow
+instead of quietly reshaping the spec.
+
 ## Authorship
 
 - **Milestone docs**: solo-authored by the project owner.
@@ -187,8 +225,9 @@ the slice doc is amended accordingly.
   collaborators execute against them once written. Slice docs land
   **before** the PR that implements them — the slice doc is the
   brief, the PR is the work against it.
-- **Tasks (in PRs)**: filled in by the executing dev as they break
-  the slice down into steps. Not in `docs/`.
+- **Tasks / execution plans**: filled in by the executing dev as
+  they break the slice down into steps. Use `.impl-plans/` before a
+  PR exists, then the PR body or tracker. Not in `docs/`.
 
 ## Linking discipline
 
