@@ -1,5 +1,13 @@
 # AI-driven development workflow proposal
 
+> **Superseded (2026-05-22)** by
+> [Superpowers skill port](./2026-05-22-superpowers-skill-port.md).
+> That exploration reached the same goal by a different route —
+> porting the Superpowers skill set rather than hand-rolling
+> project-specific slice skills — and is the implemented design. The
+> framework research below (AGENTS.md, Agent Skills, Spec Kit, BMad,
+> Task Master, subagents) remains valid background.
+
 Status: draft exploration. This is not canonical project policy until
 the project owner approves the workflow and its integration plan.
 
