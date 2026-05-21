@@ -15,6 +15,10 @@ acceptance problems.
 Working directory: [absolute repo path]
 Plan: [plan path]
 Slice: [slice path and label]
+Whole-slice base checkpoint: [checkpoint id or path]
+Whole-slice head checkpoint: [checkpoint id or path]
+Changed paths:
+- [paths]
 
 ## The Slice Contract
 
@@ -34,7 +38,14 @@ task-cluster list.]
 
 ## Diff To Review
 
-[Changed paths, or the git diff range covering the whole slice.]
+Review exactly this whole-slice range:
+
+Commands to run:
+- git diff --stat [slice-base] [slice-head]
+- git diff [slice-base] [slice-head] -- [changed-paths]
+
+If the controller marks new files as outside the checkpoint range,
+read those files directly and treat them as part of this slice.
 
 ## Review Rules
 
@@ -42,6 +53,7 @@ Do not trust any prior report. Verify by reading the actual diff and
 the relevant files. Do not edit files.
 
 Check:
+
 - every acceptance criterion is met by the integrated code, and its
   evidence-matrix row could pass
 - clusters fit together — no contradictory assumptions, no interface
@@ -64,6 +76,7 @@ what is wrong, and why it matters at the slice level.
 ### Verdict
 
 One of:
+
 - `SLICE PASS` — the integrated slice meets its contract.
 - `SLICE FAIL` — list what must change before completion.
 - `NEEDS PLANNING` — integration exposed a stale plan, a

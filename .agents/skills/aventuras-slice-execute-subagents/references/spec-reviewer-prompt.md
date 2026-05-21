@@ -11,6 +11,10 @@ Working directory: [absolute repo path]
 Plan: [plan path]
 Slice: [slice path and label]
 Cluster: [cluster name]
+Cluster base checkpoint: [checkpoint id or path]
+Cluster head checkpoint: [checkpoint id or path]
+Changed paths in this cluster:
+- [paths]
 
 ## What Was Requested
 
@@ -34,12 +38,24 @@ Plan decisions / implementation strategy:
 
 [Worker report.]
 
+## Diff To Review
+
+Review exactly this cluster range:
+
+Commands to run:
+- git diff --stat [cluster-base] [cluster-head]
+- git diff [cluster-base] [cluster-head] -- [cluster-owned-paths]
+
+If the controller marks new files as outside the checkpoint range,
+read those files directly and treat them as part of this cluster.
+
 ## Review Rules
 
 Do not trust the report. Verify by reading the actual diff and relevant
 files. Do not edit files.
 
 Check:
+
 - missing requirements
 - extra work not requested
 - misunderstandings of the plan or slice contract

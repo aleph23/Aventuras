@@ -11,11 +11,14 @@ Working directory: [absolute repo path]
 Plan: [plan path]
 Slice: [slice path and label]
 Cluster: [cluster name]
+Cluster base checkpoint: [checkpoint id or path]
 
 Earlier clusters in this slice, and the user, may already have
 changed files in this workspace. Do not revert edits you did not
 make; build on what is there. Keep your work within the ownership
-boundaries below.
+boundaries below. The cluster base checkpoint is the start of your
+review range; keep your edits and any temporary red/green probes
+inside this cluster-owned boundary.
 
 ## Cluster Text
 
@@ -57,7 +60,9 @@ Once you are clear on the cluster:
    Use TDD when the behavior has a clear contract: write a failing
    test first, then make it pass. When you add a regression test
    after a bug fix, prove it catches the bug — revert the fix and see
-   the test fail, then restore the fix and see it pass.
+   the test fail, then restore the fix and see it pass. Only do this
+   when the revert can be isolated to this cluster's owned diff range;
+   otherwise report why the red proof was unsafe to run.
 3. Run the cluster verification listed below.
 4. Leave commits alone; the controller handles the commit later.
 5. Self-review (see below) and fix what you find.

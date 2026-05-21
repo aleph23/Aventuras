@@ -8,9 +8,10 @@ description: >-
   execution. The controller validates approval, readiness, execution
   gates, scope, and evidence; dispatches one fresh worker per cluster
   in dependency order; runs spec-compliance and code-quality review
-  loops; integrates changes; verifies with fresh evidence. Workers run
-  one at a time, never in parallel. Does not commit; a closing skill
-  offers that.
+  loops over explicit cluster checkpoint ranges; integrates changes;
+  verifies with fresh evidence. Workers run one at a time, never in
+  parallel. Does not create project commits; a closing skill offers
+  that.
 ---
 
 # Aventuras Slice Execute With Subagents
@@ -54,7 +55,9 @@ over the plan's recommendation.
   exact curated cluster text and context it needs.
 - Do not commit, and do not let a worker commit. The closing handoff
   to `aventuras-slice-finish` offers the commit, on explicit
-  developer approval only.
+  developer approval only. Temporary checkpoint objects used only to
+  produce review diff ranges are allowed; they must not become branch
+  history or the final commit record.
 - Do not claim completion without fresh verification evidence produced
   after the last edit.
 
@@ -127,6 +130,8 @@ Validate before dispatching:
 - task clusters have usable dependencies and clear file/module
   ownership
 - evidence matrix has concrete commands/checks
+- the plan's `Skill Plan` is understood, including trigger points and
+  "may skip if" clauses
 - stop conditions are understood
 - worktree changes do not conflict with the files this plan owns
 - the working branch is not `main`/`master`, or the developer has
@@ -169,6 +174,11 @@ dispatching. If the suite is too noisy or slow to capture and
 classify cleanly, say so; that is a test-infrastructure problem in
 its own right.
 
+Before the first cluster, record a whole-slice base checkpoint for
+final review. The checkpoint must represent the current working tree
+well enough that the final reviewer can distinguish this slice's
+changes from unrelated pre-existing changes.
+
 ### 3. Extract Work Units
 
 Use Task Clusters as the dispatch unit because they already encode
@@ -181,6 +191,7 @@ For each cluster, extract:
 - owned files/modules
 - relevant decisions and implementation strategy
 - relevant evidence-matrix rows
+- relevant Skill Plan trigger points and domain-skill instructions
 - relevant stop conditions
 - non-ownership boundaries
 
@@ -188,7 +199,45 @@ Split a cluster only when the split is mechanical and does not change
 the implementation route. If the split requires new planning, stop and
 return to `aventuras-slice-plan`.
 
-### 4. Dispatch Implementers
+The plan's `Skill Plan` is executable context, not a note. Invoke
+recommended execution skills at their trigger point unless the
+recorded "may skip if" condition clearly applies. If a recommended
+skill is skipped, record the reason for the completion report.
+
+### 4. Maintain Cluster Checkpoints
+
+Before each cluster dispatch, record a base checkpoint for the current
+working tree. After the worker and any fix loops finish, record a head
+checkpoint for the new working tree. Pass both checkpoint identifiers
+and the changed path list to the spec reviewer, code-quality reviewer,
+and any fix worker.
+
+The preferred boundary is a git-readable base/head range so reviewers
+can run:
+
+```sh
+git diff --stat <cluster-base> <cluster-head>
+git diff <cluster-base> <cluster-head> -- <cluster-owned-paths>
+```
+
+Use temporary checkpoint objects or another local mechanism that does
+not create branch-history commits. For tracked-only changes,
+`git stash create "aventuras cluster <n> <base|head>"` is acceptable:
+it returns a git-readable checkpoint without modifying the worktree;
+when it returns nothing because there are no changes, use `HEAD` for
+that side of the range. It does not reliably cover untracked files, so
+include new files in the boundary only if the chosen mechanism captures
+them; otherwise call them out explicitly as new files for this cluster
+and require reviewers to read them directly. Do not fall back to an
+ambiguous whole-working-tree diff when a cluster touches files that
+earlier clusters or the user already changed.
+
+The checkpoint range is also the safety boundary for red/green
+regression probes. If proving a regression test would require
+reverting outside the cluster-owned range, the worker should report
+that instead of making the revert.
+
+### 5. Dispatch Implementers
 
 Use `references/implementer-prompt.md` when dispatching each worker.
 
@@ -200,6 +249,9 @@ Dispatch rules:
 - Order clusters so every `Depends on` edge is satisfied;
   dependency-free clusters may be taken in any safe order.
 - Match the worker's model to the cluster — see Model Selection.
+- Dispatch workers with fresh context, not inherited controller
+  history. When using `spawn_agent`, leave `fork_context` unset/false
+  and include all needed context in the filled prompt.
 - Each worker edits only its cluster's owned files. Tell workers that
   earlier clusters and the user may already have changed files, and
   they must not revert edits they did not make.
@@ -207,6 +259,9 @@ Dispatch rules:
   changed paths.
 - Tell workers to leave commits alone; the commit is offered later by
   `aventuras-slice-finish`.
+- Give workers the cluster base checkpoint and explain that any
+  regression-proof revert must stay within the cluster's owned diff
+  range.
 - Give workers the exact verification expected for their cluster.
 - Answer a worker's questions fully before it proceeds; never rush a
   worker into implementation.
@@ -229,7 +284,7 @@ Accepted worker statuses:
 Never re-dispatch a cluster to the same model without changing
 something — more context, a more capable model, or a smaller cluster.
 
-### 5. Review Each Cluster
+### 6. Review Each Cluster
 
 Run reviews in this order after an implementer reports `DONE` or an
 acceptable `DONE_WITH_CONCERNS`:
@@ -237,39 +292,45 @@ acceptable `DONE_WITH_CONCERNS`:
 1. **Spec compliance review** — use
    `references/spec-reviewer-prompt.md`. The reviewer is read-only and
    checks actual code against the cluster, plan decisions, slice
-   acceptance criteria, and `Scope: out`.
+   acceptance criteria, and `Scope: out`, using the cluster
+   checkpoint range.
 2. **Code quality review** — only after spec compliance passes, use
    `references/code-quality-reviewer-prompt.md`. The reviewer is
    read-only and checks bugs, maintainability, tests, type safety,
-   integration risk, and accidental churn.
+   integration risk, and accidental churn, using the cluster
+   checkpoint range.
 
 If either reviewer finds issues, send the findings back to the same
 implementer when possible, or dispatch a targeted fix worker scoped to
 the same files. Re-run the same review stage after fixes. Do not
 advance to the next cluster while review issues remain.
 
-### 6. Controller Integration
+### 7. Controller Integration
 
 The controller owns integration:
 
 - review the worker's diff before continuing
-- resolve any formatting or import drift without reverting unrelated
-  user or earlier-cluster changes
+- resolve only mechanical formatting, import, or merge drift without
+  reverting unrelated user or earlier-cluster changes
+- do not implement substantive reviewer findings locally; send them to
+  the same implementer when possible, or to a targeted fix worker, and
+  re-run the relevant review stage
 - run cluster-level verification when practical
 - track dependency edges from the plan
 - update your task list only after implementation, review, and
   verification pass
 - keep the plan file unchanged unless the user asks for execution logs
 
-### 7. Final Whole-Slice Verification
+### 8. Final Whole-Slice Verification
 
 After every cluster has passed its per-cluster reviews:
 
 - Dispatch a fresh read-only reviewer over the whole integrated
   slice, using `references/final-reviewer-prompt.md`. It checks the
   full diff against the plan, the slice acceptance criteria, the
-  evidence matrix, and `Scope: out` — fresh eyes the controller
-  cannot provide, since the controller integrated the work.
+  evidence matrix, and `Scope: out`, using the whole-slice base/head
+  checkpoint range — fresh eyes the controller cannot provide, since
+  the controller integrated the work.
 - Run every applicable evidence-matrix command/check after the last
   edit.
 - Run any extra checks made necessary by implementation discoveries.
@@ -300,7 +361,7 @@ exists.
 
 ## Handoff
 
-Step 7 verifies the slice against its plan — the evidence matrix and
+Step 8 verifies the slice against its plan — the evidence matrix and
 acceptance criteria. It does not format, lint, or commit. After the
 completion report, hand off to the `aventuras-slice-finish` skill: it
 runs the repo-wide commit-readiness gates (format, lint, typecheck,
