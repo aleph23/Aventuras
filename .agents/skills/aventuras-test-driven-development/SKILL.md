@@ -17,35 +17,40 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 ## When to Use
 
-**Always:**
+**Test-first is required for behavior-bearing code** — anything with a contract you can pin through a public interface:
 
 - New features
 - Bug fixes
 - Refactoring
 - Behavior changes
 
-**Exceptions (ask your human partner):**
+**Calibrated carve-outs** — test-first is not required because another evidence form is stronger. This is a closed list, not a judgment call:
 
-- Throwaway prototypes
-- Generated code
-- Configuration files
+- Generated files (migrations, codegen output)
+- Config-only changes
+- Temporary scaffolding / throwaway prototypes
+- Visual polish (covered by Storybook stories or visual checks)
 
-Thinking "skip TDD just this once"? Stop. That's rationalization.
+For a carve-out, the slice doc's Tests section and the execution plan's evidence matrix name the evidence that stands in for a test — a typecheck, a lint, a Storybook story, a manual smoke. Test coverage is calibrated to the slice's risk profile, per `docs/implementation/conventions.md`.
+
+If your work is behavior-bearing and you're thinking "skip TDD just this once" — Stop. That's rationalization. The carve-outs above are the ONLY exceptions.
 
 ## The Iron Law
 
 ```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+NO BEHAVIOR-BEARING CODE WITHOUT A FAILING TEST FIRST
 ```
 
-Write code before the test? Delete it. Start over.
+Write behavior-bearing code before the test? Delete it. Start over.
 
-**No exceptions:**
+**No exceptions — within scope:**
 
 - Don't keep it as "reference"
 - Don't "adapt" it while writing tests
 - Don't look at it
 - Delete means delete
+
+The law's scope is behavior-bearing code (see When to Use). Inside that scope it is absolute. The calibrated carve-outs are the only code it does not cover — and "this is a carve-out" is a claim the slice doc's Tests section must already support, not something you decide mid-implementation to dodge a test.
 
 Implement fresh from tests. Period.
 
@@ -384,8 +389,9 @@ When adding mocks or test utilities, read @testing-anti-patterns.md to avoid com
 ## Final Rule
 
 ```
-Production code → test exists and failed first
-Otherwise → not TDD
+Behavior-bearing code → test exists and failed first
+Calibrated carve-out  → evidence named in the slice doc / plan
+Otherwise             → not TDD
 ```
 
-No exceptions without your human partner's permission.
+The carve-outs are calibrated by the slice's risk profile, per `docs/implementation/conventions.md`. They are not a license to skip tests on behavior-bearing code — that still needs your human partner's explicit permission.
