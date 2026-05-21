@@ -2,7 +2,7 @@
 
 Copy the fenced block below into `.impl-plans/<milestone>-<slice-file-stem>.md` — the slice's path identifier from `docs/implementation/conventions.md` with the `/` flattened to `-`. For slice `M01/02-drizzle-schema` the file is `.impl-plans/M01-02-drizzle-schema.md`.
 
-This template carries the plan header and task structure from `SKILL.md` and adds the project sections this repo's slice workflow needs: Execution gate, Decisions, Evidence Matrix, Skill Plan, and Recommended Executor.
+The fenced block is the plan's full structure — its sections and their order. `SKILL.md` is the craft guidance for filling it in: file decomposition, task granularity, the per-task format, and no placeholders.
 
 ```markdown
 # [Slice name] Implementation Plan

@@ -29,6 +29,20 @@ The input is one slice doc plus the open questions resolved in `aventuras-brains
 
 A slice is a PR-sized unit — one slice, one plan. If the slice turns out too large for one PR, `aventuras-brainstorming` should have flagged it for a split; if it slipped through, stop and recommend a slice split rather than planning an oversized slice.
 
+## Plan Structure
+
+Write the plan into a file created from `references/execution-plan-template.md`. That template is the plan's structure — its sections, in this order, are mandatory:
+
+- **Header** — title, the agentic-workers sub-skill line, `Slice:` / `Milestone:` links, Goal, Architecture, Tech Stack.
+- **Execution gate** — a condition that must hold before execution may start, or `none`.
+- **Decisions** — developer decisions, implementer choices, and monitor-during-work items carried from `aventuras-brainstorming`.
+- **Tasks** — one `### Task N` per task; see Task Structure below.
+- **Evidence Matrix** — one row per slice acceptance criterion.
+- **Skill Plan** — domain skills the executor should reach for.
+- **Recommended Executor** — filled at the Execution Handoff step.
+
+The template is the skeleton. The rest of this skill is how to fill it well — decomposing files (File Structure), sizing tasks (Bite-Sized Task Granularity), writing each task (Task Structure), and keeping every step concrete (No Placeholders).
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
@@ -50,29 +64,9 @@ This structure informs the task decomposition. Each task should produce self-con
 - "Run the tests and make sure they pass" - step
 - "Commit" - step
 
-## Plan Template
-
-Write the plan from the project template at `references/execution-plan-template.md`. It defines the full plan structure for this repo's slice workflow — the header and task layout detailed below, plus the project sections: Execution gate, Decisions (carried from aventuras-brainstorming), Evidence Matrix, Skill Plan, and Recommended Executor.
-
-## Plan Document Header
-
-**Every plan MUST start with this header:**
-
-```markdown
-# [Feature Name] Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use aventuras-subagent-driven-development (recommended) or aventuras-executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** [One sentence describing what this builds]
-
-**Architecture:** [2-3 sentences about approach]
-
-**Tech Stack:** [Key technologies/libraries]
-
----
-```
-
 ## Task Structure
+
+Each entry in the plan's Tasks section follows this format:
 
 ````markdown
 ### Task N: [Component Name]
@@ -151,6 +145,8 @@ After writing the complete plan, look at the slice doc with fresh eyes and check
 
 **3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
 
+**4. Evidence coverage:** Does every slice acceptance criterion have an Evidence Matrix row naming a real command or check — not a generic "run tests"?
+
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a slice requirement with no task, add the task.
 
 ## Execution Handoff
@@ -174,3 +170,5 @@ After saving the plan, offer execution choice:
 
 - **REQUIRED SUB-SKILL:** Use aventuras-executing-plans
 - Batch execution with checkpoints for review
+
+Record the chosen executor and a one-line reason in the plan's Recommended Executor section before invoking the sub-skill.
