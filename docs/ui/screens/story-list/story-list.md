@@ -125,7 +125,10 @@ viewport.
     backup, per data-model decision)
   - **Delete** — destructive, confirmation required, shown last
     Favorite/Unfavorite is NOT in this menu — it's the inline star toggle.
-    All items also reachable via the global Actions menu.
+    These are per-card actions and do not appear in the global
+    [Actions menu](../../patterns/actions-menu.md), which lists
+    only self-contained commands; the Story List's Actions entries
+    are `New story` and `Import story…`.
 - **Meta row** — mode name (written out: "Adventure" / "Creative"),
   current chapter (for active stories), last-opened relative time.
   Draft stories skip the chapter part — their draft-ness is already

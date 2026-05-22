@@ -94,3 +94,8 @@ The split heuristic + when-to-add rules live in
   (tap-to-route). Consumes Tag with the accent + warning tones;
   owns the `active > error > hidden` priority machine and the
   phase / error → copy mapping.
+- [`actions-menu.md`](./actions-menu.md) — the universal command
+  surface (`⚲` / `Cmd-K`): hybrid two-zone menu (curated global
+  core, screen-specific contextual zone), self-contained-command
+  inclusion test, per-tier Popover/Sheet via the Autocomplete
+  substrate, combobox/listbox semantics.

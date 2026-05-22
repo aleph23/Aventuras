@@ -394,9 +394,13 @@ desktop and mobile:
 - **Desktop:** `Cmd/Ctrl-K` opens an overlay. Also reachable via the
   Actions icon in the top bar.
 - **Mobile:** tap the Actions icon, opens as a bottom sheet.
-- Same content on both: a searchable directory of every action the
-  current context supports — settings, navigation, filters, tools.
 - UI label: "Actions" (not "command palette").
+
+It is a deliberately curated, two-zone menu — a global core plus a
+screen-specific contextual zone — not a literal mirror of every
+action the context supports. Content, structure, inventory, and
+behavior are specified in
+[`patterns/actions-menu.md`](./patterns/actions-menu.md).
 
 ---
 

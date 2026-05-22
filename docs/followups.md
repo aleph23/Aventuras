@@ -15,15 +15,18 @@ for the placement rule.
 
 ## UX
 
-### Actions menu broader design pass
+### Extract the searchable-overlay-list substrate into a component
 
-The
-[Diagnostics Hub](./ui/screens/diagnostics/diagnostics.md)
-adds a single entry (`Open Diagnostics Hub`) to the global Actions
-(⚲) menu. The menu has not yet had a focused design pass — its
-full inventory, organizational shape (groups, separators, mobile
-expression), and contextual variants per screen are
-unspecified. Surfaced during the observability design
-session; lands as its own pass when the next set of Actions-menu
-candidates is ready (or when the menu's current sparseness
-becomes a UX friction in real use).
+Three patterns now compose the "Autocomplete substrate" — per-tier
+Popover/Sheet dispatch, type-to-filter, virtualization — as a
+doc-level concept rather than a named component:
+[`Autocomplete-with-create`](./ui/patterns/forms.md#autocomplete-with-create-primitive),
+[`provider-model-picker`](./ui/patterns/provider-model-picker.md),
+and the [`Actions menu`](./ui/patterns/actions-menu.md). A design
+pass should extract the shared component — trigger, open surface,
+search, virtualized list — and reconcile the three as consumers.
+Active rather than parked: all three are v1 build-ready, so the
+extraction-design belongs before consumer #2 or #3 is built;
+doing it post-v1 means refactoring three shipped components. The
+seam needs thought — `Autocomplete-with-create`'s trigger is its
+own input, unlike the other two.

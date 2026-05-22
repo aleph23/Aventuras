@@ -250,7 +250,7 @@ content alike. Consumer override path:
 prop name for cross-platform role attribution; reshape audit at
 scaffold time confirms both rn-primitives' Popover and Dialog
 accept it consistently. The
-[Actions menu broader-design pass](../followups.md#actions-menu-broader-design-pass)
+[Actions menu broader-design pass](../ui/patterns/actions-menu.md)
 is the natural future `role="menu"` adopter once it ships proper
 arrow-key menuitem semantics. For v1, even the Actions menu
 ships as `role="dialog"` — under-claiming precision is safer than
@@ -430,6 +430,6 @@ recoverable fallbacks rather than new design questions.
 
 - [`Native motion parity`](../ui/foundations/motion.md) — Sheet's
   slide-in animation, separate concern; not touched.
-- [`Actions menu broader design pass`](../followups.md#actions-menu-broader-design-pass) —
+- [`Actions menu broader design pass`](../ui/patterns/actions-menu.md) —
   the natural future `role="menu"` adopter; explicitly mentioned
   as the upgrade path, but its own design pass stays open.

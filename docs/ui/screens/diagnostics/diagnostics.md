@@ -278,8 +278,8 @@ story-anchored tab is active.
 ## Top-bar Actions menu
 
 The hub's entry point is the Actions menu — a global affordance
-that has not yet had a focused design pass. See
-[`followups.md → Actions menu broader design pass`](../../../followups.md#actions-menu-broader-design-pass)
-for the pending design work; this hub adds a single entry
-(`Open Diagnostics Hub`) without redesigning the menu's broader
-inventory or organization.
+specified in
+[`patterns/actions-menu.md`](../../patterns/actions-menu.md). The
+hub contributes a single entry, `Open Diagnostics Hub`, gated by
+the diagnostics master toggle; the menu's broader inventory and
+organization live in that pattern doc.

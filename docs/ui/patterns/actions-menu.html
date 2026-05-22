@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Actions menu — pattern wireframe</title>
+<style>
+  :root {
+    --ink: #2a241a;
+    --ink-muted: #6b5e48;
+    --ink-faint: #948668;
+    --bg: #fbf7ee;
+    --bg-region: #f4ecdc;
+    --bg-highlight: #ede2c4;
+    --line: #c8b88f;
+    --line-soft: #d8c99a;
+    --warn: #b8742a;
+    --warn-bg: #f8e6c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font: 13px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: var(--bg-region); }
+
+  .review-bar { background: #faf2dd; border-bottom: 1px solid var(--line-soft); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 11px; color: #6b5520; }
+  .review-bar .rb-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .review-bar .gl { font-size: 10px; color: #967; margin-right: 4px; }
+  .rb-btn { padding: 3px 9px; border: 1px solid #d8c99a; border-radius: 3px; background: #fff; color: #5a4820; font-size: 11px; cursor: pointer; font-family: inherit; }
+  .rb-btn.active { background: #7a6a40; color: #fff; border-color: #7a6a40; }
+  .rb-note { font-size: 10px; color: var(--ink-muted); font-style: italic; }
+
+  .stage { padding: 28px 24px 56px; min-height: calc(100vh - 50px); }
+  .caption { max-width: 720px; margin: 0 auto 14px; font-size: 12px; color: var(--ink-muted); }
+  .caption b { color: var(--ink); }
+  .caption .note { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-faint); font-style: italic; }
+
+  /* faux app frame */
+  .frame { position: relative; max-width: 720px; margin: 0 auto; min-height: 504px; background: var(--bg-region); border: 1px solid var(--line-soft); border-radius: 4px; overflow: hidden; }
+  .frame.phone { max-width: 332px; min-height: 540px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; background: var(--bg); border-bottom: 1px solid var(--line-soft); font-size: 12px; }
+  .topbar .crumb { flex: 1; color: var(--ink-muted); }
+  .topbar .crumb b { color: var(--ink); font-weight: 600; }
+  .tb-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 3px; color: var(--ink-faint); font-size: 14px; }
+  .tb-icon.active { background: var(--ink); color: #fff; }
+
+  .frame-fill { padding: 20px 14px; color: var(--ink-faint); font-size: 11px; font-style: italic; }
+
+  /* scrim — mobile sheet only */
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.20); }
+
+  /* the menu panel */
+  .menu { background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .menu.popover { position: absolute; top: 46px; right: 10px; width: 296px; border-radius: 5px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); max-height: 440px; }
+  .menu.sheet { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 10px 10px 0 0; border-bottom: none; box-shadow: 0 -6px 24px rgba(0,0,0,0.16); max-height: 460px; }
+
+  .sheet-handle { display: flex; justify-content: center; padding: 7px 0 3px; }
+  .sheet-handle span { width: 32px; height: 4px; border-radius: 999px; background: var(--line); }
+
+  .menu-search { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+  .menu-search .field { display: flex; align-items: center; gap: 7px; border: 1px solid var(--line-soft); border-radius: 4px; background: var(--bg-region); padding: 5px 9px; }
+  .menu-search .field.focused { border-color: var(--ink); background: var(--bg); }
+  .menu-search input { flex: 1; border: none; background: none; font: inherit; font-size: 12px; color: var(--ink); padding: 0; }
+  .menu-search input:focus { outline: none; }
+  .menu-search input::placeholder { color: var(--ink-faint); }
+  .menu-search .caret { width: 1px; height: 14px; background: var(--ink); }
+
+  .menu-list { overflow: auto; padding: 4px 0; }
+
+  .menu-sec-head { padding: 8px 12px 3px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; color: var(--ink-faint); text-transform: uppercase; }
+  .menu-sep { height: 1px; background: var(--line-soft); margin: 4px 0; }
+
+  .menu-item { display: flex; align-items: center; gap: 8px; padding: 5px 12px; font-size: 12.5px; color: var(--ink); cursor: default; }
+  .menu-item:hover { background: var(--bg-region); }
+  .menu-item.highlight { background: var(--bg-highlight); }
+  .menu-item.highlight:hover { background: var(--bg-highlight); }
+  .menu-item.disabled { color: var(--ink-faint); }
+  .menu-item.disabled:hover { background: none; }
+  .menu-item .gate { margin-left: auto; font-size: 9.5px; font-style: italic; color: var(--ink-faint); }
+
+  .menu-empty { padding: 18px 12px; text-align: center; font-size: 11.5px; color: var(--ink-faint); font-style: italic; }
+
+  .state-pane { display: none; }
+  .state-pane.active { display: block; }
+
+  .legend { max-width: 720px; margin: 16px auto 0; font-size: 10.5px; color: var(--ink-faint); line-height: 1.7; }
+  .legend code { font-size: 10px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 2px; padding: 0 3px; }
+</style>
+</head>
+<body>
+
+<div class="review-bar">
+  <div class="rb-group">
+    <span class="gl">state:</span>
+    <button class="rb-btn active" data-state="reader">reader</button>
+    <button class="rb-btn" data-state="world">world</button>
+    <button class="rb-btn" data-state="story-list">story-list</button>
+    <button class="rb-btn" data-state="app-settings">app-settings</button>
+    <button class="rb-btn" data-state="search">search-active</button>
+    <button class="rb-btn" data-state="no-results">no-results</button>
+    <button class="rb-btn" data-state="in-flight">in-flight</button>
+    <button class="rb-btn" data-state="mobile">mobile-sheet</button>
+  </div>
+  <span class="rb-note">flip controls to inspect each state</span>
+</div>
+
+<div class="stage">
+
+  <!-- reader — full in-story menu -->
+  <div class="state-pane active" data-state-body="reader">
+    <div class="caption">
+      <b>Desktop &middot; Popover &middot; on the Reader.</b> The richest case &mdash;
+      contextual zone plus all three core groups. <code>Open Reader</code> self-omits.
+      <span class="note">Search is autofocused on desktop. <code>Open Diagnostics Hub</code> shows only when diagnostics capture is enabled.</span>
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b> / Reader</span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">narrative scroll &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input placeholder="Search actions…"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">On this screen</div>
+          <div class="menu-item">Jump to top of branch</div>
+          <div class="menu-item">Jump to bottom</div>
+          <div class="menu-sep"></div>
+          <div class="menu-sec-head">Go to</div>
+          <div class="menu-item">Open World</div>
+          <div class="menu-item">Open Plot</div>
+          <div class="menu-item">Open Chapter Timeline</div>
+          <div class="menu-item">Open Story Settings</div>
+          <div class="menu-sec-head">Story tools</div>
+          <div class="menu-item">Set lead character&hellip;</div>
+          <div class="menu-item">Flip era&hellip;</div>
+          <div class="menu-item">Close chapter&hellip;</div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Return to Library</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- world — contextual zone differs -->
+  <div class="state-pane" data-state-body="world">
+    <div class="caption">
+      <b>Desktop &middot; Popover &middot; on World.</b> Same core, different contextual zone &mdash;
+      the menu feels alive per screen. <code>Open World</code> self-omits; <code>Open Reader</code> returns.
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b> / World</span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">entities &amp; lore &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input placeholder="Search actions…"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">On this screen</div>
+          <div class="menu-item">Add entity&hellip;</div>
+          <div class="menu-item">Add lore&hellip;</div>
+          <div class="menu-sep"></div>
+          <div class="menu-sec-head">Go to</div>
+          <div class="menu-item">Open Reader</div>
+          <div class="menu-item">Open Plot</div>
+          <div class="menu-item">Open Chapter Timeline</div>
+          <div class="menu-item">Open Story Settings</div>
+          <div class="menu-sec-head">Story tools</div>
+          <div class="menu-item">Set lead character&hellip;</div>
+          <div class="menu-item">Flip era&hellip;</div>
+          <div class="menu-item">Close chapter&hellip;</div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Return to Library</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- story-list — off-story, thin -->
+  <div class="state-pane" data-state-body="story-list">
+    <div class="caption">
+      <b>Desktop &middot; Popover &middot; on the Story List.</b> Off-story: <code>GO TO</code> and
+      <code>STORY TOOLS</code> vanish entirely, only <code>APP</code> survives. The contextual zone
+      carries it. <code>Return to Library</code> self-omits.
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="crumb"><b>Aventuras</b></span>
+        <span class="tb-icon">&#9881;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">story grid &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input placeholder="Search actions…"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">On this screen</div>
+          <div class="menu-item">New story&hellip;</div>
+          <div class="menu-item">Import story&hellip;</div>
+          <div class="menu-sep"></div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- app-settings — thinnest -->
+  <div class="state-pane" data-state-body="app-settings">
+    <div class="caption">
+      <b>Desktop &middot; Popover &middot; on App Settings.</b> The thinnest case &mdash; no contextual
+      zone, only <code>APP</code>. Kept for consistency, not richness.
+      <span class="note">With diagnostics capture off, <code>Open Diagnostics Hub</code> hides and the menu shows a single entry. Accepted &mdash; it self-corrects as parked backup/export features land.</span>
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>App Settings</b></span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">settings categories &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input placeholder="Search actions…"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Return to Library</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- search-active -->
+  <div class="state-pane" data-state-body="search">
+    <div class="caption">
+      <b>Desktop &middot; search active.</b> Typing filters live across both zones; groups with no
+      match collapse away. The first result is auto-highlighted &mdash; <code>Enter</code> fires it.
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b> / Reader</span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">narrative scroll &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input value="open"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">Go to</div>
+          <div class="menu-item highlight">Open World</div>
+          <div class="menu-item">Open Plot</div>
+          <div class="menu-item">Open Chapter Timeline</div>
+          <div class="menu-item">Open Story Settings</div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- no-results -->
+  <div class="state-pane" data-state-body="no-results">
+    <div class="caption">
+      <b>Desktop &middot; search, no match.</b> The listbox shows a single empty line.
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b> / Reader</span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">narrative scroll &hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input value="xyzzy"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-empty">No actions match.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- in-flight gating -->
+  <div class="state-pane" data-state-body="in-flight">
+    <div class="caption">
+      <b>Desktop &middot; pipeline running.</b> Mutating commands are <i>disabled</i> with the uniform
+      tooltip (not hidden &mdash; the block is temporary). Navigation and the jump commands stay live.
+      State flips back the moment the pipeline ends.
+    </div>
+    <div class="frame">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b> / Reader</span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">generating narrative&hellip;</div>
+      <div class="menu popover">
+        <div class="menu-search">
+          <div class="field focused"><input placeholder="Search actions…"><span class="caret"></span></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">On this screen</div>
+          <div class="menu-item">Jump to top of branch</div>
+          <div class="menu-item">Jump to bottom</div>
+          <div class="menu-sep"></div>
+          <div class="menu-sec-head">Go to</div>
+          <div class="menu-item">Open World</div>
+          <div class="menu-item">Open Plot</div>
+          <div class="menu-item">Open Chapter Timeline</div>
+          <div class="menu-item">Open Story Settings</div>
+          <div class="menu-sec-head">Story tools</div>
+          <div class="menu-item disabled" title="Unavailable while generating">Set lead character&hellip;<span class="gate">generating&hellip;</span></div>
+          <div class="menu-item disabled" title="Unavailable while generating">Flip era&hellip;<span class="gate">generating&hellip;</span></div>
+          <div class="menu-item disabled" title="Unavailable while generating">Close chapter&hellip;<span class="gate">generating&hellip;</span></div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Return to Library</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- mobile sheet -->
+  <div class="state-pane" data-state-body="mobile">
+    <div class="caption">
+      <b>Phone &middot; bottom Sheet &middot; on the Reader.</b> Same content, Sheet form. Search is
+      <i>not</i> autofocused &mdash; autofocus would pop the keyboard and bury the contextual zone.
+      Tap the field to focus.
+    </div>
+    <div class="frame phone">
+      <div class="topbar">
+        <span class="tb-icon">&larr;</span>
+        <span class="crumb"><b>Aria's Descent</b></span>
+        <span class="tb-icon">&#9965;</span>
+        <span class="tb-icon active">&#9906;</span>
+      </div>
+      <div class="frame-fill">narrative scroll &hellip;</div>
+      <div class="scrim"></div>
+      <div class="menu sheet">
+        <div class="sheet-handle"><span></span></div>
+        <div class="menu-search">
+          <div class="field"><input placeholder="Search actions…"></div>
+        </div>
+        <div class="menu-list">
+          <div class="menu-sec-head">On this screen</div>
+          <div class="menu-item">Jump to top of branch</div>
+          <div class="menu-item">Jump to bottom</div>
+          <div class="menu-sep"></div>
+          <div class="menu-sec-head">Go to</div>
+          <div class="menu-item">Open World</div>
+          <div class="menu-item">Open Plot</div>
+          <div class="menu-item">Open Chapter Timeline</div>
+          <div class="menu-item">Open Story Settings</div>
+          <div class="menu-sec-head">Story tools</div>
+          <div class="menu-item">Set lead character&hellip;</div>
+          <div class="menu-item">Flip era&hellip;</div>
+          <div class="menu-item">Close chapter&hellip;</div>
+          <div class="menu-sec-head">App</div>
+          <div class="menu-item">Return to Library</div>
+          <div class="menu-item">Open App Settings</div>
+          <div class="menu-item">Open Diagnostics Hub</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <code>&#9906;</code> Actions trigger (scratch glyph) &middot;
+    <code>&hellip;</code> suffix marks an entry that opens a further surface (picker, modal, flow) &middot;
+    capability-gated entries are hidden, never shown disabled &middot;
+    the menu opens fresh each time &mdash; no sticky query, scroll, or recents.
+  </div>
+
+</div>
+
+<script>
+  (function() {
+    const stateBtns = document.querySelectorAll('[data-state]');
+    const stateBodies = document.querySelectorAll('[data-state-body]');
+    function setState(s) {
+      stateBtns.forEach(b => b.classList.toggle('active', b.dataset.state === s));
+      stateBodies.forEach(b => b.classList.toggle('active', b.dataset.stateBody === s));
+    }
+    stateBtns.forEach(b => b.addEventListener('click', () => setState(b.dataset.state)));
+  })();
+</script>
+
+</body>
+</html>

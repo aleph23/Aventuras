@@ -393,10 +393,11 @@ activation, Escape close); the default content trees in this
 codebase Tab through focusable children rather than navigating
 with arrow keys, so defaulting to `"menu"` would break that
 assumption. The
-[Actions menu broader-design pass](../../followups.md#actions-menu-broader-design-pass)
-is the natural future `"menu"` adopter once it ships proper
-menuitem semantics; for v1 even the Actions menu ships as
-`"dialog"` — under-claiming precision is safer than over-claiming
+[Actions menu](./actions-menu.md), designed as a searchable
+combobox/listbox surface, keeps `"dialog"` and does not adopt
+`"menu"`; the `accessibilityRole="menu"` override stays available
+should a true menu consumer (menuitem children, no textbox child)
+ever appear. Under-claiming precision is safer than over-claiming
 menu semantics the implementation can't honor.
 
 **Trigger ARIA.** `<PopoverTrigger>` receives `aria-haspopup`
