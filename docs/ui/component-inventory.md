@@ -36,8 +36,8 @@ Generic, single-purpose, reusable. Live in `components/ui/`.
 
 Accordion, AlertDialog, Autocomplete, Avatar, Button, Checkbox,
 Chip, ColorPicker, Dialog, EmptyState, Heading, Icon, IconAction, InlineEditableName,
-Input, Popover, Select, Sheet, Skeleton, Spinner, Switch, SwitchVisual,
-Tabs, Tag, Textarea, Text, Toast. Plus the `NativeOnlyAnimatedView`
+Input, Popover, SearchableOverlayList, Select, Sheet, Skeleton, Spinner, Switch,
+SwitchVisual, Tabs, Tag, Textarea, Text, Toast. Plus the `NativeOnlyAnimatedView`
 utility wrapper.
 
 ### Primitives — needs revision
@@ -51,9 +51,7 @@ Each row names the revision and points at the canonical spec.
 
 ### Primitives — build-ready
 
-| Primitive             | Baseline | Notes                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SearchableOverlayList | `_none_` | Shared substrate for searchable overlays — per-tier Popover/Sheet dispatch, substrate-owned search input, virtualized sectioned list, keyboard nav. One structural mode (`searchPlacement: 'as-trigger' \| 'in-overlay'`); consumers supply trigger / rows / footer slots. Composes the Popover, Sheet, and Input primitives. Spec: [searchable-overlay-list.md](./patterns/searchable-overlay-list.md). |
+_Empty — every build-ready primitive has shipped._
 
 ### Primitives — needs design
 
