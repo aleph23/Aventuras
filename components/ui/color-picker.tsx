@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import * as PopoverPrimitive from '@rn-primitives/popover'
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from 'react'
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native'
 import LibColorPicker, { HueSlider, Panel1 } from 'reanimated-color-picker'
 
@@ -57,16 +58,23 @@ const STATIC_STYLES = StyleSheet.create({
 
 type SwatchKind = 'none' | 'curated' | 'custom-empty' | 'custom-filled'
 
-type SwatchButtonProps = {
+type SwatchButtonProps = Omit<ComponentProps<typeof Pressable>, 'onPress' | 'aria-label'> & {
   color?: ColorValue
   selected: boolean
   kind: SwatchKind
   ariaLabel: string
   onPress: () => void
-  disabled?: boolean
 }
 
-function SwatchButton({ color, selected, kind, ariaLabel, onPress, disabled }: SwatchButtonProps) {
+function SwatchButton({
+  color,
+  selected,
+  kind,
+  ariaLabel,
+  onPress,
+  disabled,
+  ...slotProps
+}: SwatchButtonProps) {
   const ringClass = selected ? 'border-border-strong' : 'border-border'
   const dashed = kind === 'none' ? 'border-dashed' : ''
   const isEmpty = kind === 'custom-empty'
@@ -74,12 +82,16 @@ function SwatchButton({ color, selected, kind, ariaLabel, onPress, disabled }: S
   return (
     <Pressable
       role="button"
-      aria-label={ariaLabel}
       aria-pressed={selected}
+      aria-label={ariaLabel}
       onPress={onPress}
       disabled={disabled}
       style={isEmpty || !color ? undefined : fillStyle(color)}
       className={cn('h-7 w-7 items-center justify-center rounded-full border-2', ringClass, dashed)}
+      // Slot props spread last so PopoverTrigger.asChild can inject its ref + click
+      // handler onto the underlying Pressable — without this, Floating UI can't anchor
+      // the popover (renders unanchored at the viewport edge with collapsed height).
+      {...slotProps}
     >
       {isEmpty ? <Text size="sm">+</Text> : null}
     </Pressable>
@@ -216,6 +228,9 @@ function CustomChip({
     )
   }
 
+  // Desktop / tablet — uncontrolled Popover. Apply / Cancel wrap in PopoverPrimitive.Close
+  // (slotted onto the Button) so each press closes the popover via the rn-primitives
+  // root context; the explicit onPress on Apply still fires to commit the hex.
   return (
     <Popover ariaLabel="Custom color">
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
@@ -225,12 +240,16 @@ function CustomChip({
           customWarning={customWarning}
           renderActions={(hex, valid) => (
             <View className="flex-row justify-end gap-2">
-              <Button variant="ghost" onPress={() => onOpenChange(false)}>
-                <Text>Cancel</Text>
-              </Button>
-              <Button disabled={!valid} onPress={() => onCommit(hex)}>
-                <Text>Apply</Text>
-              </Button>
+              <PopoverPrimitive.Close asChild>
+                <Button variant="ghost">
+                  <Text>Cancel</Text>
+                </Button>
+              </PopoverPrimitive.Close>
+              <PopoverPrimitive.Close asChild>
+                <Button disabled={!valid} onPress={() => onCommit(hex)}>
+                  <Text>Apply</Text>
+                </Button>
+              </PopoverPrimitive.Close>
             </View>
           )}
         />
