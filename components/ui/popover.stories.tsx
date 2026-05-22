@@ -19,7 +19,7 @@ type Story = StoryObj<typeof Popover>
 export const Default: Story = {
   render: () => (
     <View className="items-center justify-center p-8">
-      <Popover>
+      <Popover ariaLabel="Popover heading">
         <PopoverTrigger asChild>
           <Button>
             <Text>Open popover</Text>
@@ -48,7 +48,7 @@ export const Placements: Story = {
         &quot;end&quot;.
       </Text>
       <View className="flex-row flex-wrap items-center gap-4">
-        <Popover>
+        <Popover ariaLabel="top start placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>top + start</Text>
@@ -58,7 +58,7 @@ export const Placements: Story = {
             <Text size="sm">side=&quot;top&quot; align=&quot;start&quot;</Text>
           </PopoverContent>
         </Popover>
-        <Popover>
+        <Popover ariaLabel="top center placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>top + center</Text>
@@ -68,7 +68,7 @@ export const Placements: Story = {
             <Text size="sm">side=&quot;top&quot; align=&quot;center&quot;</Text>
           </PopoverContent>
         </Popover>
-        <Popover>
+        <Popover ariaLabel="top end placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>top + end</Text>
@@ -80,7 +80,7 @@ export const Placements: Story = {
         </Popover>
       </View>
       <View className="flex-row flex-wrap items-center gap-4">
-        <Popover>
+        <Popover ariaLabel="bottom start placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>bottom + start</Text>
@@ -90,7 +90,7 @@ export const Placements: Story = {
             <Text size="sm">side=&quot;bottom&quot; align=&quot;start&quot;</Text>
           </PopoverContent>
         </Popover>
-        <Popover>
+        <Popover ariaLabel="bottom center placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>bottom + center</Text>
@@ -100,7 +100,7 @@ export const Placements: Story = {
             <Text size="sm">side=&quot;bottom&quot; align=&quot;center&quot;</Text>
           </PopoverContent>
         </Popover>
-        <Popover>
+        <Popover ariaLabel="bottom end placement">
           <PopoverTrigger asChild>
             <Button variant="secondary">
               <Text>bottom + end</Text>
@@ -118,7 +118,7 @@ export const Placements: Story = {
 export const RichContent: Story = {
   render: () => (
     <View className="items-center justify-center p-8">
-      <Popover>
+      <Popover ariaLabel="Settings">
         <PopoverTrigger asChild>
           <Button>
             <Text>Settings</Text>
@@ -135,6 +135,29 @@ export const RichContent: Story = {
                 <Text>Action</Text>
               </Button>
             </View>
+          </View>
+        </PopoverContent>
+      </Popover>
+    </View>
+  ),
+}
+
+export const Accessibility: Story = {
+  render: () => (
+    <View className="items-center justify-center p-8">
+      <Popover ariaLabel="Account options" ariaDescribedBy="popover-a11y-desc">
+        <PopoverTrigger asChild>
+          <Button>
+            <Text>Account</Text>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent accessibilityRole="dialog">
+          <View className="flex-col gap-2">
+            <Heading level={4}>Account</Heading>
+            <Text id="popover-a11y-desc" variant="muted" size="sm">
+              The trigger advertises aria-haspopup; the content carries role=dialog plus an
+              accessible name and description. Inspect the accessibility tree to verify.
+            </Text>
           </View>
         </PopoverContent>
       </Popover>
