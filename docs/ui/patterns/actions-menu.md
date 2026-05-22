@@ -69,28 +69,30 @@ entries all filter out collapses away — header included; clearing
 the field restores the full structure. The menu opens **fresh**
 each time — no sticky query, scroll position, or recents.
 
-## Open surface — composes the Autocomplete substrate
+## Open surface — composes SearchableOverlayList
 
-The menu reuses the
-[Autocomplete-with-create substrate](./forms.md#autocomplete-with-create-primitive)
-— per-tier popover/Sheet dispatch, type-to-filter, virtualization
-— the same way
-[`provider-model-picker`](./provider-model-picker.md) does: reuse
-the substrate, own the domain layer. It does **not** compose the
-`Autocomplete-with-create` primitive directly (that is a
-single-value form control with a `+ Add new` tail row — wrong
-semantics; the Actions menu fires commands and has no create row).
+The menu composes
+[`SearchableOverlayList`](./searchable-overlay-list.md) in
+`searchPlacement: 'in-overlay'` mode — per-tier popover/Sheet
+dispatch, type-to-filter, virtualization, keyboard nav — the same
+way [`provider-model-picker`](./provider-model-picker.md) does:
+reuse the substrate, own the domain layer. It does **not** compose
+the [`Autocomplete-with-create`](./forms.md#autocomplete-with-create-primitive)
+primitive directly (that is a single-value form control with a
+`+ Add new` tail row — wrong semantics; the Actions menu fires
+commands and has no create row).
 
 - **Trigger** — the `⚲` top-bar icon
   ([`iconography.md`](../foundations/iconography.md#top-bar--chrome))
-  plus `Cmd/Ctrl-K`.
-- **Desktop / tablet** — anchored **Popover**, ~340 px wide,
-  content-height to a max then scrolls. Search **autofocused** on
-  open (`Cmd-K` expects to type).
-- **Phone** — bottom **Sheet**. Search **not** autofocused —
-  autofocus would pop the keyboard and bury the contextual zone;
-  this menu is browse-first on touch. Sheet `size` tracks content
-  volume (a thin menu uses a short sheet).
+  plus `Cmd/Ctrl-K`; the menu owns the keybind and drives the
+  substrate's controlled `open`.
+- **Desktop / tablet** — anchored **Popover**, ~340 px wide.
+  `autofocusSearch: 'except-phone'` — search autofocused (`Cmd-K`
+  expects to type).
+- **Phone** — bottom **Sheet**, `sheetSize` tracking content volume
+  (a thin menu uses a short sheet). Search **not** autofocused —
+  `autofocusSearch: 'except-phone'` keeps the keyboard down so the
+  contextual zone stays visible; the menu is browse-first on touch.
 
 ## Inventory
 
@@ -222,38 +224,21 @@ while the menu is open, driven by the pipeline event stream.
 
 ## Keyboard & ARIA
 
-A searchable command menu is the **combobox + listbox** ARIA
-pattern, not the menu pattern (a `role="menu"` forbids a textbox
-child).
+The combobox/listbox ARIA shape, `aria-activedescendant` highlight
+tracking, the auto-highlight rule, the focus trap, and `Esc`-to-close
+are all provided by
+[`SearchableOverlayList`](./searchable-overlay-list.md#structure--aria)
+— this menu is the substrate's Shape 2 (`in-overlay`) at every tier.
+It is the combobox + listbox pattern, not the menu pattern (a
+`role="menu"` forbids a textbox child), so the container keeps
+`role="dialog"` and does **not** use the `accessibilityRole="menu"`
+override. The menu takes the substrate defaults
+`escClearsQueryFirst: false` (`Esc` closes in one press) and
+`autofocusSearch: 'except-phone'`.
 
-- The container Popover/Sheet keeps `role="dialog"` (the
-  [`overlays.md`](./overlays.md) default — the Actions menu does
-  **not** use the `accessibilityRole="menu"` override).
-- Search field — `role="combobox"`, `aria-expanded`,
-  `aria-controls` pointing at the listbox.
-- Results region — `role="listbox"`; each entry — `role="option"`;
-  zone/group sections — `role="group"` with `aria-label`
-  (`On this screen`, `Go to`, `Story tools`, `App`).
-- Keyboard highlight is tracked via `aria-activedescendant` — the
-  search field keeps DOM focus while `↓`/`↑` move the highlight.
-  With a query active the **first result is auto-highlighted** so
-  `Enter`'s target is visible; `Enter` activates it. With an empty
-  query nothing is highlighted — `Enter` is a no-op until the user
-  arrows in. `Esc` always closes in one press.
-- Desktop Popover opts into the focus-trap (`overlays.md`'s
-  content-rich opt-in). The phone Sheet traps by default; its
-  `onOpenAutoFocus` is overridden to focus the panel rather than
-  the search field, keeping the keyboard down.
-
-Entry labels, group headers, the search placeholder, and the
-`No actions match` empty line are translatable user-facing strings,
-routed through the standard translation surface.
-
-## Open questions
-
-- **Generic substrate component.** Three patterns now compose the
-  Autocomplete substrate (`Autocomplete-with-create`,
-  `provider-model-picker`, this menu). Extracting it into a named
-  component is tracked in
-  [`followups.md`](../../followups.md) — the Actions menu composes
-  the substrate as a concept until then.
+Actions-menu-specific ARIA: the zone and group sections carry
+`role="group"` with an `aria-label` (`On this screen`, `Go to`,
+`Story tools`, `App`). Entry labels, group headers, the search
+placeholder, and the `No actions match` empty line are translatable
+user-facing strings, routed through the standard translation
+surface.

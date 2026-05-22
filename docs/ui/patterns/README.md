@@ -23,11 +23,18 @@ The split heuristic + when-to-add rules live in
   table state + no-results state.
 - [`forms.md`](./forms.md) — Select primitive (segment / dropdown /
   radio render-mode rule).
+- [`searchable-overlay-list.md`](./searchable-overlay-list.md) —
+  shared substrate for searchable overlays: per-tier Popover/Sheet
+  dispatch, substrate-owned search input, virtualized sectioned
+  list, keyboard nav. One structural mode (`searchPlacement`);
+  consumed by Autocomplete, the provider-model-picker, and the
+  Actions menu.
 - [`provider-model-picker.md`](./provider-model-picker.md) —
   searchable, grouped, rich-row picker for `{providerId, modelId}`
   composite. Trigger + popover/Sheet open surface with type-to-filter,
   cross-provider Favorites, sticky-footer custom-add composer.
-  Composes Autocomplete substrate; owns grouped source + rich rows.
+  Composes `SearchableOverlayList`; owns grouped source and rich
+  rows.
 - [`overlays.md`](./overlays.md) — Sheet and Popover primitive
   contracts: rn-primitives mapping, API surface, slot reshape, story
   shapes. Consumer-side decision tree (when to use Sheet vs Popover
@@ -97,5 +104,5 @@ The split heuristic + when-to-add rules live in
 - [`actions-menu.md`](./actions-menu.md) — the universal command
   surface (`⚲` / `Cmd-K`): hybrid two-zone menu (curated global
   core, screen-specific contextual zone), self-contained-command
-  inclusion test, per-tier Popover/Sheet via the Autocomplete
-  substrate, combobox/listbox semantics.
+  inclusion test, per-tier Popover/Sheet via
+  `SearchableOverlayList`, combobox/listbox semantics.

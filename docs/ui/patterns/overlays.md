@@ -38,12 +38,17 @@ Used by:
   hosts the per-entry world-time edit overlay on desktop (anchored
   to the footer); Sheet hosts it on phone. Both contain a
   `TierTupleInput` matching the active calendar's tier shape.
+- [`SearchableOverlayList`](./searchable-overlay-list.md): composes
+  both — anchored Popover on desktop/tablet, bottom Sheet on phone —
+  as the per-tier dispatch for its three consumers (Autocomplete,
+  provider-model-picker, Actions menu), which reach the overlays
+  through it rather than directly.
 
 The Used-by list grows as primitives and patterns adopt the
-overlays. Future consumers will include the Actions menu, the
-Branch chip popover, the Time chip popover, the Chapter chip
-popover, the Calendar picker, the Peek drawer, the Raw JSON viewer,
-and the generation-in-flight pill expansion.
+overlays. Future consumers will include the Branch chip popover,
+the Time chip popover, the Chapter chip popover, the Calendar
+picker, the Peek drawer, the Raw JSON viewer, and the
+generation-in-flight pill expansion.
 
 ---
 
@@ -333,8 +338,10 @@ namespace.
   `@rn-primitives/popover@1.4.0` exposes uncontrolled state only;
   the trigger toggles internally. Programmatic control requires a
   consumer-side wrapper using `useRootContext` from inside the
-  tree, which is out of scope for v1 — defer until a real consumer
-  needs it.
+  tree. [`SearchableOverlayList`](./searchable-overlay-list.md) is
+  the consumer that needs it — the Actions menu's `Cmd-K` opens the
+  Popover programmatically — and implements that bridge so its
+  controlled `open` works on the desktop Popover branch.
 - `<PopoverContent side align>` — `side: 'top' | 'bottom'` and
   `align: 'start' | 'center' | 'end'`, forwarded to rn-primitives.
   No `'left'` / `'right'` side: rn-primitives popover positions on

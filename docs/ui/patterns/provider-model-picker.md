@@ -2,10 +2,11 @@
 
 Searchable, grouped, rich-row picker for setting a
 `modelRef: {providerId, modelId}` composite. Composes
-[Autocomplete-with-create](./forms.md#autocomplete-with-create-primitive)'s
-substrate (per-tier popover/Sheet dispatch, type-to-filter,
-virtualization) but owns its own grouped source, rich row layout
-(capability icons + favorite toggle), composite commit shape, and
+[`SearchableOverlayList`](./searchable-overlay-list.md) in
+`searchPlacement: 'in-overlay'` mode — the substrate provides
+per-tier popover/Sheet dispatch, type-to-filter, virtualization, and
+keyboard nav. This pattern owns its grouped source, rich row layout
+(capability icons, favorite toggle), composite commit shape, and
 sticky-footer custom-add composer.
 
 Sister patterns:
@@ -122,7 +123,9 @@ the broken state and route to fix.
 **Disabled state.** Uniform per
 [`principles.md → Edit restrictions during in-flight generation`](../principles.md#edit-restrictions-during-in-flight-generation).
 Trigger shows current value (no chevron animation, no hover state),
-can't open. Matches Input's edit-restriction treatment.
+can't open. Matches Input's edit-restriction treatment. If a
+pipeline begins while the picker is already open, the host drives
+the substrate's controlled `open` to `false` to force-close.
 
 ### Open surface — desktop / tablet (anchored popover, ~320–360 px)
 
@@ -166,22 +169,13 @@ can't open. Matches Input's edit-restriction treatment.
 
 ### Search bar
 
-The project's [`Input` primitive](./forms.md#input-primitive)
-configured with the shared search-bar adornments — same dressing
-[`toolbar.md`](./toolbar.md) wraps for list-pane search, minus the
-scope toggle.
-
-- **Sticky at the top of the scroll region.** On phone Sheet, under
-  the Sheet header strip per [`overlays.md`](./overlays.md). On
-  desktop popover, the search bar IS the top edge.
-- **Adornments.** `🔍` glyph at left, `×` clear button at right
-  when the input has a value.
-- **Placeholder.** `Search models…`.
-- **Background.** Subtle muted-tone background so the bar reads as
-  a sticky control when content rolls beneath it.
-- **Autofocus on open.** Mirrors Autocomplete's modal-input idiom.
-- **Not pre-filled from selection.** Opening shows the full list
-  with current selection scroll-anchored mid-viewport.
+The search input is provided by
+[`SearchableOverlayList`](./searchable-overlay-list.md) — sticky at
+the top of the scroll region, `🔍` and `×`-clear adornments,
+placeholder `Search models…`, autofocused on open. Not pre-filled
+from the current selection: opening shows the full list with the
+current selection scroll-anchored mid-viewport via the substrate's
+`initialScrollRowId`.
 
 ### Sections + rows
 
@@ -358,36 +352,22 @@ column blank.
 
 ## Per-tier dispatch
 
-- **Desktop / tablet** — anchored popover, ~320–360 px wide.
-- **Phone** — bottom Sheet (~95vh), drag-to-dismiss enabled. Sheet
-  header carries title + close ×; search bar sticky beneath; footer
-  sticky at the bottom.
-
-**Sheet keyboard handling.** Picker's sticky search input drives
-keyboard avoidance on phone. Sheet's default `avoidKeyboard={true}`
-handles the outer layout response; the picker's scrollable option
-list wraps in `KeyboardAwareScrollView` per the consumer rule in
-[`overlays.md → Sheet — Keyboard handling`](./overlays.md#sheet--keyboard-handling).
-
-**Sheet + Popover ARIA.** Picker adopts the canonical roles and
-labelling per
-[`overlays.md → Sheet — ARIA contract`](./overlays.md#sheet--aria-contract)
-and
-[`overlays.md → Popover — ARIA contract`](./overlays.md#popover--aria-contract).
-Header text serves as `ariaLabelledBy` target; the picker passes
-that element's ID through to whichever overlay the host tier
-selects.
+Per-tier overlay dispatch — an anchored popover on desktop/tablet
+(~320–360 px wide), a bottom Sheet on phone (`sheetSize: 'tall'`,
+drag-to-dismiss) — is provided by
+[`SearchableOverlayList`](./searchable-overlay-list.md). Sheet
+keyboard handling, focus management, and the Sheet/Popover ARIA
+contract follow the substrate and [`overlays.md`](./overlays.md).
 
 ## Keyboard
 
-- **Trigger.** Standard button — Enter / Space opens the picker.
-- **Search input** (focused on open). Typing filters; `↓` / `↑`
-  move highlight through filtered results (highlight scrolls into
-  view); `Enter` commits the highlighted row; `Esc` clears search
-  if non-empty, else closes the picker.
-- **Footer composer**, when open: Tab through `modelId` input →
-  `Under:` dropdown → Cancel → Add. Enter inside `modelId` =
-  Add (if both fields valid). Esc = Cancel.
+Trigger, search-input filtering, `↓`/`↑` highlight navigation,
+`Enter` to commit the highlighted row, and `Esc` (clear-then-close,
+via `escClearsQueryFirst: true`) follow
+[`SearchableOverlayList`](./searchable-overlay-list.md).
+Picker-specific: the footer composer, when open, Tabs through the
+`modelId` input → `Under:` dropdown → Cancel → Add; Enter inside
+`modelId` is Add (when both fields are valid); Esc is Cancel.
 
 ## Storybook
 

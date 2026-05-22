@@ -267,11 +267,12 @@ below on phone (see
 The underlying Sheet and Popover primitive contracts (API surface,
 rn-primitives mapping, slot reshape) live in
 [`overlays.md`](./overlays.md). The phone-tier Sheet bridge is
-implemented in-Select via `useTier()`. A generic
-`<ResponsiveOverlay>` helper for Phase 3 consumers (actions menu,
-others) whose popover branch uses our Popover primitive remains an
-open shape — Select's popover branch uses `@rn-primitives/select`'s
-own machinery, so a shared helper can't host both. See
+implemented in-Select via `useTier()`. The shared per-tier dispatch
+for the overlay consumers that build on our Popover primitive
+(Autocomplete, provider-model-picker, Actions menu) lives in
+[`SearchableOverlayList`](./searchable-overlay-list.md); Select
+cannot share it — Select's popover branch uses
+`@rn-primitives/select`'s own machinery, not our Popover. See
 [Implementation contract](#select--implementation-contract).
 
 ### Chrome carve-out
@@ -666,6 +667,12 @@ option. Used wherever the user picks from a known list **OR**
 contributes a new entry to the same field — narrative free-text
 fields where canonical suggestions exist but coverage is open.
 
+Composes [`SearchableOverlayList`](./searchable-overlay-list.md) in
+`searchPlacement: 'as-trigger'` mode — the substrate provides the
+per-tier overlay, the search input, virtualization, and keyboard
+navigation. This primitive owns the source-list semantics, the
+tail-create row, and the commit behavior below.
+
 **First user**: era flip's `era_name` input (per
 [era-flip design](../../explorations/2026-04-28-era-flip-affordance.md)).
 Likely future users: tag pickers, entity-link pickers when an
@@ -675,15 +682,13 @@ ad-hoc entity is acceptable, entry-ref pickers.
 
 - **Text input** — always present, focused on open in modal
   contexts.
-- **Dropdown surface — per-tier idiomatic.** On desktop / tablet,
-  the suggestions render in an anchored popover below the input.
-  On phone, the input + suggestions render inside a bottom Sheet
-  (tall, ~95vh) with the input pinned at the top, the keyboard
-  below, and the filtered list scrolling between. Mirrors the iOS
-  Mail recipient-picker / Spotlight idiom; matches Select's
-  Sheet-on-phone shape so the two primitives stay visually
-  consistent within each tier. Phase 2 ships Select with this
-  contract; Autocomplete's own implementation pass lands later.
+- **Dropdown surface.** Provided by
+  [`SearchableOverlayList`](./searchable-overlay-list.md) — an
+  anchored popover on desktop/tablet, a bottom Sheet on phone with
+  the input pinned at the top. See its
+  [Structure & ARIA](./searchable-overlay-list.md#structure--aria)
+  for the per-tier shapes — Autocomplete is the substrate's Shape 1
+  on desktop/tablet.
 - **Dropdown content** — appears below the input on focus / typing.
   Two zones:
   - **Suggestions** (top) — entries from the source list filtered
