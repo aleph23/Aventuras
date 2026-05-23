@@ -15,33 +15,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2 } from 'lucide-react-native'
-import {
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  type CSSProperties,
-  type ReactNode,
-} from 'react'
+import { ChevronDown, GripVertical, Trash2 } from 'lucide-react-native'
+import { memo, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, {
-  Easing,
-  LayoutAnimationConfig,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated'
-import { runOnJS } from 'react-native-worklets'
+import Collapsible from 'react-native-collapsible'
+import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'
+import Animated, { useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated'
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { ColorPicker, type ColorValue } from '@/components/ui/color-picker'
 import { Icon } from '@/components/ui/icon'
@@ -140,16 +120,11 @@ type RowContentProps = RowState &
     dragHandle?: ReactNode
     // `stacked` flips the inner editor from a side-by-side label/color row
     // into a vertical column. Phones can't fit ColorPicker's 8+ swatches next
-    // to a flex-1 Input on a 360-400px width, so the Accordion-expanded
-    // version always passes `stacked: true`.
+    // to a flex-1 Input on a 360-400px width, so the expanded phone version
+    // always passes `stacked: true`.
     stacked: boolean
   }
 
-// The inner editor body — used by both the desktop horizontal row and the phone
-// Accordion expanded panel. Inputs and Textarea uncontrolled-from-outside per
-// the host's controlled `categories` prop; debouncing / save-session lives in
-// the host. Empty-label + duplicate-label errors surface inline below the
-// label input.
 const RowContent = memo(function RowContent({
   category,
   duplicateLabel,
@@ -264,26 +239,6 @@ const RowContent = memo(function RowContent({
 })
 
 const textareaMinHeightStyle = { minHeight: PROMPT_HINT_MIN_HEIGHT } as const
-
-// Uniform collapsed-row height for drag-target math. Inner row (drag handle
-// + accordion trigger) is enforced at PHONE_ROW_CONTENT_HEIGHT_PX via the
-// hard-coded `collapsedRowHeightStyle` below; AccordionItem's 1px bottom
-// border brings the total per-slot delta to PHONE_ROW_HEIGHT_PX. Hard-coding
-// both values keeps them paired — drift between the assumed constant and
-// the actual rendered height was the source of the "row shifts down by few
-// pixels on release" flicker (transforms of -ROW_H against a slot of
-// different actual size).
-const PHONE_ROW_CONTENT_HEIGHT_PX = 44
-const PHONE_ROW_BORDER_PX = 1
-const PHONE_ROW_HEIGHT_PX = PHONE_ROW_CONTENT_HEIGHT_PX + PHONE_ROW_BORDER_PX
-const collapsedRowHeightStyle = { height: PHONE_ROW_CONTENT_HEIGHT_PX } as const
-// Inline opacity style for the disabled visual dim. Originally applied via
-// NativeWind's `opacity-50` className, but on master-toggle that triggered a
-// reflow chain that made the Accordion's LinearTransition interpret children
-// as newly-mounted — entire row container flickered to an off-screen "start"
-// position then slid in. Switching to a static style prop bypasses the
-// className processing entirely and keeps the toggle visually inert (just an
-// opacity flip, no layout animation cascade).
 const DIMMED_STYLE = { opacity: 0.5 } as const
 
 // Web: @dnd-kit/sortable item wrapper. Reads sortable transform/transition and
@@ -347,9 +302,9 @@ function SortableWebRow({
   )
 }
 
-// Phone: collapsed Accordion-item header summarizes the category (enabled
-// state, color dot, label). Expanded panel renders the same RowContent
-// (without the drag handle — long-press drag is owned by the FlatList wrap).
+// Phone: collapsed-row summary — color dot, label, off-badge. Mirrors the
+// previous Accordion-based version's collapsed shape, but consumed by the
+// SimplePhoneRow expandable container below instead of an AccordionTrigger.
 function PhoneRowSummary({
   category,
   duplicateLabel,
@@ -395,216 +350,105 @@ function dotColorStyle(color: string) {
   return { backgroundColor: color }
 }
 
-type PhoneDragShared = {
-  activeId: ReturnType<typeof useSharedValue<string | null>>
-  activeStartIndex: ReturnType<typeof useSharedValue<number>>
-  // Where the dragged row would settle right now if released. Updates on
-  // every pan frame; siblings shift based on the gap between this and
-  // activeStartIndex (see PhoneAccordionRow's animated style below).
-  virtualIndex: ReturnType<typeof useSharedValue<number>>
-  dragY: ReturnType<typeof useSharedValue<number>>
-}
+const EXPAND_DURATION_MS = 200
 
-// Sibling shift animation. Uses withTiming rather than withSpring because
-// any underdamped spring overshoots its target ±PHONE_ROW_HEIGHT_PX, which
-// momentarily compresses the visual gap between the shifted sibling and its
-// neighbor — perceived as "less padding above the row". Timing has no
-// overshoot by construction, so the gap stays exactly ROW_H throughout the
-// shift. ease-out-cubic matches the muscle-memory of weight settling into
-// place.
-const SIBLING_DURATION_MS = 150
-const SIBLING_EASING = Easing.out(Easing.cubic)
-
-// Release "settle" — the active row's dragY animates from raw finger position
-// to the exact target slot offset over RELEASE_SETTLE_MS, giving the user a
-// smooth landing into the slot before the invisible bridge takes over. The
-// runOnJS-back-to-JS only fires on completion, so the bridge waits for the
-// settle. Quad easing-out matches the muscle-memory of a finger releasing.
-const RELEASE_SETTLE_MS = 100
-const RELEASE_SETTLE_EASING = Easing.out(Easing.cubic)
-
-// Release pattern: matched layout+transform cancellation never reliably
-// hid motion because React's commit and the worklet's transform clear ran
-// on different ticks — even with perfect easing match, the inter-tick gap
-// painted a frame with new layout + old transform. The current architecture
-// keeps transforms at their drag-state values UNTIL React commits the
-// reorder, then clears them in a useLayoutEffect that runs synchronously
-// after commit and before paint. The painted frame has both new layout AND
-// zero transforms, so there's no intermediate visual to flicker through.
-
-function PhoneAccordionRow({
+// Phone row used inside DraggableFlatList. `drag` is the library's callback;
+// invoking it from the long-press of the handle activates the library's
+// reorder gesture.
+//
+// Collapse animation: react-native-collapsible. Handles auto-sized-content
+// height transitions correctly across iOS/Android/Fabric — measures the
+// content's natural height internally and animates the wrapping View's
+// height between 0 and natural over `duration`. We previously tried
+// hand-rolling this with Reanimated LinearTransition + FadeIn/FadeOut, plus
+// a height-clip Animated.View with manual measurement, and each variant hit
+// a different layout edge case (20px reveal, bunched flex children, content
+// unmount racing the LinearTransition). Library-first applies here exactly
+// as it did for the drag-reorder rewrite (see
+// [[feedback-library-first-defaults]]).
+//
+// Chevron rotation: useAnimatedStyle on a wrapping Animated.View. Rotating
+// the Icon directly via className/style rotates the SVG around its (0,0)
+// origin, pushing the glyph off-screen — wrapping in a View rotates the
+// view (around its visual center) and the icon goes along for the ride.
+function SimplePhoneRow({
   rowState,
-  index,
-  totalRows,
   handlers,
   swatches,
   fallbackColor,
   fallbackColorLabel,
   disabled,
   drag,
-  onPickUp,
-  onRelease,
+  isActive,
 }: {
   rowState: RowState
-  index: number
-  totalRows: number
   handlers: RowHandlers
   swatches: ColorValue[]
   fallbackColor: ColorValue
   fallbackColorLabel: string
   disabled?: boolean
-  drag: PhoneDragShared
-  onPickUp: (id: string, startIndex: number) => void
-  onRelease: (id: string, finalIndex: number) => void
+  drag: () => void
+  isActive: boolean
 }) {
-  const id = rowState.category.id
-
-  // Long-press then pan: gesture-handler v2 lets a single Pan auto-activate
-  // after a long-press hold, so we don't need to compose two separate
-  // gestures. Activation distance is 0 once long-press fires — the picked-up
-  // row should track the finger immediately. runOnJS hops to the React thread
-  // so we can call setState-shaped consumer callbacks.
-  const drag$ = Gesture.Pan()
-    .enabled(!disabled)
-    .activateAfterLongPress(400)
-    .onStart(() => {
-      runOnJS(onPickUp)(id, index)
-    })
-    .onUpdate((e) => {
-      if (drag.activeId.value === id) {
-        // Free-follow: active row tracks the finger directly. virtualIndex
-        // still updates each frame (driving sibling shifts) but dragY is the
-        // raw translation, so the row feels physically attached. Any
-        // residual offset on release is settled by the .onEnd handler before
-        // the bridge fires.
-        drag.dragY.value = e.translationY
-        const next = Math.max(
-          0,
-          Math.min(
-            totalRows - 1,
-            drag.activeStartIndex.value + Math.round(e.translationY / PHONE_ROW_HEIGHT_PX),
-          ),
-        )
-        if (next !== drag.virtualIndex.value) drag.virtualIndex.value = next
-      }
-    })
-    .onEnd(() => {
-      if (drag.activeId.value === id) {
-        // Settle phase: animate dragY from the finger-drop value to the
-        // exact target offset over RELEASE_SETTLE_MS, then trigger the
-        // bridge. The animation is purely cosmetic — by completion, dragY
-        // is at exactly (V - A) * ROW_H, so the bridge's value clear maps
-        // cleanly to the post-reorder natural position. Without this, the
-        // bridge would clear dragY mid-residual and the row would visually
-        // jump from finger position to V's center in one frame.
-        const exact = (drag.virtualIndex.value - drag.activeStartIndex.value) * PHONE_ROW_HEIGHT_PX
-        drag.dragY.value = withTiming(
-          exact,
-          { duration: RELEASE_SETTLE_MS, easing: RELEASE_SETTLE_EASING },
-          (finished) => {
-            'worklet'
-            if (finished) runOnJS(onRelease)(id, drag.virtualIndex.value)
-          },
-        )
-      }
-    })
-
-  // Three branches: no drag in progress (everyone at translateY 0 instantly),
-  // I'm the active row (translateY directly from gesture), or I'm a sibling
-  // that needs to make space for the active row (translateY ±PHONE_ROW_HEIGHT_PX
-  // instantly). The "make space" rule: if active dragged DOWN past me, I
-  // shift UP one slot; if dragged UP past me, I shift DOWN one slot.
-  //
-  // Instant transforms throughout — release-time flicker isn't an animation
-  // problem (those just defer the visible motion), it's a synchronization
-  // problem between the React commit cycle and the UI thread. The fix lives
-  // in finalizeReorder + the useLayoutEffect bridge below.
-  const animatedStyle = useAnimatedStyle(() => {
-    if (drag.activeId.value == null) {
-      return { transform: [{ translateY: 0 }] }
-    }
-    if (drag.activeId.value === id) {
-      return {
-        transform: [{ translateY: drag.dragY.value }],
-        // Visual lift cues while active. zIndex pulls the row above siblings
-        // on web; native uses elevation for the same effect on Android.
-        zIndex: 50,
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        opacity: 0.95,
-      }
-    }
-    const A = drag.activeStartIndex.value
-    const V = drag.virtualIndex.value
-    let shift = 0
-    if (V > A && index > A && index <= V) shift = -PHONE_ROW_HEIGHT_PX
-    else if (V < A && index < A && index >= V) shift = PHONE_ROW_HEIGHT_PX
-    // Timing-smoothed shift: siblings glide into and out of "making space"
-    // for the active row without spring overshoot (which would momentarily
-    // compress the visual gap with their neighbor — see SIBLING_DURATION_MS
-    // notes above). Safe even if the timing is mid-flight at release because
-    // the bridge clears all shared values atomically with the layout commit
-    // — the next paint has translateY 0 against the new layout, no
-    // intermediate frame to flicker through.
-    return {
-      transform: [
-        {
-          translateY: withTiming(shift, { duration: SIBLING_DURATION_MS, easing: SIBLING_EASING }),
-        },
-      ],
-    }
-  })
-
+  const [expanded, setExpanded] = useState(false)
+  const toggleExpanded = useCallback(() => {
+    setExpanded((v) => !v)
+  }, [])
+  const progress = useDerivedValue(
+    () => withTiming(expanded ? 1 : 0, { duration: EXPAND_DURATION_MS }),
+    [expanded],
+  )
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${progress.value * 90 - 90}deg` }],
+  }))
   return (
-    <Animated.View style={animatedStyle}>
-      <AccordionItem value={id}>
-        <View className="flex-row items-center gap-1" style={collapsedRowHeightStyle}>
-          {/* GestureDetector wraps the drag handle so only the handle picks
-              up gestures — the AccordionTrigger sibling keeps its tap-to-
-              expand behavior unchanged. Long-press at the handle (≥400ms)
-              activates the pan; the row then tracks the finger via the
-              animatedStyle above. */}
-          <GestureDetector gesture={drag$}>
-            <Pressable
-              accessibilityRole="button"
-              aria-label="Long-press to drag and reorder"
-              disabled={disabled}
-              hitSlop={8}
-              className="p-3"
-            >
-              <Icon as={GripVertical} size="md" className="text-fg-muted" />
-            </Pressable>
-          </GestureDetector>
-          <View className="flex-1">
-            <AccordionTrigger>
-              <PhoneRowSummary
-                category={rowState.category}
-                duplicateLabel={rowState.duplicateLabel}
-                emptyLabel={rowState.emptyLabel}
-                fallbackColor={fallbackColor}
-              />
-            </AccordionTrigger>
-          </View>
+    <View className={cn('border-b border-border bg-bg-base', isActive && 'opacity-70')}>
+      <View className="flex-row items-center gap-1">
+        <Pressable
+          accessibilityRole="button"
+          aria-label="Long-press to drag and reorder"
+          onLongPress={drag}
+          delayLongPress={250}
+          disabled={disabled || isActive}
+          hitSlop={8}
+          className="p-3"
+        >
+          <Icon as={GripVertical} size="md" className="text-fg-muted" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          aria-label={expanded ? 'Collapse category' : 'Expand category'}
+          aria-expanded={expanded}
+          onPress={toggleExpanded}
+          disabled={disabled}
+          className="flex-1 flex-row items-center gap-2 py-row-y-lg pr-3"
+        >
+          <PhoneRowSummary
+            category={rowState.category}
+            duplicateLabel={rowState.duplicateLabel}
+            emptyLabel={rowState.emptyLabel}
+            fallbackColor={fallbackColor}
+          />
+          <Animated.View style={chevronStyle}>
+            <Icon as={ChevronDown} size="sm" className="text-fg-muted" />
+          </Animated.View>
+        </Pressable>
+      </View>
+      <Collapsible collapsed={!expanded} duration={EXPAND_DURATION_MS} easing="easeOutCubic">
+        <View className="px-3 pb-3">
+          <RowContent
+            {...rowState}
+            {...handlers}
+            swatches={swatches}
+            fallbackColor={fallbackColor}
+            fallbackColorLabel={fallbackColorLabel}
+            disabled={disabled}
+            showDragHandle={false}
+            stacked
+          />
         </View>
-        <AccordionContent>
-          <View className="px-3 pb-3">
-            <RowContent
-              {...rowState}
-              {...handlers}
-              swatches={swatches}
-              fallbackColor={fallbackColor}
-              fallbackColorLabel={fallbackColorLabel}
-              disabled={disabled}
-              showDragHandle={false}
-              stacked
-            />
-          </View>
-        </AccordionContent>
-      </AccordionItem>
-    </Animated.View>
+      </Collapsible>
+    </View>
   )
 }
 
@@ -670,45 +514,36 @@ function SuggestionCategoriesEditor({
   )
 
   return (
-    // skipEntering + skipExiting suppress the Accordion primitive's
-    // FadeOutUp + LinearTransition firing when the master `disabled` toggle
-    // re-renders the editor — without this, the row list slides in/out from
-    // outside the row area on every flip. Trade-off: normal Accordion
-    // collapse/expand within rows loses its fade animation. For the
-    // categories editor that's fine — collapse is a tap, not a content
-    // appearance, and the visual feedback comes from the chevron rotation.
-    <LayoutAnimationConfig skipEntering skipExiting>
-      <View className={cn('flex-col gap-2', className)} style={disabled ? DIMMED_STYLE : undefined}>
-        {isPhone ? (
-          <PhoneList
-            rowStates={rowStates}
-            handlers={handlers}
-            swatches={swatches}
-            fallbackColor={fallbackColor}
-            fallbackColorLabel={fallbackColorLabel}
-            disabled={disabled}
-            onReorder={onChange}
-            categories={categories}
-          />
-        ) : (
-          <WebList
-            rowStates={rowStates}
-            handlers={handlers}
-            swatches={swatches}
-            fallbackColor={fallbackColor}
-            fallbackColorLabel={fallbackColorLabel}
-            disabled={disabled}
-            onReorder={onChange}
-            categories={categories}
-          />
-        )}
-        {addButton}
-      </View>
-    </LayoutAnimationConfig>
+    <View className={cn('flex-col gap-2', className)} style={disabled ? DIMMED_STYLE : undefined}>
+      {isPhone ? (
+        <PhoneList
+          categories={categories}
+          duplicateIds={duplicateIds}
+          handlers={handlers}
+          swatches={swatches}
+          fallbackColor={fallbackColor}
+          fallbackColorLabel={fallbackColorLabel}
+          disabled={disabled}
+          onReorder={onChange}
+        />
+      ) : (
+        <WebList
+          rowStates={rowStates}
+          handlers={handlers}
+          swatches={swatches}
+          fallbackColor={fallbackColor}
+          fallbackColorLabel={fallbackColorLabel}
+          disabled={disabled}
+          onReorder={onChange}
+          categories={categories}
+        />
+      )}
+      {addButton}
+    </View>
   )
 }
 
-type ListProps = {
+type WebListProps = {
   rowStates: RowState[]
   handlers: RowHandlers
   swatches: ColorValue[]
@@ -728,7 +563,7 @@ function WebList({
   disabled,
   onReorder,
   categories,
-}: ListProps) {
+}: WebListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -769,111 +604,75 @@ function WebList({
   )
 }
 
+type PhoneListProps = {
+  categories: SuggestionCategory[]
+  duplicateIds: ReadonlySet<string>
+  handlers: RowHandlers
+  swatches: ColorValue[]
+  fallbackColor: ColorValue
+  fallbackColorLabel: string
+  disabled?: boolean
+  onReorder: (next: SuggestionCategory[]) => void
+}
+
 function PhoneList({
-  rowStates,
+  categories,
+  duplicateIds,
   handlers,
   swatches,
   fallbackColor,
   fallbackColorLabel,
   disabled,
   onReorder,
-  categories,
-}: ListProps) {
-  // Custom drag impl: rows render as plain Animated.Views inside the
-  // Accordion (no FlatList, no virtualization). Live-shuffle UX: as the
-  // active row's virtual index changes during drag, siblings spring up/down
-  // by one slot to make space. The array itself stays stable during the
-  // drag and reorders once on release — that way React renders aren't
-  // racing the gesture, and the visual end-state (siblings already shifted,
-  // active row already at its virtual index) lines up cleanly with the new
-  // array order with no flash.
-  const activeId = useSharedValue<string | null>(null)
-  const activeStartIndex = useSharedValue(-1)
-  const virtualIndex = useSharedValue(-1)
-  const dragY = useSharedValue(0)
-  // Set true by finalizeReorder when a reorder is in flight, consumed by the
-  // useLayoutEffect below. ref (not state) so toggling doesn't trigger an
-  // extra render cycle.
-  const pendingReleaseRef = useRef(false)
-
-  const finalizeReorder = useCallback(
-    (fromId: string, toIdx: number) => {
-      const fromIdx = categories.findIndex((c) => c.id === fromId)
-      if (fromIdx < 0 || toIdx < 0 || toIdx === fromIdx) {
-        // No reorder needed (out-of-bounds id, or dropped on starting slot).
-        // Safe to clear immediately — no layout change is coming, so there's
-        // no synchronization gap to bridge.
-        activeId.value = null
-        dragY.value = 0
-        return
+}: PhoneListProps) {
+  // `scrollEnabled={false}` is the documented workaround for the
+  // VirtualizedList-in-ScrollView warning when the inner list is bounded-
+  // small (categories realistically cap at ~10-15 entries; virtualization
+  // would be over-engineering). The parent screen owns scroll. The library
+  // still drives drag-reorder correctly — only the FlatList's own scroll
+  // behavior is disabled.
+  const total = categories.length
+  const keyExtractor = useCallback((item: SuggestionCategory) => item.id, [])
+  const renderItem = useCallback(
+    ({ item, getIndex, drag, isActive }: RenderItemParams<SuggestionCategory>) => {
+      const index = getIndex() ?? 0
+      const rowState: RowState = {
+        category: item,
+        duplicateLabel: duplicateIds.has(item.id),
+        emptyLabel: item.label.trim().length === 0,
+        index,
+        total,
       }
-      // Reorder needed. Critically: DO NOT clear the shared values here. The
-      // active row + siblings are visually at their post-reorder positions
-      // via their drag-state transforms applied to the OLD layout. The
-      // moment we clear those transforms, visual jumps back to OLD layout +
-      // 0 = original natural positions — and React's commit doesn't land
-      // until the next tick, so a frame paints with that wrong state. Let
-      // the useLayoutEffect below clear the values AFTER React commits the
-      // new layout, so both happen in the same paint cycle.
-      pendingReleaseRef.current = true
-      onReorder(arrayMove(categories, fromIdx, toIdx))
-    },
-    [categories, onReorder, activeId, dragY],
-  )
-
-  // Bridge: fires synchronously after React commits the new categories array
-  // (new DOM layout in place) but BEFORE the next paint. Clearing the shared
-  // values here means the worklet re-evaluates to translateY 0 while layout
-  // is already at the new position — both reach paint in the same frame,
-  // visual goes directly from drag-state (correct via transforms on old
-  // layout) to post-reorder (correct via natural new layout) with no
-  // intermediate flash.
-  useLayoutEffect(() => {
-    if (!pendingReleaseRef.current) return
-    pendingReleaseRef.current = false
-    activeId.value = null
-    dragY.value = 0
-    activeStartIndex.value = -1
-    virtualIndex.value = -1
-  }, [categories, activeId, dragY, activeStartIndex, virtualIndex])
-
-  const handlePickUp = useCallback(
-    (id: string, startIndex: number) => {
-      activeId.value = id
-      activeStartIndex.value = startIndex
-      virtualIndex.value = startIndex
-      // Initialize to 0 explicitly — finger is already in contact, Pan's
-      // onUpdate takes over immediately and any prior animation residue
-      // would otherwise show on first frame.
-      dragY.value = 0
-    },
-    [activeId, activeStartIndex, virtualIndex, dragY],
-  )
-
-  const drag = useMemo(
-    () => ({ activeId, activeStartIndex, virtualIndex, dragY }),
-    [activeId, activeStartIndex, virtualIndex, dragY],
-  )
-
-  return (
-    <Accordion type="single" collapsible>
-      {rowStates.map((rowState, index) => (
-        <PhoneAccordionRow
-          key={rowState.category.id}
+      return (
+        <SimplePhoneRow
           rowState={rowState}
-          index={index}
-          totalRows={rowStates.length}
           handlers={handlers}
           swatches={swatches}
           fallbackColor={fallbackColor}
           fallbackColorLabel={fallbackColorLabel}
           disabled={disabled}
           drag={drag}
-          onPickUp={handlePickUp}
-          onRelease={finalizeReorder}
+          isActive={isActive}
         />
-      ))}
-    </Accordion>
+      )
+    },
+    [duplicateIds, handlers, swatches, fallbackColor, fallbackColorLabel, disabled, total],
+  )
+
+  const onDragEnd = useCallback(
+    ({ data }: { data: SuggestionCategory[] }) => onReorder(data),
+    [onReorder],
+  )
+
+  return (
+    <DraggableFlatList
+      data={categories}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      onDragEnd={onDragEnd}
+      scrollEnabled={false}
+      activationDistance={0}
+    />
   )
 }
 
