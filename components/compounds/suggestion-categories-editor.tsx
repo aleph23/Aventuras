@@ -18,10 +18,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Trash2 } from 'lucide-react-native'
 import { memo, useCallback, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { Platform, Pressable, View } from 'react-native'
-import DraggableFlatList, {
-  ScaleDecorator,
-  type RenderItemParams,
-} from 'react-native-draggable-flatlist'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import { runOnJS } from 'react-native-worklets'
 
 import {
   Accordion,
@@ -361,6 +360,17 @@ function dotColorStyle(color: string) {
   return { backgroundColor: color }
 }
 
+// Uniform-row-height assumption for drag-target math. The collapsed Accordion
+// row + drag handle padding sits around this; the editor accepts minor off-by-
+// one on drop with very tall expanded rows (user can re-drop). Pulled out as
+// a constant so a future re-measure pass has one knob.
+const PHONE_ROW_HEIGHT_PX = 56
+
+type PhoneDragShared = {
+  activeId: ReturnType<typeof useSharedValue<string | null>>
+  dragY: ReturnType<typeof useSharedValue<number>>
+}
+
 function PhoneAccordionRow({
   rowState,
   handlers,
@@ -368,7 +378,9 @@ function PhoneAccordionRow({
   fallbackColor,
   fallbackColorLabel,
   disabled,
-  dragHandleProps,
+  drag,
+  onPickUp,
+  onRelease,
 }: {
   rowState: RowState
   handlers: RowHandlers
@@ -376,54 +388,97 @@ function PhoneAccordionRow({
   fallbackColor: ColorValue
   fallbackColorLabel: string
   disabled?: boolean
-  dragHandleProps?: {
-    onLongPress: () => void
-  }
+  drag: PhoneDragShared
+  onPickUp: (id: string) => void
+  onRelease: (id: string, totalDragY: number) => void
 }) {
+  const id = rowState.category.id
+
+  // Long-press then pan: gesture-handler v2 lets a single Pan auto-activate
+  // after a long-press hold, so we don't need to compose two separate
+  // gestures. Activation distance is 0 once long-press fires — the picked-up
+  // row should track the finger immediately. runOnJS hops to the React thread
+  // so we can call setState-shaped consumer callbacks.
+  const drag$ = Gesture.Pan()
+    .enabled(!disabled)
+    .activateAfterLongPress(400)
+    .onStart(() => {
+      runOnJS(onPickUp)(id)
+    })
+    .onUpdate((e) => {
+      if (drag.activeId.value === id) {
+        drag.dragY.value = e.translationY
+      }
+    })
+    .onEnd((e) => {
+      if (drag.activeId.value === id) {
+        runOnJS(onRelease)(id, e.translationY)
+      }
+    })
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const isActive = drag.activeId.value === id
+    return {
+      transform: [{ translateY: isActive ? drag.dragY.value : 0 }],
+      // Visual lift cues while active. zIndex pulls the row above siblings on
+      // web; native uses elevation for the same effect on Android.
+      zIndex: isActive ? 50 : 0,
+      elevation: isActive ? 8 : 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isActive ? 0.2 : 0,
+      shadowRadius: 8,
+      opacity: isActive ? 0.95 : 1,
+    }
+  })
+
   return (
-    <AccordionItem value={rowState.category.id}>
-      <View className="flex-row items-center gap-1">
-        {/* Long-press anywhere on the drag handle picks up the row in
-            DraggableFlatList; releases on touch-up. Keeps reorder distinct
-            from the Accordion's tap-to-expand. p-3 + size="md" + hitSlop=8
-            gives a ≥44px touch target (iOS HIG / Material minimum) so the
-            handle is reliably grabbable on phone. */}
-        <Pressable
-          onLongPress={dragHandleProps?.onLongPress}
-          accessibilityRole="button"
-          aria-label="Long-press to drag and reorder"
-          disabled={disabled}
-          hitSlop={8}
-          className="p-3"
-        >
-          <Icon as={GripVertical} size="md" className="text-fg-muted" />
-        </Pressable>
-        <View className="flex-1">
-          <AccordionTrigger>
-            <PhoneRowSummary
-              category={rowState.category}
-              duplicateLabel={rowState.duplicateLabel}
-              emptyLabel={rowState.emptyLabel}
+    <Animated.View style={animatedStyle}>
+      <AccordionItem value={id}>
+        <View className="flex-row items-center gap-1">
+          {/* GestureDetector wraps the drag handle so only the handle picks
+              up gestures — the AccordionTrigger sibling keeps its tap-to-
+              expand behavior unchanged. Long-press at the handle (≥400ms)
+              activates the pan; the row then tracks the finger via the
+              animatedStyle above. */}
+          <GestureDetector gesture={drag$}>
+            <Pressable
+              accessibilityRole="button"
+              aria-label="Long-press to drag and reorder"
+              disabled={disabled}
+              hitSlop={8}
+              className="p-3"
+            >
+              <Icon as={GripVertical} size="md" className="text-fg-muted" />
+            </Pressable>
+          </GestureDetector>
+          <View className="flex-1">
+            <AccordionTrigger>
+              <PhoneRowSummary
+                category={rowState.category}
+                duplicateLabel={rowState.duplicateLabel}
+                emptyLabel={rowState.emptyLabel}
+                fallbackColor={fallbackColor}
+              />
+            </AccordionTrigger>
+          </View>
+        </View>
+        <AccordionContent>
+          <View className="px-3 pb-3">
+            <RowContent
+              {...rowState}
+              {...handlers}
+              swatches={swatches}
               fallbackColor={fallbackColor}
+              fallbackColorLabel={fallbackColorLabel}
+              disabled={disabled}
+              showDragHandle={false}
+              stacked
             />
-          </AccordionTrigger>
-        </View>
-      </View>
-      <AccordionContent>
-        <View className="px-3 pb-3">
-          <RowContent
-            {...rowState}
-            {...handlers}
-            swatches={swatches}
-            fallbackColor={fallbackColor}
-            fallbackColorLabel={fallbackColorLabel}
-            disabled={disabled}
-            showDragHandle={false}
-            stacked
-          />
-        </View>
-      </AccordionContent>
-    </AccordionItem>
+          </View>
+        </AccordionContent>
+      </AccordionItem>
+    </Animated.View>
   )
 }
 
@@ -589,47 +644,67 @@ function PhoneList({
   onReorder,
   categories,
 }: ListProps) {
-  // Consumer constraint on mobile: this branch renders a virtualized
-  // DraggableFlatList. RN warns (and breaks drag auto-scroll) if it's nested
-  // inside a parent ScrollView with the same orientation. Consumers on phone
-  // must give this editor its own bounded-height container — typically as the
-  // flex-1 child of a screen-level View, or as the ListHeader/ListFooter of a
-  // wrapping FlatList. The Story Settings consumer will need to follow this
-  // contract. Tracked: docs/followups.md → "Non-virtualized mobile drag for
-  // SuggestionCategoriesEditor" (long-term: swap to a reanimated +
-  // gesture-handler drag impl rendering plain Views, removes the constraint).
+  // Custom drag impl: rows render as plain Animated.Views inside the
+  // Accordion (no FlatList, no virtualization). One row at a time is "active"
+  // and follows the finger via reanimated translateY; on release we compute
+  // the target index from the total drag distance assuming a uniform row
+  // height (PHONE_ROW_HEIGHT_PX) and reorder via the consumer's onChange.
+  // Trade-off: other rows DON'T live-shift around the active row mid-drag,
+  // so the UX is "pick-up-and-drop" rather than "watch-them-rearrange."
+  // Worth it: zero virtualization means consumers can nest the editor inside
+  // any ScrollView without warnings.
+  const activeId = useSharedValue<string | null>(null)
+  const dragY = useSharedValue(0)
 
-  // Accordion runs in single-open mode; reorder collapses the open row to keep
-  // long-press drag from competing with a textarea inside an expanded panel.
-  const handleDragEnd = useCallback(
-    ({ from, to }: { from: number; to: number }) => {
-      if (from === to) return
-      onReorder(arrayMove(categories, from, to))
+  const finalizeReorder = useCallback(
+    (fromId: string, totalDragY: number) => {
+      const fromIdx = categories.findIndex((c) => c.id === fromId)
+      if (fromIdx < 0) {
+        activeId.value = null
+        dragY.value = 0
+        return
+      }
+      const delta = Math.round(totalDragY / PHONE_ROW_HEIGHT_PX)
+      const toIdx = Math.max(0, Math.min(categories.length - 1, fromIdx + delta))
+      // Animate the drag offset back to 0 before clearing active state so the
+      // released row doesn't visually snap; withTiming on a 120ms ramp keeps
+      // the transition crisp without feeling sluggish.
+      dragY.value = withTiming(0, { duration: 120 })
+      activeId.value = null
+      if (toIdx !== fromIdx) onReorder(arrayMove(categories, fromIdx, toIdx))
     },
-    [categories, onReorder],
+    [categories, onReorder, activeId, dragY],
   )
+
+  const handlePickUp = useCallback(
+    (id: string) => {
+      activeId.value = id
+      // withSpring on dragY would feel laggy at pickup — finger is already in
+      // contact, so we initialize to 0 explicitly and let Pan's onUpdate take
+      // over immediately.
+      dragY.value = 0
+    },
+    [activeId, dragY],
+  )
+
+  const drag = useMemo(() => ({ activeId, dragY }), [activeId, dragY])
 
   return (
     <Accordion type="single" collapsible>
-      <DraggableFlatList
-        data={rowStates}
-        keyExtractor={(rowState) => rowState.category.id}
-        onDragEnd={handleDragEnd}
-        activationDistance={20}
-        renderItem={({ item, drag }: RenderItemParams<RowState>) => (
-          <ScaleDecorator>
-            <PhoneAccordionRow
-              rowState={item}
-              handlers={handlers}
-              swatches={swatches}
-              fallbackColor={fallbackColor}
-              fallbackColorLabel={fallbackColorLabel}
-              disabled={disabled}
-              dragHandleProps={{ onLongPress: drag }}
-            />
-          </ScaleDecorator>
-        )}
-      />
+      {rowStates.map((rowState) => (
+        <PhoneAccordionRow
+          key={rowState.category.id}
+          rowState={rowState}
+          handlers={handlers}
+          swatches={swatches}
+          fallbackColor={fallbackColor}
+          fallbackColorLabel={fallbackColorLabel}
+          disabled={disabled}
+          drag={drag}
+          onPickUp={handlePickUp}
+          onRelease={finalizeReorder}
+        />
+      ))}
     </Accordion>
   )
 }
