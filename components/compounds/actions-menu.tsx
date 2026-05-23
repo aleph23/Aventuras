@@ -113,17 +113,20 @@ function MenuRow({ row }: { row: Row<MenuRowData> }) {
   return labelNode
 }
 
+type ActionsTriggerOwnProps = {
+  p: TriggerProps
+  label: string
+  shortcutHint: string | null
+  disabled?: boolean
+}
+
 function ActionsTrigger({
   p,
   label,
   shortcutHint,
   disabled,
-}: {
-  p: TriggerProps
-  label: string
-  shortcutHint: string | null
-  disabled?: boolean
-}) {
+  ...slotProps
+}: ActionsTriggerOwnProps) {
   // Single web tooltip combining the action name and its shortcut — the icon
   // itself stays platform-neutral (icon vocabulary rationale in
   // iconography.md → Actions menu glyph rationale).
@@ -138,6 +141,12 @@ function ActionsTrigger({
       aria-haspopup={p['aria-haspopup']}
       aria-expanded={p['aria-expanded']}
       aria-controls={p['aria-controls']}
+      // Forward asChild Slot-injected props (event handlers, data-state, the
+      // popover's own ref-merge target). asChild clones THIS wrapper, not the
+      // inner IconAction, so without a pass-through here the slot props never
+      // reach the Pressable and Floating UI can't anchor — popover renders
+      // with collapsed height. Same fix the ColorPicker SwatchButton uses.
+      {...slotProps}
     />
   )
 }
