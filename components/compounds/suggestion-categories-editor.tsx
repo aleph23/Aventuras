@@ -84,14 +84,10 @@ type SuggestionCategoriesEditorProps = {
 const DEFAULT_FALLBACK_LABEL = 'Default'
 const PROMPT_HINT_MIN_HEIGHT = 80
 const EXPAND_DURATION_MS = 200
-// Time to keep the dropped row rendered last in the DOM after gesture end. Covers the lib's
-// post-release withSpring settle so the row doesn't paint under siblings mid-animation.
+// Cover the lib's post-gesture withSpring settle (~300ms) so the dropped row stays on top.
 const DROP_HOLD_MS = 350
-// Measured collapsed-phone-row heights per density. Derived from `--row-py-lg` (the Pressable's
-// py-row-y-lg) + drag handle padding (12px) + icon size (sm/md). Used only as
-// useSortableList's `estimatedItemHeight` — actual heights are measured at runtime via
-// handleLayout — so a few px of drift only affects the first frame before measurement
-// lands. Retune if --row-py-lg, drag handle padding, or chevron/grip icon sizes change.
+// First-frame estimates only — actual heights measured via handleLayout. Derived from
+// --row-py-lg + drag handle padding + grip icon size; retune if any of those change.
 const COLLAPSED_ROW_HEIGHT_BY_DENSITY = {
   compact: 45,
   regular: 51,
@@ -289,10 +285,8 @@ function SortableWebRow({
     transition,
     opacity: isDragging ? 0.6 : 1,
   }
-  // Raw <button> instead of the project's IconAction primitive: dnd-kit's listeners need to
-  // attach to the DOM element directly, and IconAction's wrapper layers don't forward the
-  // event handlers the spread expects. Don't "modernise" this back to IconAction without
-  // first verifying dnd-kit pointer-down activation still works.
+  // Raw <button>: dnd-kit's listeners need to spread onto the DOM element. IconAction's
+  // wrapper drops them.
   const dragHandle = (
     <button
       type="button"
@@ -453,10 +447,8 @@ function SuggestionCategoriesEditor({
 
   const duplicateIds = useMemo(() => findDuplicateLabelIds(categories), [categories])
 
-  // Latest-state ref so `handlers` and `handleAdd` can stay stable across keystrokes. Without
-  // this they'd re-create on every `categories` change, breaking memo(RowContent) and
-  // memo(SortablePhoneRow) — every keystroke in any row would re-render every other row.
-  // Ref is updated synchronously in render so handlers always see the latest array.
+  // Ref so handlers stay stable across keystrokes — otherwise they re-create on every
+  // categories change and defeat memo(RowContent)/memo(SortablePhoneRow).
   const stateRef = useRef({ categories, onChange, generateId })
   stateRef.current = { categories, onChange, generateId }
 
@@ -622,9 +614,7 @@ type PhoneListProps = {
 
 const EMPTY_EXPANDED_SET: ReadonlySet<string> = new Set()
 
-// Build the lib's positions map ({ [id]: index }) from the category array. Matches
-// react-native-reanimated-dnd's internal listToObject; inlined because the lib doesn't
-// re-export it.
+// Inlined react-native-reanimated-dnd's internal listToObject (not re-exported).
 function buildPositions(categories: SuggestionCategory[]): { [id: string]: number } {
   const positions: { [id: string]: number } = {}
   for (let i = 0; i < categories.length; i++) {
@@ -653,10 +643,8 @@ function PhoneList({
     })
   }, [])
 
-  // Auto-expand newly-added rows so the user can fill in the empty label without an extra
-  // tap on phone. Initial mount seeds prevIdsRef with current ids, so existing rows don't
-  // get auto-expanded on first paint. Deleted ids are left in the set — harmless because
-  // they're not rendered, and the small leak isn't worth a cleanup pass.
+  // Auto-expand newly-added rows so the user can label them without an extra tap. Initial
+  // seed avoids expanding existing rows on first paint.
   const prevIdsRef = useRef<Set<string>>(new Set(categories.map((c) => c.id)))
   useEffect(() => {
     const currentIds = new Set(categories.map((c) => c.id))
@@ -681,27 +669,10 @@ function PhoneList({
     itemKeyExtractor: (item) => item.id,
   })
 
-  // useSortableList initializes `positions` once and never updates it when `data` changes
-  // (the lib's data-effect only resyncs `itemHeights`). Without this sync, adding or deleting
-  // a category leaves the lib's positions map stale — the previous workaround was to remount
-  // the whole subtree via key={idSetKey}, which destroyed expanded state, replayed the chevron
-  // animation, and let `overflow-hidden` clip rows under the still-springing container height.
-  //
-  // The write MUST be synchronous and happen during render (before children mount). The lib's
-  // useSortable captures `initialTopVal = positions.get()[id] * estimatedItemHeight` in a
-  // useMemo with empty deps on the new row's first render — if positions doesn't include the
-  // new id at that moment, initialTopVal is 0 and the new row paints over row 0 until the
-  // user touches it (which forces the lib to re-resolve from positions on the UI thread).
-  //
-  // Plain `positionsSV.value = ...` from JS only SCHEDULES a UI-thread write (Reanimated 4
-  // mutables, see node_modules/.../mutables.js makeMutableNative). The subsequent .get() in
-  // the lib calls runOnUISync to fetch the UI-side value, which hasn't been updated yet, so
-  // the lib still sees the stale map. Using runOnUISync ourselves forces the write to happen
-  // synchronously on the UI thread before we proceed to render children.
-  //
-  // Safe to do here: drag is worklet-only and can't overlap an add/delete from the user. On
-  // reorder the lib has already written the new map, so the sort-keyed signature skips the
-  // redundant write for that path.
+  // Sync positions on add/delete: the lib initialises `positions` once and never re-syncs.
+  // Must be runOnUISync during render — plain `.value = X` is async on RN4 and the new row's
+  // `useSortable` reads positions in a useMemo([]) at mount, so an effect-based write misses
+  // the first frame. Sort-keyed signature skips the no-op write on reorder.
   const positionsSV = sortableList.positions
   const idSetSignature = useMemo(
     () =>
@@ -742,22 +713,14 @@ function PhoneList({
     return map
   }, [rowStates])
 
-  // Latest-categories ref so handleMove validates against current state, not the closure-
-  // captured array. The lib re-creates its useAnimatedReaction when onMove changes, but the
-  // OLD reaction (with the old handleMove closure) can fire one last time during our
-  // runOnUISync write before React commits and tears it down. That stale closure sees the
-  // pre-delete array, so validations against `categories` pass spuriously and arrayMove
-  // reintroduces the deleted row. Updating the ref during render keeps it ahead of any
-  // queued onMove.
+  // Ref via render so a stale lib reaction firing during our sync write doesn't pass the
+  // closure's pre-delete array. The lib calls onMove for every position change (drag,
+  // delete-induced index shift, and the deleted row's own positions[id] → undefined), so
+  // validate that `from` still points at `id` and reject non-number args.
   const categoriesRef = useRef(categories)
   categoriesRef.current = categories
   const handleMove = useCallback(
     (id: string, from: number, to: number) => {
-      // The lib fires onMove for every position change, not just drags — including the
-      // index-shifts that ripple through remaining rows when we delete one (e.g. row at
-      // index 2 becomes index 1) AND the position-becomes-undefined event for the deleted
-      // row itself. Validate against the latest categories ref and reject non-number
-      // arguments (to=undefined when the deleted row's reaction fires).
       if (typeof from !== 'number' || typeof to !== 'number') return
       if (from === to) return
       const current = categoriesRef.current
@@ -769,14 +732,9 @@ function PhoneList({
     [onReorder],
   )
 
-  // Track which row is being dragged so we can render it last in the DOM. RN's zIndex on
-  // absolute-positioned siblings (the lib sets `zIndex: movingSV.value ? 1 : 0` on the row)
-  // is unreliable on Android — but more importantly, the lib flips `movingSV` to false on
-  // gesture end, while the drop-settling spring keeps running for ~300ms afterwards. During
-  // that spring the dragged row would otherwise paint UNDER any sibling it was over, which
-  // reads as the row falling behind. Hold the renderOrder-last status for DROP_HOLD_MS to
-  // cover the spring. The constant is tuned to the lib's withSpring default; if upstream
-  // changes spring config, retune.
+  // Render the dragged row last in the DOM and hold that status for DROP_HOLD_MS after the
+  // gesture ends: the lib drops `zIndex: 1` at gesture end but its withSpring keeps animating
+  // for ~300ms, so without the DOM-last hold the row paints under siblings mid-settle.
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -837,11 +795,8 @@ function PhoneList({
   )
 }
 
-// useSortable uses containerHeight to compute its auto-scroll viewport bounds; the editor
-// lives inside a host ScrollView, so we disable internal auto-scroll by claiming an
-// effectively-infinite viewport. Number.MAX_SAFE_INTEGER would also work, but the lib
-// arithmetics on this value (clamp, withTiming target) — 9999 stays well under any overflow
-// risk while being clearly "infinite" by intent.
+// ~infinite viewport so the lib's internal auto-scroll never engages (editor lives in a host
+// ScrollView). Not MAX_SAFE_INTEGER because the lib does arithmetic on this value.
 const SORTABLE_VIRTUAL_CONTAINER_HEIGHT = 9999
 
 type SortablePhoneRowProps = {
@@ -952,10 +907,8 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   )
 }, sortablePhoneRowPropsEqual)
 
-// Keep in sync with SortablePhoneRowProps. Adding a new prop without adding a comparison
-// here means stale renders won't update when only that prop changes — silent staleness, no
-// type error. If you find yourself adding many props, consider switching to a shallow-equal
-// helper instead of this manual list.
+// Keep in sync with SortablePhoneRowProps — missed fields fail open (silent staleness, no
+// type error).
 function sortablePhoneRowPropsEqual(prev: SortablePhoneRowProps, next: SortablePhoneRowProps) {
   if (prev.item !== next.item) return false
   if (prev.rowState !== next.rowState) return false
