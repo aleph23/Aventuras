@@ -316,6 +316,18 @@ cells — get redistributed across the full row instead of clustering
 around the auto-sized content width. `flex-1` inside the consumer
 only works once the consumer's root has claimed a width.
 
+**Single-element output.** The substrate always emits exactly one
+React element to its parent — `Shape1Inline`'s outer wrapper, the
+phone-tier wrap inside `Shape2Dialog`, and `Shape2Dialog`'s
+desktop `PopoverPrimitive.Root` each satisfy this. Consumers can
+drop the menu into any flex container without an intermediary
+wrapping View. The phone wrap is the load-bearing one:
+`@rn-primitives/dialog`'s Root renders a default `View` on native,
+so a Fragment-return would leak two layout siblings (trigger plus
+the invisible Sheet Root). The substrate honors the `className`
+prop on the phone wrap so consumers can still pin layout (max
+width, self-alignment) from one familiar lever.
+
 **`selectedRowIds` — committed-value affordance.** Consumers that
 have a notion of "current selection" (a model picker, a single-select
 list) pass the row ids that mirror that value. The substrate paints

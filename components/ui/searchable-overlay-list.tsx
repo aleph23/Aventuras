@@ -916,8 +916,14 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
   )
 
   if (isPhone) {
+    // Wrap in a single content-sized View so the substrate emits ONE flex
+    // child to its consumer. `@rn-primitives/dialog` Root renders a default
+    // View on native, so without the wrap a Fragment return leaks two layout
+    // siblings (trigger + invisible Sheet Root) — a `justify-between` parent
+    // would pin the invisible View at the trailing edge and float the trigger
+    // mid-row. The wrap sizes to the trigger (Sheet child is 0×0 / portaled).
     return (
-      <>
+      <View className={props.className}>
         {trigger}
         <Sheet
           open={open}
@@ -929,7 +935,7 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
             <SheetKeyboardWrapper>{body}</SheetKeyboardWrapper>
           </SheetContent>
         </Sheet>
-      </>
+      </View>
     )
   }
 
