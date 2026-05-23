@@ -29,6 +29,7 @@ import { Platform, Pressable, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   Easing,
+  LayoutAnimationConfig,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -661,32 +662,41 @@ function SuggestionCategoriesEditor({
   )
 
   return (
-    <View className={cn('flex-col gap-2', disabled && 'opacity-50', className)}>
-      {isPhone ? (
-        <PhoneList
-          rowStates={rowStates}
-          handlers={handlers}
-          swatches={swatches}
-          fallbackColor={fallbackColor}
-          fallbackColorLabel={fallbackColorLabel}
-          disabled={disabled}
-          onReorder={onChange}
-          categories={categories}
-        />
-      ) : (
-        <WebList
-          rowStates={rowStates}
-          handlers={handlers}
-          swatches={swatches}
-          fallbackColor={fallbackColor}
-          fallbackColorLabel={fallbackColorLabel}
-          disabled={disabled}
-          onReorder={onChange}
-          categories={categories}
-        />
-      )}
-      {addButton}
-    </View>
+    // skipEntering + skipExiting suppress the Accordion primitive's
+    // FadeOutUp + LinearTransition firing when the master `disabled` toggle
+    // re-renders the editor — without this, the row list slides in/out from
+    // outside the row area on every flip. Trade-off: normal Accordion
+    // collapse/expand within rows loses its fade animation. For the
+    // categories editor that's fine — collapse is a tap, not a content
+    // appearance, and the visual feedback comes from the chevron rotation.
+    <LayoutAnimationConfig skipEntering skipExiting>
+      <View className={cn('flex-col gap-2', disabled && 'opacity-50', className)}>
+        {isPhone ? (
+          <PhoneList
+            rowStates={rowStates}
+            handlers={handlers}
+            swatches={swatches}
+            fallbackColor={fallbackColor}
+            fallbackColorLabel={fallbackColorLabel}
+            disabled={disabled}
+            onReorder={onChange}
+            categories={categories}
+          />
+        ) : (
+          <WebList
+            rowStates={rowStates}
+            handlers={handlers}
+            swatches={swatches}
+            fallbackColor={fallbackColor}
+            fallbackColorLabel={fallbackColorLabel}
+            disabled={disabled}
+            onReorder={onChange}
+            categories={categories}
+          />
+        )}
+        {addButton}
+      </View>
+    </LayoutAnimationConfig>
   )
 }
 
