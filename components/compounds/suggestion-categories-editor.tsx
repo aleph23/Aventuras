@@ -83,12 +83,6 @@ type SuggestionCategoriesEditorProps = {
 const DEFAULT_FALLBACK_LABEL = 'Default'
 const PROMPT_HINT_MIN_HEIGHT = 80
 const EXPAND_DURATION_MS = 200
-// Collapsed row height per density, used to seed the sortable's per-item top. The lib initializes
-// each item's `top` to `position * estimatedItemHeight`, then springs to the measured cumulative-Y
-// when onLayout fires; if the estimate is off, every non-first row visibly slides into place over
-// the spring's ~500ms settle. In compact the 12+20+12 drag handle dominates the row; in regular
-// and comfortable the `py-row-y-lg` Pressable dominates — RN's text-sm renders at ~24px tall with
-// default leading, so Pressable height = 2*py-lg + 24, then +1 for border-b.
 const COLLAPSED_ROW_HEIGHT_BY_DENSITY = {
   compact: 45,
   regular: 51,
@@ -358,11 +352,6 @@ function PhoneRowSummary({
   )
 }
 
-// Snap-render the expanded content instead of animating it. The lib's official
-// DynamicHeightExample takes this approach — letting Collapsible animate height continuously
-// causes the sortable's per-item withSpring to chase a moving target every frame and visibly
-// lag behind. With a snap, onLayout fires once with the final height and rows below spring
-// once cleanly to their final positions.
 function PhoneRowShell({
   rowState,
   handlers,
@@ -600,9 +589,6 @@ type PhoneListProps = {
 }
 
 function PhoneList(props: PhoneListProps) {
-  // useSortableList only re-syncs measured heights on data changes, not the positions shared
-  // value. Keying by the id set (not order) forces a clean remount on add/delete while
-  // letting reorders pass through to the worklet without losing per-row expanded state.
   const idSetKey = useMemo(
     () =>
       props.categories
@@ -611,10 +597,7 @@ function PhoneList(props: PhoneListProps) {
         .join('|'),
     [props.categories],
   )
-  // Always render the sortable path even when disabled — branching to a different layout
-  // (e.g. natural flex) causes a measurable height jump on toggle, because the two paths
-  // measure and stack their rows differently. Disable drag via pointerEvents on the handle
-  // and via the disabled prop the row controls already honor.
+
   return <PhoneListSortable key={idSetKey} {...props} />
 }
 
@@ -636,10 +619,6 @@ function useToggleExpanded(
   )
 }
 
-// react-native-reanimated-dnd's Sortable component wraps an internal
-// GestureHandlerRootView + ScrollView with hardcoded flex:1 + white background; that breaks
-// embed-in-parent-ScrollView usage. Driving useSortableList + SortableItem ourselves keeps the
-// list as a plain themed View whose absolute-positioned items lay out inside an explicit height.
 function PhoneListSortable({
   rowStates,
   handlers,
@@ -661,11 +640,6 @@ function PhoneListSortable({
   })
 
   const itemHeightsSV = sortableList.itemHeights
-  // The lib's useSortable springs each item's `top` via withSpring (~500ms settle) on any
-  // height change. If our container's height snapped to the new sum instantly, an empty gap
-  // would appear at the bottom while rows below caught up — the perceived "rows lag behind
-  // their slot" symptom. Spring the container height at the same rate as the items so both
-  // arrive at the final layout together.
   const targetHeight = useDerivedValue(() => {
     let total = 0
     const heights = itemHeightsSV.value
@@ -674,12 +648,7 @@ function PhoneListSortable({
     }
     return total
   })
-  // withSpring to match the lib's per-item withSpring on `top.value` — container and rows
-  // arrive at their final positions together.
   const animatedHeight = useDerivedValue(() => withSpring(targetHeight.value))
-  // Round to integer pixels so the spring's ~0.01 rest tolerance doesn't render a sub-pixel
-  // band of partial opacity at the container's bottom edge, which on drag-start re-targets
-  // the spring slightly and reads as a small wrapper "shift".
   const animatedHeightStyle = useAnimatedStyle(() => ({
     height: Math.round(animatedHeight.value),
   }))
@@ -698,11 +667,6 @@ function PhoneListSortable({
     [categories, onReorder],
   )
 
-  // Track the currently-dragged row so we can render it last in JSX (= last in native view
-  // tree = drawn on top). zIndex on Android isn't reliable for absolute-positioned siblings
-  // during animated style transitions; native render order is. Keep draggedId set until the
-  // drop slide animation completes, otherwise the dropped row would jump back to its data
-  // index in render order mid-slide and get painted under the row it's sliding past.
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -723,9 +687,6 @@ function PhoneListSortable({
     }, 350)
   }, [])
 
-  // Sort for JSX render order: dragged row last so it paints on top. Position math still uses
-  // the original `categories` array via the index lookup below, so the lib's positions/heights
-  // mapping stays consistent.
   const renderOrder = useMemo(() => {
     if (!draggedId) return categories
     const idx = categories.findIndex((c) => c.id === draggedId)
@@ -733,8 +694,6 @@ function PhoneListSortable({
     return [...categories.slice(0, idx), ...categories.slice(idx + 1), categories[idx]!]
   }, [categories, draggedId])
 
-  // SortableItem absolutely positions itself within its parent; the wrapper must declare an
-  // explicit height (the sum of measured row heights) so neighbors flow correctly.
   return (
     <Animated.View
       className="overflow-hidden rounded-md border border-border bg-bg-base"
@@ -768,11 +727,6 @@ function PhoneListSortable({
   )
 }
 
-// A large virtual container height that autoscroll never reaches. The lib's useSortable defaults
-// containerHeight=500; when positionY exceeds (containerHeight - itemHeight), it activates
-// autoscroll and starts animating scrollY toward a negative maxScroll value, making lowerBound
-// go negative and causing all items to spring to wrong positions — the drag-time shake.
-// Since this list has no internal scroll, we want autoscroll permanently disabled.
 const SORTABLE_VIRTUAL_CONTAINER_HEIGHT = 9999
 
 type SortablePhoneRowProps = {
@@ -793,12 +747,6 @@ type SortablePhoneRowProps = {
 
 const dragHandleDisabledStyle = { padding: 12, pointerEvents: 'none' } as const
 
-// memo here is load-bearing for perf: useSortableList runs setDynamicContentHeight on every
-// layout tick (via the lib's scheduleHeightUpdate). Without memoization, PhoneListSortable
-// re-renders → every SortableItem re-renders → useSortable inside builds a fresh pan gesture
-// every render → SortableHandle's useEffect unregisters/re-registers each cycle. We split out
-// the row so memo can short-circuit when only sortableProps' identity changed but its fields
-// (all stable shared-value refs except itemsCount) are equivalent.
 const SortablePhoneRow = memo(function SortablePhoneRow({
   item,
   sortableProps,
@@ -814,11 +762,6 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   onToggleExpanded,
   disabled,
 }: SortablePhoneRowProps) {
-  // Use the lib's hook directly (instead of the SortableItem component wrapper) so we can
-  // ceil-round the measured height before handing it to scheduleHeightUpdate — the lib's
-  // SortableItem applies Math.round inside its handleLayout, which underestimates fractional
-  // measured heights and lets the next row overlap the prior border. With the hook we own
-  // onLayout and pre-ceil ourselves.
   const {
     animatedStyle: libAnimatedStyle,
     panGestureHandler,
@@ -849,10 +792,6 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   const itemId = item.id
 
   const scheduleHeightUpdate = sortableProps.scheduleHeightUpdate
-  // Pre-ceil the measured height before handing it to the lib. The lib's scheduleHeightUpdate
-  // does Math.round internally — for an actual height of 60.3 that yields 60, then cumulativeY
-  // for the row below = 60 while the row above's border actually extends to y=60.3 → 0.3px
-  // overlap that antialiases the divider dim. Ceil ensures cumulativeY never underestimates.
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
       if (!scheduleHeightUpdate) return
