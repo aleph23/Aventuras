@@ -17,15 +17,24 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { ImpactFeedbackStyle, impactAsync } from 'expo-haptics'
 import { ChevronDown, GripVertical, Trash2 } from 'lucide-react-native'
-import { memo, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { Platform, Pressable, View } from 'react-native'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
+import { Platform, Pressable, View, type LayoutChangeEvent } from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
-import { SortableItem, useSortableList } from 'react-native-reanimated-dnd'
+import { useSortableList, useSortable as useSortableNative } from 'react-native-reanimated-dnd'
 
 import { Button } from '@/components/ui/button'
 import { ColorPicker, type ColorValue } from '@/components/ui/color-picker'
@@ -81,7 +90,7 @@ const EXPAND_DURATION_MS = 200
 // default leading, so Pressable height = 2*py-lg + 24, then +1 for border-b.
 const COLLAPSED_ROW_HEIGHT_BY_DENSITY = {
   compact: 45,
-  regular: 50,
+  regular: 51,
   comfortable: 59,
 } as const
 
@@ -665,7 +674,12 @@ function PhoneListSortable({
     return total
   })
   const animatedHeight = useDerivedValue(() => withSpring(targetHeight.value))
-  const animatedHeightStyle = useAnimatedStyle(() => ({ height: animatedHeight.value }))
+  // Round to integer pixels so the spring's ~0.01 rest tolerance doesn't render a sub-pixel
+  // band of partial opacity at the container's bottom edge, which on drag-start re-targets
+  // the spring slightly and reads as a small wrapper "shift".
+  const animatedHeightStyle = useAnimatedStyle(() => ({
+    height: Math.round(animatedHeight.value),
+  }))
 
   const rowStateById = useMemo(() => {
     const map = new Map<string, RowState>()
@@ -762,40 +776,113 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   onToggleExpanded,
   disabled,
 }: SortablePhoneRowProps) {
-  const handleToggle = useCallback(() => onToggleExpanded(item.id), [item.id, onToggleExpanded])
+  // Drive the row with useSortable directly (not the SortableItem component) so we can:
+  //   1. round the spring-driven `top` to integer pixels, eliminating the sub-pixel band
+  //      that reads as a "dimmer divider" after drop (lib's withSpring settles to ±0.01px);
+  //   2. read isMoving to gate the rounding override (during drag, the lib drives `top` from
+  //      the finger and we must not override).
+  const {
+    animatedStyle: libAnimatedStyle,
+    panGestureHandler,
+    handlePanGestureHandler,
+    isMoving,
+    registerHandle,
+  } = useSortableNative<SuggestionCategory>({
+    id: item.id,
+    positions: sortableProps.positions,
+    lowerBound: sortableProps.lowerBound!,
+    autoScrollDirection: sortableProps.autoScrollDirection!,
+    itemsCount: sortableProps.itemsCount,
+    isDynamicHeight: sortableProps.isDynamicHeight,
+    estimatedItemHeight: sortableProps.estimatedItemHeight,
+    itemHeights: sortableProps.itemHeights,
+    containerHeight: SORTABLE_VIRTUAL_CONTAINER_HEIGHT,
+    onMove,
+    onDragStart,
+  })
+
+  // Mark this row as having a handle so the lib disables the whole-area pan
+  // (matches SortableItem.Handle's registerHandle(true) call).
+  useEffect(() => {
+    registerHandle(true)
+    return () => registerHandle(false)
+  }, [registerHandle])
+
+  const itemId = item.id
+  const positions = sortableProps.positions
+  const itemHeights = sortableProps.itemHeights
+  const estimatedItemHeight = sortableProps.estimatedItemHeight ?? 60
+
+  // Mirror the lib's getItemCumulativeY (not exported from the package entry, so reproduced
+  // here as a worklet). Sum of measured heights of items whose position is before ours.
+  const cumulativeY = useDerivedValue(() => {
+    const pos = positions.value
+    const heights = itemHeights?.value ?? {}
+    const targetPos = pos[itemId] ?? 0
+    let y = 0
+    for (const id in pos) {
+      if (pos[id] < targetPos) {
+        y += heights[id] ?? estimatedItemHeight
+      }
+    }
+    return y
+  })
+  const springedTop = useDerivedValue(() => withSpring(cumulativeY.value))
+
+  // While dragging, defer to libAnimatedStyle.top (which follows the finger). Otherwise apply
+  // our rounded `top` so the wrapper lands on integer pixel rows and the bottom border draws
+  // crisply against the row below — no antialiased divider blending.
+  const customStyle = useAnimatedStyle(() => {
+    if (isMoving) return {}
+    return { top: Math.round(springedTop.value) }
+  }, [isMoving])
+
+  const scheduleHeightUpdate = sortableProps.scheduleHeightUpdate
+  // Pre-ceil the measured height before handing it to the lib. The lib's scheduleHeightUpdate
+  // does Math.round internally — for an actual height of 60.3 that yields 60, then cumulativeY
+  // for the row below = 60 while the row above's border actually extends to y=60.3 → 0.3px
+  // overlap that antialiases the divider dim. Ceil ensures cumulativeY never underestimates.
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!scheduleHeightUpdate) return
+      scheduleHeightUpdate(itemId, Math.ceil(event.nativeEvent.layout.height))
+    },
+    [itemId, scheduleHeightUpdate],
+  )
+
+  const handleToggle = useCallback(() => onToggleExpanded(itemId), [itemId, onToggleExpanded])
+
   return (
-    <SortableItem
-      data={item}
-      {...sortableProps}
-      containerHeight={SORTABLE_VIRTUAL_CONTAINER_HEIGHT}
-      onMove={onMove}
-      onDragStart={onDragStart}
-    >
-      <PhoneRowShell
-        rowState={rowState}
-        handlers={handlers}
-        swatches={swatches}
-        fallbackColor={fallbackColor}
-        fallbackColorLabel={fallbackColorLabel}
-        disabled={disabled}
-        expanded={expanded}
-        onToggleExpanded={handleToggle}
-        dragHandle={
-          // pointerEvents on the Handle's inner View blocks the GestureDetector's long-press
-          // from registering. The lib has no `disabled` prop on SortableItem, so this is the
-          // way to suppress drag while keeping the same row layout (so the disable toggle
-          // doesn't visually re-flow the list).
-          <SortableItem.Handle style={disabled ? dragHandleDisabledStyle : dragHandleStaticStyle}>
-            <View
-              accessibilityRole={disabled ? 'image' : 'button'}
-              aria-label={disabled ? 'Drag handle (disabled)' : 'Long-press to drag and reorder'}
-            >
-              <Icon as={GripVertical} size="md" className="text-fg-muted" />
-            </View>
-          </SortableItem.Handle>
-        }
-      />
-    </SortableItem>
+    <GestureDetector gesture={panGestureHandler}>
+      <Animated.View style={[libAnimatedStyle, customStyle]} onLayout={handleLayout}>
+        <PhoneRowShell
+          rowState={rowState}
+          handlers={handlers}
+          swatches={swatches}
+          fallbackColor={fallbackColor}
+          fallbackColorLabel={fallbackColorLabel}
+          disabled={disabled}
+          expanded={expanded}
+          onToggleExpanded={handleToggle}
+          dragHandle={
+            // Wrapping the handle in GestureDetector replaces SortableItem.Handle. pointerEvents
+            // on the inner Animated.View suppresses long-press when disabled.
+            <GestureDetector gesture={handlePanGestureHandler}>
+              <Animated.View style={disabled ? dragHandleDisabledStyle : dragHandleStaticStyle}>
+                <View
+                  accessibilityRole={disabled ? 'image' : 'button'}
+                  aria-label={
+                    disabled ? 'Drag handle (disabled)' : 'Long-press to drag and reorder'
+                  }
+                >
+                  <Icon as={GripVertical} size="md" className="text-fg-muted" />
+                </View>
+              </Animated.View>
+            </GestureDetector>
+          }
+        />
+      </Animated.View>
+    </GestureDetector>
   )
 }, sortablePhoneRowPropsEqual)
 
