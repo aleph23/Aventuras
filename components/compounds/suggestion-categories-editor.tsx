@@ -84,6 +84,9 @@ type SuggestionCategoriesEditorProps = {
 const DEFAULT_FALLBACK_LABEL = 'Default'
 const PROMPT_HINT_MIN_HEIGHT = 80
 const EXPAND_DURATION_MS = 200
+// Time to keep the dropped row rendered last in the DOM after gesture end. Covers the lib's
+// post-release withSpring settle so the row doesn't paint under siblings mid-animation.
+const DROP_HOLD_MS = 350
 const COLLAPSED_ROW_HEIGHT_BY_DENSITY = {
   compact: 45,
   regular: 51,
@@ -717,6 +720,14 @@ function PhoneList({
     [onReorder],
   )
 
+  // Track which row is being dragged so we can render it last in the DOM. RN's zIndex on
+  // absolute-positioned siblings (the lib sets `zIndex: movingSV.value ? 1 : 0` on the row)
+  // is unreliable on Android — but more importantly, the lib flips `movingSV` to false on
+  // gesture end, while the drop-settling spring keeps running for ~300ms afterwards. During
+  // that spring the dragged row would otherwise paint UNDER any sibling it was over, which
+  // reads as the row falling behind. Hold the renderOrder-last status for DROP_HOLD_MS to
+  // cover the spring. The constant is tuned to the lib's withSpring default; if upstream
+  // changes spring config, retune.
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -734,7 +745,7 @@ function PhoneList({
     dropTimerRef.current = setTimeout(() => {
       setDraggedId(null)
       dropTimerRef.current = null
-    }, 350)
+    }, DROP_HOLD_MS)
   }, [])
 
   const renderOrder = useMemo(() => {
@@ -789,7 +800,7 @@ type SortablePhoneRowProps = {
   fallbackColorLabel: string
   onMove: (id: string, from: number, to: number) => void
   onDragStart: (id: string) => void
-  onDrop: (id: string) => void
+  onDrop: () => void
   expanded: boolean
   onToggleExpanded: (id: string) => void
   disabled?: boolean
