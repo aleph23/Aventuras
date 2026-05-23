@@ -277,6 +277,14 @@ const PHONE_ROW_CONTENT_HEIGHT_PX = 44
 const PHONE_ROW_BORDER_PX = 1
 const PHONE_ROW_HEIGHT_PX = PHONE_ROW_CONTENT_HEIGHT_PX + PHONE_ROW_BORDER_PX
 const collapsedRowHeightStyle = { height: PHONE_ROW_CONTENT_HEIGHT_PX } as const
+// Inline opacity style for the disabled visual dim. Originally applied via
+// NativeWind's `opacity-50` className, but on master-toggle that triggered a
+// reflow chain that made the Accordion's LinearTransition interpret children
+// as newly-mounted — entire row container flickered to an off-screen "start"
+// position then slid in. Switching to a static style prop bypasses the
+// className processing entirely and keeps the toggle visually inert (just an
+// opacity flip, no layout animation cascade).
+const DIMMED_STYLE = { opacity: 0.5 } as const
 
 // Web: @dnd-kit/sortable item wrapper. Reads sortable transform/transition and
 // applies the standard reorder visual. Keyboard sensor uses
@@ -670,7 +678,7 @@ function SuggestionCategoriesEditor({
     // categories editor that's fine — collapse is a tap, not a content
     // appearance, and the visual feedback comes from the chevron rotation.
     <LayoutAnimationConfig skipEntering skipExiting>
-      <View className={cn('flex-col gap-2', disabled && 'opacity-50', className)}>
+      <View className={cn('flex-col gap-2', className)} style={disabled ? DIMMED_STYLE : undefined}>
         {isPhone ? (
           <PhoneList
             rowStates={rowStates}
