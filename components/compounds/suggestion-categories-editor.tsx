@@ -22,6 +22,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -673,6 +674,8 @@ function PhoneListSortable({
     }
     return total
   })
+  // withSpring to match the lib's per-item withSpring on `top.value` — container and rows
+  // arrive at their final positions together.
   const animatedHeight = useDerivedValue(() => withSpring(targetHeight.value))
   // Round to integer pixels so the spring's ~0.01 rest tolerance doesn't render a sub-pixel
   // band of partial opacity at the container's bottom edge, which on drag-start re-targets
@@ -695,9 +698,40 @@ function PhoneListSortable({
     [categories, onReorder],
   )
 
-  const handleDragStart = useCallback(() => {
+  // Track the currently-dragged row so we can render it last in JSX (= last in native view
+  // tree = drawn on top). zIndex on Android isn't reliable for absolute-positioned siblings
+  // during animated style transitions; native render order is. Keep draggedId set until the
+  // drop slide animation completes, otherwise the dropped row would jump back to its data
+  // index in render order mid-slide and get painted under the row it's sliding past.
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    }
+  }, [])
+  const handleDragStart = useCallback((id: string) => {
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    setDraggedId(id)
     void impactAsync(ImpactFeedbackStyle.Medium)
   }, [])
+  const handleDrop = useCallback(() => {
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    dropTimerRef.current = setTimeout(() => {
+      setDraggedId(null)
+      dropTimerRef.current = null
+    }, 350)
+  }, [])
+
+  // Sort for JSX render order: dragged row last so it paints on top. Position math still uses
+  // the original `categories` array via the index lookup below, so the lib's positions/heights
+  // mapping stays consistent.
+  const renderOrder = useMemo(() => {
+    if (!draggedId) return categories
+    const idx = categories.findIndex((c) => c.id === draggedId)
+    if (idx === -1) return categories
+    return [...categories.slice(0, idx), ...categories.slice(idx + 1), categories[idx]!]
+  }, [categories, draggedId])
 
   // SortableItem absolutely positions itself within its parent; the wrapper must declare an
   // explicit height (the sum of measured row heights) so neighbors flow correctly.
@@ -706,10 +740,11 @@ function PhoneListSortable({
       className="overflow-hidden rounded-md border border-border bg-bg-base"
       style={animatedHeightStyle}
     >
-      {categories.map((item, index) => {
+      {renderOrder.map((item) => {
         const rowState = rowStateById.get(item.id)
         if (!rowState) return null
-        const sortableProps = sortableList.getItemProps(item, index)
+        const originalIndex = categories.indexOf(item)
+        const sortableProps = sortableList.getItemProps(item, originalIndex)
         return (
           <SortablePhoneRow
             key={item.id}
@@ -722,6 +757,7 @@ function PhoneListSortable({
             fallbackColorLabel={fallbackColorLabel}
             onMove={handleMove}
             onDragStart={handleDragStart}
+            onDrop={handleDrop}
             expanded={expandedIds.has(item.id)}
             onToggleExpanded={toggleExpanded}
             disabled={disabled}
@@ -748,7 +784,8 @@ type SortablePhoneRowProps = {
   fallbackColor: ColorValue
   fallbackColorLabel: string
   onMove: (id: string, from: number, to: number) => void
-  onDragStart: () => void
+  onDragStart: (id: string) => void
+  onDrop: (id: string) => void
   expanded: boolean
   onToggleExpanded: (id: string) => void
   disabled?: boolean
@@ -772,20 +809,20 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   fallbackColorLabel,
   onMove,
   onDragStart,
+  onDrop,
   expanded,
   onToggleExpanded,
   disabled,
 }: SortablePhoneRowProps) {
-  // Drive the row with useSortable directly (not the SortableItem component) so we can:
-  //   1. round the spring-driven `top` to integer pixels, eliminating the sub-pixel band
-  //      that reads as a "dimmer divider" after drop (lib's withSpring settles to ±0.01px);
-  //   2. read isMoving to gate the rounding override (during drag, the lib drives `top` from
-  //      the finger and we must not override).
+  // Use the lib's hook directly (instead of the SortableItem component wrapper) so we can
+  // ceil-round the measured height before handing it to scheduleHeightUpdate — the lib's
+  // SortableItem applies Math.round inside its handleLayout, which underestimates fractional
+  // measured heights and lets the next row overlap the prior border. With the hook we own
+  // onLayout and pre-ceil ourselves.
   const {
     animatedStyle: libAnimatedStyle,
     panGestureHandler,
     handlePanGestureHandler,
-    isMoving,
     registerHandle,
   } = useSortableNative<SuggestionCategory>({
     id: item.id,
@@ -799,6 +836,7 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
     containerHeight: SORTABLE_VIRTUAL_CONTAINER_HEIGHT,
     onMove,
     onDragStart,
+    onDrop,
   })
 
   // Mark this row as having a handle so the lib disables the whole-area pan
@@ -809,33 +847,6 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   }, [registerHandle])
 
   const itemId = item.id
-  const positions = sortableProps.positions
-  const itemHeights = sortableProps.itemHeights
-  const estimatedItemHeight = sortableProps.estimatedItemHeight ?? 60
-
-  // Mirror the lib's getItemCumulativeY (not exported from the package entry, so reproduced
-  // here as a worklet). Sum of measured heights of items whose position is before ours.
-  const cumulativeY = useDerivedValue(() => {
-    const pos = positions.value
-    const heights = itemHeights?.value ?? {}
-    const targetPos = pos[itemId] ?? 0
-    let y = 0
-    for (const id in pos) {
-      if (pos[id] < targetPos) {
-        y += heights[id] ?? estimatedItemHeight
-      }
-    }
-    return y
-  })
-  const springedTop = useDerivedValue(() => withSpring(cumulativeY.value))
-
-  // While dragging, defer to libAnimatedStyle.top (which follows the finger). Otherwise apply
-  // our rounded `top` so the wrapper lands on integer pixel rows and the bottom border draws
-  // crisply against the row below — no antialiased divider blending.
-  const customStyle = useAnimatedStyle(() => {
-    if (isMoving) return {}
-    return { top: Math.round(springedTop.value) }
-  }, [isMoving])
 
   const scheduleHeightUpdate = sortableProps.scheduleHeightUpdate
   // Pre-ceil the measured height before handing it to the lib. The lib's scheduleHeightUpdate
@@ -854,7 +865,7 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
 
   return (
     <GestureDetector gesture={panGestureHandler}>
-      <Animated.View style={[libAnimatedStyle, customStyle]} onLayout={handleLayout}>
+      <Animated.View style={libAnimatedStyle} onLayout={handleLayout}>
         <PhoneRowShell
           rowState={rowState}
           handlers={handlers}
@@ -895,6 +906,7 @@ function sortablePhoneRowPropsEqual(prev: SortablePhoneRowProps, next: SortableP
   if (prev.fallbackColorLabel !== next.fallbackColorLabel) return false
   if (prev.onMove !== next.onMove) return false
   if (prev.onDragStart !== next.onDragStart) return false
+  if (prev.onDrop !== next.onDrop) return false
   if (prev.expanded !== next.expanded) return false
   if (prev.onToggleExpanded !== next.onToggleExpanded) return false
   if (prev.disabled !== next.disabled) return false
