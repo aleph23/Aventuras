@@ -29,6 +29,7 @@ const ROUTES = [
   { href: '/dev/searchable-overlay-list', label: 'SearchableOverlayList' },
   { href: '/dev/provider-model-picker', label: 'ProviderModelPicker' },
   { href: '/dev/actions-menu', label: 'ActionsMenu' },
+  { href: '/dev/suggestion-categories-editor', label: 'SuggestionCategoriesEditor' },
   { href: '/dev/tag-input', label: 'TagInput' },
   { href: '/dev/toolbar', label: 'Toolbar' },
   { href: '/dev/delta-log-row', label: 'DeltaLogRow' },
