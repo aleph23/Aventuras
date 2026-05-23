@@ -87,6 +87,11 @@ const EXPAND_DURATION_MS = 200
 // Time to keep the dropped row rendered last in the DOM after gesture end. Covers the lib's
 // post-release withSpring settle so the row doesn't paint under siblings mid-animation.
 const DROP_HOLD_MS = 350
+// Measured collapsed-phone-row heights per density. Derived from `--row-py-lg` (the Pressable's
+// py-row-y-lg) + drag handle padding (12px) + icon size (sm/md). Used only as
+// useSortableList's `estimatedItemHeight` — actual heights are measured at runtime via
+// handleLayout — so a few px of drift only affects the first frame before measurement
+// lands. Retune if --row-py-lg, drag handle padding, or chevron/grip icon sizes change.
 const COLLAPSED_ROW_HEIGHT_BY_DENSITY = {
   compact: 45,
   regular: 51,
