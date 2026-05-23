@@ -225,7 +225,13 @@ const ROW_DIVIDER = <View className="mx-3 h-px bg-border" />
 function SheetKeyboardWrapper({ children }: { children: ReactNode }) {
   const keyboardHeight = useKeyboardHeight()
   const pad = Platform.OS === 'android' ? keyboardHeight : 0
-  return <View style={paddingBottomStyle(pad)}>{children}</View>
+  // flex-1 is essential — without it the wrapper sizes to content, the RowList
+  // inside has nothing to flex against, and the list renders 0-height (no rows visible).
+  return (
+    <View className="flex-1" style={paddingBottomStyle(pad)}>
+      {children}
+    </View>
+  )
 }
 
 function paddingBottomStyle(value: number): ViewStyle {
