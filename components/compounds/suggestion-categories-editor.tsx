@@ -289,6 +289,10 @@ function SortableWebRow({
     transition,
     opacity: isDragging ? 0.6 : 1,
   }
+  // Raw <button> instead of the project's IconAction primitive: dnd-kit's listeners need to
+  // attach to the DOM element directly, and IconAction's wrapper layers don't forward the
+  // event handlers the spread expects. Don't "modernise" this back to IconAction without
+  // first verifying dnd-kit pointer-down activation still works.
   const dragHandle = (
     <button
       type="button"
@@ -296,7 +300,7 @@ function SortableWebRow({
       {...listeners}
       {...attributes}
       disabled={disabled}
-      className="cursor-grab self-start rounded-sm p-2 text-fg-muted hover:text-fg-primary active:cursor-grabbing"
+      className="cursor-grab self-start rounded-sm p-2 text-fg-muted hover:text-fg-primary active:cursor-grabbing disabled:cursor-default disabled:opacity-50"
     >
       <Icon as={GripVertical} size="sm" />
     </button>
