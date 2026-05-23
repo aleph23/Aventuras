@@ -1,0 +1,183 @@
+import type { Meta, StoryObj } from '@storybook/react-native-web-vite'
+import { useState } from 'react'
+import { View } from 'react-native'
+
+import { ProviderModelPicker, type ModelRef, type ProviderSource } from './provider-model-picker'
+import { Text } from '../ui/text'
+
+const ANTHROPIC: ProviderSource = {
+  id: 'anthropic',
+  name: 'Anthropic',
+  models: [
+    { id: 'claude-opus-4-7', capabilities: { reasoning: true, structured: true } },
+    { id: 'claude-sonnet-4-7', capabilities: { reasoning: true, structured: true } },
+    { id: 'claude-sonnet-4-6', capabilities: { reasoning: true, structured: true } },
+    { id: 'claude-haiku-4-5', capabilities: { reasoning: true } },
+  ],
+}
+
+const OPENAI: ProviderSource = {
+  id: 'openai',
+  name: 'OpenAI',
+  models: [
+    { id: 'gpt-5', capabilities: { reasoning: true, structured: true } },
+    { id: 'gpt-5-mini', capabilities: { structured: true } },
+    { id: 'gpt-4o-mini', capabilities: { structured: true } },
+  ],
+}
+
+const OPENROUTER: ProviderSource = {
+  id: 'openrouter',
+  name: 'OpenRouter',
+  models: [
+    { id: 'anthropic/claude-sonnet-4-7' },
+    { id: 'openai/gpt-5' },
+    { id: 'meta/llama-3.1-70b' },
+  ],
+}
+
+const ALL_PROVIDERS = [ANTHROPIC, OPENAI, OPENROUTER]
+
+const meta: Meta<typeof ProviderModelPicker> = {
+  title: 'Compounds/ProviderModelPicker',
+  component: ProviderModelPicker,
+  parameters: { layout: 'centered' },
+  tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <View className="w-80" style={{ minHeight: 480 }}>
+        <Story />
+      </View>
+    ),
+  ],
+}
+
+export default meta
+type Story = StoryObj<typeof ProviderModelPicker>
+
+type DemoProps = {
+  providers?: ProviderSource[]
+  initialValue?: ModelRef | null
+  initialFavorites?: ModelRef[]
+}
+
+function DemoPicker({
+  providers = ALL_PROVIDERS,
+  initialValue = { providerId: 'anthropic', modelId: 'claude-sonnet-4-7' },
+  initialFavorites = [
+    { providerId: 'anthropic', modelId: 'claude-sonnet-4-7' },
+    { providerId: 'openai', modelId: 'gpt-5' },
+  ],
+}: DemoProps) {
+  const [value, setValue] = useState<ModelRef | null>(initialValue)
+  const [favorites, setFavorites] = useState<ModelRef[]>(initialFavorites)
+  const [extraModels, setExtraModels] = useState<Record<string, string[]>>({})
+
+  const effectiveProviders: ProviderSource[] = providers.map((p) => {
+    const extras = extraModels[p.id] ?? []
+    if (extras.length === 0) return p
+    return {
+      ...p,
+      models: [...p.models, ...extras.map((id) => ({ id }))],
+    }
+  })
+
+  const toggleFavorite = (ref: ModelRef) => {
+    setFavorites((prev) => {
+      const has = prev.some((f) => f.providerId === ref.providerId && f.modelId === ref.modelId)
+      return has
+        ? prev.filter((f) => !(f.providerId === ref.providerId && f.modelId === ref.modelId))
+        : [...prev, ref]
+    })
+  }
+
+  const addCustom = (ref: ModelRef) => {
+    setExtraModels((prev) => ({
+      ...prev,
+      [ref.providerId]: [...(prev[ref.providerId] ?? []), ref.modelId],
+    }))
+    setValue(ref)
+  }
+
+  return (
+    <View className="flex-col gap-3">
+      <ProviderModelPicker
+        value={value}
+        onChange={setValue}
+        providers={effectiveProviders}
+        favorites={favorites}
+        onFavoriteToggle={toggleFavorite}
+        onAddCustom={addCustom}
+      />
+      <Text size="xs" variant="muted">
+        value: {value ? `${value.providerId} / ${value.modelId}` : 'null'}
+      </Text>
+      <Text size="xs" variant="muted">
+        favorites: {favorites.length}
+      </Text>
+    </View>
+  )
+}
+
+export const Default: Story = { render: () => <DemoPicker /> }
+
+export const SingleProvider: Story = {
+  render: () => <DemoPicker providers={[ANTHROPIC]} initialFavorites={[]} />,
+}
+
+export const NoProviders: Story = {
+  render: () => <DemoPicker providers={[]} initialValue={null} initialFavorites={[]} />,
+}
+
+export const NoFavorites: Story = {
+  render: () => <DemoPicker initialFavorites={[]} />,
+}
+
+export const BrokenTriggerProviderMissing: Story = {
+  render: () => (
+    <DemoPicker
+      providers={[ANTHROPIC, OPENAI]}
+      initialValue={{ providerId: 'deleted-provider', modelId: 'gpt-4' }}
+      initialFavorites={[]}
+    />
+  ),
+}
+
+export const BrokenTriggerModelNotInCatalog: Story = {
+  render: () => (
+    <DemoPicker
+      initialValue={{ providerId: 'anthropic', modelId: 'claude-removed-model' }}
+      initialFavorites={[]}
+    />
+  ),
+}
+
+export const BrokenFavorite: Story = {
+  render: () => (
+    <DemoPicker
+      initialFavorites={[
+        { providerId: 'anthropic', modelId: 'claude-sonnet-4-7' },
+        { providerId: 'anthropic', modelId: 'claude-deprecated-model' },
+      ]}
+    />
+  ),
+}
+
+export const Disabled: Story = {
+  render: () => (
+    <View className="flex-col gap-3">
+      <ProviderModelPicker
+        value={{ providerId: 'anthropic', modelId: 'claude-sonnet-4-7' }}
+        onChange={() => undefined}
+        providers={ALL_PROVIDERS}
+        favorites={[]}
+        onFavoriteToggle={() => undefined}
+        onAddCustom={() => undefined}
+        disabled
+        disabledReason="Generation in progress — fields lock until complete"
+      />
+    </View>
+  ),
+}
+
+// No ThemeMatrix — picker portals through Popover / Sheet, escaping per-row theme scope.
