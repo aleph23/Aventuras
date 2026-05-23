@@ -138,10 +138,10 @@
       .pmp-section-head.fav { color: var(--ink); }
       .pmp-section-head .count { color: var(--ink-faint); font-weight: 400; }
       .pmp-section-head .more { margin-left: auto; color: var(--ink-faint); cursor: pointer; font-weight: 400; }
-      .pmp-row { padding: 5px 10px 5px 22px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; border-bottom: 1px dotted var(--line-soft); font-family: ui-monospace, monospace; position: relative; }
+      .pmp-row { padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; border-bottom: 1px dotted var(--line-soft); font-family: ui-monospace, monospace; }
       .pmp-row:hover { background: var(--bg-region); }
-      .pmp-row .sel { position: absolute; left: 8px; color: var(--ok); font-family: system-ui, sans-serif; }
-      .pmp-row .m-id { flex: 1; color: var(--ink); }
+      .pmp-row.selected { background: var(--bg-sunken, #ececec); }
+      .pmp-row .m-id { flex: 1; min-width: 0; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .pmp-row .caps { display: inline-flex; gap: 4px; min-width: 26px; justify-content: flex-end; }
       .pmp-row .fav-toggle { color: var(--ink-faint); cursor: pointer; font-size: 13px; user-select: none; font-family: system-ui, sans-serif; }
       .pmp-row .fav-toggle.on { color: #d8b04a; }
@@ -806,55 +806,54 @@
                     </div>
                     <div class="pmp-scroll">
                       <div class="pmp-section-head fav">&#11088; Favorites</div>
-                      <div class="pmp-row">
+                      <div class="pmp-row selected">
+                        <span class="fav-toggle on">&#11088;</span>
                         <span class="m-id">claude-sonnet-4-7</span>
                         <span class="provider-tag">Anthropic</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle on">&#11088;</span>
                       </div>
                       <div class="pmp-row">
+                        <span class="fav-toggle on">&#11088;</span>
                         <span class="m-id">gpt-5</span>
                         <span class="provider-tag">OpenAI</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle on">&#11088;</span>
                       </div>
                       <div class="pmp-section-head">Anthropic <span class="count">(4)</span><span class="more">&middot;&middot;&middot;</span></div>
                       <div class="pmp-row">
+                        <span class="fav-toggle">&#9734;</span>
                         <span class="m-id">claude-opus-4-7</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle">&#9734;</span>
                       </div>
-                      <div class="pmp-row">
-                        <span class="sel">&#10003;</span>
+                      <div class="pmp-row selected">
+                        <span class="fav-toggle on">&#11088;</span>
                         <span class="m-id">claude-sonnet-4-7</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle on">&#11088;</span>
                       </div>
                       <div class="pmp-row">
+                        <span class="fav-toggle">&#9734;</span>
                         <span class="m-id">claude-sonnet-4-6</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle">&#9734;</span>
                       </div>
                       <div class="pmp-row">
+                        <span class="fav-toggle">&#9734;</span>
                         <span class="m-id">claude-haiku-4-5</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span></span>
-                        <span class="fav-toggle">&#9734;</span>
                       </div>
                       <div class="pmp-section-head">OpenAI <span class="count">(3)</span><span class="more">&middot;&middot;&middot;</span></div>
                       <div class="pmp-row">
+                        <span class="fav-toggle on">&#11088;</span>
                         <span class="m-id">gpt-5</span>
                         <span class="caps"><span class="cap-badge on">&#129504;</span><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle on">&#11088;</span>
                       </div>
                       <div class="pmp-row">
+                        <span class="fav-toggle">&#9734;</span>
                         <span class="m-id">gpt-5-mini</span>
                         <span class="caps"><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle">&#9734;</span>
                       </div>
                       <div class="pmp-row">
+                        <span class="fav-toggle">&#9734;</span>
                         <span class="m-id">gpt-4o-mini</span>
                         <span class="caps"><span class="cap-badge on">&#9881;</span></span>
-                        <span class="fav-toggle">&#9734;</span>
                       </div>
                     </div>
                     <div class="pmp-footer">+ Add custom model&hellip;</div>

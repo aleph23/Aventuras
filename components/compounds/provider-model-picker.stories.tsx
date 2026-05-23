@@ -36,6 +36,25 @@ const OPENROUTER: ProviderSource = {
   ],
 }
 
+// Stress-tests trigger + popover row truncation behavior. The long namespaced
+// ids match real OpenRouter / Vertex catalog entries; the substrate must keep
+// them on one line and never spawn horizontal scroll inside the popover.
+const LONG_NAMES_PROVIDER: ProviderSource = {
+  id: 'longnames',
+  name: 'Long-Name Provider',
+  models: [
+    {
+      id: 'anthropic/claude-3-5-sonnet-20241022-with-very-long-name',
+      capabilities: { reasoning: true, structured: true },
+    },
+    {
+      id: 'meta-llama/llama-3.1-405b-instruct-turbo',
+      capabilities: { structured: true },
+    },
+    { id: 'gpt-4-turbo-2024-04-09-preview-extended-context' },
+  ],
+}
+
 const ALL_PROVIDERS = [ANTHROPIC, OPENAI, OPENROUTER]
 
 const meta: Meta<typeof ProviderModelPicker> = {
@@ -158,6 +177,24 @@ export const BrokenFavorite: Story = {
       initialFavorites={[
         { providerId: 'anthropic', modelId: 'claude-sonnet-4-7' },
         { providerId: 'anthropic', modelId: 'claude-deprecated-model' },
+      ]}
+    />
+  ),
+}
+
+export const LongModelNames: Story = {
+  render: () => (
+    <DemoPicker
+      providers={[LONG_NAMES_PROVIDER, ANTHROPIC]}
+      initialValue={{
+        providerId: 'longnames',
+        modelId: 'anthropic/claude-3-5-sonnet-20241022-with-very-long-name',
+      }}
+      initialFavorites={[
+        {
+          providerId: 'longnames',
+          modelId: 'anthropic/claude-3-5-sonnet-20241022-with-very-long-name',
+        },
       ]}
     />
   ),

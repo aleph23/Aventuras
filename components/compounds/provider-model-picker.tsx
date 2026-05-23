@@ -1,5 +1,5 @@
 import { Brain, ChevronDown, Star, TriangleAlert, Wrench } from 'lucide-react-native'
-import { useCallback, useMemo, useState, type ReactNode, type Ref } from 'react'
+import { useCallback, useMemo, useState, type Ref } from 'react'
 import { Pressable, View } from 'react-native'
 
 import { Button } from '@/components/ui/button'
@@ -63,7 +63,6 @@ type PickerRowData = {
   providerName: string
   capabilities?: Capabilities
   isFavorite: boolean
-  selected: boolean
   source: 'favorite' | 'provider'
   // True when the row references a favorite whose modelId is no longer in the
   // provider's catalog. Renders with warning chrome; still commits on click.
@@ -74,11 +73,6 @@ const DEFAULT_PLACEHOLDER = 'Pick a model'
 const DEFAULT_CAPABILITY_KEYWORDS: Record<string, keyof Capabilities> = {
   reasoning: 'reasoning',
   structured: 'structured',
-}
-
-function eqRef(a: ModelRef | null | undefined, b: ModelRef | null | undefined): boolean {
-  if (a == null || b == null) return a === b
-  return a.providerId === b.providerId && a.modelId === b.modelId
 }
 
 function rowId(source: 'favorite' | 'provider', ref: ModelRef): string {
@@ -108,16 +102,17 @@ function matchesQuery(
   return false
 }
 
+// Reserved trailing column. Width is the eyeballed fit for two icons + gap-1;
+// kept fixed (even when one or zero icons render) so model-name columns align
+// vertically across rows regardless of capability presence — the "reserved
+// column for missing capability data" contract from the picker spec.
 function CapabilityIcons({ capabilities }: { capabilities?: Capabilities }) {
-  if (!capabilities) return <View className="w-12" />
-  const icons: ReactNode[] = []
-  if (capabilities.reasoning) {
-    icons.push(<Icon key="reasoning" as={Brain} size="sm" className="text-fg-muted" />)
-  }
-  if (capabilities.structured) {
-    icons.push(<Icon key="structured" as={Wrench} size="sm" className="text-fg-muted" />)
-  }
-  return <View className="w-12 flex-row items-center justify-end gap-1">{icons}</View>
+  return (
+    <View className="w-12 flex-row items-center justify-end gap-1">
+      {capabilities?.reasoning ? <Icon as={Brain} size="sm" className="text-fg-muted" /> : null}
+      {capabilities?.structured ? <Icon as={Wrench} size="sm" className="text-fg-muted" /> : null}
+    </View>
+  )
 }
 
 type FavoriteToggleProps = {
@@ -155,19 +150,14 @@ type PickerRowProps = {
 }
 
 function PickerRow({ row, onFavoriteToggle }: PickerRowProps) {
-  const { modelRef, providerName, capabilities, isFavorite, selected, source, brokenFavorite } =
-    row.data
+  const { modelRef, providerName, capabilities, isFavorite, source, brokenFavorite } = row.data
   return (
     <View className="flex-row items-center gap-2">
-      <View className="w-4">
-        {selected ? (
-          <Text size="sm" className="text-fg-primary">
-            ✓
-          </Text>
-        ) : null}
-      </View>
+      <FavoriteToggle isFavorite={isFavorite} onToggle={() => onFavoriteToggle(modelRef)} />
       {brokenFavorite ? <Icon as={TriangleAlert} size="sm" className="text-warning" /> : null}
-      <View className="flex-1 flex-col">
+      {/* min-w-0 lets the flex child shrink past its text intrinsic width so
+          numberOfLines truncation actually kicks in inside the popover. */}
+      <View className="min-w-0 flex-1 flex-col">
         <Text size="sm" className="text-fg-primary" numberOfLines={1}>
           {modelRef.modelId}
         </Text>
@@ -178,7 +168,6 @@ function PickerRow({ row, onFavoriteToggle }: PickerRowProps) {
         ) : null}
       </View>
       <CapabilityIcons capabilities={capabilities} />
-      <FavoriteToggle isFavorite={isFavorite} onToggle={() => onFavoriteToggle(modelRef)} />
     </View>
   )
 }
@@ -370,6 +359,13 @@ function ProviderModelPicker({
     return provider?.models.find((m) => m.id === value.modelId)?.capabilities
   }, [value, providers, brokenState])
 
+  // The same model can surface in both the Favorites strip and its provider section;
+  // listing both row ids tints both mirrors of the selection (per wireframe).
+  const selectedRowIds = useMemo<string[] | undefined>(() => {
+    if (!value) return undefined
+    return [rowId('favorite', value), rowId('provider', value)]
+  }, [value])
+
   // Build the substrate's sections from providers + favorites, post-filter.
   const sections = useMemo<Section<PickerRowData>[]>(() => {
     const out: Section<PickerRowData>[] = []
@@ -400,7 +396,6 @@ function ProviderModelPicker({
               providerName,
               capabilities: modelEntry?.capabilities,
               isFavorite: true,
-              selected: eqRef(value, favRef),
               source: 'favorite',
               brokenFavorite,
             },
@@ -425,7 +420,6 @@ function ProviderModelPicker({
               providerName: provider.name,
               capabilities: m.capabilities,
               isFavorite: favoritesByKey.has(rowId('provider', modelRef)),
-              selected: eqRef(value, modelRef),
               source: 'provider' as const,
             },
           }
@@ -436,7 +430,7 @@ function ProviderModelPicker({
     }
 
     return out
-  }, [providers, favorites, favoritesByKey, value, query, capabilityKeywords])
+  }, [providers, favorites, favoritesByKey, query, capabilityKeywords])
 
   const handleActivate = useCallback(
     (row: Row<PickerRowData>) => {
@@ -497,6 +491,7 @@ function ProviderModelPicker({
         ariaLabel="Pick a model"
         searchPlaceholder="Search models…"
         sections={sections}
+        selectedRowIds={selectedRowIds}
         onQueryChange={setQuery}
         renderTrigger={renderTrigger}
         renderRow={renderRow}

@@ -196,12 +196,22 @@ footer (below).
 
 **Each model row** left-to-right:
 
-1. **Selection indicator** — `✓` only on the currently-selected row.
-2. **`modelId`** — primary identifier, monospace-affordable.
-3. **Capability icons** — `🧠⚙` right-aligned in a reserved-width
+1. **Favorite toggle** — `☆` (empty) / `⭐` (filled) leading the row.
+   Its own click target; leading position gives the row a consistent
+   action zone independent of selection state.
+2. **`modelId`** — primary identifier, monospace-affordable, flexes
+   to fill and truncates on overflow.
+3. **Capability icons** — `🧠⚙` trailing-aligned in a reserved-width
    column so rows align even when a model has no capability data.
-4. **Favorite toggle** — `☆` (empty) / `⭐` (filled) rightmost. Its
-   own click target.
+
+The currently-selected row carries a `bg-bg-sunken` surface tint via
+the substrate's `selectedRowIds` prop (see
+[`searchable-overlay-list.md → Filter, keyboard, focus & lifecycle`](./searchable-overlay-list.md#filter-keyboard-focus--lifecycle)) —
+the same affordance Select uses for customContent rows. No inline
+glyph: the tint reads cleanly at the row level and frees the leading
+position for the favorite toggle. When the same model surfaces in
+both the Favorites strip and its provider section, both mirrors tint
+together.
 
 **Row click semantics.**
 

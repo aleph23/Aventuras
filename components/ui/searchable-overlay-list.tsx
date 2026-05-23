@@ -63,9 +63,19 @@ type SearchableOverlayListProps<T> = {
   searchPlaceholder?: string
   onQueryChange: (query: string) => void
   sections: Section<T>[]
-  renderRow: (row: Row<T>, state: { highlighted: boolean }) => ReactNode
+  renderRow: (row: Row<T>, state: { highlighted: boolean; selected: boolean }) => ReactNode
   renderEmpty?: (query: string) => ReactNode
   renderFooter?: () => ReactNode
+
+  // Marks rows that represent the consumer's committed value. The substrate
+  // paints each with `bg-bg-sunken` (the convention shared with Select
+  // customContent), so consumers don't re-implement the selected-row affordance.
+  // Distinct from `highlighted` (transient keyboard cursor). When set,
+  // `bg-tint-hover` is suppressed on selected rows so the selection signal
+  // isn't muddled by hover. Array semantics let a single logical selection
+  // surface in multiple sections — e.g. the picker tints the same model in
+  // both the Favorites strip and its provider section.
+  selectedRowIds?: readonly string[]
 
   onActivate: (row: Row<T>) => void
   // Optional consumer signal for the X clear button. In as-trigger mode this is the
@@ -106,6 +116,13 @@ function flattenEnabled<T>(sections: Section<T>[]): Row<T>[] {
   const out: Row<T>[] = []
   for (const s of sections) for (const r of s.rows) if (!r.disabled) out.push(r)
   return out
+}
+
+// Memoize the array→Set conversion so the substrate's selected-row lookups stay O(1)
+// per row without re-allocating each render. Consumers pass arrays (natural shape);
+// the substrate works in Set space.
+function useSelectedSet(ids: readonly string[] | undefined): ReadonlySet<string> | undefined {
+  return useMemo(() => (ids ? new Set(ids) : undefined), [ids])
 }
 
 function findRowSection<T>(
@@ -221,8 +238,9 @@ function PopoverControlledBridge({ open: controlled }: { open?: boolean }) {
 type RowListProps<T> = {
   sections: Section<T>[]
   highlightedId: string | null
+  selectedRowIds?: ReadonlySet<string>
   onActivate: (row: Row<T>) => void
-  renderRow: (row: Row<T>, state: { highlighted: boolean }) => ReactNode
+  renderRow: (row: Row<T>, state: { highlighted: boolean; selected: boolean }) => ReactNode
   renderEmpty?: (query: string) => ReactNode
   query: string
   variant: 'inline' | 'sheet'
@@ -260,6 +278,7 @@ function paddingBottomStyle(value: number): ViewStyle {
 function RowListNative<T>({
   sections,
   highlightedId,
+  selectedRowIds,
   onActivate,
   renderRow,
   renderEmpty,
@@ -314,21 +333,28 @@ function RowListNative<T>({
       }
       renderItem={({ item }) => {
         const highlighted = item.id === highlightedId
+        const selected = selectedRowIds?.has(item.id) ?? false
         return (
           <Pressable
             nativeID={`${rowIdPrefix}-${item.id}`}
             role="button"
-            aria-selected={highlighted}
+            // aria-selected on web reflects committed selection; on native the
+            // primitive maps to accessibilityState.selected. Highlight is the
+            // keyboard cursor and is conveyed via aria-activedescendant from
+            // the search input — keeping it off this attribute avoids
+            // duplicating the cue.
+            aria-selected={selected || (selectedRowIds == null && highlighted)}
             disabled={item.disabled}
             onPress={() => onActivate(item)}
             className={cn(
               ROW_BASE,
               rowClass,
-              highlighted && 'bg-tint-hover',
+              selected && 'bg-bg-sunken',
+              highlighted && !selected && 'bg-tint-hover',
               item.disabled && 'opacity-50',
             )}
           >
-            {renderRow(item, { highlighted })}
+            {renderRow(item, { highlighted, selected })}
           </Pressable>
         )
       }}
@@ -340,6 +366,7 @@ function RowListNative<T>({
 function RowListWeb<T>({
   sections,
   highlightedId,
+  selectedRowIds,
   onActivate,
   renderRow,
   renderEmpty,
@@ -362,6 +389,7 @@ function RowListWeb<T>({
     <VirtualizedRowList<T>
       sections={sections}
       highlightedId={highlightedId}
+      selectedRowIds={selectedRowIds}
       onActivate={onActivate}
       renderRow={renderRow}
       variant={variant}
@@ -430,8 +458,9 @@ function virtualTrackStyle(totalSize: number): CSSProperties {
 type VirtualizedRowListProps<T> = {
   sections: Section<T>[]
   highlightedId: string | null
+  selectedRowIds?: ReadonlySet<string>
   onActivate: (row: Row<T>) => void
-  renderRow: (row: Row<T>, state: { highlighted: boolean }) => ReactNode
+  renderRow: (row: Row<T>, state: { highlighted: boolean; selected: boolean }) => ReactNode
   variant: 'inline' | 'sheet'
   listboxId: string
   rowIdPrefix: string
@@ -442,6 +471,7 @@ type VirtualizedRowListProps<T> = {
 function VirtualizedRowList<T>({
   sections,
   highlightedId,
+  selectedRowIds,
   onActivate,
   renderRow,
   variant,
@@ -530,6 +560,7 @@ function VirtualizedRowList<T>({
 
           const row = item.row
           const highlighted = row.id === highlightedId
+          const selected = selectedRowIds?.has(row.id) ?? false
           return (
             <div
               key={virtualRow.key}
@@ -540,18 +571,19 @@ function VirtualizedRowList<T>({
               <Pressable
                 nativeID={`${rowIdPrefix}-${row.id}`}
                 role="option"
-                aria-selected={highlighted}
+                aria-selected={selected || (selectedRowIds == null && highlighted)}
                 disabled={row.disabled}
                 onPress={() => onActivate(row)}
                 className={cn(
                   ROW_BASE,
                   rowClass,
                   !item.isLastInSection && 'border-b border-border',
-                  highlighted && 'bg-tint-hover',
+                  selected && 'bg-bg-sunken',
+                  highlighted && !selected && 'bg-tint-hover',
                   row.disabled && 'opacity-50',
                 )}
               >
-                {renderRow(row, { highlighted })}
+                {renderRow(row, { highlighted, selected })}
               </Pressable>
             </div>
           )
@@ -717,6 +749,7 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
   )
 
   const list = useSearchableList(props)
+  const selectedRowIdsSet = useSelectedSet(props.selectedRowIds)
 
   // Reset query state on each open / close transition.
   const wasOpenRef = useRef(open)
@@ -842,6 +875,7 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
       <RowList
         sections={sections}
         highlightedId={list.highlightedId}
+        selectedRowIds={selectedRowIdsSet}
         onActivate={activate}
         renderRow={renderRow}
         renderEmpty={renderEmpty}
@@ -920,6 +954,7 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
   } = props
 
   const list = useSearchableList(props)
+  const selectedRowIdsSet = useSelectedSet(props.selectedRowIds)
   // Pull stable function refs out of `list` so downstream useCallbacks don't depend on the
   // whole-object reference (which is new every render) — preserves Input focus across renders.
   const { setQuery, moveHighlight, query: currentQuery, highlightedId } = list
@@ -1105,6 +1140,7 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
             <RowList
               sections={sections}
               highlightedId={list.highlightedId}
+              selectedRowIds={selectedRowIdsSet}
               onActivate={activate}
               renderRow={renderRow}
               renderEmpty={renderEmpty}

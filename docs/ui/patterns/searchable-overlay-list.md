@@ -106,9 +106,10 @@ type SearchableOverlayListProps<T> = {
   searchPlaceholder?: string
   onQueryChange: (query: string) => void // consumer filters → recomputes sections
   sections: Section<T>[] // POST-filter, in display order
-  renderRow: (row: Row<T>, state: { highlighted: boolean }) => ReactNode
+  renderRow: (row: Row<T>, state: { highlighted: boolean; selected: boolean }) => ReactNode
   renderEmpty?: (query: string) => ReactNode // shown when sections flatten to 0 rows
   renderFooter?: () => ReactNode // sticky, inside the overlay, every tier
+  selectedRowIds?: readonly string[] // see "Selected rows" below
 
   // — activation —
   onActivate: (row: Row<T>) => void // row-body press / Enter; substrate closes first
@@ -304,9 +305,23 @@ opens empty too.
 
 **`initialScrollRowId`.** On open, the substrate scrolls that row
 into view, mid-viewport. This keeps three concepts separate:
-_selection_ (the consumer's visual state in `renderRow`),
-_highlight_ (the substrate's keyboard cursor, empty on open), and
-_initial scroll_.
+_selection_ (the consumer's committed value, surfaced via
+`selectedRowIds` — see below), _highlight_ (the substrate's keyboard
+cursor, empty on open), and _initial scroll_.
+
+**`selectedRowIds` — committed-value affordance.** Consumers that
+have a notion of "current selection" (a model picker, a single-select
+list) pass the row ids that mirror that value. The substrate paints
+each with `bg-bg-sunken` — the convention shared with Select's
+customContent rows — so consumers don't re-implement the
+selected-row visual. Multiple ids let one logical selection surface
+in multiple sections (the picker tints the same model in both the
+Favorites strip and its provider section). Suppresses `bg-tint-hover`
+on selected rows so the selection signal isn't muddled by hover.
+Distinct from highlight: highlight is the keyboard cursor, selected
+is the committed value. Consumers without a selection concept
+(Autocomplete, ActionsMenu) omit the prop and the substrate stays in
+highlight-only mode.
 
 **In-flight gating.** A consumer can flip `Row.disabled` reactively
 while the overlay is open — disabled rows render non-interactive and
