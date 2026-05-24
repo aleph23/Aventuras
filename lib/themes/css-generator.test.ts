@@ -8,7 +8,7 @@ describe('themeToCssBlock', () => {
     const css = themeToCssBlock(themes[0], { selector: ':root' })
     expect(css).toContain(':root {')
     expect(css).toContain('--bg-base: #fdfdfd;')
-    expect(css).toContain('--accent: #3b82f6;')
+    expect(css).toContain('--accent: #2563eb;')
   })
 
   it('uses [data-theme] selector for non-default themes', () => {
