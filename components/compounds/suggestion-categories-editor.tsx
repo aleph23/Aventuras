@@ -713,24 +713,9 @@ function PhoneList({
     return map
   }, [rowStates])
 
-  // Ref via render so a stale lib reaction firing during our sync write doesn't pass the
-  // closure's pre-delete array. The lib calls onMove for every position change (drag,
-  // delete-induced index shift, and the deleted row's own positions[id] → undefined), so
-  // validate that `from` still points at `id` and reject non-number args.
+  // Ref via render so handleDrop reads the latest array when its scheduleOnRN callback runs.
   const categoriesRef = useRef(categories)
   categoriesRef.current = categories
-  const handleMove = useCallback(
-    (id: string, from: number, to: number) => {
-      if (typeof from !== 'number' || typeof to !== 'number') return
-      if (from === to) return
-      const current = categoriesRef.current
-      if (from < 0 || from >= current.length) return
-      if (to < 0 || to >= current.length) return
-      if (current[from]?.id !== id) return
-      onReorder(arrayMove(current, from, to))
-    },
-    [onReorder],
-  )
 
   // Render the dragged row last in the DOM and hold that status for DROP_HOLD_MS after the
   // gesture ends: the lib drops `zIndex: 1` at gesture end but its withSpring keeps animating
@@ -747,13 +732,42 @@ function PhoneList({
     setDraggedId(id)
     void impactAsync(ImpactFeedbackStyle.Medium)
   }, [])
-  const handleDrop = useCallback(() => {
-    if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
-    dropTimerRef.current = setTimeout(() => {
-      setDraggedId(null)
-      dropTimerRef.current = null
-    }, DROP_HOLD_MS)
-  }, [])
+  // Commit the final order from the positions snapshot the lib passes on drop. Avoids the
+  // batched-setState race that occurs if we commit per-onMove during the drag (multiple
+  // setCategories in one microtask + non-functional onChange = last write wins). We also
+  // skip wiring `onMove` at all, which removes the spurious lib reactions our prior fix
+  // had to filter out.
+  const handleDrop = useCallback(
+    (_id: string, _finalPosition: number, allPositions?: { [id: string]: number }) => {
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+      dropTimerRef.current = setTimeout(() => {
+        setDraggedId(null)
+        dropTimerRef.current = null
+      }, DROP_HOLD_MS)
+      if (!allPositions) return
+      const current = categoriesRef.current
+      const next: SuggestionCategory[] = new Array(current.length)
+      let placed = 0
+      for (const c of current) {
+        const pos = allPositions[c.id]
+        if (typeof pos !== 'number' || pos < 0 || pos >= current.length) return
+        if (next[pos] !== undefined) return
+        next[pos] = c
+        placed++
+      }
+      if (placed !== current.length) return
+      let changed = false
+      for (let i = 0; i < current.length; i++) {
+        if (next[i]!.id !== current[i]!.id) {
+          changed = true
+          break
+        }
+      }
+      if (!changed) return
+      onReorder(next as SuggestionCategory[])
+    },
+    [onReorder],
+  )
 
   const renderOrder = useMemo(() => {
     if (!draggedId) return categories
@@ -782,7 +796,6 @@ function PhoneList({
             swatches={swatches}
             fallbackColor={fallbackColor}
             fallbackColorLabel={fallbackColorLabel}
-            onMove={handleMove}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             expanded={expandedIds.has(item.id)}
@@ -807,9 +820,8 @@ type SortablePhoneRowProps = {
   swatches: ColorValue[]
   fallbackColor: ColorValue
   fallbackColorLabel: string
-  onMove: (id: string, from: number, to: number) => void
   onDragStart: (id: string) => void
-  onDrop: () => void
+  onDrop: (id: string, position: number, allPositions?: { [id: string]: number }) => void
   expanded: boolean
   onToggleExpanded: (id: string) => void
   disabled?: boolean
@@ -825,7 +837,6 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
   swatches,
   fallbackColor,
   fallbackColorLabel,
-  onMove,
   onDragStart,
   onDrop,
   expanded,
@@ -847,7 +858,6 @@ const SortablePhoneRow = memo(function SortablePhoneRow({
     estimatedItemHeight: sortableProps.estimatedItemHeight,
     itemHeights: sortableProps.itemHeights,
     containerHeight: SORTABLE_VIRTUAL_CONTAINER_HEIGHT,
-    onMove,
     onDragStart,
     onDrop,
   })
@@ -916,7 +926,6 @@ function sortablePhoneRowPropsEqual(prev: SortablePhoneRowProps, next: SortableP
   if (prev.swatches !== next.swatches) return false
   if (prev.fallbackColor !== next.fallbackColor) return false
   if (prev.fallbackColorLabel !== next.fallbackColorLabel) return false
-  if (prev.onMove !== next.onMove) return false
   if (prev.onDragStart !== next.onDragStart) return false
   if (prev.onDrop !== next.onDrop) return false
   if (prev.expanded !== next.expanded) return false
