@@ -46,7 +46,6 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Text } from '@/components/ui/text'
 import { Textarea } from '@/components/ui/textarea'
-import { useTier } from '@/hooks/use-tier'
 import { useDensity } from '@/lib/density/use-density'
 import { cn } from '@/lib/utils'
 
@@ -442,8 +441,9 @@ function SuggestionCategoriesEditor({
   generateId = defaultIdGen,
   className,
 }: SuggestionCategoriesEditorProps) {
-  const tier = useTier()
-  const isPhone = Platform.OS !== 'web' && tier === 'phone'
+  // Split on platform, not tier: WebList uses dnd-kit + DOM elements that crash on native,
+  // so any native runtime (including tablets) must take the PhoneList path.
+  const isNative = Platform.OS !== 'web'
 
   const duplicateIds = useMemo(() => findDuplicateLabelIds(categories), [categories])
 
@@ -512,7 +512,7 @@ function SuggestionCategoriesEditor({
 
   return (
     <View className={cn('flex-col gap-2', className)} style={disabled ? DIMMED_STYLE : undefined}>
-      {isPhone ? (
+      {isNative ? (
         <PhoneList
           rowStates={rowStates}
           handlers={handlers}
