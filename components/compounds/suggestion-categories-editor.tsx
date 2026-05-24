@@ -643,8 +643,10 @@ function PhoneList({
     })
   }, [])
 
-  // Auto-expand newly-added rows so the user can label them without an extra tap. Initial
-  // seed avoids expanding existing rows on first paint.
+  // Auto-expand only when exactly one new id appears — the "user clicked Add" case. Bulk
+  // changes (Reset to defaults, load saved settings) introduce many ids at once and would
+  // otherwise expand them all, overflowing the lib's cumulative-Y layout before measurements
+  // land.
   const prevIdsRef = useRef<Set<string>>(new Set(categories.map((c) => c.id)))
   useEffect(() => {
     const currentIds = new Set(categories.map((c) => c.id))
@@ -653,10 +655,10 @@ function PhoneList({
       if (!prevIdsRef.current.has(id)) newIds.push(id)
     }
     prevIdsRef.current = currentIds
-    if (newIds.length === 0) return
+    if (newIds.length !== 1) return
     setExpandedIds((prev) => {
       const next = new Set(prev)
-      for (const id of newIds) next.add(id)
+      next.add(newIds[0]!)
       return next
     })
   }, [categories])
@@ -669,20 +671,13 @@ function PhoneList({
     itemKeyExtractor: (item) => item.id,
   })
 
-  // Sync positions on add/delete: the lib initialises `positions` once and never re-syncs.
-  // Must be runOnUISync during render — plain `.value = X` is async on RN4 and the new row's
-  // `useSortable` reads positions in a useMemo([]) at mount, so an effect-based write misses
-  // the first frame. Sort-keyed signature skips the no-op write on reorder.
+  // Sync positions on add/delete AND on order change: the lib initialises `positions` once and
+  // never re-syncs from props. Must be runOnUISync during render — plain `.value = X` is async
+  // on RN4 and the new row's `useSortable` reads positions in a useMemo([]) at mount, so an
+  // effect-based write misses the first frame. Ordered signature so parent-controlled order
+  // changes (Reset, load saved) reach the lib; label edits don't shift the signature.
   const positionsSV = sortableList.positions
-  const idSetSignature = useMemo(
-    () =>
-      categories
-        .map((c) => c.id)
-        .slice()
-        .sort()
-        .join('|'),
-    [categories],
-  )
+  const idSetSignature = useMemo(() => categories.map((c) => c.id).join('|'), [categories])
   const lastSyncedSignatureRef = useRef<string | null>(null)
   if (lastSyncedSignatureRef.current !== idSetSignature) {
     const next = buildPositions(categories)
