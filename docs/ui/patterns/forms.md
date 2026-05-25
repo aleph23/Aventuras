@@ -166,11 +166,10 @@ own primitive owns the layout):
 
 ### Tighter accordion-body label scope
 
-Group D pinned a 90 px label-column override scoped to
-`.profile-body .field-row` and `.narrative-card .field-row` for
-the densest provider / profile / narrative editors (per
-[`2026-05-02-mobile-group-d-settings.md`](../../explorations/2026-05-02-mobile-group-d-settings.md)).
-With the container rule, this override only meaningfully applies on
+The densest provider / profile / narrative editors carry a 90 px
+label-column override scoped to `.profile-body .field-row` and
+`.narrative-card .field-row`. With the container rule, this override
+only meaningfully applies on
 **wide containers** (`640 px ≤ container < 1024 px`); on narrow
 containers the stacked rule subsumes the column entirely. Net: 90
 px override active on tablet landscape and desktop accordion-body
@@ -237,8 +236,7 @@ share one cardinality axis.
 on phone, the trigger renders inline (chip / pill / select-shaped
 button) and **opens via Sheet** — bottom sheets are the native
 mobile pattern for value-pick from a list; web-style anchored
-popovers are absent from native mobile UIs. Native-idiom rationale
-in [`docs/explorations/2026-05-03-select-primitive.md → Why Sheet on phone, not Popover`](../../explorations/2026-05-03-select-primitive.md#why-sheet-on-phone-not-popover).
+popovers are absent from native mobile UIs.
 
 Sheet size auto-derives from option shape:
 
@@ -350,9 +348,7 @@ and embeds component stories — no prose duplication.
 
 ### Select — implementation contract
 
-Phase 2 Group B locked the implementation shape per
-[`docs/explorations/2026-05-03-select-primitive.md`](../../explorations/2026-05-03-select-primitive.md).
-Highlights:
+Implementation shape:
 
 - **Two-layer architecture.** Public exports are `<Select>`
   (options-driven dispatcher resolving the cascade above) and
@@ -451,9 +447,7 @@ wrapper drives the same class. Consumer concerns:
 
 ### Input — implementation contract
 
-Phase 2 Group C locked the implementation shape per
-[`docs/explorations/2026-05-03-input-textarea-primitives.md`](../../explorations/2026-05-03-input-textarea-primitives.md).
-Highlights:
+Implementation shape:
 
 - **Baseline source.** `react-native-reusables` Input scaffold
   reshaped over RN's `TextInput` per
@@ -519,9 +513,7 @@ optional hint on the left, Switch indicator on the right; the
 **whole row is the tap target** on every tier. v1 wireframe
 consumers (Story Settings, App Settings, Plot) all use this shape.
 
-**Two anti-patterns this replaces** in older wireframes — both
-swept during the
-[mobile settings revisit](../../explorations/2026-05-04-mobile-settings-revisit.md):
+**Two anti-patterns this replaces** in older wireframes:
 
 - **Standalone Switch + adjacent label inside a 2-col field-row.**
   The label sat in `.field-label`, the switch sat in the
@@ -773,9 +765,16 @@ happening tags.
 Distinct from
 [Autocomplete-with-create](#autocomplete-with-create-primitive):
 Autocomplete is **single-value, terminal "pick or create"**;
-TagInput is **multi-value, stay-open iterative entry**. The full
-identity argument lives in
-[`docs/explorations/2026-05-06-tag-input-compound.md`](../../explorations/2026-05-06-tag-input-compound.md).
+TagInput is **multi-value, stay-open iterative entry**. The
+deciding factor is the v1 lean — tags are free-form string arrays
+with no canonical pool, no per-app taxonomy, and no curated
+suggestion source, so Autocomplete's reason to exist (a suggestion
+popover combined with tail-create) doesn't apply. What remains is
+a chip-row alongside an input, a peer composition of
+[Tag](./chips.md#tag--pill-labeled-content) and
+[Input](#input-primitive). A hypothetical Autocomplete `multi` mode
+would force bifurcating its lifecycle (`commit closes` vs `commit
+clears, stay open`) for a feature that doesn't share its core.
 
 ### Contract
 
