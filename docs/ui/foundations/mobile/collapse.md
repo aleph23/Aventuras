@@ -149,7 +149,7 @@ Phone (< 640 px) — same collapse for all three surface families:
   (`Characters / Kael Vex`, `Story Settings / Generation`).
 - **Surface-specific content shape carries over** — World/Plot
   detail-routes have their own internal tab navigation (handled
-  by the [Group C tab-strip overflow rule](../../../explorations/2026-05-01-mobile-group-c-master-detail.md#tab-strip-overflow-rule));
+  by the [tab-strip overflow rule](../../patterns/tabs.md#tab-strip-overflow-rule));
   Settings content-routes are flat form-field surfaces (no nested
   tabs).
 - **Save-session navigate-away guard** fires on the back action

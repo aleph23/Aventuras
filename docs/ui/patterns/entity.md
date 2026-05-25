@@ -338,8 +338,8 @@ layout.
 
 All four kinds use the same tab skeleton, rendered via the
 [Tabs primitive](./tabs.md) on tiers where the strip fits and
-substituted to the Select primitive on narrower tiers per the
-[Group C → Tab-strip overflow rule](../../explorations/2026-05-01-mobile-group-c-master-detail.md#tab-strip-overflow-rule):
+substituted to the Select primitive on narrower tiers per
+[tabs.md → Tab-strip overflow rule](./tabs.md#tab-strip-overflow-rule):
 
 ```
 Overview | Identity | Carrying | Connections | Settings | Assets | Involvements | History

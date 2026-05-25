@@ -28,8 +28,23 @@ Used by:
 
 The Tabs primitive renders the **Tab strip case only**. Cross-tier
 overflow / scroll / wrap is handled by substituting the Select
-primitive at narrow widths per
-[Group C → Tab-strip overflow rule](../../explorations/2026-05-01-mobile-group-c-master-detail.md#tab-strip-overflow-rule):
+primitive at narrow widths — see
+[Tab-strip overflow rule](#tab-strip-overflow-rule) below for the
+per-tier dispatch.
+
+## Tab-strip overflow rule
+
+Tab navigation can take three render forms across tiers:
+
+1. **Tab strip** — the desktop primitive (this doc). Used on desktop
+   at every count, and on tablet when count ≤ 3.
+2. **Select segment** — bordered horizontal button group. Used on
+   phone when count ≤ 2 per the Select primitive's auto-derivation
+   cascade ([forms.md → Select primitive](./forms.md#select-primitive)).
+3. **Select dropdown** — collapsed picker chip. Used on phone when
+   count ≥ 3, and on tablet when count > 3.
+
+**Per-tier dispatch:**
 
 | Tier    | Count ≤ 2      | Count = 3       | Count > 3       |
 | ------- | -------------- | --------------- | --------------- |
@@ -37,9 +52,50 @@ primitive at narrow widths per
 | Tablet  | Tab strip      | Tab strip       | Select dropdown |
 | Phone   | Select segment | Select dropdown | Select dropdown |
 
-Consumers route to either Tab strip OR Select based on tier × tab
-count. The Tabs primitive never has to handle counts that don't fit
-its tier.
+**Per-kind verification** (count column reflects the largest kinds
+in the app):
+
+| Kind                  | Tabs | Desktop   | Tablet          | Phone           |
+| --------------------- | ---- | --------- | --------------- | --------------- |
+| Threads               | 2    | Tab strip | Tab strip       | Select segment  |
+| Lore                  | 3    | Tab strip | Tab strip       | Select dropdown |
+| Happenings            | 4    | Tab strip | Select dropdown | Select dropdown |
+| Location/Item/Faction | 7    | Tab strip | Select dropdown | Select dropdown |
+| Character             | 8    | Tab strip | Select dropdown | Select dropdown |
+
+**Threshold of 3 on tablet** comes from wireframe review at iPad
+portrait (768 px outer → ~430 px detail pane). The 4-tab happenings
+pane with involvement / awareness count chips wrapped vertically at
+that width, so the threshold tightened from an initial draft of 5
+to 3. The 3 cutoff falls between lore (3, fits) and happenings (4,
+doesn't), so no kind sits on the boundary.
+
+**Threshold of 2 on phone** is the Select primitive's existing
+mobile-cardinality cutoff, applied unchanged.
+
+**Surface primitives for the Select branches:**
+
+- **Select segment** — flat inline rendering at every tier; same
+  shape as Plot's `[Threads | Happenings]` segment toggle and the
+  wizard's narration-mode segment.
+- **Select dropdown on tablet** — anchored Popover (no
+  edge-clipping risk at tablet widths).
+- **Select dropdown on phone** — Sheet (short) per
+  [`layout.md → Surface bindings`](../foundations/mobile/layout.md#surface-bindings--existing-app-surfaces).
+  Aligns with Actions menu, model picker, and calendar picker —
+  small chrome popovers route to Sheet on phone for the same
+  native-pattern reason.
+
+**Tier-aware substitution, not a new primitive.** Tab strip and
+Select stay distinct primitives. The detail-pane component picks
+which to render based on tier × tab count. Same shape as the
+Reader rail's tier-aware swap (in-place expand on desktop → Sheet
+on phone — same data, different primitive).
+
+**Consumer's decision is binary.** Either render Tab strip (desktop
+always; tablet when count ≤ 3), or hand the tab list to the Select
+primitive and let its cascade pick segment vs dropdown. No new
+logic inside Select; no new primitive.
 
 ## Style — underline
 

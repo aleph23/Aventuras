@@ -227,9 +227,11 @@ Trigger for radio is **content shape**; trigger for segment vs
 dropdown is **cardinality**. Independent axes.
 
 **Cardinality threshold of 3** is the default for desktop; **bumps
-to 2 on mobile** where horizontal real estate is tighter. Pinned
-in [`mobile/foundations` Group C](../../explorations/2026-05-01-mobile-group-c-master-detail.md#tab-strip-overflow-rule)
-alongside the tab-strip overflow rule.
+to 2 on mobile** where horizontal real estate is tighter. Same
+cutoff governs the
+[tab-strip overflow rule](./tabs.md#tab-strip-overflow-rule), so
+tab-strip ↔ Select substitution and segment ↔ dropdown substitution
+share one cardinality axis.
 
 **Phone-tier dropdown surface.** When the cascade picks `dropdown`
 on phone, the trigger renders inline (chip / pill / select-shaped
