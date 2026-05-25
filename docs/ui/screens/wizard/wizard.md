@@ -18,9 +18,6 @@ Cross-cutting principles that govern this surface live in
 - [Icon-actions pattern](../../patterns/icon-actions.md) (governs
   ✕ / ⭐-set-as-lead row affordances on the cast and lore lists)
 
-Design rationale, alternatives explored, and adversarial findings
-in [`explorations/2026-04-30-story-creation-wizard.md`](../../../explorations/2026-04-30-story-creation-wizard.md).
-
 ## Layout
 
 ```
@@ -770,9 +767,9 @@ One SQLite transaction, all or none:
    embedded; the opening is exempt from the classifier pass per
    [`architecture.md → Agent orchestration`](../../../architecture.md#agent-orchestration)
    ("Classifier does NOT run on the opening entry").
-6. **No deltas written.** Per
-   [baseline doc decision 10](../../../explorations/2026-04-29-story-definition-baseline.md),
-   wizard creation is delta-log-exempt.
+6. **No deltas written.** Wizard creation is delta-log-exempt — the
+   wizard outputs are the story's initial state, not a mutation of
+   existing state.
 7. Clear the auto-saved session.
 8. Route to reader-composer with the story open.
 

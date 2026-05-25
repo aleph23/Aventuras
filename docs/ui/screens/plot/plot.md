@@ -56,8 +56,7 @@ gesture.
 
 ## Implementation reuse
 
-Plot reuses the same shell decomposition as the World panel — see
-[2026-05-14-shells-design.md → Shell decomposition](../../../explorations/2026-05-14-shells-design.md#shell-decomposition):
+Plot reuses the same shell decomposition as the World panel:
 
 - [`ScreenShell`](../../component-inventory.md#shells--build-ready)
   — chrome wrapper (top bar, banners, body). Variant `in-story`;

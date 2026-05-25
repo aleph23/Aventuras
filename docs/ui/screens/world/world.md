@@ -379,10 +379,8 @@ drawer. No World-specific deviation.
 
 ## Per-row import
 
-The list-pane carries the EntityListPane affordance (see
-[2026-05-14-shells-design.md → EntityListPane](../../../explorations/2026-05-14-shells-design.md#shell-2--entitylistpane))
-— minimalist `[+]` icon-action right-anchored on the kind-selector
-row. Per-kind tooltip resolves to `New character`, `New location`,
+The list-pane carries the EntityListPane affordance — minimalist
+`[+]` icon-action right-anchored on the kind-selector row. Per-kind tooltip resolves to `New character`, `New location`,
 `New item`, `New faction`, or `New lore` per the active category;
 lore is not an entity, so the generic "New entity" copy would
 mis-label the lore creation path.

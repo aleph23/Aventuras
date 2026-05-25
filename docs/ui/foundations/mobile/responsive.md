@@ -137,8 +137,7 @@ in session 7's grouped consumer pass:
 
 - [`../../screens/reader-composer/branch-navigator/branch-navigator.md → Mobile expression`](../../screens/reader-composer/branch-navigator/branch-navigator.md#mobile-expression)
   — was `Mobile — bottom drawer` pre-foundations; rewritten to
-  Sheet (short, bottom) vocabulary in Group B
-  ([exploration record](../../../explorations/2026-05-01-mobile-group-b-reading-flow.md)).
+  Sheet (short, bottom) vocabulary in Group B.
 - [`../../screens/reader-composer/rollback-confirm/rollback-confirm.md → Mobile expression`](../../screens/reader-composer/rollback-confirm/rollback-confirm.md#mobile-expression)
   — was `Mobile` pre-foundations; renamed and prose updated to
   cite the substrate explicitly. Same Group B commit.

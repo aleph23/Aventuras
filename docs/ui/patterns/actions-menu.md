@@ -11,9 +11,7 @@ The platform-agnostic philosophy — desktop overlay opened by
 `Cmd/Ctrl-K` or the top-bar icon, mobile bottom sheet, the user
 label "Actions" — lives in
 [`principles.md → Actions`](../principles.md#actions--platform-agnostic-action-directory).
-This doc owns the menu's content, structure, and behavior. Design
-record:
-[`explorations/2026-05-22-actions-menu.md`](../../explorations/2026-05-22-actions-menu.md).
+This doc owns the menu's content, structure, and behavior.
 
 Used by: every screen with chrome — reader-composer, world, plot,
 chapter-timeline, story-settings, app-settings, story-list,
