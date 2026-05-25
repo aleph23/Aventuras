@@ -518,9 +518,6 @@ phone-tier specifics below.
   [platform.md → Safe areas](../../foundations/mobile/platform.md#safe-areas)
   — content doesn't slide under the notch / home indicator.
 
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-a-entry-flow.md`](../../../explorations/2026-05-01-mobile-group-a-entry-flow.md).
-
 ## Data-model touchpoints
 
 Schema-side changes settled in this pass:

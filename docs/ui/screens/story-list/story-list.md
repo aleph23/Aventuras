@@ -313,9 +313,6 @@ phone-tier specifics below.
   [touch.md → Tap-to-tooltip on inert chrome text](../../foundations/mobile/touch.md#tap-to-tooltip-on-inert-chrome-text)
   list rows and cards are explicitly out of scope.
 
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-a-entry-flow.md`](../../../explorations/2026-05-01-mobile-group-a-entry-flow.md).
-
 ## Data-model dependencies
 
 Card identity fields — `tags`, `cover_asset_id`, `accent_color`,

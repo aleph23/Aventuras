@@ -514,9 +514,8 @@ bundled **VT323** pixel face. Stark / void / pixel-tribute
 identity — VT323 is the authentic terminal face, reinstated
 2026-05-21 after the session-6 "dropped for simplicity" call did
 not survive the licensing and bundle-size facts (SIL Open Font
-License 1.1, ~3 KB; see
-[`2026-05-21-cross-platform-fonts`](../../explorations/2026-05-21-cross-platform-fonts.md)).
-The system monospace stack remains the fallback tail. Old-app's
+License 1.1, ~3 KB). The system monospace stack remains the
+fallback tail. Old-app's
 sharp-edge radius identity is not preserved per session-4's
 structurally-locked radii.
 

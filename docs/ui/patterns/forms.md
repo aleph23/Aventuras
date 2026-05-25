@@ -673,10 +673,9 @@ per-tier overlay, the search input, virtualization, and keyboard
 navigation. This primitive owns the source-list semantics, the
 tail-create row, and the commit behavior below.
 
-**First user**: era flip's `era_name` input (per
-[era-flip design](../../explorations/2026-04-28-era-flip-affordance.md)).
-Likely future users: tag pickers, entity-link pickers when an
-ad-hoc entity is acceptable, entry-ref pickers.
+**First user**: era flip's `era_name` input. Likely future users:
+tag pickers, entity-link pickers when an ad-hoc entity is
+acceptable, entry-ref pickers.
 
 ### Anatomy
 

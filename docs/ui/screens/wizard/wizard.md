@@ -320,9 +320,9 @@ the same engine Autocomplete uses.
 ### Validation gates on `Next`
 
 - `genre.label`, `setting`: encouraged, **not** gated.
-- Lore rows present must have `title` + `body` non-empty (per the
-  [lore detail-pane decision](../../../explorations/2026-04-30-lore-detail-pane.md)).
-  Empty rows surface inline errors.
+- Lore rows present must have `title` + `body` non-empty — a
+  non-empty body is the creation/edit-save invariant for any lore
+  row. Empty rows surface inline errors.
 
 ## Step 4 — Cast
 
@@ -1005,9 +1005,6 @@ phone-tier specifics below.
   both fire the wizard's `← Cancel` semantics (preserve session,
   return to story-list) per
   [platform.md → OS back integration](../../foundations/mobile/platform.md#os-back-integration).
-
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-a-entry-flow.md`](../../../explorations/2026-05-01-mobile-group-a-entry-flow.md).
 
 ## Data-model touchpoints
 

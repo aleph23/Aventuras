@@ -1137,9 +1137,6 @@ specifics below.
   inset per
   [platform.md → Safe areas](../../foundations/mobile/platform.md#safe-areas).
 
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-b-reading-flow.md`](../../../explorations/2026-05-01-mobile-group-b-reading-flow.md).
-
 ## Screen-specific notes
 
 - Title max-width capped at 320px with ellipsis + tooltip; keeps long

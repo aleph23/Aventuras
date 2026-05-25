@@ -1168,7 +1168,7 @@ stories.settings: {
   // `memory-compaction` was dropped — chapter-close lore-mgmt subsumes its
   // role per the cadence stratification; see docs/memory/chapter-close.md.
   models: {
-    narrative?: string              // optional override; absent = resolve through assignments[agentId] → profile.modelRef per docs/explorations/2026-05-19-default-models-authority.md
+    narrative?: string              // optional override; absent = resolve through assignments[agentId] → profile.modelRef
     classifier?: string
     translation?: string
     suggestion?: string
@@ -1239,9 +1239,7 @@ disentangles them and matches the UI's two-section structure.
    stories.
 2. **Override-at-render** (`settings.models` only). Fields are
    optional; absent means "resolve the agent through the App Settings
-   profile chain at render time" — `assignments[agentId] → profile.modelRef`,
-   per
-   [`2026-05-19-default-models-authority.md`](./explorations/2026-05-19-default-models-authority.md).
+   profile chain at render time" — `assignments[agentId] → profile.modelRef`.
    Changing the global profile / assignment propagates to every
    un-overridden story. The UX difference (Models' dashed-italic "App
    default: X" sentinel vs copy-at-creation fields showing a concrete
@@ -1668,10 +1666,8 @@ Three emission paths write it: narrative-fold under
 dedicated `suggestion-refresh` pipeline for user-triggered re-roll.
 Translation rows for chip text are cached by
 `(target_language, hash(chip.text))` — content-addressable,
-self-invalidating across re-rolls and CTRL-Z. Full contract +
-emission shapes in
-[`explorations/2026-05-19-next-turn-suggestions.md`](./explorations/2026-05-19-next-turn-suggestions.md)
-and
+self-invalidating across re-rolls and CTRL-Z. UI shape and the
+chip-tap consumption flow live in
 [`ui/screens/reader-composer/reader-composer.md → Next-turn suggestions`](./ui/screens/reader-composer/reader-composer.md#next-turn-suggestions).
 
 ### Opening entry

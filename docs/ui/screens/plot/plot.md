@@ -232,8 +232,7 @@ by source / target_table / action_id) is its own panel; see
 ## Manual creation + per-row import
 
 `New thread` and `New happening` affordances live as the
-EntityListPane `[+]` icon-action (see
-[2026-05-14-shells-design.md → EntityListPane](../../../explorations/2026-05-14-shells-design.md#shell-2--entitylistpane)),
+EntityListPane `[+]` icon-action,
 right-anchored alongside the Threads / Happenings segment toggle.
 Tooltip tracks the active segment. Manual creation is uncommon
 since most rows are classifier-authored, but it's a real use case

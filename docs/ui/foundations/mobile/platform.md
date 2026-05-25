@@ -113,8 +113,7 @@ both; just consume the inset values.
 [`../../principles.md → Stack-aware Return`](../../principles.md#stack-aware-return)
 is the existing rule. Three triggers fire it on mobile:
 
-- **Chrome `←` button** (top bar's left slot per the
-  [top-bar amendment](../../../explorations/2026-05-01-top-bar-left-slot-scope.md)).
+- **Chrome `←` button** (top bar's left slot).
 - **Android hardware / gesture back.** Bound via RN's
   `BackHandler.addEventListener('hardwareBackPress', handler)`.
   Handler executes stack-aware Return logic. Returns `true` to

@@ -147,9 +147,6 @@ selection / accessibility per
 trigger rollback; the modal's confirm step is the consent
 mechanism rather than the hover-preview.
 
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-b-reading-flow.md`](../../../../explorations/2026-05-01-mobile-group-b-reading-flow.md).
-
 ## Edge cases
 
 - **Most-recent entry only** — single entry, no chapter re-open, a

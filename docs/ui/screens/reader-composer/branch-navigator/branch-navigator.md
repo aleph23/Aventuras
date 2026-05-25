@@ -316,9 +316,6 @@ The **creation modal** is unchanged on mobile — Modal stays Modal
 on every tier per
 [layout.md → Modal](../../../foundations/mobile/layout.md#modal).
 
-Design rationale and adversarial findings in
-[`explorations/2026-05-01-mobile-group-b-reading-flow.md`](../../../../explorations/2026-05-01-mobile-group-b-reading-flow.md).
-
 ## Empty state
 
 Not applicable. A story always has at least the root branch

@@ -70,11 +70,13 @@ not something the primitives encode.
 
 The responsive-switch helper question (one consumer-side
 `<ResponsiveOverlay>` helper vs in-Select breakpoint dispatch) was
-answered in the
-[Select design pass](../../explorations/2026-05-03-select-primitive.md#usetier-hook):
-in-Select breakpoint dispatch via the `useTier()` hook wins. No
-separate helper primitive; consumers like the calendar-picker
-compound use `useTier()` directly.
+answered in favor of in-Select breakpoint dispatch via the
+`useTier()` hook: only one initial consumer needed the
+Sheet/Popover switch, and Select's popover side uses
+`@rn-primitives/select` rather than our Popover, so a shared
+`ResponsiveOverlay` abstraction had no leverage. No separate helper
+primitive; consumers like the calendar-picker compound use
+`useTier()` directly.
 
 ## rn-primitives mapping
 

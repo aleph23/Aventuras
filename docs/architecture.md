@@ -315,8 +315,7 @@ Several shapes feed into it:
      resolver (see below). This is the **override-at-render scope
      pattern**. No "global default model" constant exists — the
      resolver walks story-override → app-assignment → profile, full
-     stop. Authority redesign:
-     [`explorations/2026-05-19-default-models-authority.md`](./explorations/2026-05-19-default-models-authority.md).
+     stop.
    - **App-only settings** — global concerns that never appear
      per-story (API keys, classifier truncation caps, diagnostics
      toggles).
@@ -382,13 +381,12 @@ getter calls a named `resolveModel(agentId)` function that walks
 `stories.settings.models[agentId]` (per-story override, a model id
 string) → `app_settings.assignments[agentId]` (the assigned profile)
 → `profile.modelRef` (the profile's `(providerId, modelId)`). No
-fallback constant: per the May 19 `default_models` authority redesign
-([exploration](./explorations/2026-05-19-default-models-authority.md)),
-the absence of a valid model at any step is an error state, not a
-recoverable case. Pre-flight halt per
-[`provider-profile-deletion.md → Section 4 — Visible-error contract at use time`](./explorations/2026-05-18-provider-profile-deletion.md#section-4--visible-error-contract-at-use-time)
-surfaces it as a system-entry plus the global error banner. Single,
-typed, named — not ambient `??` scattered everywhere. Every other
+fallback constant: the absence of a valid model at any step is an
+error state, not a recoverable case. Pre-flight halt — the
+orchestrator validates resolver inputs before phase 0 fires, so no
+tokens are spent and there's nothing to roll back — surfaces it as a
+system entry plus the global error banner. Single, typed, named —
+not ambient `??` scattered everywhere. Every other
 setting read is a direct property access off the parsed story
 settings.
 

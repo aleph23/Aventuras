@@ -143,9 +143,7 @@ Phone (< 640 px) — same collapse for all three surface families:
   scroll list with uppercase section headers as non-tappable
   group separators.
 - **Tap a row → content slides in as a full-screen route** within
-  the surface. The content-route's chrome includes back-on-left
-  (per
-  [the top-bar amendment](../../../explorations/2026-05-01-top-bar-left-slot-scope.md))
+  the surface. The content-route's chrome includes back-on-left,
   which returns to the list state. Sub-header / breadcrumb at the
   route level shows the selected row context
   (`Characters / Kael Vex`, `Story Settings / Generation`).
