@@ -357,14 +357,21 @@ Non-design findings (verified, no spec change):
 
 **Added to [`followups.md`](../followups.md)** (active, v1):
 
-- `Sheet vs Modal — general-use review` — surfaced by Q4's
+- `Native overlay impl vs JS-based overlay` — surfaced by Q4's
   Dialog-over-Sheet decision and the user's open
-  `ui-native-modals.md`. Two axes: (a) does the project drop
-  `Sheet` in favor of `Dialog/Modal` for general use; (b) do
-  native dialogs migrate to native form-sheet `Modal`
-  (`presentationStyle="formSheet"`) per the React Native rule, or
-  stay on `@rn-primitives/dialog`. Needs research before more
-  dialog/sheet surfaces land.
+  `ui-native-modals.md`. Both `Sheet` and `Dialog` currently
+  build on `@rn-primitives/dialog` (JS overlay via
+  `react-native-screens` `FullWindowOverlay`); the React Native
+  rule recommends native `<Modal presentationStyle="formSheet">`
+  on native for built-in gestures, accessibility, and
+  performance. Worth a focused review of the migration before v1
+  ship.
+
+  Originally drafted as a two-axis review that also covered
+  Sheet-vs-Dialog/Modal consolidation as a general-use question;
+  the consolidation axis was dropped on review — let real-app
+  signal decide whether one primitive can retire. The native-vs-JS
+  axis stands alone.
 
 **Added to [`parked.md`](../parked.md)**:
 
@@ -416,7 +423,7 @@ Applied in a single focused commit:
   `ImportDialog` to _Compounds — build-ready_.
 - **Edit:** [`docs/followups.md`](../followups.md)
   — remove _Importer compound — design pass_; add
-  _Sheet vs Modal — general-use review_ under UX.
+  _Native overlay impl vs JS-based overlay_ under UX.
 - **Edit:** [`docs/parked.md`](../parked.md)
   — add the three new parked entries above.
 

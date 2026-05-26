@@ -526,13 +526,13 @@ work in Electron's renderer context as-is.
 
 None blocking v1. Related followups:
 
-- [`followups.md → Sheet vs Modal — general-use review`](../../followups.md)
-  — does the project drop `Sheet` in favor of `Dialog/Modal` for
-  general use, and do native dialogs migrate to native
-  form-sheet `Modal` per
+- [`followups.md → Native overlay impl vs JS-based overlay`](../../followups.md)
+  — both `Sheet` and `Dialog` are built on `@rn-primitives/dialog`
+  (JS overlay); should the native paths migrate to native
+  `<Modal presentationStyle="formSheet">` per
   [`ui-native-modals.md`](../../../.agents/skills/vercel-react-native-skills/rules/ui-native-modals.md)?
   Affects future iterations of this Dialog along with every
-  other dialog compound.
+  other overlay compound on native.
 - [`parked.md → Forward-compat field-loss UX advisory`](../../parked.md)
   — surface dropped-unknown-field information when importing
   newer-minor-version files? Currently silent.
