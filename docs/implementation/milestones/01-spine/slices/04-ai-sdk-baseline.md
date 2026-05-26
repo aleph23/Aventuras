@@ -20,8 +20,8 @@ typed `getModel(providerId, modelId)` abstraction over the
 Vercel AI SDK, every outbound HTTP request goes through a
 fetch wrapper that captures the call into `httpCallSink`, and
 the `httpCallSink` itself is fully implemented (beginCall /
-completeCall / failCall, ring buffer, header redaction at the
-sink boundary, denylist drift mitigations). One provider type
+completeCall / failCall, ring buffer, value-matching header
+redaction at the sink boundary). One provider type
 (Anthropic) is wired through end-to-end to prove the
 abstraction works; other provider types land as real features
 need them.
@@ -44,11 +44,15 @@ no incremental store updates during streaming — diagnostics is a
 parallel concern routed through direct sink calls.
 
 Header redaction happens at the sink boundary, never at the
-call site. API keys (Authorization, x-api-key, etc.) exist
-unredacted only inside the wrapper's local scope during a
-single request's lifecycle; they never reach the Zustand store,
-so they can't leak via screenshot, export, or shared session
-view.
+call site. API keys exist unredacted only inside the wrapper's
+local scope during a single request's lifecycle; they never
+reach the Zustand store, so they can't leak via screenshot,
+export, or shared session view. Redaction is **value-matching**
+against the known key set from `app_settings.providers` — no
+denylist of header names, no per-provider auth-header
+enumeration, no maintenance burden as new providers ship. Exact
+match (after stripping auth-scheme prefixes like `'Bearer '`)
+to stay safe for local-server short keys.
 
 ## Required reading
 
@@ -86,12 +90,12 @@ modelId): LanguageModelV1` — given a provider instance ID
     AI SDK `LanguageModelV1`. Internal lookup reads from
     `lib/db` via the appSettings table, instantiates the
     matching `@ai-sdk/<type>` provider with the stored apiKey
-    / endpoint / customHeaders, and returns `provider(modelId)`.
+    and endpoint, and returns `provider(modelId)`.
   - Internal organization: implementer's call. Likely shape:
     `model.ts` (the getModel function), `providers.ts`
     (provider-type-to-SDK mapping), `fetch.ts` (the
-    fetchWithCapture wrapper), `headers.ts` (denylist and drift
-    mitigations).
+    fetchWithCapture wrapper), `redaction.ts` (value-matching
+    redaction against the known key set + prefix stripping).
 - Implement `fetchWithCapture` inside `lib/ai/`:
   - Wraps native `fetch`. Allocates an ID via
     `httpCallSink.beginCall` before the call; on success calls
@@ -125,20 +129,20 @@ modelId): LanguageModelV1` — given a provider instance ID
     contract). Slice 1.5 wires the `turnCaptures` resident set;
     until then, the protection just degrades to FIFO over
     completed rows.
-- Header denylist and drift mitigations:
-  - Static denylist seeded with `authorization`, `x-api-key`,
-    `cookie`, `set-cookie` (case-insensitive).
-  - Per-provider auth header names from each `@ai-sdk/*`
-    package extend the denylist when their provider type is
-    loaded.
-  - **Build-time test**: walks the loaded provider type list,
-    asserts every known auth header name appears in the
-    denylist. Fails CI on drift when a new provider type adds
-    a header name without a denylist update.
-  - **Dev-build runtime warning**: when a request header name
-    matches the heuristic regex
-    (`/auth|key|token|secret|credential|cookie/i`) but isn't
-    on the denylist, emit `logger.warn('provider.suspicious_header_unredacted', { headerName })`.
+- Value-matching header redaction:
+  - `getKnownApiKeys()` selector on the `app_settings.providers`
+    store returns a `Set<string>` of all current `apiKey` values;
+    refreshes on settings change.
+  - `redactHeaderValue(value)` exact-matches `value` against the
+    set; if no match, strips known auth-scheme prefixes
+    (`'Bearer '`, `'Basic '`, `'Token '`) and exact-matches the
+    remainder. Returns `'***'` on match, `value` otherwise.
+  - URL query strings get the same treatment: parse, exact-match
+    each parameter value, redact in place. Body redaction is
+    out of scope (provider SDKs don't put keys in bodies).
+  - Response headers pass through; `set-cookie` from provider
+    endpoints belongs to provider session management and is not
+    OUR secret.
 - Add the `provider.*` subsystem prefix to `LogSubsystem` if it
   isn't already in the union from slice 1.3 (the spec lists
   `provider` as one of the eight initial members — confirm
@@ -181,14 +185,13 @@ modelId): LanguageModelV1` — given a provider instance ID
   through `httpCallSink`. Non-AI fetch is unchanged.
 - `httpCallSink` is fully implemented: beginCall / completeCall
   / failCall mutate the ring buffer with stable row IDs.
-- Static and per-provider denylist redacts auth headers at the
-  sink boundary. A unit test sends an Anthropic-shaped request
-  with `x-api-key: sk-...` and asserts the stored row has
-  `'***'`, not the key.
-- Build-time test catches drift when a synthetic provider
-  package's auth header is missing from the denylist.
-- Dev-build heuristic warning fires when a request includes a
-  header name matching the regex but absent from the denylist.
+- Value-matching redaction catches the configured Anthropic
+  provider's `apiKey` in any outbound header — raw value,
+  `'Bearer '`-prefixed, and URL query string — and replaces it
+  with `'***'` before store-write.
+- Local-server short-key safety: a configured provider with
+  `apiKey: '123'` does NOT cause false redaction of headers like
+  `content-length: 12345` (exact-match, not substring).
 - Ring buffer eviction at cap 200: in-flight rows are
   protected; FIFO over completed rows.
 - `pnpm lint` passes (boundaries plus console ban).
@@ -205,16 +208,27 @@ modelId): LanguageModelV1` — given a provider instance ID
   Response with a ReadableStream); assert no incremental sink
   updates during the stream and one `completeCall` at stream
   end with `streamed: true` and full concatenated body.
-- **Header redaction.** Request with `authorization: Bearer …`,
-  `x-api-key: …`, plus a benign `content-type` header; assert
-  the stored row redacts the auth-style headers to `'***'` and
-  preserves `content-type` verbatim.
-- **Denylist completeness build-time test.** Synthetic provider
-  type with a fake auth header name fails the test; real
-  provider types pass.
-- **Heuristic warning.** Request with a custom
-  `x-custom-secret-token` header not in the denylist; assert
-  `logger.warn` fires with the header name in fields.
+- **Value-matching redaction — standard cases.** Configure a
+  provider with `apiKey: 'sk-test-abc...'`. Send three request
+  variants:
+  - `x-api-key: sk-test-abc...` — assert stored row has `'***'`.
+  - `authorization: Bearer sk-test-abc...` — assert prefix
+    stripped, value matched, stored as `'***'`.
+  - `x-corp-grant: sk-test-abc...` (custom header name) —
+    assert match by value regardless of name, stored as
+    `'***'`. Benign `content-type` header preserves verbatim
+    in all three cases.
+- **Query-string redaction.** URL `https://example/?api_key=sk-test-abc...`;
+  assert stored URL has `api_key=***`.
+- **Short-key safety (local server).** Configure provider with
+  `apiKey: '123'`. Send request with `content-length: 12345`,
+  `authorization: Bearer 123`, and `x-request-id: req-123-abc`.
+  Assert: `authorization` header redacted to `'***'` (exact-match
+  after prefix strip catches the `123`), but `content-length`
+  and `x-request-id` preserved verbatim (no substring match).
+- **Key-set refresh.** Mutate `app_settings.providers` to add /
+  rotate a key; assert subsequent requests use the refreshed
+  comparator (new key matches, old key does not).
 - **Ring buffer eviction.** Fill `httpCalls` to cap with a mix
   of in-flight and completed rows; allocate one more; assert
   the oldest completed (non-in-flight) row evicts and the

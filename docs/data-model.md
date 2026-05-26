@@ -1285,7 +1285,6 @@ app_settings.providers: Array<{
   displayName: string                        // user-chosen; e.g. 'Anthropic (work)'
   apiKey: string                             // see encryption note below
   endpoint?: string                          // override default; required for openai-compatible
-  customHeaders?: Record<string, string>     // proxy auth, custom routing
   favoriteModelIds: string[]                 // user's working set; floats to top of selectors
   cachedModels?: Array<{                     // result of /models fetch; survives offline restarts
     id: string

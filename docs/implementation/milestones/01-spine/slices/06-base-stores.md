@@ -18,6 +18,10 @@
 Extend `lib/stores/` (created in Slice 1.5) with the
 app-settings and navigation domain stores, plus the
 `ui` subnamespace ready for cross-component ephemeral state.
+The `ui` subnamespace includes the `useToasts` queue per
+[`patterns/toast.md`](../../../../ui/patterns/toast.md) — the
+backing store for the `<Toaster>` mount that Slice 1.7 wires
+into app root.
 Each domain store exposes its own selectors and named
 mutation functions through the existing namespaced
 `index.ts`; raw Zustand handles never leave the module. Stand
@@ -80,9 +84,11 @@ commits).
   - Add `domain/navigation.ts` declaring the raw
     `useNavigationStore` (never exposed) and its named
     selectors / mutators.
-  - Add the `ui/` subdirectory as an empty folder ready for
-    Slice 1.7 to populate as cross-component ephemeral state
-    emerges. No stores ship inside it this slice.
+  - Add the `ui/` subdirectory with the `useToasts` queue per
+    [`patterns/toast.md`](../../../../ui/patterns/toast.md) — the
+    backing store for the `<Toaster>` mount that Slice 1.7 wires
+    into app root. Other `ui/*` stores ship in later slices as
+    cross-component ephemeral state emerges.
   - Update `lib/stores/index.ts` to extend the existing
     `domain` namespace with the app-settings and navigation
     entries, and to declare the empty `ui` namespace so

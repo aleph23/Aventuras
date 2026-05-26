@@ -300,41 +300,55 @@ then resolves to completed in one transition.
 
 #### Header redaction
 
-Auth-style headers are redacted at the **sink boundary**, not the
-call-site. `beginCall` and `completeCall` both sanitize headers
-through a denylist before store-write:
+API keys are redacted at the **sink boundary** by value-matching
+header values against the known key set from
+`app_settings.providers`. Header names are not gated — the
+comparator catches the key regardless of which header it's been
+placed in.
 
 ```ts
-const REDACTED_REQUEST_HEADER_NAMES = new Set([
-  'authorization',
-  'x-api-key',
-  'cookie',
-  // Provider-specific auth headers extend here
-])
+const knownKeys = providersStore.getKnownApiKeys()
+// refreshes on app_settings.providers changes
 
-const REDACTED_RESPONSE_HEADER_NAMES = new Set(['set-cookie'])
+function redactHeaderValue(value: string): string {
+  if (knownKeys.has(value)) return '***'
+  // Strip common auth-scheme prefixes ('Bearer ', 'Basic ', 'Token ')
+  const stripped = stripAuthPrefix(value)
+  if (stripped !== value && knownKeys.has(stripped)) return '***'
+  return value
+}
 ```
 
-Case-insensitive match. Redacted values render as `'***'` so the
-header's presence is visible but the value is hidden. **Net
-effect:** API keys exist in unredacted form only at the actual
-`fetch()` boundary; they never reach the Zustand store, never
-appear in the diagnostics hub, never can leak via
-screenshot/share.
+`beginCall` and `completeCall` apply `redactHeaderValue` to every
+request header value before store-write. Same approach extends to
+URL query strings — parse the URL, exact-match each query
+parameter value, redact in place. Body redaction is out of scope;
+provider SDKs don't place keys in bodies.
 
-**Denylist completeness.** As new providers ship with custom
-auth header names, the denylist must extend. Two mitigations
-keep it from drifting:
+**Exact-match (after prefix stripping), not substring.** Local
+servers (llama.cpp, Ollama, LM Studio) often use throwaway short
+keys like `123` to satisfy the API contract. Substring matching
+would false-positive on any `content-length: 12345`, request ID,
+or timestamp containing those characters and turn the diagnostics
+view into a wall of `'***'`. Exact-match has no false positives at
+any key length.
 
-- **Build-time test.** Walk all configured providers' header
-  schemas and assert each header name maps to "known-safe" or
-  "denylisted." Catches drift at PR time.
-- **Dev-build runtime warning.** When a header name matches a
-  heuristic regex (`/auth|key|token|secret|credential|cookie/i`)
-  but isn't on the denylist, emit a `logger.warn`. Catches
-  first-encounter drift at runtime.
+**No denylist needed.** Earlier approaches maintained a static
+list of header names to redact (`authorization`, `x-api-key`,
+per-provider auth header extensions) plus a build-time test
+asserting per-provider auth headers were covered. Value-matching
+catches the key in any header — known, future, or misconfigured —
+without that maintenance burden. **Response cookies (`set-cookie`)
+from provider endpoints are not OUR secrets** and pass through
+unredacted; they belong to the provider's session management and
+are useful for debugging.
 
-Both land when the HTTP wrapper + sink are built.
+**Net effect.** API keys exist in unredacted form only at the
+actual `fetch()` boundary; they never reach the Zustand store,
+never appear in the diagnostics hub, never can leak via
+screenshot/share. The redaction lands with the HTTP wrapper +
+sink in slice 1.4; vitest covers raw, prefixed, query-string, and
+short-key scenarios.
 
 ### `turnCaptureSink`
 

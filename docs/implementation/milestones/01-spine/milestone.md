@@ -37,13 +37,19 @@ pipeline framework follows with `turnCaptureSink` and the
 fault-injectable stub LLM that lets vitest exercise the machinery
 without real provider traffic.
 
-The UI half of the spine — base Zustand stores plus
-empty / skeletal screens — runs in parallel with the AI / pipeline
-half once the database layer is in place. The two paths reconverge
-at the end-to-end pipeline test: a stub LLM call triggered from UI
-flows through the action layer, executes against the pipeline
-framework, emits through logger + sinks, and writes a
-`pipeline_runs` row.
+The UI half of the spine — base Zustand stores (including the
+`useToasts` queue) plus empty / skeletal screens — runs in
+parallel with the AI / pipeline half once the database layer is in
+place. **i18n install (`i18next` + `react-i18next`) and the
+`<Toaster>` mount at app root land alongside the UI shells in
+slice 1.7**, so every chrome string ships translation-routed from
+day one and any subsystem can fire toasts immediately — both per
+the [`tech-stack.md`](../../../tech-stack.md) day-one-install
+rationale (retrofitting hardcoded strings or wiring toasts later
+is the tax to avoid). The two paths reconverge at the end-to-end
+pipeline test: a stub LLM call triggered from UI flows through the
+action layer, executes against the pipeline framework, emits
+through logger + sinks, and writes a `pipeline_runs` row.
 
 Cross-cutting decisions landed across this milestone:
 
@@ -94,8 +100,11 @@ Slice docs land as each slice is authored (one per slice under
    are declared as empty stubs to be wired in 1.4 and 1.5.
 
 4. **Slice 1.4 — Vercel AI SDK baseline.** Provider abstraction
-   stub. `httpCallSink` wired into the HTTP wrapper with header
-   redaction at the sink boundary.
+   stub. `httpCallSink` wired into the HTTP wrapper with
+   value-matching header redaction at the sink boundary
+   (catches the API key in any header regardless of name; no
+   denylist; safe for local-server short keys per
+   [`observability.md → Header redaction`](../../../observability.md#header-redaction)).
 
 5. **Slice 1.5 — Pipeline framework.** Pipeline framework itself,
    a fault-injectable stub LLM, the `turnCaptureSink`, the action
@@ -104,13 +113,21 @@ Slice docs land as each slice is authored (one per slice under
    timeout, refusal, cancellation).
 
 6. **Slice 1.6 — Base Zustand stores.** `useAppSettingsStore`,
-   `useGenerationStore`, navigation selection state. QueryClient
-   setup for the React Query cache substrate. Action-layer
-   wiring against domain stores.
+   `useGenerationStore`, navigation selection state,
+   `useToasts` queue (per
+   [`patterns/toast.md`](../../../ui/patterns/toast.md)).
+   QueryClient setup for the React Query cache substrate.
+   Action-layer wiring against domain stores.
 
-7. **Slice 1.7 — UI shells.** Empty story list (landing),
-   reader-composer with existing pieces wired, settings screen
-   layouts. End-to-end pipeline trigger from UI as the
+7. **Slice 1.7 — UI shells + i18n + Toaster mount.** Empty story
+   list (landing), reader-composer with existing pieces wired,
+   settings screen layouts. **i18next + react-i18next install**
+   with `locales/en/*` namespace skeleton — every chrome string
+   in this slice routes through `t()` from day one (per
+   [`tech-stack.md → i18n`](../../../tech-stack.md), specifically
+   the day-one-install rule to avoid the retrofit tax).
+   **`<Toaster>` mounted at app root** consuming `useToasts`
+   from slice 1.6. End-to-end pipeline trigger from UI as the
    milestone's verifying smoke.
 
 ## Dependency graph
@@ -176,6 +193,13 @@ required.
   malformed JSON, mid-stream timeout, refusal, user cancellation.
 - Storybook stories exist for every UI compound newly introduced
   in 1.7.
+- Every chrome string in 1.7's empty shells routes through `t()`;
+  `locales/en/*` namespace skeleton is committed.
+- `<Toaster>` mounted at app root; a smoke-test toast fires from
+  the end-to-end pipeline path's success or failure case.
+- `httpCallSink` value-matching redaction vitest suite passes
+  (raw / prefixed / query-string / short-key cases per slice
+  1.4).
 - Pre-commit (lefthook → prettier → remark → eslint) green on
   every slice's PR.
 

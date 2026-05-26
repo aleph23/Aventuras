@@ -97,7 +97,10 @@ memory pipeline (M3) needs to tune against.
 - M2.1 — Provider abstraction filled in; provider config types;
   **OAI-compat as the first provider** (most universal, covers
   the contributor test cases). Other providers add incrementally
-  in M7 alongside the providers settings tab.
+  in M7 alongside the providers settings tab. Extends the M1.4
+  redaction vitest suite with OAI-compat scenarios — value-match
+  catches the key in OAI-compat's auth headers without per-
+  provider configuration.
 - M2.2 — Entry data layer: `story_entries` + the entry kinds the
   M2 loop exercises (`opening`, `user_action`, `ai_reply`); `system`
   stub. CRUD actions through the action layer. Full enum per
@@ -110,18 +113,34 @@ memory pipeline (M3) needs to tune against.
   refine / regenerate on opening deferred to M3.
 - M2.4 — Story list as a real surface: list real stories, navigate
   to reader, basic store.
-- M2.5 — Reader-composer minimum: entry list rendering, composer
-  below, trigger generation, basic edit / delete entry actions.
-  Calendar renderer for in-world time chrome lands here (see
-  [Subsystems → Calendar](#subsystems-that-ship-incrementally)).
-  Deferred to later milestones: refine / regenerate (M3), peek
-  drawer + awareness chips (M4), chapter management (M5), branch
-  picker (M6).
+- M2.5 — Reader-composer minimum: entry list rendering (with
+  load-older pagination + scroll-anchoring on prepend per
+  [`reader-composer.md → Loaded-set model`](../ui/screens/reader-composer/reader-composer.md#loaded-set-model)),
+  composer below, trigger generation, basic edit / delete entry
+  actions, rollback-confirm modal compound (single-entry cascade
+  preview per
+  [`reader-composer/rollback-confirm/`](../ui/screens/reader-composer/rollback-confirm/rollback-confirm.md);
+  extends to multi-chapter deep rollback in M5).
+  Markdown rendering pipeline (htmlStreaming port from old app
+  per [`tech-stack.md`](../tech-stack.md) — `marked`/`markdown-it`
+  - `juice` + `DOMPurify` + `react-native-render-html` + streaming
+    buffer-until-tag-boundary). Harper.js spellcheck install +
+    composer wiring (per tech-stack). CTRL-Z basic single-action
+    undo + redo stack (extends to action-batched undo in M3 once
+    classifier writes share `action_id`). Calendar renderer for
+    in-world time chrome lands here (see
+    [Subsystems → Calendar](#subsystems-that-ship-incrementally)).
+    Deferred to later milestones: refine / regenerate (M3), peek
+    drawer + awareness chips (M4), chapter management (M5), branch
+    picker (M6).
 - M2.6 — End-to-end wiring: user action → translation
   short-circuit → pipeline → provider → entry write → UI refresh.
   Pack-template / Liquid engine lands here (minimal runtime +
   macro resolver + variable binding) since the pipeline call
-  needs a rendered prompt.
+  needs a rendered prompt. Bundled-pack `active+in-scene-entity`
+  injection invariant test (per
+  [`architecture.md → Structural floor — always inject`](../architecture.md#structural-floor--always-inject))
+  lands alongside the bundled pack.
 
 **Parallel paths after M2.1 + M2.2.** {M2.3, M2.4} || {M2.5}, then
 M2.6 wires.
@@ -153,18 +172,33 @@ to render against.
 - M3.1 — Embedder integration + the hard onboarding gate (story
   creation requires embedder per
   [`memory/model-management.md`](../memory/model-management.md));
-  embedder configuration in app settings.
+  embedder configuration in app settings;
+  `embedding_stale` opportunistic drain worker (makes "retry"
+  meaningful after embedder failure per
+  [`memory/retrieval.md → Compute lifecycle`](../memory/retrieval.md#compute-lifecycle));
+  `embedding_swap_target` two-phase stage-then-flip pipeline +
+  crash-recovery resume / cancel prompt on story-open (per
+  [`memory/retrieval.md → Model swap UX`](../memory/retrieval.md#model-swap-ux)).
+  Embedder management UI extends in M7.1.
 - M3.2 — Piggyback layer: inline structured tool calls during
   main generation; scene metadata writes;
   entities + lore + happenings stub creation.
 - M3.3 — Periodic classifier: background pipeline; entity
-  reconciliation; awareness graph; happenings extraction.
+  reconciliation; awareness graph; happenings extraction;
+  `character_relationships` table + UPSERT-merge writes per
+  [`data-model.md → Character-to-character relationships`](../data-model.md#character-to-character-relationships).
   Classifier writes `metadata.worldTime` to each new entry —
   first non-zero values flow through the calendar renderer
-  shipped in M2.5.
+  shipped in M2.5. Auto-retry policy (30s → 2m → 5m backoff,
+  3-strike failed-persistent state per
+  [`memory/classifier.md → Auto-retry policy`](../memory/classifier.md#auto-retry-policy))
+  - per-branch `classifier_status` persistence.
 - M3.4 — Retrieval: embedding queries; ranker; budgets;
   context-bundle assembly into the per-turn prompt. Memory pack
   templates extend the Liquid engine to inject retrieved bundles.
+  Per-injection `retrieval_count` increment on awareness rows
+  (load-bearing for chapter-close phase 3d in M5.2 per
+  [`memory/chapter-close.md → 3d awareness pin tuning`](../memory/chapter-close.md#3d--awareness-pin-tuning)).
 - M3.5 — Minimal developer-only retrieval probe: log / inspect
   retrieval scores during impl. User-facing probe surface
   deferred to M7.
@@ -184,12 +218,24 @@ options` disclosures, status / lead / staged logic,
   reader-composer suggestions panel between AI replies and the
   next composer input, `suggestionsEnabled` story setting toggle.
   Suggestion agent profile slot in app-settings extends M7.1.
+- M3.8 — Per-entry worldTime click-to-edit overlay (TierTupleInput)
+  - monotonicity-break flag (O(N) walk feeding
+    `worldTimeMonotonicityBreak` into EntryCard per
+    [`reader-composer.md → Per-entry world-time footer`](../ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer)).
+    Needs classifier writes from M3.3 to be useful.
+- M3.9 — CTRL-Z action-batched extension: extends M2.5's basic
+  single-action undo to traverse the full `action_id` batch
+  (entry write + all classifier deltas under the same action) in
+  one keypress per
+  [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
+  Redo stack semantics unchanged.
 
 **Parallel paths.** {M3.1, M3.2} are sequential against entry
 schema; M3.3 runs in parallel with M3.4 once classifier writes
 populate retrievable rows; M3.6 runs in parallel with M3.3 / M3.4
 after M3.2 lands the lore + entity stub writes; M3.7 gates on
-M3.2 + M3.3 (its emission rides one or both modes).
+M3.2 + M3.3; M3.8 gates on M3.3; M3.9 gates on M3.3 (needs
+action-batched classifier writes to traverse).
 
 **Gates.** M2 (entries + real provider needed before classifier
 has anything to classify).
@@ -224,7 +270,11 @@ chapter-management is M5.
   list with awareness tab on detail per
   [`docs/ui/screens/plot/plot.md`](../ui/screens/plot/plot.md).
   Threads data may be sparse until M5's chapter-close populates it
-  reliably; the surface ships in M4.
+  reliably; the surface ships in M4. Entry-ref picker primitive
+  (for `triggered_at_entry` / `resolved_at_entry` /
+  `occurred_at_entry` / `learned_at_entry` fields) ships here as
+  the first consumer; pattern reused across later entry-ref
+  surfaces.
 - M4.4 — Story settings real (basic): model overrides + basic
   per-story config — the settings depth users need with real data
   flowing. Deep settings tabs land in M7.
@@ -264,14 +314,23 @@ companions.
 - M5.2 — Chapter-close pipeline: phases 3a–3e, agent invocations,
   delta writes. Chapter-close consolidates `threads` rows that
   M3's classifier wrote sparsely; surface (plot panel threads
-  tab) already exists from M4.3.
+  tab) already exists from M4.3. Per-chapter `retrieval_count`
+  reset under the chapter-close `action_id` (paired with M3.4's
+  per-injection increment).
 - M5.3 — Chapter timeline screen per
-  [`docs/ui/screens/chapter-timeline/chapter-timeline.md`](../ui/screens/chapter-timeline/chapter-timeline.md).
+  [`docs/ui/screens/chapter-timeline/chapter-timeline.md`](../ui/screens/chapter-timeline/chapter-timeline.md);
+  chapter delete routes through the deep-rollback surface (M5.5).
 - M5.4 — Reader chapter affordances: insert break, navigate by
   chapter, chapter context badge.
+- M5.5 — Deep rollback surface: multi-chapter reverse-replay
+  flow extending M2.5's rollback-confirm modal with cascade
+  warning for rollback spanning closed chapters (per
+  [`data-model.md → Branch model`](../data-model.md#branch-model)).
+  Consumed by chapter delete (M5.3) and rollback-to-entry-N from
+  the reader.
 
 **Parallel paths.** {M5.1, M5.2} are sequential against schema;
-{M5.3} || {M5.4} once data layer exists.
+{M5.3, M5.5} || {M5.4} once data layer exists.
 
 **Gates.** M4 (chapter-close compacts entities + lore the world
 panel renders; surfaces would be invisible without M4).
@@ -307,6 +366,11 @@ churn.
   entry events.
 - M6.5 — Multi-story branching: story list shows branch count,
   navigation handles the branch-aware URL shape.
+- M6.6 — Story duplicate (overflow menu on story cards): clone
+  story row + current branch's entries + entities / lore
+  snapshot per
+  [`story-list.md → Story card`](../ui/screens/story-list/story-list.md#story-card--text-first).
+  Structurally similar to branch-copy (M6.1) but story-scoped.
 
 **Parallel paths.** {M6.1, M6.2} sequential; {M6.3, M6.4, M6.5}
 parallel once branch reads work.
@@ -336,11 +400,29 @@ the underlying configuration surfaces.
 
 **Likely slices.**
 
-- M7.1 — App settings deep: providers tab (extends M2.1's
-  OAI-compat-only with multi-provider config), embedder tab,
-  models tab, appearance tab, data tab.
+- M7.1 — App settings deep: **providers tab** full surface
+  (multi-provider config, per-provider collapsible rows, two
+  capability-section model lists with virtual scrolling for large
+  catalogs like OpenRouter 340+, capability badge click-to-
+  override, per-section staggered refresh, `Add custom model id`,
+  provider `⋯` menu with deletion-semantics AlertDialog,
+  reset-profiles action); **embedder tab** full surface
+  (curated catalog + HF-id import + custom-file import paths,
+  per-model EP picker, cross-story staleness aggregate, download
+  dialog with license fetch + SHA256 verify + `.attestation`,
+  remove / test flows); **models tab** (agent-to-profile
+  assignments including the `suggestion` slot from M3.7);
+  **appearance tab** (theme picker + density toggle + reader
+  font scale); **data tab** (backup / export / restore / clear
+  caches).
 - M7.2 — Story settings deep: pack tab, definition tab, models
-  tab, awareness tab, calendar tab.
+  tab, awareness tab, calendar tab, **Advanced tab** (story id,
+  timestamps, branch info, export JSON, view raw settings per
+  [`story-settings.md → Section split`](../ui/screens/story-settings/story-settings.md)).
+  Era-flip reader affordances (time-chip popover, per-entry
+  icon, Actions menu entry, flip-era modal) land here paired
+  with the calendar tab's era-flips list + `branch_era_flips`
+  table.
 - M7.3 — Diagnostics screen per
   [`docs/ui/screens/diagnostics/diagnostics.md`](../ui/screens/diagnostics/diagnostics.md).
 - M7.4 — Onboarding flow per
@@ -386,9 +468,15 @@ already-shipped calendar editor.
 
 - M8.1 — Translation pipeline: user-action-translation phase,
   display-translation lookup, `translations` table.
+  `translation-retry` pipeline declaration (separate v1 pipeline
+  kind with `hard-gate` concurrency per
+  [`generation-pipeline.md → V1 declarations`](../generation-pipeline.md#v1-declarations))
+  lands alongside.
 - M8.2 — Translation UI: language picker in story settings,
   graceful degradation contract per
-  [`architecture.md`](../architecture.md).
+  [`architecture.md`](../architecture.md); miss-toast +
+  sticky generation-status-pill surface for user-driven retry
+  (invokes the `translation-retry` pipeline from M8.1).
 - M8.3 — Vault parent shell: vault home navigation, vault entry
   point from story list, vault chrome.
 - M8.4 — Translation-aware retrieval / classifier-on-translation
@@ -433,14 +521,21 @@ isn't a per-feature concern.
   picks, spacing finalization, accent application, monochrome
   wireframe holes filled.
 - M9.3 — Backup pipeline: `VACUUM INTO` snapshot + failsafe JSON
-  dump; restore.
-- M9.4 — Export: per-story `.avts` envelope; import; cross-version
-  resilience.
+  dump; restore. Asset trash-can sweep + orphan GC boot-time
+  passes per
+  [`data-model.md → Assets`](../data-model.md#assets-images--future-media)
+  (prevents disk leaks from rolled-back / branch-deleted asset
+  rows).
+- M9.4 — Per-story export `.avts` envelope; per-story import
+  `.avts` (story list `+ Import story` affordance routes through
+  the Importer compound from M4); cross-version resilience.
 - M9.5 — Cross-platform parity smoke (Linux desktop + Android),
   performance budget audit, accessibility audit
   ([`accessibility skill`](./conventions.md) checks).
 - M9.6 — v1 ship: changelog, release notes, distribution
-  packaging.
+  packaging; **app icon + splash screen** replacing Expo
+  placeholders (per
+  [`tech-stack.md → Pre-launch polish`](../tech-stack.md)).
 
 **Parallel paths.** {M9.1, M9.2} || {M9.3, M9.4} || {M9.5}; M9.6
 gates on all.
@@ -479,15 +574,24 @@ the screen its goal requires; later milestones extend.
     slice.
 - **Reader-composer**
   ([reader-composer.md](../ui/screens/reader-composer/reader-composer.md)).
-  - **M2.5** — Entry list, composer, trigger generation, basic
-    edit / delete entry actions.
+  - **M2.5** — Entry list (load-older pagination +
+    scroll-anchoring on prepend), composer, trigger generation,
+    basic edit / delete entry actions, rollback-confirm modal
+    compound (single-entry cascade), markdown rendering pipeline,
+    Harper.js spellcheck, CTRL-Z basic single-action undo.
   - **M3** — Refine / regenerate affordances on entries (consume
     memory context); next-turn suggestions panel between AI
-    replies and the composer (per M3.7).
+    replies and the composer (M3.7); per-entry worldTime
+    click-to-edit + monotonicity flag (M3.8); CTRL-Z
+    action-batched extension across classifier writes (M3.9).
   - **M4** — Peek drawer + awareness chips on entries.
   - **M5** — Chapter management affordances (insert break,
-    navigate by chapter, chapter context badge).
+    navigate by chapter, chapter context badge); deep-rollback
+    surface extends rollback-confirm with multi-chapter cascade
+    warning.
   - **M6** — Branch picker + branch creation flow.
+  - **M7.2** — Era-flip reader affordances (time-chip popover,
+    per-entry icon, Actions menu entry, flip-era modal).
 - **World panel** ([world.md](../ui/screens/world/world.md)).
   - **M4.1 / M4.2** — Full v1 scope (shell, per-kind tabs, entity
     detail overview + state tabs).
@@ -497,15 +601,20 @@ the screen its goal requires; later milestones extend.
     chapter-close populates it reliably.
 - **App settings**
   ([app-settings.md](../ui/screens/app-settings/app-settings.md)).
-  - **M7.1 / M7.6** — Full v1 scope. (M2.1 ships OAI-compat-only
+  - **M3.1** — Embedder integration with minimal app-settings
+    embedder surface (gate-required for story creation).
+  - **M7.1 / M7.6** — Full v1 scope (providers tab + embedder tab
+    full surfaces + models tab agent assignments + appearance +
+    data + auxiliary surfaces). M2.1 ships OAI-compat-only
     config as part of provider abstraction, no dedicated settings
-    surface yet.)
+    surface yet.
 - **Story settings**
   ([story-settings.md](../ui/screens/story-settings/story-settings.md)).
   - **M4.4** — Basic surface (model overrides, basic per-story
     config).
   - **M7.2** — Deep tabs (pack, definition, models, awareness,
-    calendar, translation).
+    calendar, translation, **Advanced**); era-flip surfaces
+    here.
 - **Memory probe**
   ([memory-probe.md](../ui/screens/memory-probe/memory-probe.md)).
   - **M3.5** — Minimal developer-only inspector (logs / impl
@@ -563,11 +672,16 @@ explicit.
     [`parked.md`](../parked.md#prompt-pack-editor-desktop-spec--mobile-retrofit)).
 - **Observability sinks beyond the logger**
   ([`observability.md`](../observability.md)).
-  - **M1.3 / M1.5** — `logger`, `httpCallSink`, `turnCaptureSink`
-    land as scaffolds and accept their first emissions during the
-    stub-LLM smoke.
-  - **M2.6** — Real provider HTTP traffic flows through
-    `httpCallSink`; real per-turn captures populate via
+  - **M1.3 / M1.4 / M1.5** — `logger`, `httpCallSink` (fully
+    implemented with value-matching header redaction at sink
+    boundary against `app_settings.providers` known keys; no
+    denylist), `turnCaptureSink` land and accept their first
+    emissions during the stub-LLM smoke. Redaction vitest suite
+    (raw / prefixed / query-string / short-key cases) lands with
+    the sink in M1.4.
+  - **M2.1 / M2.6** — Real OAI-compat provider HTTP traffic flows
+    through `httpCallSink` (extends the M1.4 redaction suite with
+    OAI-compat scenarios); real per-turn captures populate via
     `turnCaptureSink`.
   - **M3 / M5** — Per-pipeline-kind turn-capture shape extends
     for memory + chapter-close pipelines (classifier / retrieval
@@ -576,6 +690,28 @@ explicit.
     `httpCallSink` history, run timeline.
   - **M7.5** — Memory probe consumes `turnCaptureSink`
     retrieval-score content for per-turn inspection.
+- **Undo / rollback system**
+  ([`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback)).
+  - **M2.5** — Rollback-confirm modal compound (single-entry
+    cascade preview); CTRL-Z basic single-action undo + redo
+    stack.
+  - **M3.9** — CTRL-Z action-batched extension: traverses the
+    full `action_id` batch (entry write + all classifier deltas
+    under the same action) in one keypress.
+  - **M5.5** — Deep rollback surface: multi-chapter reverse-replay
+    flow extending the rollback-confirm modal with cascade
+    warning for rollback spanning closed chapters; consumed by
+    chapter delete (M5.3) and rollback-to-entry-N from reader.
+- **Import / Importer compound**
+  ([`component-inventory.md → Compounds — needs design`](../ui/component-inventory.md#compounds--needs-design)).
+  Design pass is a [design followup](../followups.md). Once design
+  lands, the compound scaffolds at first consumer and threads
+  through the rest:
+  - **M4** — First consumer: World / Plot per-row entity import
+    (assumes design pass complete; if not, defer to later
+    milestone and surface limitations explicitly).
+  - **M8.3** — Vault calendars import.
+  - **M9.4** — Story `.avts` import on the story list.
 
 When a milestone is promoted to a full `milestone.md`, that doc
 owns the precise per-slice extension; this table is indicative

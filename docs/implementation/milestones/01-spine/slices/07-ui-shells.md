@@ -17,11 +17,19 @@
 Bring up the user-visible spine of the app: the landing
 screen (empty story list), the reader-composer with existing
 pieces wired through to the namespaced stores, the settings
-screen layouts. The reader-composer hosts the milestone's
-end-to-end smoke trigger — a debug-only affordance that fires
-a stub-LLM pipeline run through the orchestrator and verifies
-that everything below this slice composes: action layer, Path
-A delta handler, logger, `httpCallSink`, `turnCaptureSink`,
+screen layouts. **Install `i18next` + `react-i18next`** with a
+`locales/en/*` namespace skeleton — every chrome string in
+this slice routes through `t()` from day one (per
+[`tech-stack.md → i18n`](../../../../tech-stack.md), the
+day-one-install rule that avoids the hardcoded-strings retrofit
+tax). **Mount `<Toaster>` at app root** consuming the
+`useToasts` store from Slice 1.6, so any subsystem can fire
+toasts from this slice onward.
+The reader-composer hosts the milestone's end-to-end smoke
+trigger — a debug-only affordance that fires a stub-LLM
+pipeline run through the orchestrator and verifies that
+everything below this slice composes: action layer, Path A
+delta handler, logger, `httpCallSink`, `turnCaptureSink`,
 `pipeline_runs`, generation store. By the end of this slice
 the milestone-1 Definition of Done is met.
 
@@ -96,13 +104,34 @@ happens when real interactive features land.
   `stores.domain.setCurrentStory(id)` and
   `stores.domain.setCurrentBranch(id)`. Selectors via
   `useNavigation` drive the reader-composer's branch context.
+- **i18n install** — `i18next` + `react-i18next` per
+  [`tech-stack.md → i18n`](../../../../tech-stack.md):
+  - `i18n` init module under `lib/i18n/` exposing the
+    configured instance and the typed `t()` helper.
+  - `locales/en/*.json` namespace skeleton (per the project's
+    namespace convention — landing / reader / settings as the
+    first namespaces; others added by later slices).
+  - Every chrome string introduced by this slice's screens
+    routes through `t()` from day one. No hardcoded English
+    strings outside `locales/en/*.json`.
+  - i18n provider wraps the React tree below `QueryClientProvider`
+    in the bootstrap order.
+- **Toaster mount** at app root, consuming `useToasts` from
+  Slice 1.6 (per
+  [`patterns/toast.md`](../../../../ui/patterns/toast.md)).
+  Smoke-test toast fires from the end-to-end smoke trigger's
+  success or failure case, proving the queue → mount path
+  works.
 - Bootstrap order assembled at the app root, per Slice 1.5
   and 1.6:
   1. Migrations apply (from `lib/db/`).
   2. Crash recovery pass runs (from `lib/pipeline/`).
   3. `hydrateAppSettings()` (from `lib/stores/`).
-  4. QueryClientProvider mounts the React tree.
-  5. Expo Router renders.
+  4. i18n init (loads default `en` resources).
+  5. QueryClientProvider mounts the React tree.
+  6. I18nextProvider wraps below QueryClientProvider.
+  7. `<Toaster>` mounts inside the provider tree.
+  8. Expo Router renders.
 - Smoke trigger in the reader-composer:
   - Debug-only affordance — visible in `pnpm dev` builds and
     gated by a build-time constant for production builds.
