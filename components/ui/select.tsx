@@ -1,7 +1,8 @@
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import * as RadioGroupBase from '@rn-primitives/radio-group'
 import * as SelectBase from '@rn-primitives/select'
 import { Check, ChevronDown, ChevronDownIcon, ChevronUpIcon } from 'lucide-react-native'
-import { Fragment, useCallback, useMemo, type ComponentProps, type ReactNode } from 'react'
+import { Fragment, useMemo, useRef, type ComponentProps, type ReactNode } from 'react'
 import {
   Platform,
   Pressable,
@@ -11,26 +12,15 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import {
-  FadeIn,
-  FadeOut,
-  SlideInDown,
-  SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
-import { runOnJS } from 'react-native-worklets'
 
 import { Heading } from '@/components/ui/heading'
 import { Icon } from '@/components/ui/icon'
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
 import { Text, TextClassContext } from '@/components/ui/text'
 import { useTier } from '@/hooks/use-tier'
+import { useTheme } from '@/lib/themes/use-theme'
 import { cn } from '@/lib/utils'
 
 const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
@@ -105,115 +95,6 @@ const SHEET_HEIGHT_PCT: Record<ContentSheetSize, `${number}%`> = {
   medium: '60%',
 }
 
-const SAFE_AREA_GAP_PX = 8
-const DRAG_DISMISS_THRESHOLD_PX = 100
-
-function PhoneSheetPanel({
-  className,
-  children,
-  sheetSize,
-  label,
-  tailAction,
-}: {
-  className?: string
-  children?: ReactNode
-  sheetSize: ContentSheetSize
-  label?: string
-  tailAction?: { label: string; onPress: () => void }
-}) {
-  const { onOpenChange } = SelectBase.useRootContext()
-  const insets = useSafeAreaInsets()
-  const { height: screenHeight } = useWindowDimensions()
-  const maxHeight = Math.max(screenHeight - insets.top - SAFE_AREA_GAP_PX, 0)
-  const panelStyle: ViewStyle = {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: SHEET_HEIGHT_PCT[sheetSize],
-    maxHeight,
-  }
-
-  const dragOffset = useSharedValue(0)
-  const animatedDragStyle = useAnimatedStyle(
-    () => ({ transform: [{ translateY: dragOffset.value }] }),
-    [],
-  )
-  const closeFromGesture = useCallback(() => onOpenChange(false), [onOpenChange])
-  const panGesture = useMemo(() => {
-    const base = Gesture.Pan()
-    return base
-      .activeOffsetY([10, Number.POSITIVE_INFINITY])
-      .onUpdate((event) => {
-        'worklet'
-        dragOffset.value = Math.max(0, event.translationY)
-      })
-      .onEnd((event) => {
-        'worklet'
-        if (event.translationY > DRAG_DISMISS_THRESHOLD_PX) {
-          const target = screenHeight + 200
-          dragOffset.value = withTiming(target, { duration: 180 }, (finished?: boolean) => {
-            'worklet'
-            if (finished) runOnJS(closeFromGesture)()
-          })
-          return
-        }
-        dragOffset.value = withSpring(0, {
-          damping: 18,
-          stiffness: 220,
-          overshootClamping: true,
-        })
-      })
-  }, [dragOffset, closeFromGesture, screenHeight])
-
-  const handleVisible = <View className="mx-auto h-1 w-10 rounded-full bg-fg-muted opacity-40" />
-  const handle =
-    Platform.OS === 'web' ? (
-      <View className="mb-3">{handleVisible}</View>
-    ) : (
-      <GestureDetector gesture={panGesture}>
-        <View className="-mx-4 -mt-4 mb-2 items-center px-4 py-6">{handleVisible}</View>
-      </GestureDetector>
-    )
-
-  return (
-    <NativeOnlyAnimatedView
-      entering={SlideInDown.duration(250)}
-      exiting={SlideOutDown}
-      style={Platform.select({ native: [panelStyle, animatedDragStyle] })}
-    >
-      <TextClassContext.Provider value="text-fg-primary">
-        <SelectBase.Content
-          disablePositioningStyle
-          position="popper"
-          className={cn(
-            'flex-1 rounded-t-lg border border-b-0 border-border-strong bg-bg-overlay p-4 outline-none',
-            // Web entry animation — native uses reanimated SlideInDown.
-            Platform.select({ web: 'animate-slide-in-from-bottom' }),
-            className,
-          )}
-        >
-          {handle}
-          {label != null && label.length > 0 && (
-            <Heading level={2} className="mb-3">
-              {label}
-            </Heading>
-          )}
-          <ScrollView className="flex-1">
-            <SelectBase.Viewport>{children}</SelectBase.Viewport>
-          </ScrollView>
-          {tailAction != null ? (
-            <>
-              <View className="-mx-4 h-px bg-border" />
-              <TailActionRow label={tailAction.label} onPress={tailAction.onPress} />
-            </>
-          ) : null}
-        </SelectBase.Content>
-      </TextClassContext.Provider>
-    </NativeOnlyAnimatedView>
-  )
-}
-
 function PhoneSheetContent({
   className,
   children,
@@ -229,35 +110,71 @@ function PhoneSheetContent({
   label?: string
   tailAction?: { label: string; onPress: () => void }
 }) {
+  const { open, onOpenChange } = SelectBase.useRootContext()
+  const { theme } = useTheme()
+
+  const sheetRef = useRef<BottomSheet>(null)
+  const snapPoints = useMemo(() => [SHEET_HEIGHT_PCT[sheetSize]], [sheetSize])
+
+  const backgroundStyle = useMemo<ViewStyle>(
+    () => ({
+      backgroundColor: theme.colors['--bg-overlay'],
+      borderColor: theme.colors['--border-strong'],
+      borderWidth: StyleSheet.hairlineWidth,
+    }),
+    [theme],
+  )
+
+  const handleIndicatorStyle = useMemo<ViewStyle>(
+    () => ({ backgroundColor: theme.colors['--fg-muted'], opacity: 0.4 }),
+    [theme],
+  )
+
   return (
+    // SelectBase.Portal re-wraps children with Select.Root context at its render
+    // location. We use gorhom's inline BottomSheet (not BottomSheetModal) so the
+    // sheet renders in-tree inside that re-wrap, keeping SelectBase.Content's
+    // Root context lookup happy. BottomSheetModal would portal again and lose it.
     <SelectBase.Portal hostName={portalHost}>
       <FullWindowOverlay>
-        <View
-          className={Platform.OS === 'web' ? 'fixed inset-0' : ''}
-          style={Platform.select({ native: StyleSheet.absoluteFill })}
-          pointerEvents="box-none"
-        >
-          <NativeOnlyAnimatedView
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut}
-            style={Platform.select({ native: StyleSheet.absoluteFill })}
+        <View style={StyleSheet.absoluteFill} pointerEvents={open ? 'box-none' : 'none'}>
+          <BottomSheet
+            ref={sheetRef}
+            index={open ? 0 : -1}
+            snapPoints={snapPoints}
+            enableDynamicSizing={false}
+            enablePanDownToClose
+            keyboardBehavior="extend"
+            keyboardBlurBehavior="restore"
+            backgroundStyle={backgroundStyle}
+            handleIndicatorStyle={handleIndicatorStyle}
+            onClose={() => onOpenChange(false)}
           >
-            <SelectBase.Overlay
-              className={cn(
-                'absolute inset-0 bg-black/40',
-                Platform.select({ web: 'animate-fade-in' }),
-              )}
-              style={Platform.select({ native: StyleSheet.absoluteFill })}
-            />
-          </NativeOnlyAnimatedView>
-          <PhoneSheetPanel
-            className={className}
-            sheetSize={sheetSize}
-            label={label}
-            tailAction={tailAction}
-          >
-            {children}
-          </PhoneSheetPanel>
+            <TextClassContext.Provider value="text-fg-primary">
+              <View className={cn('flex-1 p-4', className)}>
+                <SelectBase.Content
+                  disablePositioningStyle
+                  position="popper"
+                  className="flex-1 outline-none"
+                >
+                  {label != null && label.length > 0 && (
+                    <Heading level={2} className="mb-3">
+                      {label}
+                    </Heading>
+                  )}
+                  <BottomSheetScrollView className="flex-1">
+                    <SelectBase.Viewport>{children}</SelectBase.Viewport>
+                  </BottomSheetScrollView>
+                  {tailAction != null ? (
+                    <>
+                      <View className="-mx-4 h-px bg-border" />
+                      <TailActionRow label={tailAction.label} onPress={tailAction.onPress} />
+                    </>
+                  ) : null}
+                </SelectBase.Content>
+              </View>
+            </TextClassContext.Provider>
+          </BottomSheet>
         </View>
       </FullWindowOverlay>
     </SelectBase.Portal>

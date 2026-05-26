@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { PortalHost } from '@rn-primitives/portal'
 import { Stack } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -14,8 +15,14 @@ export default function RootLayout() {
       <KeyboardProvider>
         <ThemeProvider>
           <DensityProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-            <PortalHost />
+            {/* BottomSheetModalProvider must sit inside ThemeProvider — its
+                internal portal re-mounts gorhom sheet children, and React
+                context only propagates through that portal if the provider
+                is an ancestor of the portal host. */}
+            <BottomSheetModalProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+              <PortalHost />
+            </BottomSheetModalProvider>
           </DensityProvider>
         </ThemeProvider>
       </KeyboardProvider>

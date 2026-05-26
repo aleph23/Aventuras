@@ -1,6 +1,8 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { PortalHost } from '@rn-primitives/portal'
 import type { Preview } from '@storybook/react-native-web-vite'
 import { useEffect, type ReactNode } from 'react'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { DensityProvider } from '@/lib/density/density-provider'
@@ -54,6 +56,8 @@ const STORYBOOK_SAFE_AREA_METRICS = {
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 }
 
+const STORYBOOK_GH_ROOT_STYLE = { flex: 1 }
+
 const densityOptions: { value: DensitySetting; title: string }[] = [
   { value: 'default', title: 'Default (per tier)' },
   { value: 'compact', title: 'Compact' },
@@ -106,21 +110,28 @@ const preview: Preview = {
       const densitySetting = (context.globals.density as DensitySetting) ?? 'default'
       return (
         <BodyLockReset>
-          <SafeAreaProvider initialMetrics={STORYBOOK_SAFE_AREA_METRICS}>
-            <ThemeProvider>
-              <DensityProvider>
-                <ThemeApplier themeId={themeId}>
-                  <DensityApplier setting={densitySetting}>
-                    <Story />
-                    {/* Mirrors the runtime app/_layout PortalHost so
-                        `@rn-primitives/portal` consumers (Autocomplete's
-                        popover) have somewhere to render in Storybook. */}
-                    <PortalHost />
-                  </DensityApplier>
-                </ThemeApplier>
-              </DensityProvider>
-            </ThemeProvider>
-          </SafeAreaProvider>
+          {/* Mirrors the runtime app/_layout provider stack so Sheet
+              (BottomSheetModal) and gesture-handler-based primitives
+              work in Storybook. BottomSheetModalProvider sits inside
+              ThemeProvider so theme context propagates through the
+              sheet's internal portal. */}
+          <GestureHandlerRootView style={STORYBOOK_GH_ROOT_STYLE}>
+            <SafeAreaProvider initialMetrics={STORYBOOK_SAFE_AREA_METRICS}>
+              <ThemeProvider>
+                <DensityProvider>
+                  <ThemeApplier themeId={themeId}>
+                    <DensityApplier setting={densitySetting}>
+                      <BottomSheetModalProvider>
+                        <Story />
+                        {/* @rn-primitives/portal host for popover consumers. */}
+                        <PortalHost />
+                      </BottomSheetModalProvider>
+                    </DensityApplier>
+                  </ThemeApplier>
+                </DensityProvider>
+              </ThemeProvider>
+            </SafeAreaProvider>
+          </GestureHandlerRootView>
         </BodyLockReset>
       )
     },

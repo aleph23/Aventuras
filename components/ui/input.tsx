@@ -1,7 +1,21 @@
-import { useState, type ComponentProps, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  type ComponentProps,
+  type ComponentType,
+  type ReactNode,
+} from 'react'
 import { Platform, TextInput, View } from 'react-native'
 
 import { cn } from '@/lib/utils'
+
+// Lets a surrounding container (Sheet's gorhom-backed BottomSheetContent in particular)
+// swap the underlying TextInput implementation without changing the consumer call site.
+// Defaults to RN's TextInput; gorhom replaces with BottomSheetTextInput so its sheet
+// keyboard-tracking system sees the focused field.
+type InputComponent = ComponentType<ComponentProps<typeof TextInput>>
+const InputComponentContext = createContext<InputComponent>(TextInput)
 
 type InputSize = 'sm' | 'md' | 'lg'
 
@@ -90,9 +104,11 @@ export function Input({
     isDisabled && disabledClasses(),
   )
 
+  const TextInputComponent = useContext(InputComponentContext)
+
   if (!hasAdornment) {
     return (
-      <TextInput
+      <TextInputComponent
         editable={editable}
         onFocus={handleFocus}
         onBlur={handleBlur}
@@ -122,7 +138,7 @@ export function Input({
       )}
     >
       {leading != null ? <View className="pl-3 pr-2">{leading}</View> : null}
-      <TextInput
+      <TextInputComponent
         editable={editable}
         onFocus={handleFocus}
         onBlur={handleBlur}
@@ -139,4 +155,5 @@ export function Input({
   )
 }
 
+export { InputComponentContext }
 export type { InputProps }

@@ -10,7 +10,6 @@ import { Text } from '@/components/ui/text'
 
 export default function SheetDevRoute() {
   const [noteValue, setNoteValue] = useState('')
-  const [shortNoteValue, setShortNoteValue] = useState('')
 
   return (
     <ScrollView className="flex-1 bg-bg-base">
@@ -165,10 +164,9 @@ export default function SheetDevRoute() {
         <View>
           <Heading level={3}>With input inside (auto — canonical)</Heading>
           <Text variant="muted" size="xs" className="mt-1">
-            Input-bearing sheets use size=&quot;auto&quot;. The panel hugs its content, and the
-            body&apos;s paddingBottom grows it by keyboard height when the keyboard opens — the
-            whole panel rises above the keyboard. avoidKeyboard defaults true on bottom anchor.
-            No-op on web / Electron.
+            Input-bearing sheets use size=&quot;auto&quot;. The panel hugs its content and the
+            underlying library translates it above the keyboard when an input is focused. No
+            consumer-side keyboard wiring needed.
           </Text>
           <View className="mt-3">
             <Sheet ariaLabel="Add note">
@@ -184,34 +182,6 @@ export default function SheetDevRoute() {
                     Type to test keyboard avoidance on native.
                   </Text>
                   <Input value={noteValue} onChangeText={setNoteValue} placeholder="Type here…" />
-                </View>
-              </SheetContent>
-            </Sheet>
-          </View>
-        </View>
-        <View>
-          <Heading level={3}>Short with input inside (anti-pattern)</Heading>
-          <Text variant="muted" size="xs" className="mt-1">
-            size=&quot;short&quot; with an input is **not supported** — a typical phone keyboard is
-            taller than 33vh, so the body&apos;s paddingBottom exceeds the panel and the input gets
-            clipped above the panel&apos;s top edge. Demo kept as a reference for what NOT to do.
-            Use size=&quot;auto&quot; (above) for any input-bearing sheet.
-          </Text>
-          <View className="mt-3">
-            <Sheet ariaLabel="Quick note">
-              <SheetTrigger asChild>
-                <Button>
-                  <Text>Quick note (broken)…</Text>
-                </Button>
-              </SheetTrigger>
-              <SheetContent anchor="bottom" size="short">
-                <View className="flex-col gap-3">
-                  <Heading level={4}>Quick note</Heading>
-                  <Input
-                    value={shortNoteValue}
-                    onChangeText={setShortNoteValue}
-                    placeholder="Type here…"
-                  />
                 </View>
               </SheetContent>
             </Sheet>

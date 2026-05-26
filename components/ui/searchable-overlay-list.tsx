@@ -1,3 +1,4 @@
+import { BottomSheetSectionList } from '@gorhom/bottom-sheet'
 import * as PopoverPrimitive from '@rn-primitives/popover'
 import { Portal } from '@rn-primitives/portal'
 import { defaultRangeExtractor, useVirtualizer, type Range } from '@tanstack/react-virtual'
@@ -295,8 +296,12 @@ function RowListNative<T>({
   }
   const anySticky = sections.some((s) => s.sticky)
   const rowClass = variant === 'sheet' ? ROW_PHONE : ROW_DESKTOP
+  // gorhom's BottomSheetSectionList registers with the sheet's gesture / keyboard
+  // system; a plain SectionList renders but its touches conflict with the sheet's
+  // drag and its scroll region doesn't shrink for the keyboard.
+  const ListComponent = variant === 'sheet' ? BottomSheetSectionList : SectionList
   return (
-    <SectionList
+    <ListComponent
       sections={sections.map((s) => ({
         key: s.id,
         header: s.header,

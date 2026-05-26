@@ -1,38 +1,23 @@
+import { BottomSheetModal, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet'
 import * as DialogPrimitive from '@rn-primitives/dialog'
 import {
   createContext,
   Fragment,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ComponentProps,
 } from 'react'
 import { Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import {
-  KeyboardContext,
-  useKeyboardContext,
-  useReanimatedKeyboardAnimation,
-} from 'react-native-keyboard-controller'
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInDown,
-  SlideInRight,
-  SlideOutDown,
-  SlideOutRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated'
+import { FadeIn, FadeOut, SlideInRight, SlideOutRight } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
-import { runOnJS } from 'react-native-worklets'
 
+import { InputComponentContext } from '@/components/ui/input'
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
 import { TextClassContext } from '@/components/ui/text'
+import { useTheme } from '@/lib/themes/use-theme'
 import { cn } from '@/lib/utils'
 
 type AutoFocusHandler = (event: Event) => void
@@ -40,8 +25,11 @@ type AutoFocusHandler = (event: Event) => void
 type SheetA11yValue = {
   ariaLabel?: string
   ariaLabelledBy?: string
+  /** Right-anchor only — forwarded to the Radix dialog as aria-describedby on web. */
   ariaDescribedBy?: string
+  /** Right-anchor only — forwarded to the Radix dialog's focus-on-open hook. */
   onOpenAutoFocus?: AutoFocusHandler
+  /** Right-anchor only, web only — forwarded to the Radix dialog's focus-on-close hook. */
   onCloseAutoFocus?: AutoFocusHandler
 }
 
@@ -60,139 +48,160 @@ const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 type SheetAnchor = 'bottom' | 'right'
 type SheetSize = 'short' | 'medium' | 'tall' | 'auto'
 
-// `auto` opts out of a fixed height — content drives the panel, capped at 95vh.
-const BOTTOM_HEIGHT_CLASS_WEB: Record<SheetSize, string> = {
-  short: 'h-[33vh]',
-  medium: 'h-[60vh]',
-  tall: 'h-[95vh]',
-  auto: 'max-h-[95vh]',
-}
+const RIGHT_WIDTH_PX = 440
+const SAFE_AREA_GAP_PX = 8
 
-const BOTTOM_HEIGHT_PCT: Record<Exclude<SheetSize, 'auto'>, `${number}%`> = {
+const BOTTOM_SNAP_PCT: Record<Exclude<SheetSize, 'auto'>, `${number}%`> = {
   short: '33%',
   medium: '60%',
   tall: '95%',
 }
 
-const RIGHT_WIDTH_PX = 440
-const SAFE_AREA_GAP_PX = 8
-const DRAG_DISMISS_THRESHOLD_PX = 100
+type SheetContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
+  anchor?: SheetAnchor
+  size?: SheetSize
+  title?: string
+  /** Right-anchor only — names the rn-primitives Portal host to render into. */
+  portalHost?: string
+}
 
-function getNativePanelStyle(
-  anchor: SheetAnchor,
-  size: SheetSize,
-  insetTop: number,
-  screenHeight: number,
-): ViewStyle {
-  // Cap the panel so it never extends above the OS status bar / notch.
-  const maxHeight = Math.max(screenHeight - insetTop - SAFE_AREA_GAP_PX, 0)
+function SheetContent({ anchor = 'bottom', ...props }: SheetContentProps) {
   if (anchor === 'bottom') {
-    const base: ViewStyle = {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      maxHeight,
-    }
-    if (size === 'auto') return base
-    return { ...base, height: BOTTOM_HEIGHT_PCT[size] }
+    return <BottomSheetContent {...props} />
   }
-  return {
+  return <RightSheetContent {...props} />
+}
+
+function BottomSheetContent({
+  className,
+  size = 'medium',
+  title = 'Sheet',
+  children,
+  // portalHost is right-anchor only — the gorhom path uses BottomSheetModalProvider's portal.
+  portalHost: _portalHost,
+  ...contentProps
+}: Omit<SheetContentProps, 'anchor'>) {
+  const { open, onOpenChange } = DialogPrimitive.useRootContext()
+  const { ariaLabel, ariaLabelledBy } = useSheetA11y()
+  const { theme } = useTheme()
+
+  const sheetRef = useRef<BottomSheetModal>(null)
+  // gorhom's dismiss() on an already-dismissed modal corrupts internal state
+  // and subsequent present() becomes a silent no-op. Track actual modal state
+  // so dismiss() is only called when the modal is presented.
+  const isPresentedRef = useRef(false)
+
+  useEffect(() => {
+    // gorhom's BottomSheetModal must register with the provider's stack before
+    // present() succeeds; that registration happens in the modal's own mount
+    // effects, which run after this one. Defer to the next tick.
+    const handle = setTimeout(() => {
+      if (open && !isPresentedRef.current) {
+        isPresentedRef.current = true
+        sheetRef.current?.present()
+      } else if (!open && isPresentedRef.current) {
+        isPresentedRef.current = false
+        sheetRef.current?.dismiss()
+      }
+    }, 0)
+    return () => clearTimeout(handle)
+  }, [open])
+
+  const snapPoints = useMemo(() => {
+    if (size === 'auto') return undefined
+    return [BOTTOM_SNAP_PCT[size]]
+  }, [size])
+
+  // gorhom v5 defaults enableDynamicSizing=true and silently ignores snapPoints
+  // when dynamic sizing is on. Derive from snapPoints presence.
+  const enableDynamicSizing = snapPoints == null
+
+  const backgroundStyle = useMemo<ViewStyle>(
+    () => ({
+      backgroundColor: theme.colors['--bg-overlay'],
+      borderColor: theme.colors['--border-strong'],
+      borderWidth: StyleSheet.hairlineWidth,
+    }),
+    [theme],
+  )
+
+  const handleIndicatorStyle = useMemo<ViewStyle>(
+    () => ({ backgroundColor: theme.colors['--fg-muted'], opacity: 0.4 }),
+    [theme],
+  )
+
+  return (
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      enableDynamicSizing={enableDynamicSizing}
+      // 'interactive' (gorhom default) translates the sheet up by keyboard height,
+      // overshooting the max detent for tall sheets. 'extend' snaps to the max
+      // detent and lets the content reflow within — the right shape for picker /
+      // search surfaces that are already at 95%.
+      keyboardBehavior="extend"
+      keyboardBlurBehavior="restore"
+      backgroundStyle={backgroundStyle}
+      handleIndicatorStyle={handleIndicatorStyle}
+      accessibilityLabel={ariaLabel ?? (ariaLabelledBy ? undefined : title)}
+      onDismiss={() => {
+        isPresentedRef.current = false
+        onOpenChange(false)
+      }}
+    >
+      <TextClassContext.Provider value="text-fg-primary">
+        {/* Swap Input's underlying TextInput with gorhom's keyboard-aware variant
+            so focusing an Input inside a sheet triggers gorhom's translate-up
+            behavior. Plain TextInput isn't tracked by the sheet's keyboard system. */}
+        <InputComponentContext.Provider value={BottomSheetTextInput}>
+          {/* size='auto' needs BottomSheetView for gorhom's intrinsic measurement
+              (dynamic sizing measures BottomSheetView's content height). Fixed-detent
+              sizes skip BottomSheetView because it captures vertical pan gestures and
+              blocks nested scrollables (e.g. BottomSheetSectionList in
+              SearchableOverlayList) from claiming them. */}
+          {size === 'auto' ? (
+            <BottomSheetView>
+              <View
+                className={cn('p-6', className)}
+                {...(contentProps as ComponentProps<typeof View>)}
+              >
+                {children}
+              </View>
+            </BottomSheetView>
+          ) : (
+            <View
+              className={cn('flex-1 p-6', className)}
+              {...(contentProps as ComponentProps<typeof View>)}
+            >
+              {children}
+            </View>
+          )}
+        </InputComponentContext.Provider>
+      </TextClassContext.Provider>
+    </BottomSheetModal>
+  )
+}
+
+function RightSheetContent({
+  className,
+  portalHost,
+  title = 'Sheet',
+  children,
+  ...contentProps
+}: Omit<SheetContentProps, 'anchor'>) {
+  const insets = useSafeAreaInsets()
+  const { height: screenHeight } = useWindowDimensions()
+  const maxHeight = Math.max(screenHeight - insets.top - SAFE_AREA_GAP_PX, 0)
+  const nativePanelStyle: ViewStyle = {
     position: 'absolute',
-    top: insetTop + SAFE_AREA_GAP_PX,
+    top: insets.top + SAFE_AREA_GAP_PX,
     bottom: 0,
     right: 0,
     width: RIGHT_WIDTH_PX,
+    maxHeight,
   }
-}
-
-type LayoutAnimation = ComponentProps<typeof NativeOnlyAnimatedView>['entering']
-
-type SheetPanelProps = ComponentProps<typeof DialogPrimitive.Content> & {
-  isBottom: boolean
-  size: SheetSize
-  slideEnter: LayoutAnimation
-  slideExit: LayoutAnimation
-  nativePanelStyle: ViewStyle
-  avoidKeyboard: boolean
-  // ARIA values are captured by the parent (SheetContent) before the rn-primitives
-  // Portal and passed in as props — rn-primitives' native Portal doesn't propagate
-  // arbitrary React contexts, so calling useSheetA11y() inside the portaled tree fails.
-  ariaLabel?: string
-  ariaLabelledBy?: string
-  ariaDescribedBy?: string
-  onOpenAutoFocus?: AutoFocusHandler
-  onCloseAutoFocus?: AutoFocusHandler
-}
-
-function SheetPanel({
-  className,
-  children,
-  isBottom,
-  size,
-  slideEnter,
-  slideExit,
-  nativePanelStyle,
-  avoidKeyboard,
-  ariaLabel,
-  ariaLabelledBy,
-  ariaDescribedBy,
-  onOpenAutoFocus,
-  onCloseAutoFocus,
-  ...contentProps
-}: SheetPanelProps) {
-  const { onOpenChange } = DialogPrimitive.useRootContext()
-  const { height: screenHeight } = useWindowDimensions()
-
-  const dragOffset = useSharedValue(0)
-  const animatedDragStyle = useAnimatedStyle(
-    () =>
-      isBottom
-        ? { transform: [{ translateY: dragOffset.value }] }
-        : { transform: [{ translateX: dragOffset.value }] },
-    [isBottom],
-  )
-  const closeFromGesture = useCallback(() => onOpenChange(false), [onOpenChange])
-  const panGesture = useMemo(() => {
-    const base = Gesture.Pan()
-    const directional = isBottom
-      ? base.activeOffsetY([10, Number.POSITIVE_INFINITY])
-      : base.activeOffsetX([10, Number.POSITIVE_INFINITY])
-    return directional
-      .onUpdate((event) => {
-        'worklet'
-        const delta = isBottom ? event.translationY : event.translationX
-        dragOffset.value = Math.max(0, delta)
-      })
-      .onEnd((event) => {
-        'worklet'
-        const delta = isBottom ? event.translationY : event.translationX
-        if (delta > DRAG_DISMISS_THRESHOLD_PX) {
-          const target = (isBottom ? screenHeight : screenHeight) + 200
-          dragOffset.value = withTiming(target, { duration: 180 }, (finished?: boolean) => {
-            'worklet'
-            if (finished) runOnJS(closeFromGesture)()
-          })
-          return
-        }
-        dragOffset.value = withSpring(0, {
-          damping: 18,
-          stiffness: 220,
-          overshootClamping: true,
-        })
-      })
-  }, [isBottom, dragOffset, closeFromGesture, screenHeight])
-
-  const handleVisible = <View className="mx-auto h-1 w-10 rounded-full bg-fg-muted opacity-40" />
-  const handle = isBottom ? (
-    Platform.OS === 'web' ? (
-      <View className="mb-4">{handleVisible}</View>
-    ) : (
-      <GestureDetector gesture={panGesture}>
-        <View className="-mx-6 -mt-6 mb-2 items-center px-6 py-6">{handleVisible}</View>
-      </GestureDetector>
-    )
-  ) : null
+  const { ariaLabel, ariaLabelledBy, ariaDescribedBy, onOpenAutoFocus, onCloseAutoFocus } =
+    useSheetA11y()
 
   // aria-describedby and onCloseAutoFocus are web-only — absent from the native API surface.
   const webExtras =
@@ -200,142 +209,57 @@ function SheetPanel({
       ? ({ 'aria-describedby': ariaDescribedBy, onCloseAutoFocus } as object)
       : null
 
-  // Direct Reanimated paddingBottom — KeyboardAvoidingView's `automaticOffset` races with
-  // the Sheet's layout-entering animation (measures viewPositionInWindow once, mid-slide-in,
-  // caches a stale screen position). Sheet is anchored at bottom:0, so keyboard overlap is
-  // always exactly the keyboard height. `height` from the lib is negative when open.
-  const keyboard = useReanimatedKeyboardAnimation()
-  const animatedBodyStyle = useAnimatedStyle(() => ({
-    flex: 1,
-    paddingBottom: avoidKeyboard ? -keyboard.height.value : 0,
-  }))
-  const body = avoidKeyboard ? (
-    <Animated.View style={animatedBodyStyle}>{children}</Animated.View>
-  ) : (
-    children
-  )
-
-  return (
-    <NativeOnlyAnimatedView
-      entering={slideEnter}
-      exiting={slideExit}
-      style={Platform.select({ native: [nativePanelStyle, animatedDragStyle] })}
-    >
-      <TextClassContext.Provider value="text-fg-primary">
-        <DialogPrimitive.Content
-          role="dialog"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          onOpenAutoFocus={onOpenAutoFocus}
-          {...webExtras}
-          className={cn(
-            'border border-border-strong bg-bg-overlay p-6 outline-none',
-            Platform.select({
-              web: cn(
-                'absolute z-50',
-                isBottom ? 'animate-slide-in-from-bottom' : 'animate-slide-in-from-right',
-                isBottom
-                  ? cn(
-                      'bottom-0 left-0 right-0 rounded-t-lg border-b-0',
-                      BOTTOM_HEIGHT_CLASS_WEB[size],
-                    )
-                  : 'bottom-0 right-0 top-0 w-[440px] rounded-l-lg border-r-0',
-              ),
-              default: cn(
-                'flex-1',
-                isBottom ? 'rounded-t-lg border-b-0' : 'rounded-l-lg border-r-0',
-              ),
-            }),
-            className,
-          )}
-          onStartShouldSetResponder={() => false}
-          {...contentProps}
-        >
-          {handle}
-          {body}
-        </DialogPrimitive.Content>
-      </TextClassContext.Provider>
-    </NativeOnlyAnimatedView>
-  )
-}
-
-type SheetContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
-  anchor?: SheetAnchor
-  size?: SheetSize
-  portalHost?: string
-  title?: string
-  avoidKeyboard?: boolean
-}
-
-function SheetContent({
-  className,
-  anchor = 'bottom',
-  size = 'medium',
-  portalHost,
-  title = 'Sheet',
-  avoidKeyboard,
-  children,
-  ...props
-}: SheetContentProps) {
-  const isBottom = anchor === 'bottom'
-  const slideEnter = isBottom ? SlideInDown.duration(250) : SlideInRight.duration(250)
-  const slideExit = isBottom ? SlideOutDown : SlideOutRight
-  const insets = useSafeAreaInsets()
-  const { height: screenHeight } = useWindowDimensions()
-  const nativePanelStyle = getNativePanelStyle(anchor, size, insets.top, screenHeight)
-  // Default true for bottom; ignored entirely for right (desktop, no soft keyboard).
-  const effectiveAvoidKeyboard = isBottom && (avoidKeyboard ?? true)
-  // Resolved BEFORE the portal — rn-primitives' native Portal drops custom contexts.
-  const { ariaLabel, ariaLabelledBy, ariaDescribedBy, onOpenAutoFocus, onCloseAutoFocus } =
-    useSheetA11y()
-  // KeyboardContext is dropped by the same portal — re-provide inside so KAV sees real shared values.
-  const keyboardContext = useKeyboardContext()
-
   return (
     <DialogPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
-        <KeyboardContext.Provider value={keyboardContext}>
-          <View
-            className={Platform.OS === 'web' ? 'fixed inset-0' : ''}
+        <View
+          className={Platform.OS === 'web' ? 'fixed inset-0' : ''}
+          style={Platform.select({ native: StyleSheet.absoluteFill })}
+          pointerEvents="box-none"
+        >
+          <NativeOnlyAnimatedView
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut}
             style={Platform.select({ native: StyleSheet.absoluteFill })}
-            pointerEvents="box-none"
           >
-            <NativeOnlyAnimatedView
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut}
+            <DialogPrimitive.Overlay
+              className={cn(
+                'absolute inset-0 bg-black/40',
+                Platform.select({ web: 'animate-fade-in' }),
+              )}
               style={Platform.select({ native: StyleSheet.absoluteFill })}
-            >
-              <DialogPrimitive.Overlay
+            />
+          </NativeOnlyAnimatedView>
+          <NativeOnlyAnimatedView
+            entering={SlideInRight.duration(250)}
+            exiting={SlideOutRight}
+            style={Platform.select({ native: nativePanelStyle })}
+          >
+            <TextClassContext.Provider value="text-fg-primary">
+              <DialogPrimitive.Content
+                role="dialog"
+                aria-label={ariaLabel}
+                aria-labelledby={ariaLabelledBy}
+                onOpenAutoFocus={onOpenAutoFocus}
+                {...webExtras}
                 className={cn(
-                  'absolute inset-0 bg-black/40',
-                  // Web fade-in — native uses reanimated FadeIn.
-                  Platform.select({ web: 'animate-fade-in' }),
+                  'border border-border-strong bg-bg-overlay p-6 outline-none',
+                  Platform.select({
+                    web: 'absolute bottom-0 right-0 top-0 z-50 w-[440px] animate-slide-in-from-right rounded-l-lg border-r-0',
+                    default: 'flex-1 rounded-l-lg border-r-0',
+                  }),
+                  className,
                 )}
-                style={Platform.select({ native: StyleSheet.absoluteFill })}
-              />
-            </NativeOnlyAnimatedView>
-            <SheetPanel
-              isBottom={isBottom}
-              size={size}
-              slideEnter={slideEnter}
-              slideExit={slideExit}
-              nativePanelStyle={nativePanelStyle}
-              avoidKeyboard={effectiveAvoidKeyboard}
-              ariaLabel={ariaLabel}
-              ariaLabelledBy={ariaLabelledBy}
-              ariaDescribedBy={ariaDescribedBy}
-              onOpenAutoFocus={onOpenAutoFocus}
-              onCloseAutoFocus={onCloseAutoFocus}
-              className={className}
-              {...props}
-            >
-              {Platform.OS === 'web' ? (
-                <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-              ) : null}
-              {children}
-            </SheetPanel>
-          </View>
-        </KeyboardContext.Provider>
+                {...contentProps}
+              >
+                {Platform.OS === 'web' ? (
+                  <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+                ) : null}
+                {children}
+              </DialogPrimitive.Content>
+            </TextClassContext.Provider>
+          </NativeOnlyAnimatedView>
+        </View>
       </FullWindowOverlay>
     </DialogPrimitive.Portal>
   )
