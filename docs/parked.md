@@ -431,20 +431,6 @@ Adds a Pack tab section or sibling control set; design pass picks
 the affordance shape once the static pack workflow has been used
 in practice.
 
-### Deferred design sessions
-
-#### Visual identity
-
-Once wireframes settle, decide palette, typography, spacing scale,
-icon set, motion primitives, overall mood. Today's wireframes stay
-monochrome intentionally.
-
-#### Feature components in Storybook
-
-Wireframes expose component boundaries (EntryBubble, EntityRow,
-ChapterBreak, PeekDrawer, BrowseRail, etc.). Those become Storybook
-stories once visual identity lands.
-
 ---
 
 ## Parked until signal
