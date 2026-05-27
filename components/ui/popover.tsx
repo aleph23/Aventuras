@@ -8,8 +8,9 @@ import {
   useState,
   type ComponentProps,
 } from 'react'
-import { Platform, StyleSheet } from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view'
@@ -103,6 +104,8 @@ type PopoverContentProps = Omit<
   accessibilityRole?: PopoverRole
 }
 
+const POPOVER_EDGE_GAP_PX = 8
+
 function PopoverContent({
   className,
   align = 'center',
@@ -130,7 +133,7 @@ function PopoverContent({
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
           <NativeOnlyAnimatedView entering={FadeIn.duration(200)} exiting={FadeOut}>
             <TextClassContext.Provider value="text-fg-primary">
-              <PopoverPrimitive.Content
+              <NativeAwareContent
                 align={align}
                 sideOffset={sideOffset}
                 role={accessibilityRole}
@@ -151,6 +154,40 @@ function PopoverContent({
         </PopoverPrimitive.Overlay>
       </FullWindowOverlay>
     </PopoverPrimitive.Portal>
+  )
+}
+
+// Wraps PopoverPrimitive.Content with native-only screen-position awareness:
+// flips above the trigger when there's more room up than down, and caps height
+// to the larger of (space below, space above). rn-primitives/popover's built-in
+// avoidCollisions only clamps top against the screen — it does NOT flip side
+// nor cap content height, so tall content under a low trigger spills offscreen.
+function NativeAwareContent(props: ComponentProps<typeof PopoverPrimitive.Content>) {
+  const { triggerPosition } = PopoverPrimitive.useRootContext()
+  const { height: windowHeight } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+
+  const triggerY = triggerPosition?.pageY ?? 0
+  const triggerHeight = triggerPosition?.height ?? 0
+  const spaceBelow = Math.max(
+    windowHeight - insets.bottom - (triggerY + triggerHeight) - POPOVER_EDGE_GAP_PX,
+    0,
+  )
+  const spaceAbove = Math.max(triggerY - insets.top - POPOVER_EDGE_GAP_PX, 0)
+  const flipUp = spaceAbove > spaceBelow
+  const nativeMaxHeight = Math.floor(Math.max(spaceBelow, spaceAbove))
+
+  const mergedStyle = useMemo<ViewStyle | undefined>(() => {
+    if (Platform.OS === 'web') return props.style as ViewStyle | undefined
+    return { maxHeight: nativeMaxHeight, ...(props.style as ViewStyle | undefined) }
+  }, [nativeMaxHeight, props.style])
+
+  return (
+    <PopoverPrimitive.Content
+      {...props}
+      side={Platform.OS !== 'web' ? (flipUp ? 'top' : 'bottom') : props.side}
+      style={mergedStyle}
+    />
   )
 }
 

@@ -91,13 +91,14 @@ commands and has no create row).
   ([`iconography.md`](../foundations/iconography.md#top-bar--chrome))
   plus `Cmd/Ctrl-K`; the menu owns the keybind and drives the
   substrate's controlled `open`.
-- **Desktop / tablet** — anchored **Popover**, ~340 px wide.
-  `autofocusSearch: 'except-phone'` — search autofocused (`Cmd-K`
+- **Desktop / tablet (web)** — anchored **Popover**, ~340 px wide.
+  `autofocusSearch: 'web-only'` — search autofocused (`Cmd-K`
   expects to type).
-- **Phone** — bottom **Sheet**, `sheetSize` tracking content volume
-  (a thin menu uses a short sheet). Search **not** autofocused —
-  `autofocusSearch: 'except-phone'` keeps the keyboard down so the
-  contextual zone stays visible; the menu is browse-first on touch.
+- **Tablet / phone (native)** — Popover (tablet) or bottom **Sheet**
+  (phone, `sheetSize` tracking content volume). Search **not**
+  autofocused — `autofocusSearch: 'web-only'` keeps the soft keyboard
+  down so the action list stays visible; the menu is browse-first on
+  touch regardless of form factor.
 
 ## Inventory
 
@@ -239,7 +240,7 @@ It is the combobox + listbox pattern, not the menu pattern (a
 `role="dialog"` and does **not** use the `accessibilityRole="menu"`
 override. The menu takes the substrate defaults
 `escClearsQueryFirst: false` (`Esc` closes in one press) and
-`autofocusSearch: 'except-phone'`.
+`autofocusSearch: 'web-only'`.
 
 Actions-menu-specific ARIA: the zone and group sections carry
 `role="group"` with an `aria-label` (`On this screen`, `Go to`,

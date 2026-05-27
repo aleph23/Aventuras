@@ -4,6 +4,7 @@ import { Portal } from '@rn-primitives/portal'
 import { defaultRangeExtractor, useVirtualizer, type Range } from '@tanstack/react-virtual'
 import { Search, X } from 'lucide-react-native'
 import {
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -16,13 +17,16 @@ import {
   type Ref,
 } from 'react'
 import {
+  Keyboard,
   Platform,
   Pressable,
-  SectionList,
+  StyleSheet,
   View,
   type TextInputKeyPressEvent,
   type ViewStyle,
 } from 'react-native'
+import { ScrollView as GHScrollView } from 'react-native-gesture-handler'
+import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 
 import { Icon } from '@/components/ui/icon'
 import { Input } from '@/components/ui/input'
@@ -89,7 +93,7 @@ type SearchableOverlayListProps<T> = {
   // X clears both the input text and the consumer's selection.
   onClear?: () => void
 
-  autofocusSearch?: 'always' | 'except-phone'
+  autofocusSearch?: 'always' | 'web-only'
   escClearsQueryFirst?: boolean
   sheetSize?: 'short' | 'medium' | 'tall'
 
@@ -129,6 +133,20 @@ const STATIC_STYLES = {
     minWidth: 240,
   } satisfies ViewStyle,
   pointerEventsNone: { pointerEvents: 'none' as const } satisfies ViewStyle,
+  // Native inline popover for Shape1Inline: absolute positioning relative to
+  // the wrapper (which contains the input) places the popover just below the
+  // input regardless of where the wrapper sits in the window. `elevation` lifts
+  // it above subsequent siblings on Android; iOS respects zIndex directly.
+  nativeInlinePopover: {
+    position: 'absolute' as const,
+    top: '100%' as const,
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    maxHeight: 320,
+    zIndex: 50,
+    elevation: 8,
+  } satisfies ViewStyle,
 }
 
 function flattenEnabled<T>(sections: Section<T>[]): Row<T>[] {
@@ -294,14 +312,80 @@ function RowListNative<T>({
       </View>
     )
   }
-  const anySticky = sections.some((s) => s.sticky)
   const rowClass = variant === 'sheet' ? ROW_PHONE : ROW_DESKTOP
-  // gorhom's BottomSheetSectionList registers with the sheet's gesture / keyboard
-  // system; a plain SectionList renders but its touches conflict with the sheet's
-  // drag and its scroll region doesn't shrink for the keyboard.
-  const ListComponent = variant === 'sheet' ? BottomSheetSectionList : SectionList
+  const renderItem = (item: Row<T>) => {
+    const highlighted = item.id === highlightedId
+    const selected = selectedRowIds?.has(item.id) ?? false
+    return (
+      <Pressable
+        key={item.id}
+        nativeID={`${rowIdPrefix}-${item.id}`}
+        role="button"
+        // aria-selected on web reflects committed selection; on native the
+        // primitive maps to accessibilityState.selected. Highlight is the
+        // keyboard cursor and is conveyed via aria-activedescendant from
+        // the search input — keeping it off this attribute avoids
+        // duplicating the cue.
+        aria-selected={selected || (selectedRowIds == null && highlighted)}
+        disabled={item.disabled}
+        onPress={() => onActivate(item)}
+        className={cn(
+          ROW_BASE,
+          rowClass,
+          selected && 'bg-bg-sunken',
+          highlighted && !selected && 'bg-tint-hover',
+          item.disabled && 'opacity-50',
+        )}
+      >
+        {renderRow(item, { highlighted, selected })}
+      </Pressable>
+    )
+  }
+  const renderHeader = (header: ReactNode) => (
+    <View className="bg-bg-overlay px-row-x-md py-1">
+      {typeof header === 'string' ? (
+        <Text variant="muted" size="xs" className="uppercase tracking-wide">
+          {header}
+        </Text>
+      ) : (
+        header
+      )}
+    </View>
+  )
+
+  // Inline variant (Shape1Inline's anchored popover) eagerly renders rows
+  // inside a gesture-handler ScrollView. SectionList would warn here because
+  // it's nested under the consumer's page ScrollView (same orientation, breaks
+  // VirtualizedList windowing). Autocomplete-shaped lists are bounded enough
+  // that virtualization isn't a real loss; sticky-header support is dropped on
+  // this branch (Shape1Inline consumers don't request sticky sections).
+  if (variant === 'inline') {
+    return (
+      <GHScrollView
+        nativeID={listboxId}
+        accessibilityRole="list"
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        className={className}
+        style={style}
+      >
+        {sections.map((section) => (
+          <View key={section.id}>
+            {section.header != null ? renderHeader(section.header) : null}
+            {section.rows.map(renderItem)}
+          </View>
+        ))}
+      </GHScrollView>
+    )
+  }
+
+  // Sheet variant — gorhom's BottomSheetSectionList registers with the sheet's
+  // gesture / keyboard system; a plain SectionList renders but its touches
+  // conflict with the sheet's drag and its scroll region doesn't shrink for
+  // the keyboard.
+  const anySticky = sections.some((s) => s.sticky)
   return (
-    <ListComponent
+    <BottomSheetSectionList
       sections={sections.map((s) => ({
         key: s.id,
         header: s.header,
@@ -313,49 +397,13 @@ function RowListNative<T>({
       keyboardShouldPersistTaps="handled"
       className={className}
       style={style}
-      ItemSeparatorComponent={variant === 'sheet' ? () => ROW_DIVIDER : undefined}
+      ItemSeparatorComponent={() => ROW_DIVIDER}
       nativeID={listboxId}
-      accessibilityRole={Platform.OS === 'web' ? undefined : 'list'}
+      accessibilityRole="list"
       renderSectionHeader={({ section }) =>
-        section.header != null ? (
-          <View className="bg-bg-overlay px-row-x-md py-1">
-            {typeof section.header === 'string' ? (
-              <Text variant="muted" size="xs" className="uppercase tracking-wide">
-                {section.header}
-              </Text>
-            ) : (
-              section.header
-            )}
-          </View>
-        ) : null
+        section.header != null ? renderHeader(section.header) : null
       }
-      renderItem={({ item }) => {
-        const highlighted = item.id === highlightedId
-        const selected = selectedRowIds?.has(item.id) ?? false
-        return (
-          <Pressable
-            nativeID={`${rowIdPrefix}-${item.id}`}
-            role="button"
-            // aria-selected on web reflects committed selection; on native the
-            // primitive maps to accessibilityState.selected. Highlight is the
-            // keyboard cursor and is conveyed via aria-activedescendant from
-            // the search input — keeping it off this attribute avoids
-            // duplicating the cue.
-            aria-selected={selected || (selectedRowIds == null && highlighted)}
-            disabled={item.disabled}
-            onPress={() => onActivate(item)}
-            className={cn(
-              ROW_BASE,
-              rowClass,
-              selected && 'bg-bg-sunken',
-              highlighted && !selected && 'bg-tint-hover',
-              item.disabled && 'opacity-50',
-            )}
-          >
-            {renderRow(item, { highlighted, selected })}
-          </Pressable>
-        )
-      }}
+      renderItem={({ item }) => renderItem(item)}
     />
   )
 }
@@ -762,7 +810,7 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
   const triggerRef = useRef<unknown>(null)
 
   const shouldAutofocus =
-    autofocusSearch === 'always' || (autofocusSearch === 'except-phone' && !isPhone)
+    autofocusSearch === 'always' || (autofocusSearch === 'web-only' && Platform.OS === 'web')
 
   const activate = useCallback(
     (row: Row<T>) => {
@@ -923,29 +971,45 @@ function Shape2Dialog<T>(props: SearchableOverlayListProps<T>) {
   const popoverStyle = props.matchTriggerWidth
     ? STATIC_STYLES.overlayChromeMatchTrigger
     : STATIC_STYLES.overlayChrome
+  const content = (
+    <PopoverPrimitive.Content
+      align="start"
+      sideOffset={4}
+      role="dialog"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      className={cn(
+        'z-50 rounded-md border border-border bg-bg-overlay p-4',
+        !props.matchTriggerWidth && 'w-80',
+      )}
+      style={popoverStyle}
+    >
+      {body}
+    </PopoverPrimitive.Content>
+  )
   return (
     <PopoverPrimitive.Root onOpenChange={setOpen}>
       <PopoverControlledBridge open={open} />
       <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content
-          align="start"
-          sideOffset={4}
-          role="dialog"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          className={cn(
-            'z-50 rounded-md border border-border bg-bg-overlay p-4',
-            !props.matchTriggerWidth && 'w-80',
-          )}
-          style={popoverStyle}
-        >
-          {body}
-        </PopoverPrimitive.Content>
+        {Platform.OS === 'web' ? (
+          // Web: Radix popover handles outside-click dismiss natively; no Overlay needed.
+          content
+        ) : (
+          // Native: wrap in Overlay (a Pressable that closes on press) so tap-outside
+          // dismisses the popover. FullWindowOverlay is iOS-only modal stacking.
+          <FullWindowOverlay>
+            <PopoverPrimitive.Overlay style={StyleSheet.absoluteFill}>
+              {content}
+            </PopoverPrimitive.Overlay>
+          </FullWindowOverlay>
+        )}
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
   )
 }
+
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : Fragment
 
 // Shape 1 — inline combobox with a portaled listbox popup. as-trigger on non-phone.
 function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
@@ -1007,6 +1071,18 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
       window.removeEventListener('resize', handler)
     }
   }, [open, updateAnchor])
+
+  // Native dismiss bridge: tap-outside an Android TextInput while the keyboard
+  // is up auto-blurs the input (triggers handleBlur → close popover). But when
+  // the keyboard is already down (e.g. user pressed back once), the input
+  // keeps focus and tap-outside no-ops, leaving the popover stuck open.
+  // Closing on keyboardDidHide makes back-press a single-step close — matches
+  // Material 3 (menu dismisses first, keyboard second; same end state here).
+  useEffect(() => {
+    if (!open || Platform.OS === 'web') return undefined
+    const sub = Keyboard.addListener('keyboardDidHide', () => setOpen(false))
+    return () => sub.remove()
+  }, [open])
 
   // Combobox sync model: the input value tracks query (substrate state); query is
   // updated by (a) user typing / clearing — preserved across focus cycles — and (b) an
@@ -1103,7 +1179,7 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
     [moveHighlight, currentQuery, setQuery, escClearsQueryFirst, onSubmit],
   )
 
-  const popoverStyle: ViewStyle | undefined =
+  const webPopoverStyle: ViewStyle | undefined =
     anchorRect != null
       ? {
           position: 'absolute',
@@ -1114,6 +1190,27 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
           maxHeight: 320,
         }
       : undefined
+
+  const popoverBody = (
+    <>
+      <RowList
+        sections={sections}
+        highlightedId={list.highlightedId}
+        selectedRowIds={selectedRowIdsSet}
+        onActivate={activate}
+        renderRow={renderRow}
+        renderEmpty={renderEmpty}
+        query={list.query}
+        variant="inline"
+        listboxId={listboxId}
+        rowIdPrefix={rowIdPrefix}
+        style={STATIC_STYLES.flex1}
+      />
+      {renderFooter ? (
+        <View className="border-t border-border px-3 py-2">{renderFooter()}</View>
+      ) : null}
+    </>
+  )
 
   const wrapper = (
     <View
@@ -1143,30 +1240,30 @@ function Shape1Inline<T>(props: SearchableOverlayListProps<T>) {
         rowIdPrefix={rowIdPrefix}
         ariaInvalid={ariaInvalid}
       />
-      {open && popoverStyle ? (
-        <Portal name={portalName}>
+      {open ? (
+        Platform.OS === 'web' ? (
+          webPopoverStyle ? (
+            <Portal name={portalName}>
+              <View
+                style={webPopoverStyle}
+                className="overflow-hidden rounded-md border border-border bg-bg-overlay py-1"
+              >
+                {popoverBody}
+              </View>
+            </Portal>
+          ) : null
+        ) : (
+          // Native: render inline inside the wrapper, absolute-positioned just
+          // below the input. Avoids the hand-rolled Portal + measureInWindow path
+          // (coord-space mismatch between rn-primitives/portal mounting and
+          // window measurements, made worse by keyboard-driven layout shifts).
           <View
-            style={popoverStyle}
+            style={STATIC_STYLES.nativeInlinePopover}
             className="overflow-hidden rounded-md border border-border bg-bg-overlay py-1"
           >
-            <RowList
-              sections={sections}
-              highlightedId={list.highlightedId}
-              selectedRowIds={selectedRowIdsSet}
-              onActivate={activate}
-              renderRow={renderRow}
-              renderEmpty={renderEmpty}
-              query={list.query}
-              variant="inline"
-              listboxId={listboxId}
-              rowIdPrefix={rowIdPrefix}
-              style={STATIC_STYLES.flex1}
-            />
-            {renderFooter ? (
-              <View className="border-t border-border px-3 py-2">{renderFooter()}</View>
-            ) : null}
+            {popoverBody}
           </View>
-        </Portal>
+        )
       ) : null}
     </View>
   )

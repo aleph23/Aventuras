@@ -115,7 +115,7 @@ type SearchableOverlayListProps<T> = {
   onActivate: (row: Row<T>) => void // row-body press / Enter; substrate closes first
 
   // — behavior —
-  autofocusSearch?: 'always' | 'except-phone' // default 'always'
+  autofocusSearch?: 'always' | 'web-only' // default 'always'
   escClearsQueryFirst?: boolean // default false (Esc closes)
   sheetSize?: 'short' | 'medium' | 'tall' // phone Sheet height; default 'tall'
   initialScrollRowId?: string // row scrolled into view (mid-viewport) on open

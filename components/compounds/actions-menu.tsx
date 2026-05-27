@@ -231,7 +231,7 @@ function ActionsMenu({
       renderRow={renderRow}
       renderEmpty={renderEmpty}
       onActivate={handleActivate}
-      autofocusSearch="except-phone"
+      autofocusSearch="web-only"
       sheetSize="tall"
     />
   )

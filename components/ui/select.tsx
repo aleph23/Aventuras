@@ -6,13 +6,17 @@ import { Fragment, useMemo, useRef, type ComponentProps, type ReactNode } from '
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
   type ViewStyle,
 } from 'react-native'
+// rn-primitives Content stamps onStartShouldSetResponder={() => true},
+// which competes with RN's JS-side ScrollView pan claim. Gesture-handler's
+// ScrollView uses native gesture handling and bypasses the JS responder.
+import { ScrollView } from 'react-native-gesture-handler'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens'
 
 import { Heading } from '@/components/ui/heading'
@@ -181,6 +185,8 @@ function PhoneSheetContent({
   )
 }
 
+const POPOVER_EDGE_GAP_PX = 8
+
 function PopoverContent({
   className,
   children,
@@ -193,8 +199,32 @@ function PopoverContent({
   portalHost?: string
   tailAction?: { label: string; onPress: () => void }
 }) {
-  const { height: screenHeight } = useWindowDimensions()
-  const nativeMaxHeight = Math.floor(screenHeight * 0.5)
+  // Web stretches the popover to the trigger via --radix-select-trigger-width
+  // and clamps height via max-h-52; native has no equivalent so we derive both
+  // from the measured trigger + window + insets. avoidCollisions in the native
+  // primitive only clamps the top against screen bounds, leaving content to
+  // overflow without scrolling — drive maxHeight ourselves so the inner
+  // ScrollView clamps and actually scrolls.
+  const { triggerPosition } = SelectBase.useRootContext()
+  const { height: windowHeight } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+
+  const triggerBottom = (triggerPosition?.pageY ?? 0) + (triggerPosition?.height ?? 0)
+  const spaceBelow = Math.max(windowHeight - insets.bottom - triggerBottom - POPOVER_EDGE_GAP_PX, 0)
+  const spaceAbove = Math.max((triggerPosition?.pageY ?? 0) - insets.top - POPOVER_EDGE_GAP_PX, 0)
+  const flipUp = spaceAbove > spaceBelow
+  const nativeSide: 'top' | 'bottom' = flipUp ? 'top' : 'bottom'
+  const nativeMaxHeight = Math.floor(Math.max(spaceBelow, spaceAbove))
+
+  const contentStyle = useMemo<ViewStyle>(
+    () => ({
+      ...(Platform.OS === 'web' ? { zIndex: 100 } : null),
+      ...(Platform.OS !== 'web' && triggerPosition?.width != null
+        ? { width: triggerPosition.width, maxHeight: nativeMaxHeight }
+        : null),
+    }),
+    [triggerPosition?.width, nativeMaxHeight],
+  )
   return (
     <SelectBase.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -202,7 +232,7 @@ function PopoverContent({
           <TextClassContext.Provider value="text-fg-primary">
             <NativeOnlyAnimatedView className="z-[100]" entering={FadeIn} exiting={FadeOut}>
               <SelectBase.Content
-                style={Platform.select({ web: { zIndex: 100 } })}
+                style={contentStyle}
                 className={cn(
                   'relative z-[100] min-w-[8rem] rounded-md border border-border bg-bg-overlay',
                   Platform.select({
@@ -212,6 +242,7 @@ function PopoverContent({
                   className,
                 )}
                 position={position}
+                side={Platform.OS !== 'web' ? nativeSide : undefined}
                 {...props}
               >
                 <ScrollUpButton />
@@ -230,7 +261,13 @@ function PopoverContent({
                   {Platform.OS === 'web' ? (
                     children
                   ) : (
-                    <ScrollView style={{ maxHeight: nativeMaxHeight }}>{children}</ScrollView>
+                    <ScrollView
+                      className="flex-1"
+                      contentContainerClassName="flex-grow"
+                      nestedScrollEnabled
+                    >
+                      {children}
+                    </ScrollView>
                   )}
                 </SelectBase.Viewport>
                 <ScrollDownButton />

@@ -13,30 +13,6 @@ for the placement rule.
 
 ## UX
 
-### Native overlay impl vs JS-based overlay
-
-Both `Sheet` (`components/ui/sheet.tsx`) and `Dialog`
-(`components/ui/dialog.tsx`) are built on `@rn-primitives/dialog`
-— overlay-based, layered on `react-native-screens`
-`FullWindowOverlay`. The
-[`ui-native-modals.md` rule](../.agents/skills/vercel-react-native-skills/rules/ui-native-modals.md)
-recommends migrating to native `<Modal
-presentationStyle="formSheet">` on native instead, citing
-built-in swipe-to-dismiss, native keyboard avoidance,
-accessibility, and better performance than JS-based bottom
-sheets.
-
-Worth a focused review of whether to migrate the native paths of
-`Sheet` and `Dialog` to native `Modal`. Affects every existing
-overlay compound on native (`CollisionResolveDialog`,
-`EmbedderDownloadDialog`, `ImportDialog`); ideally lands before
-the v1 ship gate so the migration ripple is bounded.
-
-Sheet-vs-Dialog/Modal consolidation as a general-use question
-(retire one of them?) is **not** in scope here — that's a
-"let real-app signal decide" call, deferred to actual usage
-feedback.
-
 ### Diagnostics hub — per-tab body design passes
 
 [`diagnostics.md`](./ui/screens/diagnostics/diagnostics.md) is
