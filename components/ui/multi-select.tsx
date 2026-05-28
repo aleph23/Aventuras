@@ -1,0 +1,199 @@
+import { ChevronDown } from 'lucide-react-native'
+import { useCallback, useId, useMemo, useState } from 'react'
+import { Platform, Pressable, View } from 'react-native'
+
+import { Checkbox } from '@/components/ui/checkbox'
+import { Icon } from '@/components/ui/icon'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Text } from '@/components/ui/text'
+import { cn } from '@/lib/utils'
+
+import {
+  clearAll,
+  computeSelectionState,
+  normalizeSelection,
+  selectAll,
+  selectionLabel,
+  toggleValue,
+  type MultiSelectOption,
+} from './multi-select-state'
+
+type MultiSelectProps = {
+  /** Label prefix shown before the auto-computed state on the trigger (e.g. `Subsystem`). */
+  prefix: string
+  /** Source-order list. Render order is preserved; primitive does not sort. */
+  options: readonly MultiSelectOption[]
+  /** Current selection. Accepts Set or array; primitive normalizes internally. */
+  selected: ReadonlySet<string> | readonly string[]
+  /** Fired on every toggle, Select-all, and Clear-all. Emits an array in source order. */
+  onChange: (next: string[]) => void
+  /** Whole-control disable. */
+  disabled?: boolean
+  /** Title-tooltip when disabled (parity with Input / Select). */
+  disabledReason?: string
+  /** Class override for the trigger (consumer customization, e.g. de-emphasis on `all`). */
+  triggerClassName?: string
+}
+
+function emitSelection(
+  next: ReadonlySet<string>,
+  options: readonly MultiSelectOption[],
+  onChange: (next: string[]) => void,
+) {
+  const ordered = options.filter((o) => next.has(o.value)).map((o) => o.value)
+  onChange(ordered)
+}
+
+export function MultiSelect({
+  prefix,
+  options,
+  selected,
+  onChange,
+  disabled,
+  disabledReason,
+  triggerClassName,
+}: MultiSelectProps) {
+  const [open, setOpen] = useState(false)
+  const labelId = useId()
+
+  const normalized = useMemo(() => normalizeSelection(selected, options), [selected, options])
+  const state = useMemo(() => computeSelectionState(normalized, options), [normalized, options])
+  const stateLabel = selectionLabel(state)
+
+  const handleSelectAll = useCallback(() => {
+    emitSelection(selectAll(options), options, onChange)
+  }, [options, onChange])
+
+  const handleClearAll = useCallback(() => {
+    emitSelection(clearAll(), options, onChange)
+  }, [options, onChange])
+
+  const handleToggle = useCallback(
+    (value: string) => {
+      emitSelection(toggleValue(normalized, value), options, onChange)
+    },
+    [normalized, options, onChange],
+  )
+
+  const webTitle = Platform.OS === 'web' ? { title: disabled ? disabledReason : undefined } : null
+
+  return (
+    <Popover onOpenChange={setOpen} ariaLabelledBy={labelId}>
+      <PopoverTrigger asChild disabled={disabled}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${prefix}: ${stateLabel}`}
+          accessibilityState={{ expanded: open, disabled: !!disabled }}
+          {...webTitle}
+          className={cn(
+            'h-control-xs flex-row items-center gap-2 rounded-md border border-border bg-bg-base px-3',
+            'active:bg-tint-hover',
+            Platform.select({
+              web: 'outline-none hover:border-border-strong focus-visible:ring-2 focus-visible:ring-focus-ring',
+            }),
+            disabled && 'opacity-50',
+            triggerClassName,
+          )}
+        >
+          <Text nativeID={labelId} size="xs" className="text-fg-muted">
+            {prefix}:
+          </Text>
+          <Text size="xs" className="text-fg-primary">
+            {stateLabel}
+          </Text>
+          <Icon as={ChevronDown} size="sm" className="text-fg-muted" />
+        </Pressable>
+      </PopoverTrigger>
+      <PopoverContent accessibilityRole="dialog" className="w-64 p-0">
+        <Overlay
+          options={options}
+          selected={normalized}
+          state={state}
+          onSelectAll={handleSelectAll}
+          onClearAll={handleClearAll}
+          onToggle={handleToggle}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+type OverlayProps = {
+  options: readonly MultiSelectOption[]
+  selected: ReadonlySet<string>
+  state: ReturnType<typeof computeSelectionState>
+  onSelectAll: () => void
+  onClearAll: () => void
+  onToggle: (value: string) => void
+}
+
+function Overlay({ options, selected, state, onSelectAll, onClearAll, onToggle }: OverlayProps) {
+  return (
+    <View>
+      <View className="flex-row items-center gap-3 border-b border-border px-row-x-md py-row-y-sm">
+        <Pressable
+          accessibilityRole="button"
+          onPress={onSelectAll}
+          disabled={state.kind === 'all'}
+          className={cn('h-control-xs justify-center px-2', state.kind === 'all' && 'opacity-50')}
+        >
+          <Text size="xs" className="text-fg-primary">
+            Select all
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onClearAll}
+          disabled={state.kind === 'none'}
+          className={cn('h-control-xs justify-center px-2', state.kind === 'none' && 'opacity-50')}
+        >
+          <Text size="xs" className="text-fg-primary">
+            Clear all
+          </Text>
+        </Pressable>
+      </View>
+      <View className="max-h-80">
+        {options.map((option) => (
+          <OptionRow
+            key={option.value}
+            option={option}
+            checked={selected.has(option.value)}
+            onPress={onToggle}
+          />
+        ))}
+      </View>
+    </View>
+  )
+}
+
+type OptionRowProps = {
+  option: MultiSelectOption
+  checked: boolean
+  onPress: (value: string) => void
+}
+
+function OptionRow({ option, checked, onPress }: OptionRowProps) {
+  const handlePress = useCallback(() => onPress(option.value), [onPress, option.value])
+
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled: !!option.disabled }}
+      onPress={handlePress}
+      disabled={option.disabled}
+      className={cn(
+        'flex-row items-center gap-3 px-row-x-md py-row-y-md',
+        Platform.select({ web: 'hover:bg-bg-raised' }),
+        'active:bg-bg-raised',
+        option.disabled && 'opacity-50',
+      )}
+    >
+      <Checkbox checked={checked} onCheckedChange={handlePress} disabled={option.disabled} />
+      <Text size="sm" className="flex-1 text-fg-primary">
+        {option.label ?? option.value}
+      </Text>
+    </Pressable>
+  )
+}
+
+export type { MultiSelectProps }
