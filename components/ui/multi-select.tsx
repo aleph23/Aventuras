@@ -2,10 +2,6 @@ import * as PopoverPrimitive from '@rn-primitives/popover'
 import { ChevronDown } from 'lucide-react-native'
 import { useCallback, useId, useMemo, useState } from 'react'
 import { Platform, Pressable, View, type ViewStyle } from 'react-native'
-// rn-primitives Content stamps onStartShouldSetResponder, which competes with
-// RN's JS-side ScrollView pan claim. Gesture-handler's ScrollView uses native
-// gesture handling and bypasses the JS responder — same workaround as the
-// Select primitive.
 import { ScrollView } from 'react-native-gesture-handler'
 
 import { Checkbox } from '@/components/ui/checkbox'
@@ -183,6 +179,8 @@ type OverlayProps = {
   isPhone: boolean
 }
 
+const SCROLL_MAX_HEIGHT: ViewStyle = { maxHeight: 320 }
+
 function Overlay({
   options,
   selected,
@@ -229,7 +227,11 @@ function Overlay({
           ))}
         </View>
       ) : (
-        <ScrollView className="max-h-80" nestedScrollEnabled>
+        // Inline style — NativeWind's `max-h-*` doesn't compile through to
+        // the gesture-handler ScrollView's web wrapper (RN-Web nests divs
+        // and the className lands on a wrapper that doesn't constrain the
+        // scrollable inner). Explicit style avoids the class pipeline.
+        <ScrollView style={SCROLL_MAX_HEIGHT} nestedScrollEnabled>
           {options.map((option) => (
             <OptionRow
               key={option.value}
