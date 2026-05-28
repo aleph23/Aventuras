@@ -9,13 +9,17 @@
 
 ## Goal
 
-Establish the `lib/*` public-API discipline before any `lib/`
-module exists, so the first module sets the pattern rather than
-getting retrofitted into it later. Lands the
-`eslint-plugin-boundaries` rule at `error` severity, the canonical
-`docs/code-conventions.md` human-facing doc, and the matching
-`.claude/rules/code.md` extension that cites it. No `lib/*`
-modules are introduced; the first module ships in Slice 1.2.
+Land the canonical project conventions before any `lib/` module,
+Storybook compound, or feature slice exists so the first writers
+set the pattern rather than getting retrofitted into it later.
+Three artefacts ship together: the `eslint-plugin-boundaries` rule
+at `error` severity enforcing the `lib/*` public-API discipline,
+the canonical `docs/code-conventions.md` human-facing doc covering
+the full v1 convention set (module structure, state placement,
+action layer, component taxonomy, i18n, testing, forms, pnpm),
+and the matching `.claude/rules/code.md` citation block that
+references it from agent-facing context. No `lib/*` modules are
+introduced; the first module ships in Slice 1.2.
 
 ## Background
 
@@ -41,8 +45,14 @@ instead of `src/lib/services/*`.
   — existing pattern for eslint rules that enforce code
   discipline; this slice extends the same style with the
   boundaries plugin.
+- [`.claude/rules/code.md` → Commenting discipline](../../../../../.claude/rules/code.md#commenting-discipline)
+  — first canonical convention; this slice's `docs/code-conventions.md`
+  cites rather than duplicates it.
 - [`docs/conventions.md` → Cross-references](../../../../conventions.md#cross-references)
   — anchor-link convention for any new docs added in this slice.
+- [`docs/implementation/lessons-learned/`](../../../lessons-learned/README.md)
+  — implementation pitfalls already collected; the canonical doc
+  points readers here for runtime-pattern gotchas.
 
 ## Scope: in
 
@@ -61,19 +71,66 @@ instead of `src/lib/services/*`.
     external imports, test deep-import policy, types as part of
     the public API.
   - **State placement** — three-tier rule (component-local
-    `useState`, cross-component ephemeral via `lib/stores/ui/`,
-    domain stores via `lib/stores/domain/` mutated through the
-    action layer only).
+    `useState` (React) for component-local state, cross-component
+    ephemeral via `lib/stores/ui/`, domain-class Zustand stores
+    exposing mutators only — no direct `setState` access from
+    outside the store / action layer).
   - **Action layer** — single layer spans pipeline and UI
     writes; domain-organized (`lib/actions/<domain>/`); mediates
     Zustand and SQLite transactionally.
-- Extend `.claude/rules/code.md` with three new sections citing
-  `docs/code-conventions.md`:
-  - Module structure section pointing to the canonical doc.
-  - State placement section pointing to the canonical doc.
-  - Action layer section pointing to the canonical doc.
+  - **Component folder taxonomy** — primitives → `components/ui/`;
+    domain-agnostic compounds → `components/compounds/`;
+    single-domain compounds → `components/<domain>/`; shells →
+    `components/shells/`. Cites
+    [`docs/ui/components.md → Directory layout`](../../../../ui/components.md#directory-layout).
+  - **i18n discipline** — no raw user-facing strings in code; all
+    chrome routes through `t()`. Convention-only this slice;
+    eslint enforcement gates on `i18next` install in Slice 1.7
+    (per
+    [`milestone.md → Narrative`](../milestone.md#narrative--overview)).
+  - **Testing discipline** — unit tests required on logic:
+    `lib/*` modules, pure functions, reducers, state machines,
+    classifier output parsers. UI smoke / Storybook / manual
+    covers component behaviour. No coverage thresholds (they
+    rot).
+  - **Forms** — input clusters with a submit button use
+    `react-hook-form`. Inline controlled inputs (single input
+    without submit — rename, search, toggle row) stay
+    component-local. Convention-only this slice; `react-hook-form`
+    installs in Slice 2.3.
+  - **pnpm + patches** — `pnpm` is the only supported package
+    manager, enforced by `engines.pnpm` + `engine-strict=true` +
+    `only-allow` preinstall guard. Patches live under
+    [`patches/`](../../../../../patches/) and are referenced via
+    `pnpm-lock.yaml` `patchedDependencies`.
+  - **Commenting + import discipline** — citations to
+    [`.claude/rules/code.md → Commenting discipline`](../../../../../.claude/rules/code.md#commenting-discipline)
+    and
+    [`.claude/rules/code.md → Import wildcards`](../../../../../.claude/rules/code.md#import-wildcards).
+    Not duplicated; canonical home stays in `code.md` since the
+    rules are agent-facing-first.
+  - **Lessons-learned pointer** — link to
+    [`docs/implementation/lessons-learned/`](../../../lessons-learned/README.md)
+    with read-before-touching guidance.
+- Extend `.claude/rules/code.md` with citing sections for every
+  topic introduced in `docs/code-conventions.md` above
+  (Module structure, State placement, Action layer, Component
+  folder taxonomy, i18n, Testing, Forms, pnpm + patches,
+  Lessons-learned). Each section is short and points to the
+  canonical anchor — code.md owns Commenting + Import wildcards
+  end-to-end and cites code-conventions.md for everything else.
 - Update `docs/README.md` to add `code-conventions.md` to the
   `## What's here` index.
+- Update `CLAUDE.md` `## Authoritative reading` to list
+  `docs/code-conventions.md`.
+- Update the `aventuras-*` dev skills that touch code
+  (`aventuras-test-driven-development`,
+  `aventuras-systematic-debugging`,
+  `aventuras-receiving-code-review`,
+  `aventuras-requesting-code-review`,
+  `aventuras-verification-before-completion`,
+  `aventuras-finishing-a-development-branch`) to cite
+  `docs/code-conventions.md` in their preflight.
 
 ## Scope: out
 
@@ -89,6 +146,16 @@ instead of `src/lib/services/*`.
   exist.
 - No selective-re-export shape enforcement on `index.ts` files;
   convention-only, not mechanically enforced this slice.
+- No eslint rule for raw user-facing strings — gates on
+  `i18next` install in Slice 1.7.
+- No eslint rule for `react-hook-form` usage on submit clusters
+  — `react-hook-form` doesn't install until Slice 2.3; rule
+  remains a code-review-only check.
+- Lessons-learned migration, CLAUDE.md non-Claude-agent pointer
+  block, and pnpm enforcement (`only-allow` + `engine-strict`)
+  landed as scaffolding before this slice opens — not part of
+  the slice's deliverable surface, but referenced by the
+  canonical doc.
 
 ## Acceptance criteria
 
@@ -97,11 +164,16 @@ instead of `src/lib/services/*`.
 - `eslint.config.js` registers the plugin and includes the
   `boundaries/dependencies` rule at `'error'` severity targeting
   the `lib-module` element type.
-- `docs/code-conventions.md` exists, covers Module structure /
-  State placement / Action layer, and is listed in
-  `docs/README.md`.
-- `.claude/rules/code.md` extended with citing sections for
-  Module structure, State placement, and Action layer.
+- `docs/code-conventions.md` exists, covers Module structure,
+  State placement, Action layer, Component folder taxonomy, i18n,
+  Testing, Forms, pnpm + patches, Commenting / import (cites
+  `code.md`), and Lessons-learned, and is listed in
+  `docs/README.md` + `CLAUDE.md` `## Authoritative reading`.
+- `.claude/rules/code.md` extended with citing sections for every
+  topic introduced in the canonical doc; Commenting + Import
+  wildcards remain end-to-end in `code.md`.
+- All `aventuras-*` dev skills listed under Scope: in cite
+  `docs/code-conventions.md` in their preflight.
 - `pnpm lint` passes on the empty `lib/` (no violations because
   no modules exist yet).
 - `pnpm lint:docs` passes — remark validates anchor links across

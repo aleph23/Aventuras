@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Aventuras — cross-platform app (Expo on mobile, Electron on desktop).",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -115,6 +116,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "jsdom": "^29.1.1",
     "lefthook": "^2.1.6",
+    "only-allow": "^1.2.2",
     "playwright": "^1.59.1",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
@@ -183,7 +185,8 @@
   },
   "homepage": "https://github.com/AventurasTeam",
   "engines": {
-    "node": ">=24"
+    "node": ">=24",
+    "pnpm": ">=10.0.0"
   },
   "packageManager": "pnpm@10.33.1"
 }

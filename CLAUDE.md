@@ -135,18 +135,29 @@ cause is the server isn't running yet — start it and retry.
 
 ## Topic-scoped rules
 
-[`.claude/rules/`](./.claude/rules/) holds rules that auto-load when
-Claude reads files matching their `paths` frontmatter. Keeps general
-context lean; topic-specific rules surface contextually.
+[`.claude/rules/`](./.claude/rules/) holds rules that apply to **all
+agents** working on this repo. Claude Code auto-loads them based on
+the `paths` frontmatter when matching files are read.
+
+**Other agents (Codex, Cursor, etc.) and human contributors must
+read the applicable file at the start of any code or doc task.**
+Auto-load is Claude-only; the rules themselves are universal. This
+file is symlinked from `AGENTS.md`, so non-Claude agents that read
+`AGENTS.md` land here.
 
 - [`docs.md`](./.claude/rules/docs.md) — documentation conventions
   (anchor-link discipline, heading stability, followups hygiene,
-  wireframe template, doc-tooling). Loads on `docs/**` or
-  `.claude/rules/**` reads.
+  wireframe template, doc-tooling). Applies to any `docs/**` or
+  `.claude/rules/**` work.
 - [`code.md`](./.claude/rules/code.md) — source-edit rules
   (commenting discipline, import-wildcard ban with rn-primitives
-  exception). Loads on `app/**`, `components/**`, `hooks/**`,
-  `lib/**`, `types/**`, `electron/**`, or `scripts/**` reads.
+  exception). Applies to any `app/**`, `components/**`, `hooks/**`,
+  `lib/**`, `types/**`, `electron/**`, or `scripts/**` work.
+
+Code work also draws on
+[`docs/implementation/lessons-learned/`](./docs/implementation/lessons-learned/README.md)
+— indexed implementation pitfalls and runtime gotchas. Check the
+index before touching the substrate an entry references.
 
 Add new topic files (`testing.md`, etc.) when patterns emerge in
 those domains.

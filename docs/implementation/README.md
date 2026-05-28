@@ -13,3 +13,7 @@ ordered to build it.
 - **[milestones/](./milestones/README.md)** — per-milestone work.
   Each milestone has its own directory with a `milestone.md`
   definition and a `slices/` subdirectory holding per-slice docs.
+- **[lessons-learned/](./lessons-learned/README.md)** —
+  implementation pitfalls and runtime gotchas discovered while
+  building. Indexed by topic; read before touching the substrate
+  an entry references.
