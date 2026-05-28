@@ -10,11 +10,11 @@ off, the hub entry is absent from the
 [Actions menu](../../principles.md#top-bar-design-rule) — the
 toggle itself is the discovery point.
 
-Surface inventory plus Tabs 3, 4, 5 detail. **Per-tab body design
-for Tab 2 lands in its own detail pass** when it's built; this
+Surface inventory plus per-tab detail for Tabs 2, 3, 4, and 5. The
 doc names the structural pieces (top-bar, tab strip, story-anchor
 selector, cross-tab nav, empty states, mobile expression) plus the
-full body spec for Tabs 3, 4, and 5 below.
+full body spec for each new tab below. Tab 1 (Memory probe)
+references the existing [`memory-probe.md`](../memory-probe/memory-probe.md).
 
 ## Top-bar
 
@@ -56,22 +56,24 @@ Five tabs, in order:
 | #   | Tab                | Anchor                | Source                       | Status                                                         |
 | --- | ------------------ | --------------------- | ---------------------------- | -------------------------------------------------------------- |
 | 1   | Memory probe       | Story                 | `probe_captures` (persisted) | Existing — see [memory probe](../memory-probe/memory-probe.md) |
-| 2   | Per-turn inspector | Story + turn          | `turnCaptures` (in-memory)   | New — detail pass forthcoming                                  |
-| 3   | Call log           | App-global            | `httpCalls` (in-memory)      | New — detail pass forthcoming                                  |
-| 4   | Logs               | App-global            | `logEntries` (in-memory)     | New — detail pass forthcoming                                  |
-| 5   | Delta log          | Story (branch-scoped) | `deltas` (persisted)         | New — detail pass forthcoming                                  |
+| 2   | Per-turn inspector | Story + turn          | `turnCaptures` (in-memory)   | New — see [Tab 2](#tab-2--per-turn-inspector) below            |
+| 3   | Call log           | App-global            | `httpCalls` (in-memory)      | New — see [Tab 3](#tab-3--call-log) below                      |
+| 4   | Logs               | App-global            | `logEntries` (in-memory)     | New — see [Tab 4](#tab-4--logs) below                          |
+| 5   | Delta log          | Story (branch-scoped) | `deltas` (persisted)         | New — see [Tab 5](#tab-5--delta-log) below                     |
 
 Tab strip renders via the
 [Tabs primitive](../../patterns/tabs.md); optional per-tab count
 badges render to the right of each label. Per-tab rules:
 
+- Tab 2 (Per-turn inspector): story-scoped count (render-time filter
+  by `branchId`), max-severity color over the outcome ladder
+  (`failed` → danger, else `aborted` → warn, else neutral).
 - Tab 3 (Call log): unfiltered buffer count, max severity color
   (5xx/transport-failed → danger, 4xx → warn, else neutral).
 - Tab 4 (Logs): unfiltered buffer count, max severity color
   (error → danger, warn → warn, debug-only → neutral).
 - Tab 5 (Delta log): scope-respecting count (branch-toggle aware),
   neutral color (no severity dimension on `deltas`).
-- Tab 2 (Per-turn inspector): pins its own at its detail pass.
 
 ### Tab 1 — Memory probe
 
@@ -83,26 +85,429 @@ selector.
 
 ### Tab 2 — Per-turn inspector
 
-Story + turn-anchored. Sources `turnCaptures` slice. Two-pane:
+Story + turn-anchored. Sources `turnCaptures` slice. Two-pane shape:
+list of recent turns on the left, four-section detail pane on the
+right. List pane subscribes to the story selector (renders only
+turns whose `branchId` matches a branch of the selected story —
+render-time filter against the global `turnCaptures` buffer per
+[Screen-specific open questions → Story selector switch](#screen-specific-open-questions)).
 
-- **List pane** — recent turns, reverse-chronological by
-  `startedAt`. Branch filter inherits from the story selector.
-  Rows colored by outcome (`completed | aborted | failed`).
-- **Detail pane** — selected turn's phase timeline + classifier
-  raw output (JSON viewer per
-  [`patterns/data.md`](../../patterns/data.md)) + cross-cut rows
-  pulled from `httpCalls` and `logEntries` filtered by the
-  turn's `actionId`.
+#### Two-pane shape (Per-turn inspector)
 
-Cross-tab nav: row-click on a referenced HTTP call → opens Call
-log tab focused on that row; row-click on a log entry → opens
-Logs tab focused on that entry. Both navigations preserve the
-selected turn so the back-affordance returns intact.
+```
+┌─ Outcome  [completed][aborted][failed] ──┬─ Turn tr_92mp · failed · 14:01:34 · 2.1s ─┐
+│ [●] 14:02:38  ——     in flight…  tr_b8nz │                                            │
+│ [●] 14:02:18  8.4s   → entry #47 tr_a3kf │  Timeline                                  │
+│ [●] 14:01:34  2.1s   classifier… tr_92mp │  [gantt bars]                              │
+│ [●] 13:58:02  1.8s   aborted by… tr_xkl0 │                                            │
+│ [●] 13:48:09  5.2s   → entry #46 tr_h4pq │  Classifier raw output                     │
+│ [●] 13:51:12  12.0s  rate-limited tr_m2rk│  [JSONBlock — collapsed by default]        │
+│                                          │                                            │
+│                                          │  Calls (3)                                 │
+│                                          │  ▾ 14:01:34  POST  api…  200  0.34s    ↗   │
+│                                          │  ▾ 14:01:35  POST  api…  504  0.78s    ↗   │
+│                                          │                                            │
+│                                          │  Logs (4)                                  │
+│                                          │  ▾ 14:01:34  warn   retrieval.…        ↗   │
+│                                          │  ▾ 14:01:35  error  classifier.timeout ↗   │
+└──────────────────────────────────────────┴────────────────────────────────────────────┘
+```
 
-Full detail (column choices, time-axis scale on the phase
-timeline, copy-to-clipboard affordances, expand/collapse state on
-the classifier JSON tree, edit-restrictions interaction during
-in-flight generation) lands in this tab's detail pass.
+List pane width: ~320–360px on desktop/tablet. Detail pane fills the
+remainder. Phone collapses list-first; see [Phone tier (Per-turn
+inspector)](#phone-tier-per-turn-inspector).
+
+#### List-pane row shape (Per-turn inspector)
+
+Five columns: outcome dot, time, duration, one-line summary,
+actionId.
+
+```
+[●completed] 14:02:18  8.4s   → entry #47                tr_a3kf
+[●failed]    14:01:34  2.1s   classifier timeout         tr_92mp
+[●aborted]   13:58:02  1.8s   aborted by user            tr_xkl0
+[○in-flight] 14:02:38  ——     in flight…                 tr_b8nz
+```
+
+Visual treatment:
+
+- **Outcome dot** — 8px circle, color by outcome.
+  - `completed` → success-tint
+  - `aborted` → warn-tint
+  - `failed` → danger-tint
+  - in-flight (`endedAt` undefined) → neutral pulsing dot, same
+    1.5s ease-in-out animation as the Tab 3 status pulse.
+- **Time** — `HH:MM:SS`, monospace.
+- **Duration** — `8.4s` or `——` for in-flight. Mirrors Tab 3's
+  convention.
+- **Summary** — content depends on state:
+  - `failed` / `aborted`: `outcomeReason`, truncated with ellipsis.
+  - `completed`: `→ entry #<index>` for `targetEntryId`. Visual
+    only in v1 (no tap-out wiring); the styling is consistent with
+    a future reader-out jump if that affordance lands later.
+  - in-flight: `in flight…` italic muted.
+- **ActionId** — short monospace at the right edge, faint tone.
+  Selection target is the whole row, not the actionId.
+
+Tap = select row. Selected row gets a tint background + left-edge
+emphasis bar (mirrors the inline-state-emphasis approach of
+[entity row states](../../patterns/entity.md)).
+
+#### List-pane filter (Per-turn inspector)
+
+Single chip cluster above the scrollable list. Three
+[Chip primitives](../../patterns/chips.md) — `completed` /
+`aborted` / `failed` — severity-color-coded (success / warn /
+danger respectively). All three default-selected; user toggles
+during debug sessions to narrow.
+
+**In-flight turns ignore the outcome filter.** Turns whose
+`outcome` is still undefined have no bucket to match against; they
+remain visible regardless of chip selection. They join the
+appropriate bucket on resolve (live-state predicate evaluation,
+same rule as Tab 3's State filter).
+
+**No min-selection enforcement.** Zero selected = empty visible
+set → `filters-hide-all` empty state fires.
+
+Free-text search on actionId / outcomeReason and time-range
+presets parked-until-signal — buffer caps at ~100 turns,
+reverse-chrono ordering already gives recency; the realistic
+debug workflow ("show me the failed turns") is served by the
+outcome chips alone.
+
+#### Detail-pane composition (Per-turn inspector)
+
+**Four flat sections**, fixed order, no section-level accordion:
+
+1. **Timeline** — gantt.
+2. **Classifier raw output** — JSONBlock, collapsed by default.
+3. **Calls** — cross-cut HTTP calls for this turn.
+4. **Logs** — cross-cut log entries for this turn.
+
+Sections render as plain heading rows in section-uppercase tone;
+the only accordion inside the pane is the row-level accordion
+within Calls / Logs sections (`type="single"`, inherited from Tab
+3 / Tab 4). Section-level collapse is omitted because each section
+has natural bounding: gantt is bounded (~80–120px for 5–8 phases),
+the [Classifier JSONBlock](#classifier-raw-output-per-turn-inspector)
+self-collapses, Calls and Logs sections virtualize internally per
+[`patterns/lists.md`](../../patterns/lists.md).
+
+#### Detail-pane context header (Per-turn inspector)
+
+A thin header strip at the top of the detail pane shows the
+selected turn's identity always:
+
+```
+Turn tr_92mp  · [failed] · 14:01:34 · 2.1s
+```
+
+Three fields: actionId (monospace), outcome badge (severity-coded
+[Tag](../../patterns/chips.md#tag--pill-labeled-content)), and
+`startedAt · duration` in muted tone. The strip is **load-bearing
+when the selected row is hidden by the outcome chip filter** —
+desktop without this strip would leave the user with detail
+content but no list-pane anchor. When the row is visible, the strip
+is mildly redundant but harmless.
+
+Hidden on `hub-no-selection` (no turn picked) and
+`hub-aged-out` (deep-link arrival on evicted turn) modes — the
+empty-state copy carries the actionId in those cases.
+
+#### Phase timeline gantt (Per-turn inspector)
+
+Gantt-style horizontal bars positioned by phase events:
+
+```
+0ms                  1.1s                       2.1s (failed)
+pre         ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    88ms
+retrieval   ░▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   462ms
+narrative   ░░░░░▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   798ms
+classifier  ░░░░░░░░░░░░▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   752ms ✗
+```
+
+- **One bar per phase enter/exit pair**, derived from
+  `phaseEvents`. Multiple enter/exit pairs for the same phase
+  (e.g., retried `retrieval`) render as multiple bars on the same
+  row.
+- **Time axis fits the container.** Container width =
+  `endedAt − startedAt` for finalized turns; for in-flight turns
+  the axis spans `[startedAt, now]` recomputed every ~200ms (coarse
+  tick to avoid sub-pixel jitter).
+- **Active phase = open-ended bar** with a pulsing leading edge
+  (reuses the Tab 3 pulse animation). Bar extends to `now`.
+- **Aborted-mid-phase** = unmatched enter renders as a bar from
+  the enter's `at` truncated at the turn's `endedAt`. No special
+  "incomplete" indicator chrome; the truncated bar against the
+  exited-phase peers reads as "this didn't finish."
+- **Failed phase** (the phase during which the turn went to
+  `failed` outcome) styled with danger tone.
+- **Per-bar duration label** on the right edge: `462ms` / `1.8s`.
+- **Minimum bar width**: bars whose proportional width would be
+  < 4px clamp to 4px so sub-50ms phases stay visible. The
+  duration label is the source of truth for actual timing.
+
+**Empty `phaseEvents`** (orchestrator threw before any phase
+enter): section renders the muted line `No phase events recorded.`
+
+#### Classifier raw output (Per-turn inspector)
+
+The classifier's pre-action-layer-validation structured output
+(`classifierOutputRaw: unknown`). Renders as a [JSONBlock](../../patterns/data.md#json-content-block--inline-use)
+in compact collapsed-by-default form:
+
+```
+{…} (3 keys: state_changes, lore_proposals, threads_touched)        [Expand JSON]
+```
+
+Expanding reveals the full pretty-printed JSON tree with a copy
+icon-action. Reuses the JSONBlock contract verbatim — no
+classifier-specific chrome.
+
+**Empty / not-yet-recorded states:**
+
+- `classifierOutputRaw === undefined`: section shows muted line
+  `Waiting for classifier output…` (in-flight) or
+  `No classifier output recorded.` (turn ended before classifier
+  ran).
+- Once populated, the field is final — the in-flight → resolved
+  transition replaces the waiting line with the JSONBlock; expand
+  state on the block is independent.
+
+#### Cross-cut Calls / Logs sections (Per-turn inspector)
+
+Embedded HTTP call + log entry rows filtered by `actionId == turn.actionId`.
+
+**Row shapes reuse Tabs 3 + 4 verbatim with two modifications:**
+
+- **No actionId chip column.** Every row in the section has the
+  same actionId (the selected turn's); the chip would be visual
+  noise.
+- **`↗` icon-action at the row's right edge** replaces the
+  actionId chip slot. Tap = navigate to source tab focused on this
+  row via `actionId=X, focusEntryId=Y_callId|Y_logId` (existing
+  cross-tab nav substrate). On phone: `↗ Open in Call log →` /
+  `↗ Open in Logs →` appears in the Sheet header instead.
+
+**Row-level accordion behavior unchanged from Tab 3 / Tab 4** —
+`type="single"` per section (opening a row collapses the previous
+in that section). Calls and Logs sections have independent
+single-open scopes.
+
+**Section headers carry counts**: `Calls (3)` / `Logs (4)` based
+on the live filter against the cross-cut buffers.
+
+**No local filter chrome inside the sections.** Turn-scoped volume
+is small (~5–20 calls / ~10–50 logs); filtering needs route to the
+source tab via the `↗` affordance. Re-implementing Toolbar chrome
+locally would be half-fidelity duplication.
+
+**Empty sections** render muted lines:
+
+- `No HTTP calls captured for this turn.`
+- `No log entries captured for this turn.`
+
+Live append during in-flight turns: new rows insert at the top
+(reverse-chrono); **scroll position anchored, not yanked** — if
+the user is reading row #5, a new row #0 doesn't auto-scroll them
+to top. Matches standard log-tailing behavior; cross-platform
+anchoring builds on the project's virtualization stack
+(`@tanstack/react-virtual` on web, `FlatList` on native) per
+[`patterns/lists.md`](../../patterns/lists.md). Scroll-anchoring-
+on-prepend is an open implementation question shared with the
+reader-narrative surface; resolution lives at the lists pattern,
+not duplicated per consumer.
+
+#### Buffer-truth indication on cross-cut sections (Per-turn inspector)
+
+`turnCaptures` (~100 cap) and `httpCalls` / `logEntries` (their own
+caps) evict independently. A live turn capture may outlive its
+cross-cut data — the section count then reflects "what's currently
+in the buffer," not "what this turn actually emitted."
+
+**Detection**: when `turn.startedAt < buffer[i].at` for the
+buffer's own oldest entry, the cross-cut might be partial.
+
+**Visual**: muted italic line below the section header:
+
+```
+Calls (3)
+(some may have aged out — turn predates the call buffer's oldest entry)
+─────────────────────────────
+▾ 14:01:34  POST  api…  200  0.34s    ↗
+…
+```
+
+Independent per section (Calls and Logs may age out at different
+rates). Stays muted to avoid alarming the user — it's a truthful
+caveat, not a warning.
+
+#### In-flight UX (Per-turn inspector)
+
+The selected turn may be in-flight (`endedAt` undefined). Per
+sub-section behavior:
+
+- **Timeline gantt** — open-ended bar on the active phase with
+  pulsing leading edge; time axis spans `[startedAt, now]`
+  re-fitted on render.
+- **Classifier raw output** — `Waiting for classifier output…`
+  muted line when `classifierOutputRaw` undefined; populates
+  inline when the field arrives.
+- **Calls / Logs sections** — rows append live; scroll-anchored
+  per section above.
+- **List-pane row** — neutral pulsing dot; on resolve, ~200ms
+  crossfade to the outcome-colored dot. ULID identity preserved
+  across the transition (mirrors the Tab 3 row-identity contract).
+
+The inspector is read-only in v1; no edit / force-cancel
+affordances. Future cancel-turn capability parked-until-signal
+(see
+[`parked.md → Diagnostics Per-turn inspector — force-cancel-turn affordance`](../../../parked.md#diagnostics-per-turn-inspector--force-cancel-turn-affordance)).
+
+#### Selection mechanic (Per-turn inspector)
+
+Tap any list-pane row to select. Detail pane re-renders for the
+new turn. Selection state:
+
+- **Persists across hub close/reopen** while master is on (same
+  lifecycle as Tab 3 / Tab 4 / Tab 5 filter state).
+- **Wipes on master toggle off** — the in-memory `turnCaptures`
+  buffer clears alongside selection state.
+- **Aged out mid-session** — when the selected turn evicts from
+  the ~100-cap buffer (oldest finalized turn evicts first when a
+  new turn pushes over), selection clears on next render. Detail
+  pane falls back to the no-selection empty state with a transient
+  muted note: `Selected turn aged out.` The note disappears on the
+  next user interaction.
+
+#### Cross-tab nav (Per-turn inspector)
+
+**Inbound** from Tab 3 / Tab 4 / Tab 5 actionId chip → arrives at
+Tab 2 with `actionId=X`. List pane scrolls to the matching turn
+and selects it; detail pane renders. No Turn Tag chip needed
+(selection itself is the explicit signal that the user navigated
+in).
+
+If the actionId is not in the `turnCaptures` buffer (aged out):
+detail pane renders the **aged-out arrival** empty state with
+escape buttons:
+
+```
+Turn tr_92mp aged out — its in-memory diagnostic capture is no
+longer in the buffer.
+
+Cross-cut HTTP calls and log entries for this actionId may still
+exist in their own buffers. Open the source tab to inspect them.
+
+[Open Call log for this turn]   [Open Logs for this turn]
+```
+
+The escape buttons set the same `actionId=X` deep-link param on
+the destination tab. No degraded inline render (Tab 3 / Tab 4
+already render the cross-cut filtered view natively when arrived
+with the actionId).
+
+**Outbound** from a cross-cut row's `↗` icon-action → navigates
+to Tab 3 / Tab 4 with `actionId=X, focusEntryId=Y` per the
+existing [Cross-tab nav substrate](#cross-tab-nav-substrate).
+Selected turn in Tab 2 preserved so the back-affordance returns
+intact.
+
+#### Count badge (Per-turn inspector)
+
+Story-scoped count: `turnCaptures` filtered render-time by
+`branchId` matching a branch of the selected story. Hidden when no
+story is selected (matches the "Pick a story" empty state).
+
+Color by outcome max severity:
+
+- Any `failed` → danger.
+- Else any `aborted` → warn.
+- Else (all `completed` / in-flight only) → neutral.
+
+Decoupled from the outcome chip filter (matches the Tab 3 / Tab 4
+ambient-signal rule).
+
+#### Empty states (Per-turn inspector)
+
+Five flavors:
+
+- **No story selected** — hub-level rule; the
+  [story selector strip](#story-selector) shows the "Pick a story"
+  empty state.
+- **Buffer empty for selected story**: "No turns captured for this
+  story yet — trigger a turn to start."
+- **Filters hide all** (outcome chip filter): "No turns match your
+  filter · `[Clear filter]`."
+- **No turn selected (detail pane)**: "Select a turn from the list
+  to inspect." With transient `Selected turn aged out.` note when
+  the previously-selected turn was just evicted.
+- **Aged-out arrival** (deep link to evicted turn): per
+  [Cross-tab nav](#cross-tab-nav-per-turn-inspector) above.
+
+Inside detail-pane sections, empty cases are muted inline lines,
+not full empty-states:
+
+- `No phase events recorded.` (empty `phaseEvents`)
+- `No classifier output recorded.` (finalized turn never reached
+  classifier) / `Waiting for classifier output…` (in-flight)
+- `No HTTP calls captured for this turn.`
+- `No log entries captured for this turn.`
+
+#### State persistence (Per-turn inspector)
+
+Selected turn ID + outcome chip filter + per-section row expand
+state persist while master is on; all wipe on master toggle off
+alongside the in-memory `turnCaptures` buffer.
+
+#### Phone tier (Per-turn inspector)
+
+Two-pane collapses to list-first push:
+
+- Tab strip falls back to Select per the Group C cardinality
+  cascade (existing rule).
+- List pane fills the viewport; tap a turn pushes the detail view.
+- Top-bar in pushed state: `[←] Diagnostics · Turn tr_a3kf` —
+  sub-title shows the selected turn's actionId so context is
+  visible.
+- Back arrow steps detail → list → tab strip.
+- Outcome chip filter row remains visible at the top of the list
+  view.
+- Detail-pane sub-sections:
+  - Gantt scrolls horizontally when needed.
+  - Classifier JSONBlock pretty-prints with word-wrap (no
+    horizontal scroll) since output isn't typically token-aligned.
+  - Cross-cut Calls / Logs rows use Tab 3 / Tab 4 phone shape
+    (two-line row → Raw JSON viewer Sheet). The `↗` icon-action
+    moves to the Sheet header as `↗ Open in Calls →` /
+    `↗ Open in Logs →`.
+
+#### Implementation notes (Per-turn inspector)
+
+- **Gantt rendering** is novel — no existing primitive. Cross-
+  platform implementation: SVG or absolute-positioned `View`s with
+  percentage widths. RN-side, `transform`-based positioning with
+  Reanimated for the in-flight active-bar tick + pulse.
+- **Tick rate for in-flight time axis**: ~200ms is sufficient
+  (faster ticks cause sub-pixel jitter without visual benefit).
+  Drives a single `setInterval` while any in-flight turn is
+  selected; no per-bar timer.
+- **Render-time branch filter**: list-pane consumes the global
+  `turnCaptures` buffer with a memoized filter on the active
+  story's branches. The filter is the source of truth; no separate
+  per-story `turnCaptures` partition is needed (matches the
+  approach resolved in [Screen-specific open questions](#screen-specific-open-questions)).
+- **Cross-cut row identity**: ULID-keyed for both Calls and Logs
+  cross-cuts (same contract as Tab 3 / Tab 4 row identity), so
+  in-flight rows updating their state in place during the
+  selection don't churn React keys.
+- **Buffer-truth detection**: a cross-cut section is "potentially
+  partial" when the buffer's `[0].at` (oldest entry) is newer than
+  `turn.startedAt`. Compute on render; cheap.
+- **Selection ID lifecycle**: stored in the diagnostics store
+  alongside outcome filter + master toggle state. Cleared on
+  master toggle off and on selected-turn eviction.
 
 ### Tab 3 — Call log
 
@@ -877,12 +1282,6 @@ care about story selection and showing them would be misleading.
   [Cross-window aggregator](../../../parked.md#observability--cross-window-aggregator-on-electron).
   Until then: open the hub in the window where the work is
   happening.
-- **Tab count badge calculation semantics for Tab 2** — resolved
-  for Tabs 3, 4, 5 in their detail passes (see [Tab strip](#tab-strip)
-  for the per-tab rules). Tab 2 (per-turn inspector) confirms its
-  count source and color rule at its detail pass — likely
-  outcome-keyed (`failed > aborted > completed`) but pending the
-  per-tab decision.
 - **Memory probe tab relocation question.** This design pass
   references the existing
   [`memory-probe.md`](../memory-probe/memory-probe.md) rather

@@ -3,9 +3,11 @@
 Session record, 2026-05-27 (second pass of the day; sibling to
 [`2026-05-27-diagnostics-tab4-logs-close-out.md`](./2026-05-27-diagnostics-tab4-logs-close-out.md)).
 Partially resolves the
-[`Diagnostics hub — per-tab body design pass for tab 2`](../followups.md#diagnostics-hub--per-tab-body-design-pass-for-tab-2)
-followup — narrows the active entry from "tabs 2, 3, 5" to "tab 2"
-once Tabs 3 and 5 land. Canonical spec changes land in
+`Diagnostics hub — per-tab body design pass for tab 2` followup
+(since removed from [`followups.md`](../followups.md) after Tab 2
+closed out at the 2026-05-28 exploration) — narrowed the active
+entry from "tabs 2, 3, 5" to "tab 2" once Tabs 3 and 5 landed.
+Canonical spec changes land in
 [`ui/screens/diagnostics/diagnostics.md`](../ui/screens/diagnostics/diagnostics.md);
 this file is the frozen reasoning trail.
 

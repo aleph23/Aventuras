@@ -54,6 +54,13 @@ Used by:
   accent-toned removable Turn Tag chip on cross-tab arrival.
   Same shape as the Logs/Call log Tag chip; no State chips on
   Delta log (no severity dimension).
+- [Diagnostics Hub · Per-turn inspector — Outcome filter chips](../screens/diagnostics/diagnostics.md#list-pane-filter-per-turn-inspector) —
+  three severity-coded Chips (`completed` success, `aborted` warn,
+  `failed` danger) in the list pane's filter row. First consumer
+  with outcome semantics rather than HTTP / log-level severity.
+  Also: the [detail-pane context header](../screens/diagnostics/diagnostics.md#detail-pane-context-header-per-turn-inspector)
+  uses an outcome-coded [Tag](#tag--pill-labeled-content) (same
+  three tones) as the per-turn outcome badge.
 
 ## Chip — square, toggleable
 

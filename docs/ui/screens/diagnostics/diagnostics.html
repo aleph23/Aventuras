@@ -187,18 +187,124 @@
   .time-trigger .tt-label { color: var(--ink-muted); }
   .time-trigger .tt-caret { color: var(--ink-faint); }
 
+  /* ===== Tab 2 (Per-turn inspector) — two-pane shape ===== */
+  .pt-pane { display: flex; flex-direction: row; min-height: 0; flex: 1; }
+  .pt-list { width: 320px; min-width: 280px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: var(--bg); }
+  .pt-list-filters { padding: 8px 12px; border-bottom: 1px solid var(--line-soft); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: var(--bg); }
+  .pt-list-filters .tb-secondary-label { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pt-list-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .pt-turn-row { display: grid; grid-template-columns: 12px 70px 50px 1fr 60px; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line-soft); font-size: 12px; cursor: pointer; }
+  .pt-turn-row:hover { background: var(--bg-highlight); }
+  .pt-turn-row.selected { background: var(--bg-raised); border-left: 2px solid var(--ink); padding-left: 10px; }
+  .pt-turn-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .pt-turn-dot.ok { background: var(--ok); }
+  .pt-turn-dot.warn { background: var(--warn); }
+  .pt-turn-dot.danger { background: var(--danger); }
+  .pt-turn-dot.pulse { background: var(--ink-muted); animation: cr-pulse 1.5s ease-in-out infinite; }
+  .pt-turn-time { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; }
+  .pt-turn-dur { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; text-align: right; }
+  .pt-turn-dur.empty { color: var(--ink-faint); }
+  .pt-turn-summary { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .pt-turn-summary .pt-turn-summary-link { color: var(--info); }
+  .pt-turn-summary.muted { color: var(--ink-muted); font-style: italic; }
+  .pt-turn-aid { font-family: ui-monospace, monospace; color: var(--ink-faint); font-size: 10px; text-align: right; }
+
+  /* Detail pane */
+  .pt-detail { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-region); overflow: hidden; }
+  .pt-context-header { padding: 8px 16px; border-bottom: 1px solid var(--line-soft); background: var(--bg); display: flex; gap: 12px; align-items: center; font-size: 12px; }
+  .pt-context-header .pt-ch-label { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 500; }
+  .pt-context-header .pt-ch-outcome { padding: 1px 6px; border-radius: 3px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .pt-context-header .pt-ch-outcome.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+  .pt-context-header .pt-ch-outcome.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+  .pt-context-header .pt-ch-outcome.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+  .pt-context-header .pt-ch-outcome.pulse { background: var(--bg-region); color: var(--ink-muted); border: 1px solid var(--line); }
+  .pt-context-header .pt-ch-meta { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 11px; }
+  .pt-detail-scroll { flex: 1; overflow-y: auto; }
+
+  /* Flat sections inside the detail pane (no section-level accordion) */
+  .pt-section { border-bottom: 1px solid var(--line-soft); padding: 0 16px; }
+  .pt-section-header { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); font-weight: 600; }
+  .pt-section-header .pt-section-count { color: var(--ink-faint); font-weight: normal; }
+  .pt-section-aged-note { padding: 0 0 6px; font-size: 11px; color: var(--ink-faint); font-style: italic; }
+  .pt-section-body { padding: 4px 0 12px; }
+  .pt-section-empty { padding: 8px 0 12px; font-size: 12px; color: var(--ink-muted); font-style: italic; }
+
+  /* Phase timeline gantt */
+  .pt-gantt { display: flex; flex-direction: column; gap: 4px; padding: 6px 0 4px; position: relative; }
+  .pt-gantt-axis { display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 10px; color: var(--ink-faint); padding: 0 0 4px; border-bottom: 1px dashed var(--line-soft); margin-bottom: 4px; }
+  .pt-gantt-row { display: grid; grid-template-columns: 100px 1fr 60px; gap: 8px; align-items: center; font-size: 11px; }
+  .pt-gantt-row .pt-gantt-label { font-family: ui-monospace, monospace; color: var(--ink); }
+  .pt-gantt-row .pt-gantt-track { position: relative; height: 14px; background: var(--bg-raised); border-radius: 2px; }
+  .pt-gantt-row .pt-gantt-bar { position: absolute; top: 0; bottom: 0; background: var(--info); border-radius: 2px; min-width: 4px; }
+  .pt-gantt-row .pt-gantt-bar.danger { background: var(--danger); }
+  .pt-gantt-row .pt-gantt-bar.in-flight { background: var(--ink-muted); }
+  .pt-gantt-row .pt-gantt-bar.in-flight::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 8px; background: linear-gradient(to right, transparent, var(--bg-region)); animation: cr-pulse 1.5s ease-in-out infinite; }
+  .pt-gantt-row .pt-gantt-dur { font-family: ui-monospace, monospace; color: var(--ink-muted); text-align: right; font-size: 11px; }
+
+  /* Classifier section JSONBlock — compact collapsed state */
+  .pt-classifier-block { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-raised); border: 1px solid var(--line-soft); border-radius: 3px; font-size: 12px; }
+  .pt-classifier-block .pt-cl-summary { color: var(--ink-muted); font-family: ui-monospace, monospace; font-size: 11px; flex: 1; }
+  .pt-classifier-block .pt-cl-expand { font-size: 11px; color: var(--ink); border: 1px solid var(--line); background: var(--bg-region); padding: 2px 8px; border-radius: 3px; cursor: pointer; }
+
+  /* Cross-cut row inside Calls/Logs section — reuse call-row/log-row visually, drop the actionId chip column, add the "↗ Open in tab" icon-action */
+  .pt-cross-row { display: grid; grid-template-columns: 24px 80px 50px 1fr 70px 70px 28px; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 12px; cursor: pointer; }
+  .pt-cross-row.last { border-bottom: none; }
+  .pt-cross-row .cr-chevron { color: var(--ink-faint); font-size: 10px; transform: rotate(-90deg); align-self: center; }
+  .pt-cross-row .cr-time { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; }
+  .pt-cross-row .cr-method { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink); font-weight: 600; }
+  .pt-cross-row .cr-url { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pt-cross-row .cr-status { font-family: ui-monospace, monospace; font-size: 10px; padding: 1px 6px; border-radius: 3px; text-align: center; border: 1px solid; font-weight: 600; }
+  .pt-cross-row .cr-status.s-2xx { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+  .pt-cross-row .cr-status.s-5xx { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+  .pt-cross-row .cr-duration { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; text-align: right; }
+  .pt-cross-row .pt-open-in-tab { width: 22px; height: 22px; border: 1px dashed var(--line); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 12px; cursor: pointer; }
+  .pt-cross-row .pt-open-in-tab:hover { color: var(--ink); border-color: var(--ink-muted); }
+  /* Log cross-cut row (for Logs section) reuses log-row 5-col shape minus the actionId */
+  .pt-cross-log-row { display: grid; grid-template-columns: 24px 80px 64px 1fr 28px; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 12px; cursor: pointer; }
+  .pt-cross-log-row.last { border-bottom: none; }
+  .pt-cross-log-row .lr-chevron { color: var(--ink-faint); font-size: 10px; transform: rotate(-90deg); align-self: center; }
+  .pt-cross-log-row .lr-time { font-family: ui-monospace, monospace; color: var(--ink-muted); font-size: 11px; }
+  .pt-cross-log-row .lr-level { padding: 1px 6px; border-radius: 3px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; text-align: center; align-self: start; }
+  .pt-cross-log-row .lr-level.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+  .pt-cross-log-row .lr-level.error { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+  .pt-cross-log-row .lr-kind { font-family: ui-monospace, monospace; font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pt-cross-log-row .lr-kind .kind-sub { color: var(--ink-muted); }
+  .pt-cross-log-row .pt-open-in-tab { width: 22px; height: 22px; border: 1px dashed var(--line); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 12px; cursor: pointer; }
+
   /* Tab body switching — show only the active tab body */
   .tab-body { display: none; }
   body[data-active-tab="logs"] .tab-body-logs,
   body:not([data-active-tab]) .tab-body-logs { display: block; }
   body[data-active-tab="call-log"] .tab-body-call-log { display: block; }
   body[data-active-tab="delta-log"] .tab-body-delta-log { display: block; }
+  body[data-active-tab="per-turn"] .tab-body-per-turn { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 
   /* Active tab strip highlight follows the tab switcher */
   body[data-active-tab="call-log"] .tab-logs { color: var(--ink-muted); border-bottom-color: transparent; font-weight: normal; }
   body[data-active-tab="call-log"] .tab-calls { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
   body[data-active-tab="delta-log"] .tab-logs { color: var(--ink-muted); border-bottom-color: transparent; font-weight: normal; }
   body[data-active-tab="delta-log"] .tab-delta { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+  body[data-active-tab="per-turn"] .tab-logs { color: var(--ink-muted); border-bottom-color: transparent; font-weight: normal; }
+  body[data-active-tab="per-turn"] .tab-perturn { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+
+  /* Per-turn story-anchored: story strip visible (only when per-turn tab active and not master-off) */
+  body[data-active-tab="per-turn"]:not([data-mode="master-off"]) .story-strip { display: flex; }
+  body[data-active-tab="per-turn"]:not([data-mode="master-off"]) .ss-picker.placeholder { color: var(--ink); }
+
+  /* Per-turn modes: aged-out (cross-tab arrival empty state) / no-selection (no turn picked) / buffer-truth (cross-cut buffer rotated) */
+  body[data-active-tab="per-turn"][data-mode="hub-aged-out"] .pt-aged-out-pane { display: flex; }
+  body[data-active-tab="per-turn"][data-mode="hub-aged-out"] .pt-detail-default,
+  body[data-active-tab="per-turn"][data-mode="hub-aged-out"] .pt-context-header { display: none; }
+  body[data-active-tab="per-turn"][data-mode="hub-no-selection"] .pt-no-selection-pane { display: flex; }
+  body[data-active-tab="per-turn"][data-mode="hub-no-selection"] .pt-detail-default,
+  body[data-active-tab="per-turn"][data-mode="hub-no-selection"] .pt-context-header { display: none; }
+  body[data-active-tab="per-turn"][data-mode="hub-no-selection"] .pt-turn-row.selected { background: transparent; border-left: none; padding-left: 12px; }
+  body[data-active-tab="per-turn"][data-mode="hub-buffer-truth"] .pt-section-aged-note { display: block; }
+
+  /* Per-turn phone-tier — list-first reshape (the spec is list→push→detail; the wireframe stacks them vertically as a low-fi approximation). */
+  body[data-active-tab="per-turn"][data-mode="hub-phone"] .pt-pane { flex-direction: column; }
+  body[data-active-tab="per-turn"][data-mode="hub-phone"] .pt-list { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--line); max-height: 240px; }
+  body[data-active-tab="per-turn"][data-mode="hub-phone"] .pt-detail { min-height: 280px; }
 
   /* Delta log story-anchored: story strip visible (only when delta-log tab active and not in master-off) */
   body[data-active-tab="delta-log"]:not([data-mode="master-off"]) .story-strip { display: flex; }
@@ -274,14 +380,23 @@
   .turn-tag-chip { display: none; }
   .log-list-phone { display: none; }
   .tabs-phone { display: none; }
+  .pt-aged-out-pane { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 12px; text-align: center; color: var(--ink-muted); }
+  .pt-aged-out-pane p { margin: 0; font-style: italic; }
+  .pt-aged-out-pane .pt-aged-actions { display: flex; gap: 8px; justify-content: center; }
+  .pt-aged-out-pane .pt-aged-action { padding: 5px 12px; border: 1px solid var(--ink); border-radius: 3px; background: var(--bg-region); color: var(--ink); cursor: pointer; font-size: 12px; }
+  .pt-no-selection-pane { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 8px; text-align: center; color: var(--ink-muted); }
+  .pt-no-selection-pane p { margin: 0; font-style: italic; }
+  .pt-no-selection-pane .pt-no-sel-sub { font-size: 11px; color: var(--ink-faint); font-style: normal; }
+  .pt-section-aged-note { display: none; }
 </style>
 </head>
 <body data-mode="hub">
-<div class="screen-label">Wireframe · <strong>Diagnostics Hub</strong> · <strong>Tabs 3 / 4 / 5 detail pass</strong> · hub shell + per-tab body</div>
+<div class="screen-label">Wireframe · <strong>Diagnostics Hub</strong> · <strong>Tabs 2 / 3 / 4 / 5 detail pass</strong> · hub shell + per-tab body</div>
 
 <div class="review-bar">
   <span class="rb-label">Tab</span>
   <span class="rb-group">
+    <button class="rb-btn" data-tab-btn="per-turn">Per-turn inspector (Tab 2)</button>
     <button class="rb-btn" data-tab-btn="call-log">Call log (Tab 3)</button>
     <button class="rb-btn active" data-tab-btn="logs">Logs (Tab 4)</button>
     <button class="rb-btn" data-tab-btn="delta-log">Delta log (Tab 5)</button>
@@ -293,11 +408,14 @@
     <button class="rb-btn" data-mode-btn="hub-arrived">Cross-tab arrived</button>
     <button class="rb-btn" data-mode-btn="hub-no-match">Filter hides all</button>
     <button class="rb-btn" data-mode-btn="hub-empty">Buffer empty</button>
+    <button class="rb-btn" data-mode-btn="hub-no-selection">Tab 2 · no turn picked</button>
+    <button class="rb-btn" data-mode-btn="hub-aged-out">Tab 2 · aged-out arrival</button>
+    <button class="rb-btn" data-mode-btn="hub-buffer-truth">Tab 2 · buffer-truth note</button>
     <button class="rb-btn" data-mode-btn="hub-phone">Phone tier</button>
     <button class="rb-btn" data-mode-btn="hub-no-story">Story-anchored, no story</button>
     <button class="rb-btn" data-mode-btn="master-off">Master toggle off</button>
   </span>
-  <span class="rb-note">Mode states apply to the Logs (Tab 4) body. Tabs 3 + 5 show their default body — the close-out details state variants in prose at <strong>diagnostics.md</strong>.</span>
+  <span class="rb-note">Mode states map per tab: Tab 4 carries hub-expanded / hub-arrived / hub-no-match / hub-empty / hub-phone. Tab 2 adds hub-no-selection / hub-aged-out / hub-buffer-truth. Tabs 3 + 5 show defaults — variant detail in prose at <strong>diagnostics.md</strong>.</span>
 </div>
 
 <div class="vp-stage">
@@ -326,7 +444,7 @@
       <!-- Tab strip (desktop) -->
       <div class="tabs">
         <div class="tab tab-memory">Memory probe</div>
-        <div class="tab tab-perturn">Per-turn inspector <span class="tab-count">12</span></div>
+        <div class="tab count-danger tab-perturn">Per-turn inspector <span class="tab-count">12</span></div>
         <div class="tab tab-calls">Call log <span class="tab-count">87</span></div>
         <div class="tab active count-danger tab-logs">Logs <span class="tab-count">42</span></div>
         <div class="tab tab-delta">Delta log</div>
@@ -506,6 +624,215 @@
         </div>
 
         </div><!-- end .tab-body-logs -->
+
+        <!-- Tab 2 (Per-turn inspector) body — two-pane: list left, detail right -->
+        <div class="tab-body tab-body-per-turn">
+          <div class="pt-pane">
+
+            <!-- List pane: outcome chip filter row + scrolling turn list -->
+            <div class="pt-list">
+              <div class="pt-list-filters">
+                <span class="tb-secondary-label">Outcome</span>
+                <span class="chip" style="background: var(--ok); border-color: var(--ok); color: #fff;">completed</span>
+                <span class="chip warn active">aborted</span>
+                <span class="chip danger active">failed</span>
+              </div>
+              <div class="pt-list-scroll">
+                <!-- In-flight turn (currently selected to demo) -->
+                <div class="pt-turn-row">
+                  <span class="pt-turn-dot pulse"></span>
+                  <span class="pt-turn-time">14:02:38</span>
+                  <span class="pt-turn-dur empty">——</span>
+                  <span class="pt-turn-summary muted">in flight…</span>
+                  <span class="pt-turn-aid">tr_b8nz</span>
+                </div>
+                <!-- Completed turn (NOT visible in current outcome-chip filter: only aborted+failed selected; shown anyway so the visual reads naturally) -->
+                <div class="pt-turn-row">
+                  <span class="pt-turn-dot ok"></span>
+                  <span class="pt-turn-time">14:02:18</span>
+                  <span class="pt-turn-dur">8.4s</span>
+                  <span class="pt-turn-summary"><span class="pt-turn-summary-link">→ entry #47</span></span>
+                  <span class="pt-turn-aid">tr_a3kf</span>
+                </div>
+                <!-- Failed turn — selected -->
+                <div class="pt-turn-row selected">
+                  <span class="pt-turn-dot danger"></span>
+                  <span class="pt-turn-time">14:01:34</span>
+                  <span class="pt-turn-dur">2.1s</span>
+                  <span class="pt-turn-summary">classifier timeout</span>
+                  <span class="pt-turn-aid">tr_92mp</span>
+                </div>
+                <!-- Aborted turn -->
+                <div class="pt-turn-row">
+                  <span class="pt-turn-dot warn"></span>
+                  <span class="pt-turn-time">13:58:02</span>
+                  <span class="pt-turn-dur">1.8s</span>
+                  <span class="pt-turn-summary">aborted by user</span>
+                  <span class="pt-turn-aid">tr_xkl0</span>
+                </div>
+                <div class="pt-turn-row">
+                  <span class="pt-turn-dot ok"></span>
+                  <span class="pt-turn-time">13:48:09</span>
+                  <span class="pt-turn-dur">5.2s</span>
+                  <span class="pt-turn-summary"><span class="pt-turn-summary-link">→ entry #46</span></span>
+                  <span class="pt-turn-aid">tr_h4pq</span>
+                </div>
+                <div class="pt-turn-row">
+                  <span class="pt-turn-dot danger"></span>
+                  <span class="pt-turn-time">13:51:12</span>
+                  <span class="pt-turn-dur">12.0s</span>
+                  <span class="pt-turn-summary">provider rate-limited</span>
+                  <span class="pt-turn-aid">tr_m2rk</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detail pane: context header + four flat sections -->
+            <div class="pt-detail">
+
+              <!-- Detail-pane context header (always visible; load-bearing when list-pane row hidden by filter) -->
+              <div class="pt-context-header">
+                <span class="pt-ch-label">Turn tr_92mp</span>
+                <span class="pt-ch-outcome danger">failed</span>
+                <span class="pt-ch-meta">14:01:34 · 2.1s</span>
+              </div>
+
+              <!-- Default detail content (4 flat sections). Hidden in hub-no-selection / hub-aged-out modes. -->
+              <div class="pt-detail-scroll pt-detail-default">
+
+                <!-- Section 1: Timeline (gantt) -->
+                <div class="pt-section">
+                  <div class="pt-section-header">Timeline</div>
+                  <div class="pt-section-body">
+                    <div class="pt-gantt">
+                      <div class="pt-gantt-axis"><span>0ms</span><span>1.1s</span><span>2.1s (failed)</span></div>
+                      <div class="pt-gantt-row">
+                        <span class="pt-gantt-label">pre</span>
+                        <span class="pt-gantt-track"><span class="pt-gantt-bar" style="left: 0; width: 4%;"></span></span>
+                        <span class="pt-gantt-dur">88ms</span>
+                      </div>
+                      <div class="pt-gantt-row">
+                        <span class="pt-gantt-label">retrieval</span>
+                        <span class="pt-gantt-track"><span class="pt-gantt-bar" style="left: 4%; width: 22%;"></span></span>
+                        <span class="pt-gantt-dur">462ms</span>
+                      </div>
+                      <div class="pt-gantt-row">
+                        <span class="pt-gantt-label">narrative</span>
+                        <span class="pt-gantt-track"><span class="pt-gantt-bar" style="left: 26%; width: 38%;"></span></span>
+                        <span class="pt-gantt-dur">798ms</span>
+                      </div>
+                      <div class="pt-gantt-row">
+                        <span class="pt-gantt-label">classifier</span>
+                        <span class="pt-gantt-track"><span class="pt-gantt-bar danger" style="left: 64%; width: 36%;" title="exited via timeout"></span></span>
+                        <span class="pt-gantt-dur">752ms</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 2: Classifier raw output -->
+                <div class="pt-section">
+                  <div class="pt-section-header">Classifier raw output</div>
+                  <div class="pt-section-body">
+                    <div class="pt-classifier-block">
+                      <span class="pt-cl-summary">{…} (partial — exited via timeout before validation)</span>
+                      <button class="pt-cl-expand">Expand JSON</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 3: Calls -->
+                <div class="pt-section">
+                  <div class="pt-section-header">Calls <span class="pt-section-count">(3)</span></div>
+                  <!-- Aged-out note (visible only in hub-buffer-truth mode) -->
+                  <div class="pt-section-aged-note">(some may have aged out — turn predates the call buffer's oldest entry)</div>
+                  <div class="pt-section-body">
+                    <div class="pt-cross-row">
+                      <span class="cr-chevron">▾</span>
+                      <span class="cr-time">14:01:34</span>
+                      <span class="cr-method">POST</span>
+                      <span class="cr-url">api.anthropic.com/v1/messages</span>
+                      <span class="cr-status s-2xx">200</span>
+                      <span class="cr-duration">0.34s</span>
+                      <span class="pt-open-in-tab" title="Open in Call log">↗</span>
+                    </div>
+                    <div class="pt-cross-row">
+                      <span class="cr-chevron">▾</span>
+                      <span class="cr-time">14:01:35</span>
+                      <span class="cr-method">POST</span>
+                      <span class="cr-url">api.openai.com/v1/embeddings</span>
+                      <span class="cr-status s-2xx">200</span>
+                      <span class="cr-duration">0.20s</span>
+                      <span class="pt-open-in-tab" title="Open in Call log">↗</span>
+                    </div>
+                    <div class="pt-cross-row last">
+                      <span class="cr-chevron">▾</span>
+                      <span class="cr-time">14:01:35</span>
+                      <span class="cr-method">POST</span>
+                      <span class="cr-url">api.anthropic.com/v1/messages</span>
+                      <span class="cr-status s-5xx">504</span>
+                      <span class="cr-duration">0.78s</span>
+                      <span class="pt-open-in-tab" title="Open in Call log">↗</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 4: Logs -->
+                <div class="pt-section" style="border-bottom: none;">
+                  <div class="pt-section-header">Logs <span class="pt-section-count">(4)</span></div>
+                  <div class="pt-section-body">
+                    <div class="pt-cross-log-row">
+                      <span class="lr-chevron">▾</span>
+                      <span class="lr-time">14:01:34</span>
+                      <span class="lr-level warn">warn</span>
+                      <span class="lr-kind"><span class="kind-sub">retrieval.</span>row_skipped_stale</span>
+                      <span class="pt-open-in-tab" title="Open in Logs">↗</span>
+                    </div>
+                    <div class="pt-cross-log-row">
+                      <span class="lr-chevron">▾</span>
+                      <span class="lr-time">14:01:35</span>
+                      <span class="lr-level warn">warn</span>
+                      <span class="lr-kind"><span class="kind-sub">classifier.</span>delta_clamped</span>
+                      <span class="pt-open-in-tab" title="Open in Logs">↗</span>
+                    </div>
+                    <div class="pt-cross-log-row">
+                      <span class="lr-chevron">▾</span>
+                      <span class="lr-time">14:01:35</span>
+                      <span class="lr-level error">error</span>
+                      <span class="lr-kind"><span class="kind-sub">classifier.</span>timeout</span>
+                      <span class="pt-open-in-tab" title="Open in Logs">↗</span>
+                    </div>
+                    <div class="pt-cross-log-row last">
+                      <span class="lr-chevron">▾</span>
+                      <span class="lr-time">14:01:36</span>
+                      <span class="lr-level error">error</span>
+                      <span class="lr-kind"><span class="kind-sub">orchestrator.</span>turn_failed</span>
+                      <span class="pt-open-in-tab" title="Open in Logs">↗</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- end .pt-detail-default -->
+
+              <!-- Aged-out arrival pane (hub-aged-out mode) -->
+              <div class="pt-aged-out-pane">
+                <p>Turn <strong>tr_92mp</strong> aged out — its in-memory diagnostic capture is no longer in the buffer.</p>
+                <p style="font-size: 11px; color: var(--ink-faint); font-style: normal; max-width: 360px;">Cross-cut HTTP calls and log entries for this actionId may still exist in their own buffers. Open the source tab to inspect them.</p>
+                <div class="pt-aged-actions">
+                  <button class="pt-aged-action">Open Call log for this turn</button>
+                  <button class="pt-aged-action">Open Logs for this turn</button>
+                </div>
+              </div>
+
+              <!-- No-selection pane (hub-no-selection mode) -->
+              <div class="pt-no-selection-pane">
+                <p>Select a turn from the list to inspect.</p>
+                <p class="pt-no-sel-sub">Selected turn aged out · transient note when the previously-selected turn was just evicted.</p>
+              </div>
+
+            </div><!-- end .pt-detail -->
+          </div>
+        </div><!-- end .tab-body-per-turn -->
 
         <!-- Tab 3 (Call log) body — basic example, no state variants here -->
         <div class="tab-body tab-body-call-log">

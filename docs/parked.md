@@ -1724,6 +1724,51 @@ actually outputting until it's done"). Implementation depends
 on the `progressCall` API landing first; rendering is small
 once the data flows.
 
+#### Diagnostics Per-turn inspector — force-cancel-turn affordance
+
+The [Per-turn inspector](./ui/screens/diagnostics/diagnostics.md#tab-2--per-turn-inspector)
+ships read-only in v1 — its detail pane inspects the selected
+turn but offers no actions against it. The original sketch
+deferred "edit-restrictions during in-flight" without naming the
+edit; the candidate affordance is a `Cancel turn` button on the
+detail-pane context header when the selected turn is in-flight,
+terminating the orchestrator's pipeline mid-run.
+
+Cost: requires orchestrator-side cancellation support (the
+pipeline must accept an actionId-scoped cancel signal and unwind
+partial state safely — currently turns run to completion or fail
+on their own). Adds detail-pane chrome (the button + a
+confirmation dialog "this will discard partial work for this
+turn"). Read-only inspection is sufficient for v1's primary debug
+workflow ("why did this turn fail?"); cancellation is a UX
+convenience that the underlying pipeline doesn't yet support.
+
+Surface again if users report wanting to abandon stuck/slow
+in-flight turns from the hub instead of waiting for them to
+fail naturally.
+
+#### Diagnostics Per-turn inspector — list-pane free-text search + time range
+
+The [Per-turn inspector list pane](./ui/screens/diagnostics/diagnostics.md#list-pane-filter-per-turn-inspector)
+ships v1 with outcome chips (`completed / aborted / failed`) as
+the sole filter dimension. Free-text search (substring match on
+`actionId` / `outcomeReason` / target entry index) and time-range
+presets (`Last 5m / 15m / 1h / All time`, mirroring Tab 5's
+shape) were considered and parked.
+
+The realistic v1 workflow ("show me my failed turns this
+session") is well-served by outcome chips against a ~100-turn
+buffer in reverse-chrono order. Free-text and time range add
+chrome cost on the narrow list-pane (320–360px) and serve only
+edge workflows (a user with hundreds of turns wanting to filter
+to "yesterday's session").
+
+Surface again if users report buffer scrolling fatigue or ask for
+text/time search by name. Implementation would extend the
+list-pane chip cluster's filter row with a [Toolbar.Search](./ui/patterns/toolbar.md)
+slot above the chips and possibly a Time Select borrowing Tab 5's
+preset shape.
+
 ### Two-stage touch feedback (light hover + stronger press)
 
 Some mobile apps (Discord noted) ship a two-stage feedback on
