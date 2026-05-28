@@ -36,9 +36,9 @@ Generic, single-purpose, reusable. Live in `components/ui/`.
 
 Accordion, AlertDialog, Autocomplete, Avatar, Button, Checkbox,
 Chip, ColorPicker, Dialog, EmptyState, Heading, Icon, IconAction, InlineEditableName,
-Input, Popover, SearchableOverlayList, Select, Sheet, Skeleton, Spinner, Switch,
-SwitchVisual, Tabs, Tag, Textarea, Text, Toast. Plus the `NativeOnlyAnimatedView`
-utility wrapper.
+Input, JSONBlock, MultiSelect, Popover, SearchableOverlayList, Select, Sheet,
+Skeleton, Spinner, Switch, SwitchVisual, Tabs, Tag, Textarea, Text, Toast. Plus
+the `NativeOnlyAnimatedView` utility wrapper.
 
 ### Primitives — needs revision
 
@@ -46,20 +46,10 @@ utility wrapper.
   (open-time scroll-into-view) per the
   [substrate spec](./patterns/searchable-overlay-list.md#implementation-notes).
   Parked in [`parked.md`](../parked.md#searchableoverlaylist--initialscrollrowid).
-- **JSONViewer** — extract the inline JSON body content into a
-  separately-callable `JSONBlock` primitive per the
-  [`data.md → JSON content block — inline use`](./patterns/data.md#json-content-block--inline-use)
-  spec. Both the existing Sheet wrapper and the new inline call
-  sites (Diagnostics Hub · Tab 2 classifier raw output, Tab 3 row
-  expansion with Request / Response / Error sub-sections, Tab 4
-  row expansion) consume the same factor. Driver: the Diagnostics
-  M7.3 implementation slice.
 
 ### Primitives — build-ready
 
-| Primitive   | Baseline                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MultiSelect | `_none_` (composition over Popover + Sheet) | Trigger `<prefix>: <state> ▾` with auto-computed all/none/N-of-M; per-tier overlay dispatch (Popover desktop / Sheet medium phone); Select-all / Clear-all header; Checkbox-row composition; policy-neutral selection contract (consumers enforce all/none semantics); `searchable: true` opt-in parked. Consumers in v1: Diagnostics Hub · Tab 3 (Source + Status range), Tab 4 (Subsystem), Tab 5 (Source + Target table). Spec: [multi-select.md](./patterns/multi-select.md). |
+_Empty — every build-ready primitive has shipped._
 
 ### Primitives — needs design
 
