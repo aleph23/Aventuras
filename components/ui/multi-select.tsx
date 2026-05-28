@@ -1,7 +1,12 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import * as PopoverPrimitive from '@rn-primitives/popover'
 import { ChevronDown } from 'lucide-react-native'
 import { useCallback, useId, useMemo, useState } from 'react'
 import { Platform, Pressable, View, type ViewStyle } from 'react-native'
+// Desktop: gesture-handler ScrollView bypasses rn-primitives Content's
+// onStartShouldSetResponder claim. Phone: BottomSheetScrollView registers
+// with gorhom's sheet gesture system so the row scroll and the sheet drag
+// don't fight each other (same pattern Select uses for its phone branch).
 import { ScrollView } from 'react-native-gesture-handler'
 
 import { Checkbox } from '@/components/ui/checkbox'
@@ -190,59 +195,64 @@ function Overlay({
   onToggle,
   isPhone,
 }: OverlayProps) {
+  const header = (
+    <View className="flex-row items-center gap-3 border-b border-border px-row-x-md py-row-y-sm">
+      <Pressable
+        accessibilityRole="button"
+        onPress={onSelectAll}
+        disabled={state.kind === 'all'}
+        className={cn('h-control-xs justify-center px-2', state.kind === 'all' && 'opacity-50')}
+      >
+        <Text size="xs" className="text-fg-primary">
+          Select all
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onClearAll}
+        disabled={state.kind === 'none'}
+        className={cn('h-control-xs justify-center px-2', state.kind === 'none' && 'opacity-50')}
+      >
+        <Text size="xs" className="text-fg-primary">
+          Clear all
+        </Text>
+      </Pressable>
+    </View>
+  )
+
+  const rows = options.map((option) => (
+    <OptionRow
+      key={option.value}
+      option={option}
+      checked={selected.has(option.value)}
+      onPress={onToggle}
+      isPhone={isPhone}
+    />
+  ))
+
+  if (isPhone) {
+    // BottomSheetScrollView registers with gorhom's sheet gesture system;
+    // a plain ScrollView's touches conflict with the sheet drag and its
+    // scroll region doesn't claim available space inside the sheet.
+    // flex-1 lets the body fill the remaining sheet height below the header.
+    return (
+      <View className="flex-1">
+        {header}
+        <BottomSheetScrollView>{rows}</BottomSheetScrollView>
+      </View>
+    )
+  }
+
   return (
     <View>
-      <View className="flex-row items-center gap-3 border-b border-border px-row-x-md py-row-y-sm">
-        <Pressable
-          accessibilityRole="button"
-          onPress={onSelectAll}
-          disabled={state.kind === 'all'}
-          className={cn('h-control-xs justify-center px-2', state.kind === 'all' && 'opacity-50')}
-        >
-          <Text size="xs" className="text-fg-primary">
-            Select all
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onClearAll}
-          disabled={state.kind === 'none'}
-          className={cn('h-control-xs justify-center px-2', state.kind === 'none' && 'opacity-50')}
-        >
-          <Text size="xs" className="text-fg-primary">
-            Clear all
-          </Text>
-        </Pressable>
-      </View>
-      {isPhone ? (
-        <View>
-          {options.map((option) => (
-            <OptionRow
-              key={option.value}
-              option={option}
-              checked={selected.has(option.value)}
-              onPress={onToggle}
-              isPhone={isPhone}
-            />
-          ))}
-        </View>
-      ) : (
-        // Inline style — NativeWind's `max-h-*` doesn't compile through to
-        // the gesture-handler ScrollView's web wrapper (RN-Web nests divs
-        // and the className lands on a wrapper that doesn't constrain the
-        // scrollable inner). Explicit style avoids the class pipeline.
-        <ScrollView style={SCROLL_MAX_HEIGHT} nestedScrollEnabled>
-          {options.map((option) => (
-            <OptionRow
-              key={option.value}
-              option={option}
-              checked={selected.has(option.value)}
-              onPress={onToggle}
-              isPhone={isPhone}
-            />
-          ))}
-        </ScrollView>
-      )}
+      {header}
+      {/* Inline style — NativeWind's `max-h-*` doesn't compile through to
+          the gesture-handler ScrollView's web wrapper (RN-Web nests divs
+          and the className lands on a wrapper that doesn't constrain the
+          scrollable inner). Explicit style avoids the class pipeline. */}
+      <ScrollView style={SCROLL_MAX_HEIGHT} nestedScrollEnabled>
+        {rows}
+      </ScrollView>
     </View>
   )
 }
