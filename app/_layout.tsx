@@ -8,10 +8,15 @@ import { KeyboardProvider } from 'react-native-keyboard-controller'
 import '@/global.css'
 import { db, ensureAppSettingsSingleton, useDbMigrations } from '@/lib/db'
 import { DensityProvider } from '@/lib/density'
+import { useDiagnosticsHydration } from '@/lib/diagnostics'
 import { ThemeProvider } from '@/lib/themes'
 
 export default function RootLayout() {
   const { success, error } = useDbMigrations()
+
+  // Set the diagnostics master gate once migrations are applied. Resilient to
+  // the settings row not existing yet (defaults OFF; dev build forces ON).
+  useDiagnosticsHydration(success)
 
   // Seed the app_settings singleton (idempotent) once migrations are applied —
   // native after useMigrations succeeds, desktop after the main process has

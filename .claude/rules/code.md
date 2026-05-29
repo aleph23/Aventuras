@@ -117,6 +117,16 @@ Component-local `useState`; cross-component ephemeral in
 no `setState` from outside the store or action layer. See
 [code-conventions.md → State placement](../../docs/code-conventions.md#state-placement).
 
+## Logging discipline
+
+Semantic diagnostics route through `logger` (`error` / `warn` / `debug`)
+from `@/lib/diagnostics` — never direct `console.*`, which bypasses the
+master gate and never lands in `diagnosticsStore`. The ban is
+mechanically enforced by `no-console` (off only inside `lib/diagnostics`
+and the dev-only paths in `eslint.config.js`). See
+[observability.md → Logger contract](../../docs/observability.md#logger-contract)
+and [observability.md → Direct-console drift](../../docs/observability.md#direct-console-drift).
+
 ## Action layer
 
 Cross-cutting transactional writes route through `lib/actions/<domain>/`,

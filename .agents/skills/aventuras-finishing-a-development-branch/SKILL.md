@@ -68,7 +68,7 @@ Or ask: "This branch split from main - is that correct?"
 
 ### Step 4: Present Options
 
-**Normal repo and named-branch worktree — present exactly these 4 options:**
+**Normal repo and named-branch worktree — present exactly these 3 options:**
 
 ```
 Implementation complete. What would you like to do?
@@ -76,19 +76,17 @@ Implementation complete. What would you like to do?
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
 
 Which option?
 ```
 
-**Detached HEAD — present exactly these 3 options:**
+**Detached HEAD — present exactly these 2 options:**
 
 ```
 Implementation complete. You're on a detached HEAD (externally managed workspace).
 
 1. Push as new branch and create a Pull Request
 2. Keep as-is (I'll handle it later)
-3. Discard this work
 
 Which option?
 ```
@@ -146,34 +144,6 @@ Report: "Keeping branch <name>. Worktree preserved at <path>."
 
 **Don't cleanup worktree.**
 
-#### Option 4: Discard
-
-**Confirm first:**
-
-```
-This will permanently delete:
-- Branch <name>
-- All commits: <commit-list>
-- Worktree at <path>
-
-Type 'discard' to confirm.
-```
-
-Wait for exact confirmation.
-
-If confirmed:
-
-```bash
-MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
-```
-
-Then: Cleanup worktree (Step 6), then force-delete branch:
-
-```bash
-git branch -D <feature-branch>
-```
-
 ### Step 6: Cleanup Workspace
 
 **Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
@@ -204,7 +174,6 @@ git worktree prune  # Self-healing: clean up any stale registrations
 | 1. Merge locally | yes   | -    | -             | yes            |
 | 2. Create PR     | -     | yes  | yes           | -              |
 | 3. Keep as-is    | -     | -    | yes           | -              |
-| 4. Discard       | -     | -    | -             | yes (force)    |
 
 ## Common Mistakes
 
@@ -237,11 +206,6 @@ git worktree prune  # Self-healing: clean up any stale registrations
 
 - **Problem:** Removing a worktree the harness created causes phantom state
 - **Fix:** Only clean up worktrees under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`
-
-**No confirmation for discard**
-
-- **Problem:** Accidentally delete work
-- **Fix:** Require typed "discard" confirmation
 
 ## Red Flags
 

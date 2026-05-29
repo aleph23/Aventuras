@@ -278,6 +278,7 @@ function Sheet({
 }: SheetProps) {
   useEffect(() => {
     if (__DEV__ && ariaLabel === undefined && ariaLabelledBy === undefined) {
+      // eslint-disable-next-line no-console -- __DEV__ a11y warning; must fire regardless of the diagnostics master gate, so the logger is the wrong channel.
       console.warn(
         'Sheet: pass `ariaLabel` or `ariaLabelledBy` for an accessible name, or `ariaLabel=""` to opt out.',
       )

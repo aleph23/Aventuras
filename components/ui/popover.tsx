@@ -63,6 +63,7 @@ function Popover({
 
   useEffect(() => {
     if (__DEV__ && ariaLabel === undefined && ariaLabelledBy === undefined) {
+      // eslint-disable-next-line no-console -- __DEV__ a11y warning; must fire regardless of the diagnostics master gate, so the logger is the wrong channel.
       console.warn(
         'Popover: pass `ariaLabel` or `ariaLabelledBy` for an accessible name, or `ariaLabel=""` to opt out.',
       )

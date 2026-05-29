@@ -133,11 +133,12 @@ probe's existing rule, unrelated to this slice).
 - Ring buffer clear on master-OFF: all three in-memory slices
   reset to empty arrays atomically per the spec's "off means
   off" rule.
-- ESLint rule: ban `console.*` outside `lib/diagnostics/`. Use
-  `no-restricted-syntax` for consistency with the existing
-  wildcard-import ban. A narrow allowance for `pnpm dev` /
-  on-purpose dev-only paths is acceptable; document any
-  allowance inline.
+- ESLint rule: ban `console.*` outside `lib/diagnostics/` by
+  tightening the existing `no-console` rule, exempting the module
+  and on-purpose dev-only paths via file globs. A narrow allowance
+  for legitimate dev-only call sites is acceptable; document any
+  allowance inline. See [Implementation notes](#implementation-notes)
+  for the mechanism decision.
 - Update `.claude/rules/code.md` with one operational reminder
   about the logger discipline (route through `logger`, no
   direct `console.*` outside the module), citing the new
@@ -235,12 +236,6 @@ probe's existing rule, unrelated to this slice).
   ULIDs for `pipeline_runs.run_id`, extract to a `lib/ulid/`
   module rather than letting two modules carry duplicate
   implementations. Flag here so slice 1.5's author remembers.
-- **`console.*` allowance list.** Some `pnpm dev`-only paths
-  (Vite / Metro bootstrap noise, error boundaries) may
-  legitimately call `console.*`. Decide at authoring time
-  whether to allow per-file overrides via an eslint-disable
-  comment or to declare a directory allowlist; the former is
-  more visible at the call site.
 - **Type stubs for `HttpCall` / `TurnCapture` / `PhaseEvent`.**
   Slice 1.3 declares the shapes from the spec so slices 1.4 /
   1.5 fill the implementations. If the shapes change during
@@ -250,3 +245,27 @@ probe's existing rule, unrelated to this slice).
   swallowed silently per the slice. If mirroring becomes a
   failure mode worth surfacing (e.g., `console` itself is
   broken in some embedded WebView), revisit; not expected.
+
+## Implementation notes
+
+- **Console ban via `no-console`, not `no-restricted-syntax`.** The
+  repo already carried a `no-console` rule (previously allowing
+  `warn` and `error` everywhere). The ban shipped by tightening that
+  rule to `error` and exempting `lib/diagnostics/**` plus the
+  pre-existing dev-only globs (`scripts`, `app/dev`, `electron`,
+  stories) — reusing the purpose-built rule is cleaner and more
+  granular than a `no-restricted-syntax` selector. This supersedes
+  the Scope-in mention of `no-restricted-syntax`. The
+  `lib/diagnostics/**` exemption is a precondition for the logger,
+  which mirrors at the `debug` level too.
+- **`console.*` allowance (the resolved open question).** Hybrid: a
+  directory exemption for the logger module, plus per-file
+  `eslint-disable-next-line no-console` with inline rationale at the
+  three legitimate scattered sites — `components/ui/popover.tsx` and
+  `sheet.tsx` (`__DEV__` accessibility warnings that must fire
+  regardless of the master gate) and `lib/db/client.native.ts`
+  (boot-time sqlite-vec warning that fires before the gate hydrates).
+- **`LogKind` compile-time check runs under `pnpm typecheck`.** The
+  negative case uses `@ts-expect-error` validated by `tsc`, not a
+  vitest typecheck project — so `pnpm typecheck` is one of this
+  slice's verification gates.

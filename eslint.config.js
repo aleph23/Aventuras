@@ -112,7 +112,10 @@ module.exports = defineConfig([
 
       'react-hooks/exhaustive-deps': 'error',
 
-      'no-console': ['error', { allow: ['warn', 'error'] }],
+      // Direct console.* bypasses the diagnostics gate and never lands in the
+      // logEntries slice. Route through `logger` instead. Off inside
+      // lib/diagnostics (the mirror lives there) and in dev-only paths below.
+      'no-console': 'error',
 
       'react-native/no-inline-styles': 'error',
       'react-native/no-color-literals': 'error',
@@ -129,10 +132,11 @@ module.exports = defineConfig([
     },
   },
 
-  // Console is fine in build scripts, dev routes, the Electron main
-  // process (no other diagnostic surface), and story action handlers.
+  // Console is fine in build scripts, dev routes, the Electron main process
+  // (no other diagnostic surface), story action handlers, and the logger
+  // module itself (it owns console mirroring + the dev drift warning).
   {
-    files: ['scripts/**', 'app/dev/**', 'electron/**', '**/*.stories.tsx'],
+    files: ['scripts/**', 'app/dev/**', 'electron/**', '**/*.stories.tsx', 'lib/diagnostics/**'],
     rules: {
       'no-console': 'off',
     },
