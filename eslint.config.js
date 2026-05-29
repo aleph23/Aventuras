@@ -158,6 +158,7 @@ module.exports = defineConfig([
       '.expo/**',
       'node_modules/**',
       '_tmp/**',
+      'lib/db/migrations/**',
     ],
   },
 ])

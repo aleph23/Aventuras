@@ -84,11 +84,11 @@ packaging.
   - **Public API in `index.ts`**: the `db` client; table
     references (`stories`, `branches`, `storyEntries`,
     `appSettings`, `pipelineRuns`); inferred row + insert types
-    (`Story`, `Branch`, etc.); `migrate()` function. Generic
-    drizzle hooks like `useLiveQuery` are imported directly from
-    `drizzle-orm/expo-sqlite` by consumers — they operate on
-    query objects built from this module's `db` and don't need
-    re-export.
+    (`Story`, `Branch`, etc.); the `useDbMigrations()` startup
+    hook. Generic drizzle hooks like `useLiveQuery` are imported
+    directly from `drizzle-orm/expo-sqlite` by consumers — they
+    operate on query objects built from this module's `db` and
+    don't need re-export.
 - Declare the milestone-1 tables in `schema.ts` matching
   `data-model.md` for the columns specced there:
   - `stories` — full per spec (id, title, description, tags
@@ -118,14 +118,19 @@ packaging.
     orchestrator; this slice ships the table schema only.
 - Generate initial migration via `drizzle-kit`, commit the
   generated SQL under `lib/db/migrations/`.
-- Wire `migrate()` to run on app startup for both targets:
-  Expo Router `_layout.tsx` (or wherever the app's bootstrap
-  effect lives) and the Electron renderer entry. Migrations run
-  idempotently; subsequent starts are no-ops.
-- Load the sqlite-vec extension at SQLite client init inside
-  `client.ts`. Verify on both Electron desktop and an Android
-  emulator that the extension loads without error (a
-  `SELECT vec_version()` or equivalent smoke query passes).
+- Wire `useDbMigrations()` on app startup for both targets:
+  on native the hook gates first render via drizzle's
+  `useMigrations`; on desktop the Electron main process applies
+  migrations at its own startup so the renderer hook returns
+  success. Migrations run idempotently; subsequent starts are
+  no-ops.
+- Load the sqlite-vec extension at SQLite client init: on native
+  (`client.ts`) via `withSQLiteVecExtension` config plugin and
+  `loadExtensionAsync`; on desktop the extension loads in the
+  Electron main process (`node:sqlite` + sqlite-vec loadable), with
+  the renderer reaching the DB via Drizzle's `sqlite-proxy` over
+  IPC. Verify on both targets that `vec_version()` returns without
+  error.
 - _(No data-model.md update required — `pipeline_runs` is
   canonically specced in `docs/generation-pipeline.md`.)_
 
@@ -160,13 +165,15 @@ packaging.
   spec.
 - Initial migration generated, committed, runs idempotently on
   app start on both Expo (Android emulator) and Electron desktop.
-- sqlite-vec extension loads at SQLite client init on both
-  platforms (`vec_version()` smoke query returns).
+- sqlite-vec loads on native (expo bundled extension) and on
+  desktop (Electron main `node:sqlite` `loadExtension`);
+  `vec_version()` returns on both.
 - The `app_settings` singleton row exists after first startup
   with `diagnostics.enabled = false` and
   `diagnostics.debug_level_enabled = false` as defaults.
 - `lib/db/index.ts` exports the `db` client, all five table
-  references, inferred row types, and the `migrate()` function.
+  references, inferred row types, and the `useDbMigrations()`
+  startup hook.
 - `pnpm lint` passes (boundaries rule clean).
 - `pnpm lint:docs` passes (the data-model.md addition for
   `pipeline_runs` doesn't break anchor links).
@@ -176,9 +183,10 @@ packaging.
 
 ## Tests
 
-- **Migration apply.** Vitest setup runs `migrate()` against a
-  fresh in-memory SQLite, asserts the five tables exist with the
-  expected columns.
+- **Migration apply.** Vitest applies the committed migration
+  folder to a fresh in-memory `node:sqlite` database (via
+  `drizzle-orm/sqlite-proxy`'s migrator), asserting the five
+  tables exist with the expected columns.
 - **Insert + query roundtrip per table.** One test per table that
   inserts a representative row and queries it back, asserting
   Drizzle's inferred types match.
@@ -196,14 +204,13 @@ desktop` + Expo Android run); `vec_version()` returns without
 
 ## Open questions
 
-- **sqlite-vec cross-platform packaging.** V1 PoC verified
-  sqlite-vec running on a real Android device with tangible
-  cosine-similarity performance benefit over in-memory; the
-  wiring pattern is known to work. Slice reuses the PoC's
-  loader approach. If something unexpected surfaces in v2
-  packaging, splitting into 1.2a (Drizzle + schema) and 1.2b
-  (sqlite-vec) remains a clean fallback; not expected based on
-  PoC results.
+- **sqlite-vec cross-platform packaging.** RESOLVED in planning:
+  native uses the expo bundled extension (`withSQLiteVecExtension`
+  config plugin); desktop uses Electron-main `node:sqlite` +
+  sqlite-vec loadable extension over `sqlite-proxy` IPC (expo-sqlite
+  web/WASM cannot host sqlite-vec). drizzle-orm 0.45.2 ships no
+  node-sqlite driver, so `sqlite-proxy` is the adapter wrapping
+  `node:sqlite` on desktop and in Vitest.
 - **`pipeline_runs` shape evolution.** This slice introduces the
   table; slice 1.5 is its first real consumer and may surface
   fields not anticipated here (per-phase timings? error stack

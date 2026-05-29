@@ -154,7 +154,7 @@ memory pipeline (M3) needs to tune against.
   `run_complete(failed)` emission before phase 0 per
   [`generation-pipeline.md → Config pre-flight validation`](../generation-pipeline.md#config-pre-flight-validation);
   crash-recovery modal (`pendingRecoveryReport` slot, boot
-  ordering migrations → stores → recovery → render) per
+  ordering migrations → stores → recovery → render, loading screen until render) per
   [`generation-pipeline.md → Recovery modal`](../generation-pipeline.md#recovery-modal);
   pack include-compatibility validator at pack load per
   [`architecture.md → Macros`](../architecture.md#macros--reusable-liquid-snippets-not-code-side-formatters);

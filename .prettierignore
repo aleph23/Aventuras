@@ -19,3 +19,6 @@ scripts/poc-embedder/
 
 # Symlink to CLAUDE.md — prettier errors on symbolic links; the target gets formatted instead.
 AGENTS.md
+
+# drizzle-kit output — committed verbatim; prettier desyncs meta/ checksums
+lib/db/migrations/

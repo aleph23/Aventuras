@@ -3,7 +3,21 @@ import { pathToFileURL } from 'node:url'
 
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron'
 
+import {
+  exec as dbExec,
+  initDb,
+  query as dbQuery,
+  transaction as dbTransaction,
+} from './db/service'
+import type { DbProxyMethod } from './db/types'
+
 const isDev = !app.isPackaged
+
+// Dev runs get their own userData dir (~/.config/aventuras-dev) so dev DB/cache
+// never collide with an installed build, whose name comes from electron-builder.
+// Must precede the first app.getPath('userData') (in initDb on whenReady).
+if (isDev) app.setName('aventuras-dev')
+
 const APP_SCHEME = 'app'
 const APP_HOST = 'bundle'
 
@@ -64,9 +78,17 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await initDb()
   registerBundleProtocol()
   ipcMain.handle('native:ping', () => 'pong')
+  ipcMain.handle('db:query', (_e, sql: string, params: unknown[], method: DbProxyMethod) =>
+    dbQuery(sql, params, method),
+  )
+  ipcMain.handle('db:exec', (_e, sql: string) => dbExec(sql))
+  ipcMain.handle('db:transaction', (_e, ops: { sql: string; params: unknown[] }[]) =>
+    dbTransaction(ops),
+  )
 
   createWindow()
 
