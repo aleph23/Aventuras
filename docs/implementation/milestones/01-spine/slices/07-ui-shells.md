@@ -3,8 +3,10 @@
 ## Metadata
 
 - **Milestone:** [Milestone 1 — Spine](../milestone.md)
-- **Depends on:** [Slice 1.5](./05-pipeline-framework.md) (the
-  pipeline orchestrator, stub LLM, ambient `actionId`, and the
+- **Depends on:** [Slice 1.5b](./05b-stub-and-recovery.md) (the
+  stub LLM the smoke triggers and the crash-recovery pass the
+  bootstrap runs — transitively, via [Slice 1.5a](./05a-pipeline-core.md),
+  the pipeline orchestrator, ambient `actionId`, and the
   generation store with its namespaced mutators); [Slice 1.6](./06-base-stores.md)
   (app-settings and navigation stores plus their namespaced
   mutators; QueryClient setup; bootstrap order including
@@ -122,7 +124,7 @@ happens when real interactive features land.
   Smoke-test toast fires from the end-to-end smoke trigger's
   success or failure case, proving the queue → mount path
   works.
-- Bootstrap order assembled at the app root, per Slice 1.5
+- Bootstrap order assembled at the app root, per Slice 1.5b
   and 1.6:
   1. Migrations apply (from `lib/db/`).
   2. Crash recovery pass runs (from `lib/pipeline/`).

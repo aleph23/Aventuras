@@ -5,7 +5,7 @@
 - **Milestone:** [Milestone 1 — Spine](../milestone.md)
 - **Depends on:** [Slice 1.2](./02-drizzle-schema.md)
   (`app_settings` row to hydrate from; schema-shaped types);
-  [Slice 1.5](./05-pipeline-framework.md) (the `lib/stores/`
+  [Slice 1.5a](./05a-pipeline-core.md) (the `lib/stores/`
   module's initial setup with the generation store and
   namespaced `index.ts` shape; the cross-cutting action layer
   for any future multi-store work).
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Extend `lib/stores/` (created in Slice 1.5) with the
+Extend `lib/stores/` (created in Slice 1.5a) with the
 app-settings and navigation domain stores, plus the
 `ui` subnamespace ready for cross-component ephemeral state.
 The `ui` subnamespace includes the `useToasts` queue per
@@ -39,7 +39,7 @@ named functions exposed through the namespaced
 scaffolding for single-store writes — the action layer
 narrows to cross-cutting transactional work (multi-store
 coordination, multi-table SQLite, pipeline Path A delta
-application), all of which is already covered by Slice 1.5
+application), all of which is already covered by Slice 1.5a
 for the milestone-1 surface. Slice 1.6's writes are all
 single-store and live with their stores.
 
@@ -77,7 +77,7 @@ commits).
 
 ## Scope: in
 
-- Extend `lib/stores/` (the existing module from Slice 1.5):
+- Extend `lib/stores/` (the existing module from Slice 1.5a):
   - Add `domain/app-settings.ts` declaring the raw
     `useAppSettingsStore` (never exposed) and named
     selectors / mutators (see below).
@@ -138,7 +138,7 @@ commits).
   ```ts
   // illustrative; final shape per implementer
   export const domain = {
-    // from Slice 1.5:
+    // from Slice 1.5a:
     useGeneration,
     startRun,
     recordPhaseResult,
@@ -205,14 +205,14 @@ commits).
 - New `lib/actions/<domain>/` subdirectories for single-store
   mutations — those live in their store files. The action
   layer is for cross-cutting work, which milestone 1 already
-  covered in Slice 1.5.
+  covered in Slice 1.5a.
 
 ## Acceptance criteria
 
 - `lib/stores/index.ts` exposes the extended `domain`
   namespace including app-settings selectors and mutators,
   navigation selectors and mutators, and the empty `ui`
-  namespace. Generation entries from Slice 1.5 still work.
+  namespace. Generation entries from Slice 1.5a still work.
 - `useAppSettings` hydrates from the `app_settings` row via
   `hydrateAppSettings()` during bootstrap;
   `diagnostics.enabled` and `debug_level_enabled` are

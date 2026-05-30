@@ -7,7 +7,7 @@
   gates on `app_settings.diagnostics.enabled`, which requires the
   `app_settings` row to exist.
 - **Blocks:** 1.4 (provider emissions through logger,
-  `httpCallSink` populates the declared store slice), 1.5
+  `httpCallSink` populates the declared store slice), 1.5a/1.5b
   (pipeline emissions through logger, `turnCaptureSink` populates
   the declared store slice), and every later subsystem that
   emits.
@@ -32,7 +32,7 @@ the substrate. The two structural sinks (`httpCallSink`,
 `turnCaptureSink`) have downstream dependencies — the HTTP
 wrapper for `httpCallSink` (lands in slice 1.4) and the
 orchestrator's ambient `actionId` mechanism for `turnCaptureSink`
-(lands in slice 1.5). Slice 1.3 ships the empty store slices for
+(lands in slice 1.5a). Slice 1.3 ships the empty store slices for
 them so each later slice plugs in without restructuring the
 store.
 
@@ -87,9 +87,9 @@ probe's existing rule, unrelated to this slice).
     run); `useDiagnosticsStore` selectors for read-only access
     from UI; types (`LogEntry`, `LogLevel`, `LogSubsystem`,
     `LogKind`, plus stub types for `HttpCall`, `TurnCapture`,
-    `PhaseEvent` so slices 1.4 / 1.5 have target shapes to
+    `PhaseEvent` so slices 1.4 / 1.5a have target shapes to
     fill). Raw sink primitives stay internal. Slices 1.4 and
-    1.5 add `httpCallSink` / `turnCaptureSink` to the public
+    1.5a add `httpCallSink` / `turnCaptureSink` to the public
     API following the same split (turn-threading default plus
     a `*WithoutTurn` variant each).
   - Internal organization is the implementer's call. Likely
@@ -103,7 +103,7 @@ probe's existing rule, unrelated to this slice).
   - `httpCalls: HttpCall[]` — empty array; populated by
     `httpCallSink` in slice 1.4.
   - `turnCaptures: TurnCapture[]` — empty array; populated by
-    `turnCaptureSink` in slice 1.5.
+    `turnCaptureSink` in slice 1.5a.
 - Declare the `LogSubsystem` union with the spec's initial
   members: pipeline, action_layer, classifier, retrieval,
   provider, embedder, translation, memory. Adding a new
@@ -116,7 +116,7 @@ probe's existing rule, unrelated to this slice).
   master is ON, no-ops at function entry when master is OFF
   (debug also gated by `debug_level_enabled`).
 - ULID generator. Lives in `lib/diagnostics/` internals for now;
-  if a third consumer needs ULIDs (likely slice 1.5 for
+  if a third consumer needs ULIDs (likely slice 1.5a for
   pipeline-run IDs), extract to its own `lib/ulid/` module
   then.
 - Master gate hydration:
@@ -150,10 +150,10 @@ probe's existing rule, unrelated to this slice).
 - `httpCallSink` implementation. Empty slice declared this
   slice; implementation lands in 1.4 with the HTTP wrapper.
 - `turnCaptureSink` implementation. Empty slice declared this
-  slice; implementation lands in 1.5 with the orchestrator.
+  slice; implementation lands in 1.5a with the orchestrator.
 - Ambient `actionId` mechanism. The optional `actionId` field
   on `LogEntry` stays `undefined` in this slice's emissions;
-  populated once slice 1.5 wires the orchestrator-side
+  populated once slice 1.5a wires the orchestrator-side
   threading.
 - Memory probe (persistent captures). Unchanged from
   `docs/memory/probe.md`; lives in its own domain and lands
@@ -232,14 +232,14 @@ probe's existing rule, unrelated to this slice).
 ## Open questions
 
 - **ULID generator placement.** Internal to `lib/diagnostics/`
-  for now (only consumer this slice). When slice 1.5 needs
+  for now (only consumer this slice). When slice 1.5a needs
   ULIDs for `pipeline_runs.run_id`, extract to a `lib/ulid/`
   module rather than letting two modules carry duplicate
-  implementations. Flag here so slice 1.5's author remembers.
+  implementations. Flag here so slice 1.5a's author remembers.
 - **Type stubs for `HttpCall` / `TurnCapture` / `PhaseEvent`.**
   Slice 1.3 declares the shapes from the spec so slices 1.4 /
-  1.5 fill the implementations. If the shapes change during
-  authoring of 1.4 / 1.5 (additive fields, etc.), the canonical
+  1.5a fill the implementations. If the shapes change during
+  authoring of 1.4 / 1.5a (additive fields, etc.), the canonical
   spec wins and slice 1.3's stubs migrate forward.
 - **Console-mirror failure handling.** Mirror errors are
   swallowed silently per the slice. If mirroring becomes a

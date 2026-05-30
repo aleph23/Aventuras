@@ -100,7 +100,7 @@ Slice docs land as each slice is authored (one per slice under
    with the logger, the `diagnosticsStore` (logEntries slice
    only), the `LogSubsystem` union, console mirroring, and the
    `console.*` eslint ban. `httpCallSink` and `turnCaptureSink`
-   are declared as empty stubs to be wired in 1.4 and 1.5.
+   are declared as empty stubs to be wired in 1.4 and 1.5a.
 
 4. **Slice 1.4 — Vercel AI SDK baseline.** Provider abstraction
    stub. `httpCallSink` wired into the HTTP wrapper with
@@ -109,11 +109,22 @@ Slice docs land as each slice is authored (one per slice under
    denylist; safe for local-server short keys per
    [`observability.md → Header redaction`](../../../observability.md#header-redaction)).
 
-5. **Slice 1.5 — Pipeline framework.** Pipeline framework itself,
-   a fault-injectable stub LLM, the `turnCaptureSink`, the action
-   layer scaffold, the ambient `actionId` mechanism, and a vitest
-   harness exercising fault scenarios (malformed JSON, mid-stream
-   timeout, refusal, cancellation).
+5. **Slice 1.5 — Pipeline framework.** Split into two PRs along
+   the synthetic-phase / stub-LLM seam:
+   - [**Slice 1.5a — Pipeline core + persistence.**](./slices/05a-pipeline-core.md)
+     The orchestrator, the cross-cutting action layer (Path A
+     delta application), the `deltas` table + reverse-replay
+     primitive, the `turnCaptureSink`, the ambient `actionId`
+     mechanism, and the initial `lib/stores/` module with the
+     generation store. Proven end-to-end against a synthetic
+     phase — no LLM.
+   - [**Slice 1.5b — Stub LLM, fault scenarios, crash
+     recovery.**](./slices/05b-stub-and-recovery.md) The
+     fault-injectable stub LLM (routed through the fetch wrapper
+     so it captures an `httpCallSink` entry), the vitest
+     fault-scenario harness (malformed JSON, mid-stream timeout,
+     refusal, cancellation), and the boot-time crash-recovery
+     pass returning a `RecoveryReport`.
 
 6. **Slice 1.6 — Base Zustand stores.** `useAppSettingsStore`,
    `useGenerationStore`, navigation selection state,
@@ -136,27 +147,35 @@ Slice docs land as each slice is authored (one per slice under
 ## Dependency graph
 
 ```
-1.1 → 1.2 ─┬→ 1.3 ─┬→ 1.4 → 1.5
-           │       │
-           └→ 1.6 ─┴→ 1.7
+1.1 → 1.2 ─┬→ 1.3 ─┬→ 1.4 ──────────┐
+           │       │                ├→ 1.5b ─┐
+           │       └→ 1.5a ─┬────────┘        ├→ 1.7
+           │                ↓                 │
+           └──────────────→ 1.6 ──────────────┘
 ```
 
 - **1.1 (conventions)** is the absolute gate; every later slice
   authors `lib/*` modules against its eslint rule.
 - **1.2 (schema)** gates everything downstream; observability
   reads `app_settings`, stores hydrate from tables, pipeline
-  writes to `pipeline_runs`.
-- **1.3 (observability)** gates 1.4 and 1.5; both subsystems
+  writes to `pipeline_runs` and `deltas`.
+- **1.3 (observability)** gates 1.4 and 1.5a; both subsystems
   route through the logger from their first commit.
-- **1.4 (AI SDK)** gates 1.5; the pipeline framework's stub LLM
-  needs the provider abstraction even when the call is faked.
-- **1.6 (stores)** parallels 1.3–1.5 after 1.2; needs
-  schema-shaped types but not the pipeline.
-- **1.7 (UI shells)** gates on 1.6 (stores) and indirectly on
-  1.5 for the end-to-end smoke trigger.
+- **1.4 (AI SDK)** gates 1.5b — the stub LLM needs the provider
+  abstraction and the fetch-capture wrapper. 1.5a is independent
+  of 1.4: its synthetic phase makes no model call.
+- **1.5a (pipeline core)** gates 1.5b (the stub, fault suite, and
+  recovery build on the orchestrator + reverse-replay primitive)
+  and 1.6 (which extends the `lib/stores/` module 1.5a creates).
+- **1.6 (stores)** needs schema-shaped types (1.2) and the
+  `lib/stores/` skeleton (1.5a), but not the orchestrator or
+  stub; it can otherwise proceed alongside the pipeline branch.
+- **1.7 (UI shells)** gates on 1.6 (stores) and 1.5b for the
+  end-to-end smoke trigger (1.5b transitively carries 1.5a).
 
-Parallel paths after 1.2: {1.3, 1.4, 1.5} on the AI / pipeline
-branch runs alongside {1.6, 1.7} on the UI branch.
+Parallel paths after 1.2: {1.3, 1.4, 1.5a, 1.5b} on the AI /
+pipeline branch runs alongside {1.6, 1.7} on the UI branch,
+reconverging at 1.7.
 
 ## Slice contracts
 
@@ -172,10 +191,10 @@ One exception worth pinning explicitly:
   observability doc, so the milestone's job is to land the type
   and use it consistently.
 
-The 1.4 / 1.5 boundary (what a "model call" looks like) is
+The 1.4 / 1.5b boundary (what a "model call" looks like) is
 sequenced: 1.4 lands, the provider-abstraction contract is fixed
-by implementation, then 1.5 starts. No pre-authored contract
-required.
+by implementation, then 1.5b's stub builds on it. 1.5a doesn't
+touch the model-call boundary. No pre-authored contract required.
 
 ## Definition of done
 
@@ -210,8 +229,8 @@ required.
 
 - **Action-layer internal folder structure under `lib/actions/`.**
   Domain split is the agreed shape (`lib/actions/<domain>/`);
-  concrete domain names TBD when slice 1.5 authors the scaffold.
-  Resolved in slice 1.5 rather than the milestone.
+  concrete domain names TBD when slice 1.5a authors the scaffold.
+  Resolved in slice 1.5a rather than the milestone.
 - **Cross-component ephemeral store inventory.** The
   `lib/stores/ui/` folder may end up holding only a handful of
   stores; the exact set emerges from 1.7 (UI shells). Not a

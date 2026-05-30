@@ -6,7 +6,7 @@
 - **Depends on:** [Slice 1.1](./01-code-conventions.md) — `lib/*`
   public-API rule must be active so `lib/db/` lands under it from
   the first commit.
-- **Blocks:** 1.3, 1.4, 1.5, 1.6, 1.7. Observability needs
+- **Blocks:** 1.3, 1.4, 1.5a, 1.5b, 1.6, 1.7. Observability needs
   `app_settings` for the diagnostics gate; the pipeline writes to
   `pipeline_runs`; stores hydrate from schema-shaped types; UI
   shells render against the schema.
@@ -66,7 +66,7 @@ packaging.
   store from this slice onward.
 - [`docs/generation-pipeline.md` → Crash recovery via pipeline_runs marker table](../../../../generation-pipeline.md#crash-recovery-via-pipeline_runs-marker-table)
   — canonical `pipeline_runs` table shape; this slice ships the
-  table, slice 1.5 ships the recovery pass that uses it.
+  table, slice 1.5b ships the recovery pass that uses it.
 
 ## Scope: in
 
@@ -114,8 +114,9 @@ packaging.
     (`'completed' | 'aborted' | 'failed' | 'recovered'`).
     In-flight rows are encoded by `finished_at IS NULL` — no
     `'in_flight'` outcome value. The crash-recovery pass that
-    reads this table lands in slice 1.5 alongside the
-    orchestrator; this slice ships the table schema only.
+    reads this table lands in slice 1.5b; the orchestrator that
+    writes it lands in 1.5a. This slice ships the table schema
+    only.
 - Generate initial migration via `drizzle-kit`, commit the
   generated SQL under `lib/db/migrations/`.
 - Wire `useDbMigrations()` on app startup for both targets:
@@ -212,10 +213,10 @@ desktop` + Expo Android run); `vec_version()` returns without
   node-sqlite driver, so `sqlite-proxy` is the adapter wrapping
   `node:sqlite` on desktop and in Vitest.
 - **`pipeline_runs` shape evolution.** This slice introduces the
-  table; slice 1.5 is its first real consumer and may surface
+  table; slice 1.5a is its first real consumer and may surface
   fields not anticipated here (per-phase timings? error stack
   traces?). Treat the schema as v0 — additive migrations from
-  slice 1.5 are expected and fine.
+  slice 1.5a are expected and fine.
 - **`lib/db/migrations/` formatting and commit policy.** Drizzle
   generates SQL files; agree at authoring time whether to format
   them with prettier or leave them as-emitted (prettier on

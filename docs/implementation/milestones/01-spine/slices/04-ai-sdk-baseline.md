@@ -7,10 +7,11 @@
   — `httpCallSink` slice is declared empty in 1.3; this slice
   populates it. AI SDK calls route through `logger` from their
   first commit.
-- **Blocks:** Slice 1.5 — the pipeline framework's stub LLM
-  needs the provider abstraction even when the call is faked,
-  and the orchestrator's ambient `actionId` mechanism reads
-  from the sink-aware ID slot wired here.
+- **Blocks:** Slice 1.5b — the stub LLM needs the provider
+  abstraction and the `createFetchWithCapture` wrapper to route
+  its faked call through `httpCallSink`; the run's ambient
+  `actionId` threads through the sink-aware `getActionId` slot
+  wired here when that call goes out.
 
 ## Goal
 
@@ -28,10 +29,10 @@ need them.
 
 ## Background
 
-Milestone 1 doesn't make real LLM calls — slice 1.5 ships a
+Milestone 1 doesn't make real LLM calls — slice 1.5b ships a
 fault-injectable stub at the pipeline layer that bypasses real
 providers. So slice 1.4's job is to put the production HTTP and
-provider plumbing in place such that when slice 1.5's stub is
+provider plumbing in place such that when slice 1.5b's stub is
 swapped for real calls in later milestones, no scaffolding
 needs to be retrofitted.
 
@@ -102,7 +103,7 @@ modelId): LanguageModelV1` — given a provider instance ID
     `completeCall` with status, headers, and final body
     (accumulated for streams); on error calls `failCall`.
   - Reads ambient `actionId` if available (the mechanism lands
-    in slice 1.5; until then `actionId` is undefined and the
+    in slice 1.5b; until then `actionId` is undefined and the
     sink handles undefined gracefully).
   - Accepts a `source` argument (e.g. `'provider:<id>'`) so the
     `HttpCall` record's `source` field is populated. Wrapper
@@ -126,7 +127,7 @@ modelId): LanguageModelV1` — given a provider instance ID
   - Ring buffer capped at 200 entries; eviction protects
     in-flight entries and completed entries whose `actionId`
     is still resident in `turnCaptures` (the cross-tab nav
-    contract). Slice 1.5 wires the `turnCaptures` resident set;
+    contract). Slice 1.5a wires the `turnCaptures` resident set;
     until then, the protection just degrades to FIFO over
     completed rows.
 - Value-matching header redaction:
@@ -150,7 +151,7 @@ modelId): LanguageModelV1` — given a provider instance ID
 
 ## Scope: out
 
-- Real LLM calls from milestone-1 user flows. Slice 1.5's stub
+- Real LLM calls from milestone-1 user flows. Slice 1.5b's stub
   LLM is what milestone-1's smoke triggers; this slice only
   ships the production plumbing.
 - Multi-provider support beyond Anthropic. OpenAI / Google /
@@ -255,7 +256,7 @@ modelId): LanguageModelV1` — given a provider instance ID
   provider-construction time.
 - **Turn-resident protection without `turnCaptures`.** The
   spec's ring buffer eviction protects completed rows whose
-  `actionId` is still in `turnCaptures`. Slice 1.5 ships
+  `actionId` is still in `turnCaptures`. Slice 1.5a ships
   `turnCaptures`; until then, the protection is a no-op and
   eviction is plain FIFO over completed rows. Acceptable for
   this slice; protection becomes load-bearing once

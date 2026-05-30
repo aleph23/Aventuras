@@ -4,7 +4,7 @@
 
 - **Milestone:** [Milestone 1 — Spine](../milestone.md)
 - **Depends on:** none (first slice)
-- **Blocks:** 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 — every later slice
+- **Blocks:** 1.2, 1.3, 1.4, 1.5a, 1.5b, 1.6, 1.7 — every later slice
   authors `lib/*` modules under this slice's eslint rule.
 
 ## Goal
@@ -197,7 +197,7 @@ retrofits them rather than starting from an empty `lib/`.
   `eslint.config.js`); the logger that gives it a real target
   ships in Slice 1.3.
 - No setter-from-domain-store lint ban — lands with the action
-  layer / domain stores in Slice 1.5 or 1.6 once domain stores
+  layer / domain stores in Slice 1.5a or 1.6 once domain stores
   exist.
 - No selective-re-export shape enforcement on `index.ts` files;
   convention-only, not mechanically enforced this slice.

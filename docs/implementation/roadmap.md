@@ -765,7 +765,7 @@ explicit.
     [`parked.md`](../parked.md#prompt-pack-editor-desktop-spec--mobile-retrofit)).
 - **Observability sinks beyond the logger**
   ([`observability.md`](../observability.md)).
-  - **M1.3 / M1.4 / M1.5** — `logger`, `httpCallSink` (fully
+  - **M1.3 / M1.4 / M1.5a** — `logger`, `httpCallSink` (fully
     implemented with value-matching header redaction at sink
     boundary against `app_settings.providers` known keys; no
     denylist), `turnCaptureSink` land and accept their first
