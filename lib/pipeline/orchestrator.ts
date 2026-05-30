@@ -152,10 +152,21 @@ async function commitRun(run: RunState, ctx: RunCtx): Promise<TxResult> {
   // store transition so the gate stays closed across the boundary.
   const successor = nextKind ? newRunState(nextKind, ctx) : undefined
   domain.finishRun(run.runId, successor)
-  await ctx.db
-    .update(pipelineRuns)
-    .set({ finishedAt: Date.now(), outcome: 'completed' })
-    .where(eq(pipelineRuns.runId, run.runId))
+  try {
+    await ctx.db
+      .update(pipelineRuns)
+      .set({ finishedAt: Date.now(), outcome: 'completed' })
+      .where(eq(pipelineRuns.runId, run.runId))
+  } catch (e) {
+    // The run's writes already committed; a failed marker leaves an orphan that
+    // boot recovery reconciles. Finish cleanly regardless — the ambient actionId
+    // and active-run slot must never leak into the next run.
+    logger.error('pipeline.marker_write_failed', {
+      runId: run.runId,
+      outcome: 'completed',
+      error: String(e),
+    })
+  }
   turnCaptureSink.endTurn(run.actionId, 'completed')
   clearCurrentActionId()
   domain.clearActiveRun()
@@ -186,10 +197,20 @@ async function abortRun(
     outcome = 'failed'
   }
   domain.abortRun(run.runId)
-  await ctx.db
-    .update(pipelineRuns)
-    .set({ finishedAt: Date.now(), outcome })
-    .where(eq(pipelineRuns.runId, run.runId))
+  try {
+    await ctx.db
+      .update(pipelineRuns)
+      .set({ finishedAt: Date.now(), outcome })
+      .where(eq(pipelineRuns.runId, run.runId))
+  } catch (e) {
+    // Deltas are already reversed; a failed marker leaves an orphan that boot
+    // recovery re-reverses idempotently. Finish cleanly regardless.
+    logger.error('pipeline.marker_write_failed', {
+      runId: run.runId,
+      outcome,
+      error: String(e),
+    })
+  }
   turnCaptureSink.endTurn(run.actionId, outcome, cause.reason)
   clearCurrentActionId()
   domain.clearActiveRun()

@@ -53,6 +53,14 @@ async function* throwsDirectly(): AsyncGenerator<never, PhaseResult> {
   throw new Error('phase blew up')
 }
 
+async function* completesCleanly(): AsyncGenerator<never, PhaseResult> {
+  return { status: 'completed' }
+}
+
+async function* failsCleanly(): AsyncGenerator<never, PhaseResult> {
+  return { status: 'failed', error: { kind: 'phase-logic', detail: 'clean fail' } }
+}
+
 describe('orchestrator hardening', () => {
   beforeEach(() => resetSingletons())
   afterEach(() => resetSingletons())
@@ -99,5 +107,50 @@ describe('orchestrator hardening', () => {
 
     expect(result.outcome).toBe('failed')
     expect(result.error?.kind).toBe('orchestrator')
+  })
+
+  it('a marker-write failure on commit finishes cleanly without leaking state', async () => {
+    const { ctx } = await makeHarness()
+    definePipeline({ kind: 'commitfail', phases: [{ name: 'p', run: completesCleanly }], ...base })
+    const db = new Proxy(ctx.db, {
+      get(target, prop, receiver) {
+        if (prop === 'update') {
+          return () => {
+            throw new Error('marker write failed')
+          }
+        }
+        return Reflect.get(target, prop, receiver) as unknown
+      },
+    })
+
+    const result = await runPipeline('commitfail', { ...ctx, db })
+
+    expect(result.outcome).toBe('completed') // run logically completed; marker failure swallowed
+    expect(getCurrentActionId()).toBeUndefined() // ambient cleared despite the throw
+    expect(() => domain.getPerTurnContext()).toThrow('no active run') // active run released
+    expect(
+      getDiagnosticsSnapshot().logEntries.some((e) => e.kind === 'pipeline.marker_write_failed'),
+    ).toBe(true)
+  })
+
+  it('a marker-write failure on abort finishes cleanly without leaking state', async () => {
+    const { ctx } = await makeHarness()
+    definePipeline({ kind: 'abortfail', phases: [{ name: 'p', run: failsCleanly }], ...base })
+    const db = new Proxy(ctx.db, {
+      get(target, prop, receiver) {
+        if (prop === 'update') {
+          return () => {
+            throw new Error('marker write failed')
+          }
+        }
+        return Reflect.get(target, prop, receiver) as unknown
+      },
+    })
+
+    const result = await runPipeline('abortfail', { ...ctx, db })
+
+    expect(result.outcome).toBe('failed')
+    expect(getCurrentActionId()).toBeUndefined()
+    expect(() => domain.getPerTurnContext()).toThrow('no active run')
   })
 })
