@@ -451,6 +451,40 @@ Per-story on `stories.settings.probe_mode_active: boolean`
 (existing, unchanged) — gates memory probe persistent captures
 for that story.
 
+### Store ownership and gate wiring
+
+The two toggles are **app config**, so their in-memory home is the
+appSettings store (`lib/stores/domain/app-settings`), which mirrors
+`app_settings.diagnostics` alongside the rest of the row.
+`lib/diagnostics` does **not** own them — it owns only the ephemeral
+ring buffers. This is deliberate: `lib/diagnostics` is
+zero-dependency infrastructure that everything (the stores included)
+calls for logging, so reading the toggle _from_ `lib/stores` would
+invert the layering and close an import cycle.
+
+The gate is **injected, not imported**. At boot the composition root
+(`app/_layout.tsx`) calls
+`configureDiagnosticsGate({ isEnabled, isDebugEnabled })`, passing
+thunks that read `domain.getAppSettings().diagnostics.*` live;
+`lib/diagnostics` holds the thunks (default `() => false` until
+configured) and checks them at each sink / `logger.*` entry, never
+importing `lib/stores`. The `__DEV__` force-on lives inside the
+`isEnabled` thunk.
+
+**Live getter — never capture the snapshot.** The thunk must call
+`getAppSettings()` on every invocation. `getAppSettings()` returns a
+fresh object per call, so capturing its result once
+(`const s = getAppSettings(); () => s.diagnostics.enabled`) freezes
+the gate at the boot value and goes deaf to every later toggle.
+
+Because the gate reads live, **boot and runtime toggles are one
+mechanism**: each just makes the appSettings store reflect the DB,
+and the next gate check sees it. A toggle persists through an
+**action** (write the `app_settings.diagnostics` row, then
+re-hydrate the appSettings store) — the same re-hydrate-after-write
+rule as every persisted-mirror store — so one boot hydration carries
+diagnostics and there is no separate diagnostics hydration path.
+
 ### Memory probe gate consolidation
 
 The previously-defined `app_settings.diagnostics.probe_mode_enabled`
@@ -470,6 +504,11 @@ Persisted `probe_captures` are NOT wiped (memory probe's existing
 rule). The asymmetry tracks the persistence asymmetry: ephemeral
 data vaporizes on explicit off; persisted data only clears via
 explicit "Clear all captures" action.
+
+Because the gate is a pull-getter (above), nothing in
+`lib/diagnostics` observes the flip — the **toggle action** clears
+the buffers as the off-write's side effect (`clearBuffers()`),
+idempotent so writing an already-off value is harmless.
 
 ### UI placement
 

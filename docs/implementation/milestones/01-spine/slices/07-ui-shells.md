@@ -100,8 +100,9 @@ happens when real interactive features land.
     sub-routes per the settings spec). Renders section
     headings and the navigation chrome only; the only
     interactive control is the diagnostics master toggle,
-    which calls `stores.domain.setDiagnosticsEnabled(value)`
-    from Slice 1.6.
+    which invokes the diagnostics master-toggle **action**
+    (persist + re-hydrate the appSettings store — see the
+    diagnostics gate rework below).
 - Navigation wiring: any cross-route transition uses
   `stores.domain.setCurrentStory(id)` and
   `stores.domain.setCurrentBranch(id)`. Selectors via
@@ -151,6 +152,29 @@ happens when real interactive features land.
   while the fresh-install empty-row branch still hydrates
   defaults. No automatic reset — losing configured providers +
   API keys is destructive.
+- **Diagnostics gate ownership rework** — the persisted toggles
+  (`enabled`, `debug_level_enabled`) move to the appSettings store
+  as canonical owner; `lib/diagnostics` keeps only the ephemeral
+  buffers. Per
+  [`observability.md` → Store ownership and gate wiring](../../../../observability.md#store-ownership-and-gate-wiring):
+  un-strip `diagnostics` into the appSettings snapshot (the
+  existing `useAppSettingsHydration` already reads the whole row,
+  so one hydration carries it); **delete** `useDiagnosticsHydration`
+  / `hydrateDiagnostics`; `app/_layout.tsx` calls
+  `configureDiagnosticsGate({ isEnabled, isDebugEnabled })` once
+  (replacing the deleted hook), with thunks reading
+  `domain.getAppSettings().diagnostics.*` **live** — never
+  capturing the snapshot (a captured object freezes at the boot
+  value) — and the `__DEV__` force-on folded into `isEnabled`. The
+  master toggle becomes an **action** (write the
+  `app_settings.diagnostics` row, re-hydrate the appSettings store,
+  and on the off-write call `clearBuffers()`), so `lib/diagnostics`
+  exposes `configureDiagnosticsGate` + `clearBuffers` in place of
+  `setDiagnosticsEnabled` / `setDiagnosticsDebugEnabled`.
+  Parse-failure severity splits inside the single
+  `hydrateAppSettings` site: a config failure blocks at the
+  recovery screen (above); a diagnostics-only failure defaults the
+  toggles to off and continues (non-destructive).
 - Smoke trigger in the reader-composer:
   - Debug-only affordance — visible in `pnpm dev` builds and
     gated by a build-time constant for production builds.
@@ -221,10 +245,10 @@ happens when real interactive features land.
 - Reader-composer renders the top bar, inert side rail,
   scrolling entry list, and textarea with button.
 - Settings screen renders section layouts; the diagnostics
-  toggle works end-to-end (UI click →
-  `stores.domain.setDiagnosticsEnabled` →
-  `app_settings.diagnostics.enabled` row updated, store
-  reflects the change, subsequent app start respects it).
+  toggle works end-to-end (UI click → toggle action persists
+  `app_settings.diagnostics.enabled` and re-hydrates the
+  appSettings store → the injected gate reads the new value,
+  sinks honor it, and a subsequent app start respects it).
 - `app_settings` recovery screen: with a deliberately
   corrupted `app_settings` config row, boot halts at the
   recovery screen instead of mounting the normal tree;
@@ -321,26 +345,24 @@ happens when real interactive features land.
   story bootstrap should be removed when real
   story-creation UI ships. Track the removal as a followup
   in `docs/followups.md` at the time this slice merges.
-- **Store snapshot reads are live references.** Slice 1.6's
-  `domain.getAppSettings()` / `getNavigation()` return the
-  stores' live objects (matching the generation store's
-  `getTxState`), not copies. Any read this slice wires must
-  treat the result as read-only — e.g. a
-  `getAppSettings().assignments` walk must not mutate in
-  place. Freezing is deferred to the Zod-parsed-copy
-  milestone.
+- **Store snapshot reads expose live nested values.** Slice
+  1.6's `domain.getAppSettings()` / `getNavigation()` return a
+  **fresh top-level object** each call (they rebuild to strip
+  the mutators), but its nested values (`assignments`,
+  `providers`, …) are the store's **live references**, not deep
+  copies; `getTxState()` differs — it returns the live nested
+  object directly. Any read this slice wires must treat the
+  result as read-only: a `getAppSettings().assignments` walk
+  must not mutate in place, and the diagnostics gate must call
+  `getAppSettings()` on each check rather than capture it (the
+  fresh top-level object is frozen at capture time, so a captured
+  read goes deaf to later re-hydrates). Deep freezing is
+  deferred to the Zod-parsed-copy milestone.
 - **`Open file` on Android.** The reveal-the-SQLite-file action
   is desktop-meaningful (Electron opens the OS file manager for
   hand-repair); Android has no user-accessible path to edit.
   Resolve whether Android shows `Reset settings` only, or a
   platform-specific alternative.
-- **Two `app_settings` parse sites.** Config
-  (`appSettingsConfigSchema`, in `hydrateAppSettings`) and
-  diagnostics (`appSettingsDiagnosticsSchema`, the
-  `lib/diagnostics` module) parse the same row independently.
-  Config failure is destructive and blocks at the recovery
-  screen; decide whether a diagnostics-only parse failure also
-  blocks or simply defaults the toggle and continues.
 
 ## Implementation notes
 
