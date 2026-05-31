@@ -289,7 +289,7 @@ erDiagram
         json appearance "{ themeId, readerFontScale, accentOverride?, density } — density: 'default'|'compact'|'regular'|'comfortable' (sentinel 'default' resolves per tier; see ui/foundations/spacing.md#density-toggle)"
         text ui_language "ISO 639-1; defaults to OS locale on first launch"
         integer onboarding_completed_at "set on first dismissal of the onboarding wizard (Finish, Skip, or Step 2 footer-link exit); null = wizard renders as root on next boot"
-        json diagnostics "debug toggles, retry counts. Includes enabled boolean (master gate for the diagnostics layer — memory probe captures, the in-memory diagnostics store, console mirroring; off by default) and debug_level_enabled boolean (secondary gate for debug-level log emissions; off by default; meaningful only when enabled is on). Per-story memory probe activation in stories.settings.probe_mode_active is no-op while enabled is off. See docs/observability.md → Gating model"
+        json diagnostics "debug toggles. Includes enabled boolean (master gate for the diagnostics layer — memory probe captures, the in-memory diagnostics store, console mirroring; off by default) and debug_level_enabled boolean (secondary gate for debug-level log emissions; off by default; meaningful only when enabled is on). Per-story memory probe activation in stories.settings.probe_mode_active is no-op while enabled is off. See docs/observability.md → Gating model"
         integer created_at
         integer updated_at
     }
