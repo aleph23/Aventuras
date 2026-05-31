@@ -292,6 +292,14 @@ happens when real interactive features land.
   story bootstrap should be removed when real
   story-creation UI ships. Track the removal as a followup
   in `docs/followups.md` at the time this slice merges.
+- **Store snapshot reads are live references.** Slice 1.6's
+  `domain.getAppSettings()` / `getNavigation()` return the
+  stores' live objects (matching the generation store's
+  `getTxState`), not copies. Any read this slice wires must
+  treat the result as read-only — e.g. a
+  `getAppSettings().assignments` walk must not mutate in
+  place. Freezing is deferred to the Zod-parsed-copy
+  milestone.
 
 ## Implementation notes
 

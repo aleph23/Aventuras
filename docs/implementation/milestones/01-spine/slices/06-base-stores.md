@@ -217,9 +217,10 @@ commits).
   `hydrateAppSettings()` during bootstrap;
   `diagnostics.enabled` and `debug_level_enabled` are
   readable through the selector.
-- `setDiagnosticsEnabled(true)` writes both SQLite and the
-  store atomically; on simulated SQLite failure, the store
-  rolls back to its prior value.
+- `hydrateAppSettings()` falls back to `APP_SETTINGS_DEFAULTS`
+  and logs `bootstrap.app_settings_hydrate_failed` when the
+  row read throws. (The persisting diagnostics toggle is
+  deferred — see Implementation notes.)
 - `setCurrentStory(id)` and `setCurrentBranch(id)` mutate
   the navigation store; no SQLite write.
 - Raw store handles (`useAppSettingsStore`,
@@ -228,11 +229,13 @@ commits).
   from `lib/stores` fails type-check; importing them from
   `lib/stores/domain/*` directly fails lint (boundaries
   rule).
-- `QueryClient` is constructed at app root with the
-  project's defaults; `QueryClientProvider` wraps both Expo
-  and Electron app trees.
-- Bootstrap order is migrations → crash recovery →
-  `hydrateAppSettings()` → React tree mounts.
+- `QueryClient` is constructed in `lib/cache` with the
+  project's defaults; a single `QueryClientProvider` wraps
+  the app tree at `app/_layout.tsx` (Electron loads the same
+  web build — one wrap point).
+- Bootstrap order is migrations → `hydrateAppSettings()`
+  (non-blocking) → React tree mounts. Crash-recovery
+  insertion is Slice 1.7's (per Slice 1.5b).
 - `pnpm lint` passes (slice 1.1's existing boundaries rule
   plus the console ban from Slice 1.3).
 - `pnpm lint:docs` passes.
@@ -241,25 +244,24 @@ commits).
 
 ## Tests
 
-- **Hydration.** Pre-seed the `app_settings` row with a
-  recognizable diagnostics state; bootstrap;
-  `useAppSettings.getState()` reflects the seeded values.
-- **Mutator roundtrip — persistent.** Call
-  `stores.domain.setDiagnosticsEnabled(true)`; assert both
-  `app_settings.diagnostics.enabled` in SQLite and the
-  selector's value flipped to `true`.
-- **Rollback on persistent mutator.** Mock the SQLite write
-  to throw; call `setDiagnosticsEnabled(true)`; assert the
-  store state is unchanged after the throw.
+- **Hydration.** Drive `hydrateAppSettings(read)` with a
+  seeded row (`providers` / `profiles` / `assignments` /
+  `defaultProviderId`); assert `getAppSettings()` mirrors
+  the seeded values, and that a missing row falls back to
+  defaults. (No persistent mutator ships this slice — the
+  app-settings store is read-only; see Implementation
+  notes.)
+- **Hydration fallback.** Make the injected read throw;
+  call `hydrateAppSettings(read)`; assert the store falls
+  back to defaults and `logger.error` fired
+  `bootstrap.app_settings_hydrate_failed`.
 - **Mutator roundtrip — pure-Zustand.** Call
-  `stores.domain.setCurrentStory('story-id')`; assert
-  `useNavigation` selector reflects the new ID.
-- **Cross-store read.** Set an assignment via
-  `setDiagnosticsEnabled(true)` (illustrative; use a real
-  cross-store scenario at authoring time); call a
-  generation-store helper that reads from
-  `useAppSettings.getState()`; assert it sees the new
-  value.
+  `domain.setCurrentStory('story-id')`; assert the
+  `getNavigation()` snapshot reflects the new ID.
+- **getState-style read.** After `hydrateAppSettings`,
+  assert `domain.getAppSettings()` returns the hydrated
+  values (the snapshot-read path the generation context
+  will use; no real cross-store consumer exists in M1).
 - **Public-API surface.** Fixture outside `lib/stores/`
   imports only via `lib/stores/index.ts`; deep-import
   attempts fail lint. Fixture importing
@@ -276,10 +278,11 @@ commits).
   persistence across the milestone-1 routes. Probably
   emerges as `useState` first, promotes to
   `lib/stores/ui/` if real cross-component need surfaces.
-- **QueryClient placement.** Inline at app root for now
-  (no module). The diff-cache slice will likely justify a
-  `lib/cache/` module; until then, premature
-  decomposition avoided.
+- **QueryClient placement.** _Resolved:_ landed in a
+  `lib/cache/` module, not inline at app root — the
+  `app/`-inline placement pulled a `.test.ts` into the
+  expo-router web bundle and broke desktop boot. See
+  Implementation notes.
 - **Hydration error handling.** If
   `hydrateAppSettings()` throws (corrupt JSON in
   `app_settings`, schema mismatch), what does the app do?
@@ -295,4 +298,61 @@ commits).
 
 ## Implementation notes
 
-_Populated at finish: notable deviations from the plan and resolved developer decisions._
+The slice was authored before Slice 1.3's `lib/diagnostics` store and
+the pre-existing `lib/toast` foundation module were accounted for;
+planning reconciled both, so several brief items were superseded.
+
+**Deviations from the brief:**
+
+- **Diagnostics toggle dropped.** `setDiagnosticsEnabled` /
+  `setDebugLevelEnabled` and the `diagnostics` mirror are NOT in the
+  app-settings store. `lib/diagnostics` already owns the live gate, the
+  in-memory setters, and boot hydration
+  ([`observability.md`](../../../../observability.md#ingress) places
+  `diagnosticsStore` in-module). The app-settings store ships as a
+  read-only hydrated mirror of `providers` / `profiles` /
+  `assignments` / `defaultProviderId`, with **no mutators**. The
+  persisting toggle is deferred — it is a cross-store action (writes
+  `app_settings` and flips the `lib/diagnostics` gate), to land in
+  `lib/actions/` when the interactive settings UI gives it a consumer.
+  Navigation carries the slice's only mutators.
+- **Toast dropped.** `lib/toast/` and `components/ui/toast.tsx` already
+  implement the queue and `<Toaster>`; the `ui` namespace ships empty.
+  The `toast.md`-vs-`lib/toast` gap (warning severity, action button)
+  is logged in [`followups.md`](../../../../followups.md).
+- **QueryClient lives in `lib/cache`, not inline at the app root.** The
+  original `app/_queryClient.ts` placement broke desktop boot:
+  expo-router scans `app/**/*.test.ts` into the web bundle, which
+  imported `vitest` and crashed the renderer. Caught by the desktop
+  smoke; moved to a `lib/cache` module (its test lives under `lib/`,
+  never bundled as a route). One `QueryClientProvider` wrap at
+  `app/_layout.tsx` — Electron loads the same web build, so there is no
+  separate renderer entry to wrap.
+- **Boot order is migrations → `hydrateAppSettings` (non-blocking) →
+  mount.** The brief's intervening "crash recovery" step is dropped
+  here; crash-recovery boot wiring is Slice 1.7's per Slice 1.5b.
+- **Hydration failure logs and falls back, not a blocking recovery
+  screen.** `architecture.md`'s Zod-parse recovery screen is deferred
+  (Zod isn't a v1 dep); M1 logs `bootstrap.app_settings_hydrate_failed`
+  (a new `LogSubsystem` member added this slice) and applies
+  `APP_SETTINGS_DEFAULTS`.
+
+**Resolved developer decisions:** store placement is
+domain-vs-infrastructure, not "all stores in `lib/stores`" — domain
+working-set stores live in `lib/stores`; infrastructure modules
+(`diagnostics`, `toast`, …) own their state in-module. Raw store
+handles are exported from their domain files (matching the
+`generation.ts` template) but never from the `lib/stores` index; the
+index-only public API is the contract, guarded by a boundaries-lint
+surface test plus a typecheck fixture.
+
+**Carry-forward for Slice 1.7:** `getAppSettings()` / `getNavigation()`
+return live store references (matching the generation store's
+`getTxState`); consumers must treat results as read-only until
+Zod-parsed copies land — flagged in
+[Slice 1.7 Open questions](./07-ui-shells.md#open-questions).
+
+**Doc-hygiene followups queued** in
+[`triage.md`](../../../triage.md): clarify `code-conventions.md`
+State-placement re: infrastructure stores; reconcile `architecture.md`
+"diagnostics toggles" wording with the gate-vs-mirror split.

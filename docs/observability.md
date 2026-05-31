@@ -144,6 +144,7 @@ type LogSubsystem =
   | 'embedder'
   | 'translation'
   | 'memory'
+  | 'bootstrap'
 
 type LogKind = `${LogSubsystem}.${string}`
 ```
@@ -176,6 +177,8 @@ convention, and the expectation that subsystems route through
 - `translation.*` — `soft_failed` (when that followup lands)
 - `memory.*` — periodic-classifier + chapter-close phase
   emissions
+- `bootstrap.*` — boot-time hydration failures (e.g.
+  `app_settings_hydrate_failed`)
 
 Kinds grow organically as subsystems land.
 

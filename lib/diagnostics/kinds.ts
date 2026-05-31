@@ -9,6 +9,7 @@ export type LogSubsystem =
   | 'embedder'
   | 'translation'
   | 'memory'
+  | 'bootstrap'
 
 export type LogKind = `${LogSubsystem}.${string}`
 
