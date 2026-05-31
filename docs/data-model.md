@@ -1313,7 +1313,7 @@ app_settings.profiles: Array<{
   name: string                               // 'Narrative' / 'Fast tasks' / 'Heavy reasoning' / etc.
   description?: string                       // user-authored, agent profiles only
   modelRef: { providerId: string; modelId: string }  // composite — disambiguates same modelId across providers
-  temperature?: number                       // 0-1
+  temperature?: number                       // 0-2 (provider-dependent; Anthropic caps at 1, OpenAI/Google allow 2)
   maxOutput?: number
   thinking?: number                          // reasoning slider; conditional on model capability
   timeout?: number                           // seconds; default 60

@@ -40,7 +40,7 @@ export const modelProfileSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   modelRef: z.object({ providerId: z.string(), modelId: z.string() }),
-  temperature: z.number().min(0).max(1).optional(),
+  temperature: z.number().min(0).max(2).optional(),
   maxOutput: z.number().optional(),
   thinking: z.number().optional(),
   timeout: z.number().optional(),

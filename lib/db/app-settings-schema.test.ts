@@ -58,8 +58,12 @@ describe('modelProfileSchema', () => {
     expect(modelProfileSchema.safeParse({ ...VALID_PROFILE, kind: 'wizard' }).success).toBe(false)
   })
 
-  it('rejects a temperature outside 0-1', () => {
-    expect(modelProfileSchema.safeParse({ ...VALID_PROFILE, temperature: 1.5 }).success).toBe(false)
+  it('accepts a temperature above 1 (provider ranges up to 2)', () => {
+    expect(modelProfileSchema.safeParse({ ...VALID_PROFILE, temperature: 1.5 }).success).toBe(true)
+  })
+
+  it('rejects a temperature outside 0-2', () => {
+    expect(modelProfileSchema.safeParse({ ...VALID_PROFILE, temperature: 2.5 }).success).toBe(false)
   })
 })
 

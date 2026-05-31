@@ -336,7 +336,7 @@ Fields:
   - capability icons; the open picker carries type-to-search,
     cross-provider Favorites, grouped provider sections, and a
     sticky-footer custom-add composer.
-- **temperature** — 0–1 slider.
+- **temperature** — 0–2 slider.
 - **max output** — slider with `[✎ custom]` for direct numeric input
   beyond the slider's range.
 - **thinking** — slider, **conditional** rendering rules:
