@@ -19,13 +19,4 @@ slice-planning gate forces its resolution before that slice is planned.
 
 ## Inbox
 
-- **Reconcile `EntryCard.EntryMeta` with the canonical `EntryMetadata`.**
-  `EntryCard` defines its own display shape (`{ tokens: { reply, reasoning? } }`)
-  with no explicit link to `lib/db`'s `EntryMetadata` (`tokens.completion`,
-  etc.). The `reply` name matches the reader-composer spec's display
-  vocabulary, but the projection (DB `completion` to UI `reply`) lives
-  nowhere yet — Milestone 1's reader renders no real entries. When the
-  reader is wired to live `story_entries` (the DB-to-UI mapping), make
-  that projection explicit and decide whether `EntryMeta` should derive
-  from `EntryMetadata` rather than restate it. Owner: the reader-data
-  slice; route to its Open questions when defined.
+_Empty — nothing awaiting triage._

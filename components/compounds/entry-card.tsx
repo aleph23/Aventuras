@@ -18,13 +18,15 @@ import { Icon } from '@/components/ui/icon'
 import { IconAction } from '@/components/ui/icon-action'
 import { Text } from '@/components/ui/text'
 import { Textarea } from '@/components/ui/textarea'
+import type { EntryMetadata } from '@/lib/db'
 import { cn } from '@/lib/utils'
 
 type EntryKind = 'user' | 'ai' | 'opening' | 'system' | 'streaming'
 
-type EntryMeta = {
-  tokens: { reply: number; reasoning?: number }
-}
+// The card surfaces the canonical entry-metadata token shape directly rather
+// than a bespoke copy, so the two can't drift; only completion + reasoning are
+// displayed (prompt is carried but unused here).
+type EntryMeta = Pick<EntryMetadata, 'tokens'>
 
 type EntryCardProps = {
   kind: EntryKind
@@ -149,7 +151,7 @@ export function EntryCard({
             ) : null}
             {meta?.tokens != null ? (
               <Text size="xs" variant="muted" className="leading-none">
-                {meta.tokens.reply} tokens
+                {meta.tokens.completion} tokens
                 {meta.tokens.reasoning != null ? ` (+${meta.tokens.reasoning} reasoning)` : ''}
               </Text>
             ) : null}

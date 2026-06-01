@@ -6,7 +6,7 @@ import { ThemePicker } from '@/components/foundations/sections/theme-picker'
 import { Heading } from '@/components/ui/heading'
 import { Text } from '@/components/ui/text'
 
-const aiMeta = { tokens: { reply: 312, reasoning: 87 } }
+const aiMeta = { tokens: { prompt: 1840, completion: 312, reasoning: 87 } }
 
 export default function EntryCardDevRoute() {
   const [editing, setEditing] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export default function EntryCardDevRoute() {
               kind="opening"
               content={opening}
               worldTimeLabel="Day 1 · 06:00"
-              meta={{ tokens: { reply: 89 } }}
+              meta={{ tokens: { prompt: 1120, completion: 89 } }}
               onBranch={() => log('Branch from opening')}
               onFlipEra={() => log('Flip era on opening')}
               {...editProps('opening', opening)}

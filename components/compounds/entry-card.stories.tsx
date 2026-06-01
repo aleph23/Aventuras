@@ -18,7 +18,7 @@ const baseProps = {
 }
 
 const aiMeta = {
-  tokens: { reply: 312, reasoning: 87 },
+  tokens: { prompt: 1840, completion: 312, reasoning: 87 },
 }
 
 const meta: Meta<typeof EntryCard> = {
@@ -66,7 +66,7 @@ export const AiNoReasoning: StoryT = {
     ...baseProps,
     kind: 'ai',
     content: 'The figure tilts its head, and the air thickens around your blade.',
-    meta: { tokens: { reply: 145 } },
+    meta: { tokens: { prompt: 1290, completion: 145 } },
   },
 }
 
@@ -78,7 +78,7 @@ export const OpeningKind: StoryT = {
     kind: 'opening',
     content:
       'The road from Ironshore is empty for a hundred miles. You have ridden three days; the warden waits at the next bend.',
-    meta: { tokens: { reply: 89 } },
+    meta: { tokens: { prompt: 1120, completion: 89 } },
   },
 }
 
@@ -207,7 +207,7 @@ export const KindMatrix: StoryT = {
         kind="opening"
         content="The road from Ironshore is empty for a hundred miles."
         worldTimeLabel="Day 1 · 06:00"
-        meta={{ tokens: { reply: 89 } }}
+        meta={{ tokens: { prompt: 1120, completion: 89 } }}
         onEdit={fn()}
         onBranch={fn()}
         onFlipEra={fn()}
