@@ -81,7 +81,7 @@ export default function EntryCardDevRoute() {
               {...editProps('opening', opening)}
             />
             <EntryCard
-              kind="user"
+              kind="user_action"
               content={userTurn}
               worldTimeLabel="Day 1 · 09:14"
               onDelete={() => log('Delete user turn')}
@@ -89,7 +89,7 @@ export default function EntryCardDevRoute() {
               {...editProps('user', userTurn)}
             />
             <EntryCard
-              kind="ai"
+              kind="ai_reply"
               content={aiTurn}
               worldTimeLabel="Day 1 · 09:14"
               meta={aiMeta}
@@ -130,7 +130,7 @@ export default function EntryCardDevRoute() {
             tooltip.
           </Text>
           <EntryCard
-            kind="ai"
+            kind="ai_reply"
             content={aiTurn}
             worldTimeLabel="Day 1 · 09:14"
             meta={aiMeta}

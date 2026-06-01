@@ -42,7 +42,7 @@ export const UserKind: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'user',
+    kind: 'user_action',
     content: 'I draw my sword and step toward the figure in the doorway, ready to strike.',
   },
 }
@@ -51,7 +51,7 @@ export const AiKind: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'ai',
+    kind: 'ai_reply',
     content:
       'The figure raises a single gloved hand and the air thickens around your blade — you feel the metal hum, then go still in your grip, suddenly heavier than it should be.',
     meta: aiMeta,
@@ -64,7 +64,7 @@ export const AiNoReasoning: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'ai',
+    kind: 'ai_reply',
     content: 'The figure tilts its head, and the air thickens around your blade.',
     meta: { tokens: { prompt: 1290, completion: 145 } },
   },
@@ -115,7 +115,7 @@ export const EditMode: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'user',
+    kind: 'user_action',
     content: 'I draw my sword and step toward the figure in the doorway.',
     editing: true,
     onContentChange: fn(),
@@ -128,7 +128,7 @@ export const Disabled: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'ai',
+    kind: 'ai_reply',
     content: 'The figure raises a single gloved hand.',
     meta: aiMeta,
     disabled: true,
@@ -141,7 +141,7 @@ export const NoWorldTime: StoryT = {
   args: {
     ...baseProps,
     worldTimeLabel: undefined,
-    kind: 'ai',
+    kind: 'ai_reply',
     content: 'The figure raises a single gloved hand.',
     meta: aiMeta,
   },
@@ -152,7 +152,7 @@ export const NoFlipEra: StoryT = {
   args: {
     ...baseProps,
     onFlipEra: undefined,
-    kind: 'ai',
+    kind: 'ai_reply',
     content: 'The figure raises a single gloved hand.',
     meta: aiMeta,
   },
@@ -162,7 +162,7 @@ export const ReasoningTogglesOnBrainClick: StoryT = {
   ...wrap,
   args: {
     ...baseProps,
-    kind: 'ai',
+    kind: 'ai_reply',
     content: 'The figure raises a hand.',
     meta: aiMeta,
     reasoning: 'Lean on restraint, not combat.',
@@ -213,7 +213,7 @@ export const KindMatrix: StoryT = {
         onFlipEra={fn()}
       />
       <EntryCard
-        kind="user"
+        kind="user_action"
         content="I keep riding."
         worldTimeLabel="Day 1 · 06:05"
         onEdit={fn()}
@@ -221,7 +221,7 @@ export const KindMatrix: StoryT = {
         onFlipEra={fn()}
       />
       <EntryCard
-        kind="ai"
+        kind="ai_reply"
         content="At the next bend, a figure in dust-grey waits."
         worldTimeLabel="Day 1 · 09:14"
         meta={aiMeta}
@@ -266,14 +266,14 @@ export const ThemeMatrix: StoryT = {
           </View>
           <View className="flex-col gap-3">
             <EntryCard
-              kind="user"
+              kind="user_action"
               content="I keep riding."
               worldTimeLabel="Day 1 · 06:05"
               onEdit={fn()}
               onDelete={fn()}
             />
             <EntryCard
-              kind="ai"
+              kind="ai_reply"
               content="At the next bend, a figure in dust-grey waits."
               worldTimeLabel="Day 1 · 09:14"
               meta={aiMeta}
