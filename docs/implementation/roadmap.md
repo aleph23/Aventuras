@@ -118,7 +118,9 @@ memory pipeline (M3) needs to tune against.
   install lands with wizard step 1 (per
   [`tech-stack.md`](../tech-stack.md)).
 - M2.4 — Story list as a real surface: list real stories, navigate
-  to reader, basic store.
+  to reader, basic store. Removes the M1 `__DEV__` landing
+  "Open reader (debug)" button (Slice 1.7b's only path into the
+  reader) once this real reader path exists.
 - M2.5 — Reader-composer minimum: entry list rendering (with
   load-older pagination + scroll-anchoring on prepend per
   [`reader-composer.md → Loaded-set model`](../ui/screens/reader-composer/reader-composer.md#loaded-set-model)),

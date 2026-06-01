@@ -19,13 +19,6 @@ slice-planning gate forces its resolution before that slice is planned.
 
 ## Inbox
 
-- **Remove the temporary `__DEV__` landing debug reader affordance.**
-  [Slice 1.7b](./milestones/01-spine/slices/07b-ui-shells.md#implementation-notes)
-  added an "Open reader (debug)" button on the landing (`app/index.tsx`),
-  `__DEV__`-gated, as the only M1 path into the reader (no story /
-  create-flow exists yet). Remove it once a real story-list (cards +
-  create-flow) provides a path to the reader — route to that slice's
-  Open questions when the post-M1 story-list slice is defined.
 - **Reconcile `EntryCard.EntryMeta` with the canonical `EntryMetadata`.**
   `EntryCard` defines its own display shape (`{ tokens: { reply, reasoning? } }`)
   with no explicit link to `lib/db`'s `EntryMetadata` (`tokens.completion`,
