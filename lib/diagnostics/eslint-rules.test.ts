@@ -32,4 +32,23 @@ describe('lib/diagnostics lint enforcement', () => {
       await ruleIds("import { logger } from '@/lib/diagnostics'\n", 'components/__public.tsx'),
     ).not.toContain('boundaries/dependencies')
   })
+
+  it('flags a lib/diagnostics → lib/stores import (acyclic layering)', async () => {
+    // Even the public barrel is disallowed: diagnostics must not depend on stores.
+    expect(
+      await ruleIds(
+        "import { domain } from '@/lib/stores'\n",
+        'lib/diagnostics/__layering-fixture.ts',
+      ),
+    ).toContain('boundaries/dependencies')
+  })
+
+  it('allows the reverse lib/stores → lib/diagnostics import', async () => {
+    expect(
+      await ruleIds(
+        "import { logger } from '@/lib/diagnostics'\n",
+        'lib/stores/__layering-fixture.ts',
+      ),
+    ).not.toContain('boundaries/dependencies')
+  })
 })

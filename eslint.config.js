@@ -44,7 +44,7 @@ module.exports = defineConfig([
       // dependencies rule skips imports originating from unknown files, so
       // without it imports from outside lib/ would not be checked at all.
       'boundaries/elements': [
-        { type: 'lib-module', pattern: 'lib/*', mode: 'folder' },
+        { type: 'lib-module', pattern: 'lib/*', mode: 'folder', capture: ['name'] },
         { type: 'lib-file', pattern: 'lib/*.ts', mode: 'file' },
         { type: 'app-code', pattern: '!(lib)/**', mode: 'full' },
       ],
@@ -74,6 +74,16 @@ module.exports = defineConfig([
               disallow: [{ to: { type: 'lib-module', internalPath: '!index.ts' } }],
               message:
                 'Import a lib module through its public API (index.ts), not its internal files. See docs/code-conventions.md.',
+            },
+            // lib/diagnostics is zero-dependency infrastructure; importing
+            // lib/stores would invert the layering and close an import cycle
+            // (the gate is injected, not imported). See
+            // docs/observability.md#store-ownership-and-gate-wiring.
+            {
+              from: [{ type: 'lib-module', captured: { name: 'diagnostics' } }],
+              disallow: [{ to: [{ type: 'lib-module', captured: { name: 'stores' } }] }],
+              message:
+                'lib/diagnostics must not import lib/stores — the diagnostics gate is injected via configureDiagnosticsGate, never imported. See docs/observability.md#store-ownership-and-gate-wiring.',
             },
           ],
         },
