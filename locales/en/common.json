@@ -10,6 +10,7 @@
     "appSettings": "App Settings",
     "storySettings": "Story Settings",
     "actions": "Actions",
-    "back": "Back"
+    "back": "Back",
+    "chapterProgress": "Chapter progress"
   }
 }

@@ -185,7 +185,7 @@ export function ScreenShell({
       {isInStory ? (
         <View
           accessibilityRole="progressbar"
-          aria-label="Chapter progress"
+          aria-label={t('chrome.chapterProgress')}
           aria-valuenow={progress}
           aria-valuemin={0}
           aria-valuemax={100}
