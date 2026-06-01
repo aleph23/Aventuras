@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native'
 
 import { AppActionsMenu } from '@/components/compounds/app-actions-menu'
 import { EntryCard, type EntryKind, type EntryMeta } from '@/components/compounds/entry-card'
+import { SmokeTriggerButton } from '@/components/reader/smoke/smoke-trigger'
 import { ScreenShell } from '@/components/shells/screen-shell'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -55,7 +56,8 @@ export default function ReaderComposerRoute() {
               value={draft}
               onChangeText={setDraft}
             />
-            <View className="flex-row justify-end">
+            <View className="flex-row justify-end gap-2">
+              {__DEV__ ? <SmokeTriggerButton /> : null}
               <Button variant="primary" disabled>
                 <Text>{t('reader:send')}</Text>
               </Button>
