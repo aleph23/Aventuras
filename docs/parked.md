@@ -542,11 +542,12 @@ are built.
   paid generations.
 - **`entry_swipes` shape**, and whether takes carry across a branch
   fork or are pruned at the fork point.
-- **Classifier concurrency** is being settled as active v1 design
-  work in [`followups.md`](./followups.md) — regenerate/swipe must
-  cancel an in-flight periodic classifier (it reverses the
-  classifier's input). A general rollback concern the session
-  inherits rather than re-opens.
+- **Classifier concurrency** is resolved: prose reversals — including
+  regenerate and swipe — cancel the in-flight periodic classifier via
+  the `waitForClassifier('cancel')` barrier (see
+  [`generation-pipeline.md → Prose reversals and the classifier barrier`](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier)),
+  so swipe inherits the contract for free. The residual log-position
+  over-reversal is tracked in [`followups.md`](./followups.md).
 
 ---
 

@@ -13,41 +13,38 @@ for the placement rule.
 
 ## Data-model
 
-- **Periodic classifier must yield to reverse-replay (regenerate /
-  rollback / swipe-switch) — design before dev.** The classifier's
-  `concurrencyPolicy.yieldsTo` is empty by design: it does not abort
-  when a foreground pipeline starts, because for a _forward_ new turn
-  its write-set is disjoint and its input prose stays valid, so
-  coexistence is safe and cancelling would waste work (see
-  [`classifier.md → Background-task framing`](./memory/classifier.md#background-task-framing)).
-  That reasoning fails for a _reversal_: regenerate, entry-delete
-  rollback, and swipe-switch all reverse the suffix the classifier may
-  be mid-consuming. Left running, it commits happenings / awareness
-  derived from prose that no longer exists — landing _after_ the
-  reversal (so the positional sweep misses them), with a dangling
-  `entryId`, polluting retrieval. The fix to design and land:
-  - Give reverse-replay a concurrency-visible run kind (e.g.
-    `'rollback'`) the classifier can `yieldsTo`; regenerate, delete,
-    and swipe-switch all compose that reversal. It needs a run
-    identity regardless — reversing a turn that created happenings
-    writes the classifier's own write-set, so under
-    single-writer-per-write-set they already contend.
-  - Yield is a **synchronous barrier**: reversal registers, the
-    classifier aborts and discards in-flight work, then the reversal
-    proceeds. A concurrent yield lets a stale post-reversal commit
-    slip through.
-  - Already-committed classifier deltas need no special handling — the
-    positional sweep reverses those at or above the bound and keeps
-    those below; only uncommitted in-flight computation is discarded.
-  - Blanket yield-on-any-reversal is an acceptable v1
-    over-approximation; a reversed-range-vs-classifier-window
-    intersection check is a later optimization.
-  - Touches the
-    [pipeline concurrency model](./generation-pipeline.md#concurrency-model)
-    and [`classifier.md`](./memory/classifier.md#background-task-framing);
-    surfaced by
-    [parked → reader-composer swipes](./parked.md#reader-composer-swipes--alternate-takes-per-turn)
-    but is a general rollback concern, and rollback is v1.
+- **Background-work log positions need a reservation scheme to fix
+  reversal over-reversal — design before dev.** Positional reversal
+  (rollback, regenerate, swipe-switch, and CTRL-Z of a turn — see
+  [`data-model.md → Entry mutability & rollback`](./data-model.md#entry-mutability--rollback))
+  reverses every delta at or above a boundary `log_position`, which
+  assumes log-position order matches semantic order. The **periodic
+  classifier breaks that**: lagging behind the head, it commits
+  happenings about _old, surviving_ turns at _new_ tail positions, so a
+  reversal of a later turn sweeps valid facts about turns that aren't
+  being undone. The in-flight race and the
+  already-committed-about-this-turn sweep are already handled — prose
+  reversals cancel the in-flight classifier via the
+  `waitForClassifier('cancel')` barrier (see
+  [`generation-pipeline.md → Prose reversals and the classifier barrier`](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier))
+  — so this _over-reversal_ direction is the residual. To resolve:
+  - **Reservation scheme.** Background work claims a `log_position`
+    slot up front (near the turn it describes) so its writes sort by
+    semantic position, not commit time. Closes both the over-reversal
+    and the aggressive-cadence dangling case — an action-scoped CTRL-Z
+    of a turn whose periodic-classifier deltas committed above it
+    (those carry a separate `action_id`, so action-scoped undo can't
+    reach them).
+  - **v1 stopgap to decide.** Until the scheme lands, over-reversed
+    facts are recovered only if the classifier re-derives them, which
+    requires its last-processed watermark to be reversal-aware (rolled
+    back with the suffix). If the watermark is operational state a
+    positional sweep doesn't touch, the loss is permanent. Pin whether
+    v1 wants the reversal-aware watermark or accepts the loss.
+  - Touches
+    [`data-model.md → Entry mutability & rollback`](./data-model.md#entry-mutability--rollback)
+    and the classifier's progress tracking in
+    [`classifier.md → Persistence`](./memory/classifier.md#persistence).
 
 ## UX
 

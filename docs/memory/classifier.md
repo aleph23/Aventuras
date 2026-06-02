@@ -134,13 +134,33 @@ classifier's write-set are disjoint at the row-and-field granularity
 
 If the user starts a new turn while the classifier is mid-run, both
 proceed. The classifier holds its own `actionId` for its writes; the
-user-turn pipeline holds its own. Reverse-replay on rollback peels
-them off independently.
+user-turn pipeline holds its own. That `actionId` is stamped
+`source = periodic_classifier` (distinct from per-turn piggyback's
+`ai_classifier`) and is **never an undo target** — CTRL-Z's
+head-selection skips it (see
+[`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback)).
+It survives only for crash recovery.
 
-The classifier's `concurrencyPolicy.yieldsTo` is empty — it does NOT
-abort itself when a foreground pipeline starts. Discarding in-flight
-classifier work that doesn't conflict with the new turn's writes is
-wasteful; the disjoint-write-set property makes coexistence safe.
+The classifier's `concurrencyPolicy.yieldsTo` stays empty — it does
+NOT abort itself when a foreground _forward_ pipeline starts.
+Discarding in-flight classifier work that doesn't conflict with the
+new turn's writes is wasteful; the disjoint-write-set property makes
+coexistence safe.
+
+A _reversal_ is the exception, handled outside `yieldsTo`. Regenerate,
+entry-delete rollback, swipe-switch, and CTRL-Z of a turn reverse prose
+the classifier may be mid-consuming, so each brackets its positional
+sweep with `await waitForClassifier('cancel')` plus a
+`reversalInProgress` start-block (see
+[`generation-pipeline.md → Prose reversals and the classifier barrier`](../generation-pipeline.md#prose-reversals-and-the-classifier-barrier)).
+The classifier's part of that contract is one **abort-free critical
+section**: its commit burst — one LLM response, one burst of deltas —
+ignores `signal.aborted` once parsing begins and never returns
+`aborted` holding committed deltas. So `'cancel'` either discards a
+not-yet-committed run (the LLM stream is cancelled, keeping the
+reversal near-instant) or lets a committed burst stand for the
+positional sweep to reverse; the standard abort path needs no special
+disposition.
 
 **Pill priority.** The classifier surfaces on the existing
 generation indicator pill with low priority — user-initiated

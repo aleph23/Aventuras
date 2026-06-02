@@ -456,6 +456,7 @@ export const pipelineEventBus: PipelineEventBus
 ```ts
 type TxState = {
   runs: ReadonlyMap<string /* runId */, RunState>
+  reversalInProgress: boolean // set across a prose reversal's wait→sweep; gates classifier starts + user edits
 }
 
 type RunState = {
@@ -471,12 +472,15 @@ type RunState = {
 
 ```ts
 const isUserEditBlocked = (s: TxState): boolean =>
+  s.reversalInProgress ||
   [...s.runs.values()].some((r) => pipelines.get(r.kind)!.gateBehavior === 'hard-gate')
 ```
 
 Per-turn / chapter-close declare `hard-gate`; periodic classifier
 declares `no-gate`. Classifier alone → gate open. Per-turn running
-→ gate closed.
+→ gate closed. A prose reversal also closes the gate for its brief
+duration via `reversalInProgress` (see
+[Prose reversals and the classifier barrier](#prose-reversals-and-the-classifier-barrier)).
 
 The user-facing contract for what specifically the gate blocks
 lives in
@@ -1365,24 +1369,24 @@ const translationRetryPipeline: Pipeline = {
 
 ### Resolution table
 
-| Running               | Wants to start          | Resolution                                                                                                                                                                                                                                      |
-| --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| (idle)                | per-turn                | starts                                                                                                                                                                                                                                          |
-| per-turn              | periodic-classifier     | classifier's blockedBy lacks per-turn → starts                                                                                                                                                                                                  |
-| periodic-classifier   | per-turn                | per-turn's blockedBy lacks classifier → starts; both run                                                                                                                                                                                        |
-| per-turn              | chapter-close (manual)  | chapter-close's blockedBy includes per-turn → blocked                                                                                                                                                                                           |
-| per-turn (committing) | chapter-close (chained) | chained path bypasses concurrencyPolicy → starts                                                                                                                                                                                                |
-| chapter-close         | periodic-classifier     | classifier's blockedBy includes chapter-close → blocked                                                                                                                                                                                         |
-| chapter-close         | per-turn                | gate blocks user trigger; defense in depth blocks regardless                                                                                                                                                                                    |
-| periodic-classifier   | periodic-classifier     | blockedBy includes self → blocked                                                                                                                                                                                                               |
-| classifier (running)  | chapter-close (chains)  | chapter-close starts; phase 0 drains the in-flight classifier (`await drainRunningPeriodicClassifier()`) before doing its own classifier work — see [`chapter-close.md → Phase 0`](./memory/chapter-close.md#phase-0--catch-up-classifier-pass) |
-| per-turn              | translation-retry       | retry's blockedBy includes per-turn → blocked                                                                                                                                                                                                   |
-| chapter-close         | translation-retry       | retry's blockedBy includes chapter-close → blocked                                                                                                                                                                                              |
-| translation-retry     | per-turn                | per-turn user-trigger gated by retry's hard-gate; user can't submit                                                                                                                                                                             |
-| translation-retry     | chapter-close (manual)  | chapter-close user-trigger gated by retry's hard-gate                                                                                                                                                                                           |
-| translation-retry     | chapter-close (chained) | chained start originates from per-turn commit; per-turn can't run during retry, so chain can't fire                                                                                                                                             |
-| translation-retry     | periodic-classifier     | classifier's blockedBy lacks translation-retry → starts; both run (classifier doesn't write translation rows)                                                                                                                                   |
-| translation-retry     | translation-retry       | blockedBy includes self → blocked                                                                                                                                                                                                               |
+| Running               | Wants to start          | Resolution                                                                                                                                                                                                                                 |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| (idle)                | per-turn                | starts                                                                                                                                                                                                                                     |
+| per-turn              | periodic-classifier     | classifier's blockedBy lacks per-turn → starts                                                                                                                                                                                             |
+| periodic-classifier   | per-turn                | per-turn's blockedBy lacks classifier → starts; both run                                                                                                                                                                                   |
+| per-turn              | chapter-close (manual)  | chapter-close's blockedBy includes per-turn → blocked                                                                                                                                                                                      |
+| per-turn (committing) | chapter-close (chained) | chained path bypasses concurrencyPolicy → starts                                                                                                                                                                                           |
+| chapter-close         | periodic-classifier     | classifier's blockedBy includes chapter-close → blocked                                                                                                                                                                                    |
+| chapter-close         | per-turn                | gate blocks user trigger; defense in depth blocks regardless                                                                                                                                                                               |
+| periodic-classifier   | periodic-classifier     | blockedBy includes self → blocked                                                                                                                                                                                                          |
+| classifier (running)  | chapter-close (chains)  | chapter-close starts; phase 0 drains the in-flight classifier (`await waitForClassifier('finish')`) before doing its own classifier work — see [`chapter-close.md → Phase 0`](./memory/chapter-close.md#phase-0--catch-up-classifier-pass) |
+| per-turn              | translation-retry       | retry's blockedBy includes per-turn → blocked                                                                                                                                                                                              |
+| chapter-close         | translation-retry       | retry's blockedBy includes chapter-close → blocked                                                                                                                                                                                         |
+| translation-retry     | per-turn                | per-turn user-trigger gated by retry's hard-gate; user can't submit                                                                                                                                                                        |
+| translation-retry     | chapter-close (manual)  | chapter-close user-trigger gated by retry's hard-gate                                                                                                                                                                                      |
+| translation-retry     | chapter-close (chained) | chained start originates from per-turn commit; per-turn can't run during retry, so chain can't fire                                                                                                                                        |
+| translation-retry     | periodic-classifier     | classifier's blockedBy lacks translation-retry → starts; both run (classifier doesn't write translation rows)                                                                                                                              |
+| translation-retry     | translation-retry       | blockedBy includes self → blocked                                                                                                                                                                                                          |
 
 `blockedBy` prevents NEW starts; it does NOT kill running pipelines.
 The architectural premise (`memory/cadence.md → Concurrency`) is that
@@ -1400,9 +1404,16 @@ work.
 function checkConcurrencyContract(
   kind: string,
   currentRuns: ReadonlyMap<string, RunState>,
+  reversalInProgress: boolean,
 ): StartDecision {
   const pipeline = pipelines.get(kind)!
   const blockedBy = pipeline.concurrencyPolicy.blockedBy ?? []
+
+  // A prose reversal brackets its sweep with reversalInProgress; no
+  // periodic-classifier run may start inside that window.
+  if (kind === 'periodic-classifier' && reversalInProgress) {
+    return { kind: 'blocked', by: 'reversal' }
+  }
 
   for (const run of currentRuns.values()) {
     if (blockedBy.includes(run.kind)) {
@@ -1421,6 +1432,53 @@ function checkConcurrencyContract(
     : { kind: 'start' }
 }
 ```
+
+### Prose reversals and the classifier barrier
+
+Reversing prose — regenerate, entry-delete rollback, swipe-switch, and
+CTRL-Z of a turn (see
+[`data-model.md → Entry mutability & rollback`](./data-model.md#entry-mutability--rollback))
+— must not leave the periodic classifier deriving structured rows from
+prose that is about to vanish. A reversal is a synchronous, destructive
+log operation, not a pipeline run, so it does not flow through
+`checkConcurrencyContract`; instead it brackets its positional sweep
+with two cheap mechanisms.
+
+**`waitForClassifier(disposition)`** generalizes chapter-close's
+`drainRunningPeriodicClassifier()`. Both await the in-flight
+periodic-classifier run's terminal resolution and no-op when none is
+running:
+
+- `'finish'` — await the natural commit (chapter-close phase 0 wants
+  the classification done).
+- `'cancel'` — fire `signal.abort()` first, then await terminal,
+  cancelling the doomed LLM call so the user is not made to wait it out.
+
+This is safe because the classifier's commit burst is an abort-free
+critical section: it never returns `aborted` holding committed deltas
+(see [`classifier.md → Background-task framing`](./memory/classifier.md#background-task-framing)),
+so `'cancel'` either discards a not-yet-committed run or lets a
+committed burst stand for the positional sweep to reverse.
+
+**`reversalInProgress`** (a `txState` flag) brackets the wait→sweep
+window: a reversal sets it before `waitForClassifier('cancel')` and
+clears it after the sweep commits. While set, `checkConcurrencyContract`
+blocks a `periodic-classifier` start (otherwise a freshly-scheduled run
+could slip in between the wait and the sweep, read pre-sweep prose, and
+commit doomed rows after), and `isUserEditBlocked` returns true (a
+concurrent edit can't insert a delta into the sweep's DB-await windows).
+The synchronous-`setState` invariant (see [Invariants](#invariants))
+closes the check-vs-register race the same way it does for chained
+transitions.
+
+**`yieldsTo` stays unused in v1.** Modelling reversal as a `'reversal'`
+pipeline kind with `periodic-classifier` declaring
+`yieldsTo: ['reversal']` was considered and rejected: a reversal writes
+no forward deltas under its own `actionId` (it deletes other groups'
+deltas), so it would opt out of the framework's reverse-replay-on-abort
+invariant and hand crash recovery a zero-delta orphan to reason about.
+The `reversalInProgress` gate is a few lines in the entry algorithm —
+cheaper than a pipeline that disables what makes it a pipeline.
 
 ### Chained start bypasses concurrencyPolicy
 

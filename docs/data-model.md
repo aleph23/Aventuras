@@ -256,7 +256,7 @@ erDiagram
         text entry_id FK "the story_entry that produced this delta; null for non-entry-triggered actions (chapter close, user direct edit)"
         text action_id "groups deltas into one user-visible action (used for CTRL-Z batching)"
         integer log_position "append-only ordering within branch"
-        text source "ai_classifier | user_edit | lore_agent | chapter_close"
+        text source "ai_classifier | periodic_classifier | user_edit | lore_agent | chapter_close"
         text target_table "story_entries | entities | lore | threads | happenings | happening_involvements | happening_awareness | character_relationships | chapters | entry_assets | translations | branch_era_flips"
         text target_id "id in target_table"
         text op "create | update | delete"
@@ -2131,10 +2131,14 @@ by the same user-visible operation. Action boundaries:
 
 - **User direct edit** — one delta, one fresh `action_id`. CTRL-Z
   reverses that single delta.
-- **AI reply** — the `story_entries` create delta plus all
-  classifier-produced deltas share one `action_id`. CTRL-Z reverses the
-  whole batch uniformly — the story_entries row is deleted as the
-  reversal of its `op=create` delta, no special case needed.
+- **AI reply** — the `story_entries` create delta plus the per-turn
+  piggyback deltas share one `action_id`. Undoing it is a **positional
+  suffix reversal** from the turn's start, not merely its `action_id`
+  group, so it also sweeps any **periodic-classifier** deltas that
+  landed on top of the turn — those carry their own `action_id` and
+  `source = periodic_classifier`, and are never an undo target in their
+  own right (see the algorithm). The `story_entries` row is deleted as
+  the reversal of its `op=create` delta.
 - **Chapter close** — the chapter row insert + `story_entries.chapter_id`
   updates across the range + lore-mgmt writes (the 5 sub-jobs) all
   share one `action_id`. CTRL-Z collapses the entire batch as a
@@ -2143,11 +2147,24 @@ by the same user-visible operation. Action boundaries:
 
 Algorithm:
 
-1. Find the head delta (max `log_position` on current branch)
-2. Collect every delta with the same `action_id`
-3. Reverse them (newest to oldest) exactly as rollback does
-4. Move the reversed deltas onto an in-memory redo stack (not persisted)
-5. Remove them from the `deltas` table
+1. **Select the target group** — walk back from the head to the most
+   recent _user_ action group, skipping `source = periodic_classifier`
+   deltas. Background classifier work is never an undo target; its
+   `action_id` exists only for crash recovery, so a classifier commit
+   sitting at the literal head is stepped over.
+2. **Reverse by group content:**
+   - **Prose turn** (the group creates a `story_entries` row) — reverse
+     the positional suffix from the turn's first `log_position`
+     (`≥ N`), exactly as rollback does. This carries the
+     periodic-classifier deltas that piled on top of the turn down with
+     it.
+   - **Otherwise** (no `story_entries` create — a field edit, a
+     chapter-close batch) — reverse just that `action_id` group.
+     Periodic-classifier deltas above it describe unrelated turns and
+     stay put.
+3. Reverse the selected deltas newest-to-oldest via their `undo_payload`,
+   move them onto an in-memory redo stack (not persisted), and remove
+   them from the `deltas` table.
 
 Redo re-applies from the in-memory stack. The stack clears on any new
 action. Redo is runtime-only; no schema support needed. If the app
