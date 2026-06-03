@@ -182,7 +182,7 @@ coexistence safe.
 A _reversal_ is the exception, handled outside `yieldsTo`. Regenerate,
 entry-delete rollback, swipe-switch, and CTRL-Z of a turn reverse prose
 the classifier may be mid-consuming, so each brackets its positional
-sweep with `await waitForClassifier('cancel')` plus a
+sweep with `await awaitRunTerminal('periodic-classifier', 'cancel')` plus a
 `reversalInProgress` start-block (see
 [`generation-pipeline.md → Prose reversals and the classifier barrier`](../generation-pipeline.md#prose-reversals-and-the-classifier-barrier)).
 The classifier's part of that contract is one **abort-free critical

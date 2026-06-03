@@ -517,7 +517,7 @@ ID generation, ambient lint guardrail)._
   check-vs-register race. `isUserEditBlocked` now also returns true while
   `reversalInProgress`. Added the generic `awaitRunTerminal(kind,
 disposition)` (backed by a `terminal` deferred on `RunState`) that
-  `yieldsTo` reuses and that `waitForClassifier` will wrap. Synthetic-tested
+  `yieldsTo` reuses. Synthetic-tested
   only — `yieldsTo`, `reversalInProgress`, and `awaitRunTerminal`'s real
   callers (classifier, prose reversals, chapter-close phase 0) land M2/M3/M5;
   no concrete kind declares a `concurrencyPolicy` in M1.

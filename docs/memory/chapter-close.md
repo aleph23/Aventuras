@@ -53,9 +53,9 @@ can't find rows the classifier hasn't written yet.
 
 **Drain in-flight periodic classifier first.** Phase 0 entry awaits
 any periodic-classifier run that was in flight when chapter-close
-started — `await waitForClassifier('finish')` blocks until the
-in-flight `actionId` resolves (commit or abort). This is the
-`'finish'` disposition of the shared classifier-wait primitive; prose
+started — `await awaitRunTerminal('periodic-classifier', 'finish')`
+blocks until the in-flight `actionId` resolves (commit or abort). This
+is the `'finish'` disposition of the shared run-terminal wait primitive; prose
 reversals use `'cancel'` (see
 [`generation-pipeline.md → Prose reversals and the classifier barrier`](../generation-pipeline.md#prose-reversals-and-the-classifier-barrier)). The wait happens
 under chapter-close's `gateBehavior: 'hard-gate'`, so user input is

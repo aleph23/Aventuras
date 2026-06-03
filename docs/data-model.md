@@ -2221,7 +2221,7 @@ survives only if its anchor entry survives — no orphans or dangling
 anchors by construction. The same predicate drives the
 [fork reverse-apply partition](#branch-model), and is orthogonal to the
 in-flight
-[`waitForClassifier('cancel')` barrier](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier),
+[classifier barrier](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier),
 which guards the racing classifier, not committed deltas.
 
 For this to hold, background-source (`periodic_classifier`) deltas stamp

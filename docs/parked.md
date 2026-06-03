@@ -544,7 +544,7 @@ are built.
   fork or are pruned at the fork point.
 - **Classifier concurrency** is resolved: prose reversals — including
   regenerate and swipe — cancel the in-flight periodic classifier via
-  the `waitForClassifier('cancel')` barrier (see
+  the classifier barrier (see
   [`generation-pipeline.md → Prose reversals and the classifier barrier`](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier)),
   so swipe inherits the contract for free. The residual log-position
   over-reversal is tracked in [`followups.md`](./followups.md).

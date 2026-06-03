@@ -236,6 +236,13 @@ to render against.
     `entities.name_collision_flag INTEGER` column lands here
     (drives the M4 collision-review surface) per
     [`memory/classifier.md → Disambiguation`](../memory/classifier.md#disambiguation-on-new-character-mentions).
+  - Survival-anchor substrate (makes the classifier reversible-correct):
+    `deltas.source += 'periodic_classifier'`; per-fact provenance
+    stamped into `deltas.entry_id`; `processedThrough` in
+    `classifier_status` plus its reversal clamp; and the reversal
+    predicate that refines M2.5's naive suffix sweep so a lagging fact
+    about a surviving turn isn't over-reversed, per
+    [`data-model.md → Survival anchor`](../data-model.md#survival-anchor).
 - M3.4 — Retrieval: embedding queries; ranker; budgets;
   context-bundle assembly into the per-turn prompt. Memory pack
   templates extend the Liquid engine to inject retrieved bundles.
@@ -281,9 +288,10 @@ options` disclosures, status / lead / staged logic,
     [`reader-composer.md → Per-entry world-time footer`](../ui/screens/reader-composer/reader-composer.md#per-entry-world-time-footer)).
     Needs classifier writes from M3.3 to be useful.
 - M3.9 — CTRL-Z action-batched extension: extends M2.5's basic
-  single-action undo to traverse the full `action_id` batch
-  (entry write + all classifier deltas under the same action) in
-  one keypress per
+  single-action undo so undoing a prose turn reverses the positional
+  suffix from the turn's start — carrying its piggyback deltas, skipping
+  `periodic_classifier` deltas (never undo targets), and sparing
+  surviving turns' facts via the survival anchor — per
   [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
   Redo stack semantics unchanged.
 
@@ -291,8 +299,8 @@ options` disclosures, status / lead / staged logic,
 schema; M3.3 runs in parallel with M3.4 once classifier writes
 populate retrievable rows; M3.6 runs in parallel with M3.3 / M3.4
 after M3.2 lands the lore + entity stub writes; M3.7 gates on
-M3.2 + M3.3; M3.8 gates on M3.3; M3.9 gates on M3.3 (needs
-action-batched classifier writes to traverse).
+M3.2 + M3.3; M3.8 gates on M3.3; M3.9 gates on M3.3 (needs the
+survival-anchor reversal substrate).
 
 **Gates.** M2 (entries + real provider needed before classifier
 has anything to classify).
@@ -434,7 +442,11 @@ churn.
 
 **Likely slices.**
 
-- M6.1 — Branch schema + branch-copy at fork time + FK rewriting.
+- M6.1 — Branch schema + branch-copy at fork time + FK rewriting,
+  including the survival-anchor partition of post-fork deltas (copy
+  lagging `periodic_classifier` facts about kept entries instead of
+  rewinding them) per
+  [`data-model.md → Branch model`](../data-model.md#branch-model).
 - M6.2 — Delta-log branch filtering (reads scope to current
   branch's lineage).
 - M6.3 — Reader branch picker + branch creation flow.
@@ -814,9 +826,9 @@ explicit.
   - **M2.5** — Rollback-confirm modal compound (single-entry
     cascade preview); CTRL-Z basic single-action undo + redo
     stack.
-  - **M3.9** — CTRL-Z action-batched extension: traverses the
-    full `action_id` batch (entry write + all classifier deltas
-    under the same action) in one keypress.
+  - **M3.9** — CTRL-Z action-batched extension: prose-turn undo
+    reverses the positional suffix from the turn's start, skipping
+    `periodic_classifier` deltas (survival-anchor-gated).
   - **M5.5** — Deep rollback surface: multi-chapter reverse-replay
     flow extending the rollback-confirm modal with cascade
     warning for rollback spanning closed chapters; consumed by
