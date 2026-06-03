@@ -50,6 +50,10 @@ export async function runSmoke(deps: SmokeRunDeps): Promise<TxResult | null> {
     runInTransaction: deps.runInTransaction,
   })
 
+  if (result.outcome === 'rejected') {
+    toast.error(`Smoke run blocked by ${result.blockedBy}`)
+    return null
+  }
   if (result.outcome === 'completed') toast.success('Smoke run completed')
   else toast.error(`Smoke run ${result.outcome}`)
   return result

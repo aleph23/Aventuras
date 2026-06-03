@@ -370,6 +370,14 @@ cross-branch concurrency is parked.
   hard-gate `succ` is already present (no-edit-window invariant). A
   failing successor reverse-replays only its own deltas; the
   predecessor stays committed.
+- **Concurrency contract + coordination.** Unit tests over
+  `checkConcurrencyContract` (idle/start, blockedBy, self-block,
+  not-blocked, reversal-blocks-classifier, yieldsTo targets). Entry
+  integration: a start blocked by an in-flight blocking kind returns
+  `rejected`; `awaitRunTerminal` cancels (aborts + resolves) and finishes
+  (awaits commit) and no-ops when absent; `start-after-yields` aborts the
+  yielding run before the incoming one starts. Gate returns true under
+  `reversalInProgress`.
 - **Public-API surfaces.** Fixture files import only via each
   module's `index.ts`; deep-import attempts fail lint.
 
@@ -497,3 +505,19 @@ ID generation, ambient lint guardrail)._
   predicate sources its own deps at the definition site, keeping the
   orchestrator agnostic to app state. Still out: concrete predicates
   and kinds; "no concrete chain runs" holds in M1.
+- **Concurrency contract + run coordination (were unbuilt).** 2026-06-03.
+  `concurrencyPolicy` shipped as a declared-but-unenforced type;
+  `runPipeline` started unconditionally. Added `checkConcurrencyContract`
+  (`blockedBy` rejects, `yieldsTo` aborts the running targets first,
+  `reversalInProgress` keeps a periodic-classifier out of a reversal's
+  wait→sweep window), consulted at `runPipeline` entry. A blocked start
+  returns `RejectedStart` (`{ outcome: 'rejected', blockedBy }`) — no run,
+  so the union widens `runPipeline`'s result. The check + run registration
+  are synchronous (`reserveRun` before any await) to close the
+  check-vs-register race. `isUserEditBlocked` now also returns true while
+  `reversalInProgress`. Added the generic `awaitRunTerminal(kind,
+disposition)` (backed by a `terminal` deferred on `RunState`) that
+  `yieldsTo` reuses and that `waitForClassifier` will wrap. Synthetic-tested
+  only — `yieldsTo`, `reversalInProgress`, and `awaitRunTerminal`'s real
+  callers (classifier, prose reversals, chapter-close phase 0) land M2/M3/M5;
+  no concrete kind declares a `concurrencyPolicy` in M1.

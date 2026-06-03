@@ -14,6 +14,7 @@ export const domain = {
   recordPhaseResult: generation.recordPhaseResult,
   finishRun: generation.finishRun,
   abortRun: generation.abortRun,
+  setReversalInProgress: generation.setReversalInProgress,
   // app-settings read
   useAppSettings: appSettings.useAppSettings,
   getAppSettings: appSettings.getAppSettings,

@@ -18,7 +18,15 @@ import { generateId } from '@/lib/ids'
 import { domain, type RunState } from '@/lib/stores'
 
 import { getPipeline } from '../authoring/registry'
-import type { PhaseEmittedEvent, PhaseNode, PhaseResult, PipelineError, TxResult } from '../types'
+import type {
+  PhaseEmittedEvent,
+  PhaseNode,
+  PhaseResult,
+  PipelineError,
+  RejectedStart,
+  TxResult,
+} from '../types'
+import { checkConcurrencyContract } from './concurrency'
 import { pipelineEventBus } from './event-bus'
 
 class ActionLayerError extends Error {
@@ -40,6 +48,10 @@ class ActionRejectedError extends ActionLayerError {
 export type RunCtx = { storyId: string | null; branchId: string } & DbCtx
 
 function newRunState(kind: string, ctx: RunCtx): RunState {
+  let resolveTerminal!: () => void
+  const terminal = new Promise<void>((resolve) => {
+    resolveTerminal = resolve
+  })
   return {
     runId: generateId('run'),
     kind,
@@ -49,24 +61,59 @@ function newRunState(kind: string, ctx: RunCtx): RunState {
     abortController: new AbortController(),
     currentPhase: '',
     intermediates: {},
+    terminal,
+    resolveTerminal,
   }
 }
 
-async function beginRun(kind: string, ctx: RunCtx): Promise<RunState> {
+// Synchronous reservation: place the run in txState before any await, so the
+// concurrency check that precedes it can't be raced by a second start of a
+// mutually-blocking kind slipping in across an await boundary.
+function reserveRun(kind: string, ctx: RunCtx): RunState {
   const run = newRunState(kind, ctx)
-  await ctx.db.insert(pipelineRuns).values({
-    runId: run.runId,
-    kind,
-    actionId: run.actionId,
-    storyId: ctx.storyId,
-    startedAt: Date.now(),
-  })
   domain.startRun(run)
   domain.setActiveRun(run.runId)
   setCurrentActionId(run.actionId)
-  turnCaptureSink.beginTurn({ actionId: run.actionId, branchId: run.branchId })
-  pipelineEventBus.emit({ type: 'run_start', runId: run.runId, kind, actionId: run.actionId })
   return run
+}
+
+async function beginRun(run: RunState, ctx: RunCtx): Promise<void> {
+  try {
+    await ctx.db.insert(pipelineRuns).values({
+      runId: run.runId,
+      kind: run.kind,
+      actionId: run.actionId,
+      storyId: ctx.storyId,
+      startedAt: Date.now(),
+    })
+  } catch (e) {
+    // Marker insert failed; unwind the synchronous reservation so a half-registered
+    // run can't gate edits or hold the branch against a retry. Resolve terminal so a
+    // waiter that grabbed it between reserve and failure isn't left hanging.
+    domain.abortRun(run.runId)
+    clearCurrentActionId()
+    domain.clearActiveRun()
+    run.resolveTerminal()
+    throw e
+  }
+  turnCaptureSink.beginTurn({ actionId: run.actionId, branchId: run.branchId })
+  pipelineEventBus.emit({
+    type: 'run_start',
+    runId: run.runId,
+    kind: run.kind,
+    actionId: run.actionId,
+  })
+}
+
+// Generic wait on an in-flight run of `kind`, optionally aborting it first.
+// No-op when none is running. 'cancel' fires abort then awaits terminal (the
+// doomed call winds down); 'finish' awaits the natural commit. The waiter need
+// not have started the run — it awaits the run's own terminal deferred.
+export function awaitRunTerminal(kind: string, disposition: 'finish' | 'cancel'): Promise<void> {
+  const run = [...domain.getTxState().runs.values()].find((r) => r.kind === kind)
+  if (!run) return Promise.resolve()
+  if (disposition === 'cancel') run.abortController.abort()
+  return run.terminal
 }
 
 async function handleEvent(event: PhaseEmittedEvent, run: RunState, ctx: RunCtx): Promise<void> {
@@ -197,6 +244,7 @@ async function commitRun(
     actionId: run.actionId,
     outcome: 'completed',
   })
+  run.resolveTerminal()
   return { tx: { runId: run.runId, actionId: run.actionId, outcome: 'completed' }, successor }
 }
 
@@ -242,6 +290,7 @@ async function abortRun(
     outcome,
     ...(error ? { error } : {}),
   })
+  run.resolveTerminal()
   return { runId: run.runId, actionId: run.actionId, outcome, ...(error ? { error } : {}) }
 }
 
@@ -267,8 +316,26 @@ async function runPhases(run: RunState, ctx: RunCtx): Promise<PhaseOutcome> {
   return { kind: 'completed' }
 }
 
-export async function runPipeline(kind: string, ctx: RunCtx): Promise<TxResult> {
-  let run = await beginRun(kind, ctx)
+export async function runPipeline(kind: string, ctx: RunCtx): Promise<TxResult | RejectedStart> {
+  const txState = domain.getTxState()
+  const decision = checkConcurrencyContract(kind, txState.runs, txState.reversalInProgress)
+  if (decision.kind === 'blocked') {
+    logger.debug('pipeline.run_rejected', { kind, blockedBy: decision.by })
+    return { outcome: 'rejected', blockedBy: decision.by }
+  }
+  if (decision.kind === 'start-after-yields') {
+    await Promise.all(
+      decision.targets.map((id) => {
+        const target = txState.runs.get(id)
+        target?.abortController.abort()
+        return target?.terminal
+      }),
+    )
+  }
+  // reserveRun registers synchronously right after the check (race-free for the
+  // common path); beginRun then persists the marker and emits run_start.
+  let run = reserveRun(kind, ctx)
+  await beginRun(run, ctx)
   // Drive the run; on a chained commit, drive the successor too. The whole chain is
   // awaited, but the caller gets the ORIGIN run's result — downstream chain outcomes
   // are observed on the event bus, not the return value.

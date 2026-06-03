@@ -1459,10 +1459,13 @@ log operation, not a pipeline run, so it does not flow through
 `checkConcurrencyContract`; instead it brackets its positional sweep
 with two cheap mechanisms.
 
-**`waitForClassifier(disposition)`** generalizes chapter-close's
-`drainRunningPeriodicClassifier()`. Both await the in-flight
-periodic-classifier run's terminal resolution and no-op when none is
-running:
+The framework primitive is **`awaitRunTerminal(kind, disposition)`** — find
+the in-flight run of `kind`, optionally abort it, and await its terminal
+(no-op when none is running). It is classifier-agnostic; `waitForClassifier`
+is just `awaitRunTerminal('periodic-classifier', disposition)`, and it
+subsumes chapter-close's `drainRunningPeriodicClassifier()`. The waiter need
+not have started the run — each `RunState` carries a `terminal` deferred the
+orchestrator resolves at commit/abort. Dispositions:
 
 - `'finish'` — await the natural commit (chapter-close phase 0 wants
   the classification done).

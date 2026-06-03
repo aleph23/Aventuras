@@ -5,7 +5,7 @@ import { type PipelineAction } from '@/lib/actions'
 import { deltas, pipelineRuns, storyEntries } from '@/lib/db'
 import { definePipeline, runPipeline, type PhaseResult } from '@/lib/pipeline'
 
-import { makeHarness, resetSingletons } from './harness'
+import { expectRan, makeHarness, resetSingletons } from './harness'
 
 const base = { affordance: 'invisible', gateBehavior: 'hard-gate', concurrencyPolicy: {} } as const
 
@@ -55,7 +55,7 @@ describe('orchestrator reverse-replay on abort', () => {
     const { db, ctx } = await makeHarness()
     definePipeline({ kind: 'synthetic', phases: [{ name: 'only', run: twoThenFail }], ...base })
 
-    const result = await runPipeline('synthetic', ctx)
+    const result = expectRan(await runPipeline('synthetic', ctx))
 
     expect(result.outcome).toBe('failed')
     // update reversed (worldTime back to 5) then create reversed (row deleted)

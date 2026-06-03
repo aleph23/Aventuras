@@ -12,6 +12,8 @@ function run(id: string, kind = 'synthetic'): RunState {
     abortController: new AbortController(),
     currentPhase: '',
     intermediates: {},
+    terminal: Promise.resolve(),
+    resolveTerminal: () => {},
   }
 }
 

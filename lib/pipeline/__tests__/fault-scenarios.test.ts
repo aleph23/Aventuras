@@ -21,7 +21,7 @@ import {
 } from '@/lib/pipeline'
 import { domain } from '@/lib/stores'
 
-import { makeHarness, resetSingletons } from './harness'
+import { expectRan, makeHarness, resetSingletons } from './harness'
 
 const base = { affordance: 'invisible', gateBehavior: 'hard-gate', concurrencyPolicy: {} } as const
 const STUB = {
@@ -109,7 +109,7 @@ describe('stub fault scenarios', () => {
     const { ctx } = await makeHarness()
     definePipeline({ kind: 'stub', phases: [{ name: 'gen', run: stubPhase('happy') }], ...base })
 
-    const result = await runPipeline('stub', ctx)
+    const result = expectRan(await runPipeline('stub', ctx))
 
     expect(result.outcome).toBe('completed')
     const call = getDiagnosticsSnapshot().httpCalls.find((c) => c.source === 'provider:stub-1')
@@ -124,7 +124,7 @@ describe('stub fault scenarios', () => {
       ...base,
     })
 
-    const result = await runPipeline('stub', ctx)
+    const result = expectRan(await runPipeline('stub', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error?.kind).toBe('phase-logic')
@@ -139,7 +139,7 @@ describe('stub fault scenarios', () => {
       ...base,
     })
 
-    const result = await runPipeline('stub', ctx)
+    const result = expectRan(await runPipeline('stub', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error).toMatchObject({ kind: 'provider', reason: 'timeout' })
@@ -150,7 +150,7 @@ describe('stub fault scenarios', () => {
     const { ctx } = await makeHarness()
     definePipeline({ kind: 'stub', phases: [{ name: 'gen', run: stubPhase('refusal') }], ...base })
 
-    const result = await runPipeline('stub', ctx)
+    const result = expectRan(await runPipeline('stub', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error).toMatchObject({ kind: 'phase-logic', detail: 'model refused' })
@@ -169,7 +169,7 @@ describe('stub fault scenarios', () => {
       run?.abortController.abort()
     })
 
-    const result = await runPipeline('stub', ctx)
+    const result = expectRan(await runPipeline('stub', ctx))
     off()
 
     expect(result.outcome).toBe('aborted')

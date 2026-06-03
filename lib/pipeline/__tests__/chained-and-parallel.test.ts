@@ -12,7 +12,7 @@ import {
 } from '@/lib/pipeline'
 import { domain } from '@/lib/stores'
 
-import { makeHarness, resetSingletons } from './harness'
+import { expectRan, makeHarness, resetSingletons } from './harness'
 
 const base = { affordance: 'invisible', gateBehavior: 'hard-gate', concurrencyPolicy: {} } as const
 
@@ -63,7 +63,7 @@ describe('chained transition', () => {
     const completes: string[] = []
     const offStart = pipelineEventBus.subscribe('run_start', (e) => starts.push(e.kind))
     const offComplete = pipelineEventBus.subscribe('run_complete', (e) => completes.push(e.kind))
-    const result = await runPipeline('pred', ctx)
+    const result = expectRan(await runPipeline('pred', ctx))
     offStart()
     offComplete()
 

@@ -7,7 +7,7 @@ import { getCurrentActionId, getDiagnosticsSnapshot } from '@/lib/diagnostics'
 import { definePipeline, pipelineEventBus, runPipeline, type PhaseResult } from '@/lib/pipeline'
 import { domain } from '@/lib/stores'
 
-import { makeHarness, resetSingletons } from './harness'
+import { expectRan, makeHarness, resetSingletons } from './harness'
 
 const base = { affordance: 'invisible', gateBehavior: 'hard-gate', concurrencyPolicy: {} } as const
 
@@ -50,7 +50,7 @@ describe('orchestrator happy path', () => {
     const off = pipelineEventBus.subscribe('run_start', () => {
       sizeDuringRun = domain.getTxState().runs.size
     })
-    const result = await runPipeline('synthetic', ctx)
+    const result = expectRan(await runPipeline('synthetic', ctx))
     off()
 
     expect(result.outcome).toBe('completed')
@@ -76,7 +76,7 @@ describe('orchestrator happy path', () => {
   it('threads the ambient actionId through logger.warn, cleared after commit', async () => {
     const { ctx } = await makeHarness()
     definePipeline({ kind: 'synthetic', phases: [{ name: 'only', run: phase }], ...base })
-    const result = await runPipeline('synthetic', ctx)
+    const result = expectRan(await runPipeline('synthetic', ctx))
 
     const warn = getDiagnosticsSnapshot().logEntries.find(
       (e) => e.kind === 'pipeline.recoverable_error',

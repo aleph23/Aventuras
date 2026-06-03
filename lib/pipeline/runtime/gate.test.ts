@@ -25,11 +25,14 @@ function run(kind: string): RunState {
     abortController: new AbortController(),
     currentPhase: '',
     intermediates: {},
+    terminal: Promise.resolve(),
+    resolveTerminal: () => {},
   }
 }
 
-const tx = (kinds: string[]): TxState => ({
+const tx = (kinds: string[], reversalInProgress = false): TxState => ({
   runs: new Map(kinds.map((k) => [run(k).runId, run(k)])),
+  reversalInProgress,
 })
 
 describe('isUserEditBlocked', () => {
@@ -49,5 +52,9 @@ describe('isUserEditBlocked', () => {
     expect(isUserEditBlocked(tx([]))).toBe(false)
     expect(isUserEditBlocked(tx(['bg']))).toBe(false)
     expect(isUserEditBlocked(tx(['bg', 'fg']))).toBe(true)
+  })
+
+  it('blocks while a reversal is in progress, even with no hard-gate run', () => {
+    expect(isUserEditBlocked(tx([], true))).toBe(true)
   })
 })

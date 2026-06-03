@@ -1,8 +1,21 @@
 import { branches, stories } from '@/lib/db'
 import { createTestDb } from '@/lib/db/__tests__/test-db'
 import { clearBuffers, clearCurrentActionId, configureDiagnosticsGate } from '@/lib/diagnostics'
-import { __resetBus, __resetRegistry, type RunCtx } from '@/lib/pipeline'
+import {
+  __resetBus,
+  __resetRegistry,
+  type RejectedStart,
+  type RunCtx,
+  type TxResult,
+} from '@/lib/pipeline'
 import { domain } from '@/lib/stores'
+
+// Narrows runPipeline's union for the single-run tests that never hit a blocked start.
+export function expectRan(result: TxResult | RejectedStart): TxResult {
+  if (result.outcome === 'rejected')
+    throw new Error(`unexpected rejected start: ${result.blockedBy}`)
+  return result
+}
 
 export async function makeHarness(): Promise<{
   db: Awaited<ReturnType<typeof createTestDb>>['db']

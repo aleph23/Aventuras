@@ -7,7 +7,7 @@ import { getCurrentActionId, getDiagnosticsSnapshot } from '@/lib/diagnostics'
 import { definePipeline, runPipeline, type PhaseResult } from '@/lib/pipeline'
 import { domain } from '@/lib/stores'
 
-import { makeHarness, resetSingletons } from './harness'
+import { expectRan, makeHarness, resetSingletons } from './harness'
 
 const base = { affordance: 'invisible', gateBehavior: 'hard-gate', concurrencyPolicy: {} } as const
 
@@ -69,7 +69,7 @@ describe('orchestrator hardening', () => {
     const { db, ctx } = await makeHarness()
     definePipeline({ kind: 'throwy', phases: [{ name: 'p', run: doubleCreate }], ...base })
 
-    const result = await runPipeline('throwy', ctx)
+    const result = expectRan(await runPipeline('throwy', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error?.kind).toBe('action-layer')
@@ -92,7 +92,7 @@ describe('orchestrator hardening', () => {
     const { ctx } = await makeHarness()
     definePipeline({ kind: 'rejecty', phases: [{ name: 'p', run: updateMissing }], ...base })
 
-    const result = await runPipeline('rejecty', ctx)
+    const result = expectRan(await runPipeline('rejecty', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error?.kind).toBe('action-layer')
@@ -103,7 +103,7 @@ describe('orchestrator hardening', () => {
     const { ctx } = await makeHarness()
     definePipeline({ kind: 'boom', phases: [{ name: 'p', run: throwsDirectly }], ...base })
 
-    const result = await runPipeline('boom', ctx)
+    const result = expectRan(await runPipeline('boom', ctx))
 
     expect(result.outcome).toBe('failed')
     expect(result.error?.kind).toBe('orchestrator')
@@ -123,7 +123,7 @@ describe('orchestrator hardening', () => {
       },
     })
 
-    const result = await runPipeline('commitfail', { ...ctx, db })
+    const result = expectRan(await runPipeline('commitfail', { ...ctx, db }))
 
     expect(result.outcome).toBe('completed') // run logically completed; marker failure swallowed
     expect(getCurrentActionId()).toBeUndefined() // ambient cleared despite the throw
@@ -147,7 +147,7 @@ describe('orchestrator hardening', () => {
       },
     })
 
-    const result = await runPipeline('abortfail', { ...ctx, db })
+    const result = expectRan(await runPipeline('abortfail', { ...ctx, db }))
 
     expect(result.outcome).toBe('failed')
     expect(getCurrentActionId()).toBeUndefined()

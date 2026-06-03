@@ -36,6 +36,8 @@ describe('lib/stores public namespace', () => {
       abortController: new AbortController(),
       currentPhase: '',
       intermediates: {},
+      terminal: Promise.resolve(),
+      resolveTerminal: () => {},
     }
     domain.startRun(run)
     domain.setCurrentStory('s1')
