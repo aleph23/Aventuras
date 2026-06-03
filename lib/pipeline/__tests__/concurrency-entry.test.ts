@@ -126,4 +126,59 @@ describe('runPipeline concurrency entry + coordination', () => {
     expect(fg.outcome).toBe('completed')
     expect((await bg).outcome).toBe('aborted') // bg was yielded (aborted) before fg started
   })
+
+  it('start-after-yields re-checks after the wait: a blocker that slips in rejects the start', async () => {
+    const { ctx } = await makeHarness()
+    let releaseBlocker!: () => void
+    const blockerGate = new Promise<void>((r) => {
+      releaseBlocker = r
+    })
+    let blockerInflight: Promise<unknown> | undefined
+
+    async function* blockerPhase(): AsyncGenerator<never, PhaseResult> {
+      await blockerGate
+      return { status: 'completed' }
+    }
+    // While fg awaits bg's terminal (the yield), bg slips a 'blocker' run into
+    // txState — a kind fg.blockedBy lists. A stale entry path reserves fg anyway;
+    // a correct one re-checks after the wait and rejects it.
+    async function* bgPhase(): AsyncGenerator<never, PhaseResult> {
+      const { abortSignal } = domain.getPerTurnContext()
+      await new Promise<void>((resolve) => {
+        if (abortSignal.aborted) resolve()
+        else abortSignal.addEventListener('abort', () => resolve(), { once: true })
+      })
+      blockerInflight = runPipeline('blocker', ctx)
+      return { status: 'aborted' }
+    }
+    async function* fgPhase(): AsyncGenerator<never, PhaseResult> {
+      return { status: 'completed' }
+    }
+    definePipeline({
+      kind: 'blocker',
+      phases: [{ name: 'p', run: blockerPhase }],
+      concurrencyPolicy: {},
+      ...base,
+    })
+    definePipeline({
+      kind: 'bg',
+      phases: [{ name: 'p', run: bgPhase }],
+      concurrencyPolicy: { yieldsTo: ['fg'] },
+      ...base,
+    })
+    definePipeline({
+      kind: 'fg',
+      phases: [{ name: 'p', run: fgPhase }],
+      concurrencyPolicy: { blockedBy: ['blocker'] },
+      ...base,
+    })
+
+    const bg = runPipeline('bg', ctx)
+    const fg = await runPipeline('fg', ctx)
+    expect(fg).toEqual({ outcome: 'rejected', blockedBy: 'blocker' })
+    expect((await bg).outcome).toBe('aborted')
+
+    releaseBlocker()
+    await blockerInflight
+  })
 })

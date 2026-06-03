@@ -20,5 +20,8 @@ scripts/poc-embedder/
 # Symlink to CLAUDE.md — prettier errors on symbolic links; the target gets formatted instead.
 AGENTS.md
 
-# drizzle-kit output — committed verbatim; prettier desyncs meta/ checksums
-lib/db/migrations/
+# drizzle-kit output — meta/ JSON is checksummed (prettier desyncs it) and .sql
+# carries statement-breakpoint markers; the migrations.js bundle is plain JS, safe
+# to format.
+lib/db/migrations/meta/
+lib/db/migrations/**/*.sql

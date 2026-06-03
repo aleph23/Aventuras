@@ -31,6 +31,13 @@ export async function applyDeltaAction(args: Args, ctx: DbCtx): Promise<Mutation
   switch (action.kind) {
     case 'createStoryEntry':
       const { entry } = action.payload
+      // reverse-replay locates the row by the delta's branch; a run-ctx vs payload
+      // branch split would reverse the wrong branch.
+      if (entry.branchId !== branchId)
+        return {
+          status: 'rejected',
+          reason: `branch mismatch: delta branch ${branchId} vs entry branch ${entry.branchId}`,
+        }
       targetTable = 'story_entries'
       targetId = entry.id
       op = 'create'
@@ -39,6 +46,11 @@ export async function applyDeltaAction(args: Args, ctx: DbCtx): Promise<Mutation
       break
     case 'updateStoryEntryMetadata':
       const { branchId: bid, id, metadata } = action.payload
+      if (bid !== branchId)
+        return {
+          status: 'rejected',
+          reason: `branch mismatch: delta branch ${branchId} vs target branch ${bid}`,
+        }
       targetTable = 'story_entries'
       targetId = id
       op = 'update'

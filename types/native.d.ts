@@ -1,6 +1,5 @@
 export type NativeApi = {
   readonly platform: NodeJS.Platform
-  ping(): Promise<string>
   revealDbFile(): Promise<void>
 }
 

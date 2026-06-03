@@ -317,13 +317,18 @@ async function runPhases(run: RunState, ctx: RunCtx): Promise<PhaseOutcome> {
 }
 
 export async function runPipeline(kind: string, ctx: RunCtx): Promise<TxResult | RejectedStart> {
-  const txState = domain.getTxState()
-  const decision = checkConcurrencyContract(kind, txState.runs, txState.reversalInProgress)
-  if (decision.kind === 'blocked') {
-    logger.debug('pipeline.run_rejected', { kind, blockedBy: decision.by })
-    return { outcome: 'rejected', blockedBy: decision.by }
-  }
-  if (decision.kind === 'start-after-yields') {
+  // Loop so a yield-wait can't act on a stale decision: after aborting + awaiting the
+  // yielding runs, re-check — a blocking run may have started during the wait. The
+  // terminal 'start' breaks out and is immediately followed by the synchronous reserve
+  // (no await between), which is what closes the check-vs-register race.
+  for (;;) {
+    const txState = domain.getTxState()
+    const decision = checkConcurrencyContract(kind, txState.runs, txState.reversalInProgress)
+    if (decision.kind === 'blocked') {
+      logger.debug('pipeline.run_rejected', { kind, blockedBy: decision.by })
+      return { outcome: 'rejected', blockedBy: decision.by }
+    }
+    if (decision.kind === 'start') break
     await Promise.all(
       decision.targets.map((id) => {
         const target = txState.runs.get(id)
@@ -332,8 +337,8 @@ export async function runPipeline(kind: string, ctx: RunCtx): Promise<TxResult |
       }),
     )
   }
-  // reserveRun registers synchronously right after the check (race-free for the
-  // common path); beginRun then persists the marker and emits run_start.
+  // reserveRun registers synchronously right after the loop's 'start' (race-free for
+  // the common path); beginRun then persists the marker and emits run_start.
   let run = reserveRun(kind, ctx)
   await beginRun(run, ctx)
   // Drive the run; on a chained commit, drive the successor too. The whole chain is

@@ -84,4 +84,69 @@ describe('applyDeltaAction', () => {
     // Column-keyed: { <column>: <pre-change partial> } — reverse-replay restores per column.
     expect(delta.undoPayload).toEqual({ metadata: { currentLocationId: 'loc_a' } })
   })
+
+  it('op=create: rejects when the entry branch diverges from the delta branch', async () => {
+    const { db, runInTransaction } = await createTestDb()
+    await seed(db)
+    const res = await applyDeltaAction(
+      {
+        action: {
+          kind: 'createStoryEntry',
+          source: 'ai_classifier',
+          payload: {
+            entry: {
+              id: 'entry_1',
+              branchId: 'b2',
+              position: 1,
+              kind: 'ai_reply',
+              content: 'hi',
+              createdAt: 1,
+            },
+          },
+        },
+        actionId: 'act_1',
+        branchId: 'b1',
+        entryId: 'entry_1',
+      },
+      { db, runInTransaction },
+    )
+    expect(res.status).toBe('rejected')
+    expect(await db.select().from(storyEntries)).toHaveLength(0)
+    expect(await db.select().from(deltas)).toHaveLength(0)
+  })
+
+  it('op=update: rejects when the target branch diverges from the delta branch', async () => {
+    const { db, runInTransaction } = await createTestDb()
+    await seed(db)
+    await db.insert(storyEntries).values({
+      id: 'entry_1',
+      branchId: 'b1',
+      position: 1,
+      kind: 'ai_reply',
+      content: 'hi',
+      metadata: { sceneEntities: [], currentLocationId: 'loc_a', worldTime: 5 },
+      createdAt: 1,
+    })
+    const res = await applyDeltaAction(
+      {
+        action: {
+          kind: 'updateStoryEntryMetadata',
+          source: 'ai_classifier',
+          payload: {
+            branchId: 'b2',
+            id: 'entry_1',
+            metadata: { sceneEntities: [], currentLocationId: 'loc_b', worldTime: 5 },
+          },
+        },
+        actionId: 'act_2',
+        branchId: 'b1',
+        entryId: 'entry_1',
+      },
+      { db, runInTransaction },
+    )
+    expect(res.status).toBe('rejected')
+    const [entry] = await db.select().from(storyEntries).where(eq(storyEntries.id, 'entry_1'))
+    expect((entry.metadata as { currentLocationId: string }).currentLocationId).toBe('loc_a')
+    expect(await db.select().from(deltas)).toHaveLength(0)
+  })
 })
