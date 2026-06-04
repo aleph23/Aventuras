@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { logger } from '@/lib/diagnostics'
 
-import { appSettings, hydrateAppSettings } from './app-settings'
+import { appSettingsStore, hydrateAppSettings } from './app-settings'
 
 const VALID_CONFIG = {
   providers: [],
@@ -11,7 +11,7 @@ const VALID_CONFIG = {
   defaultProviderId: null,
 }
 
-beforeEach(() => appSettings.__reset())
+beforeEach(() => appSettingsStore.__reset())
 afterEach(() => vi.restoreAllMocks())
 
 describe('hydrateAppSettings', () => {
@@ -21,7 +21,7 @@ describe('hydrateAppSettings', () => {
       diagnostics: { enabled: true, debug_level_enabled: true },
     }))
     expect(r).toEqual({ status: 'ok' })
-    expect(appSettings.getAppSettings().diagnostics).toEqual({
+    expect(appSettingsStore.getAppSettings().diagnostics).toEqual({
       enabled: true,
       debug_level_enabled: true,
     })
@@ -30,17 +30,17 @@ describe('hydrateAppSettings', () => {
   it('absent row → defaults, ok', async () => {
     const r = await hydrateAppSettings(async () => undefined)
     expect(r).toEqual({ status: 'ok' })
-    expect(appSettings.getAppSettings().diagnostics).toEqual({
+    expect(appSettingsStore.getAppSettings().diagnostics).toEqual({
       enabled: false,
       debug_level_enabled: false,
     })
   })
 
   it('config schema failure → config-corrupt (no apply)', async () => {
-    const before = appSettings.getAppSettings()
+    const before = appSettingsStore.getAppSettings()
     const r = await hydrateAppSettings(async () => ({ ...VALID_CONFIG, providers: 'nope' }))
     expect(r.status).toBe('config-corrupt')
-    expect(appSettings.getAppSettings()).toEqual(before)
+    expect(appSettingsStore.getAppSettings()).toEqual(before)
   })
 
   it('read throw → config-corrupt', async () => {
@@ -79,7 +79,7 @@ describe('hydrateAppSettings', () => {
       diagnostics: { enabled: 'yes' },
     }))
     expect(r).toEqual({ status: 'ok' })
-    expect(appSettings.getAppSettings().diagnostics).toEqual({
+    expect(appSettingsStore.getAppSettings().diagnostics).toEqual({
       enabled: false,
       debug_level_enabled: false,
     })
@@ -88,7 +88,7 @@ describe('hydrateAppSettings', () => {
   it('diagnostics null (legacy/NULL column) → ok, toggles default off', async () => {
     const r = await hydrateAppSettings(async () => ({ ...VALID_CONFIG, diagnostics: null }))
     expect(r).toEqual({ status: 'ok' })
-    expect(appSettings.getAppSettings().diagnostics).toEqual({
+    expect(appSettingsStore.getAppSettings().diagnostics).toEqual({
       enabled: false,
       debug_level_enabled: false,
     })
@@ -100,6 +100,6 @@ describe('hydrateAppSettings', () => {
       defaultProviderId: 'p1',
       diagnostics: { enabled: false, debug_level_enabled: false },
     }))
-    expect(appSettings.getAppSettings().defaultProviderId).toBe('p1')
+    expect(appSettingsStore.getAppSettings().defaultProviderId).toBe('p1')
   })
 })

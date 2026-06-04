@@ -10,7 +10,7 @@ import {
   getDiagnosticsSnapshot,
   logger,
 } from '@/lib/diagnostics'
-import { domain, rehydrateAppSettings } from '@/lib/stores'
+import { appSettingsStore, rehydrateAppSettings, resetAllStores } from '@/lib/stores'
 
 import { setDebugLevelEnabled, setDiagnosticsEnabled } from './diagnostics'
 import { resetAppSettings } from './reset'
@@ -25,7 +25,7 @@ beforeEach(async () => {
   clearBuffers()
 })
 afterEach(() => {
-  domain.__reset()
+  resetAllStores()
   clearBuffers()
   __resetDiagnosticsGate()
 })
@@ -42,7 +42,7 @@ describe('diagnostics toggle actions', () => {
   it('setDiagnosticsEnabled persists, re-hydrates, and the store reflects it', async () => {
     await setDiagnosticsEnabled(true, { db })
     expect(await readDiagnostics()).toEqual({ enabled: true, debug_level_enabled: false })
-    expect(domain.getAppSettings().diagnostics.enabled).toBe(true)
+    expect(appSettingsStore.getAppSettings().diagnostics.enabled).toBe(true)
   })
 
   it('setDebugLevelEnabled preserves enabled', async () => {
@@ -69,9 +69,9 @@ describe('diagnostics toggle actions', () => {
 
   it('toggling twice is reflected live in the store (not a captured snapshot)', async () => {
     await setDiagnosticsEnabled(true, { db })
-    expect(domain.getAppSettings().diagnostics.enabled).toBe(true)
+    expect(appSettingsStore.getAppSettings().diagnostics.enabled).toBe(true)
     await setDiagnosticsEnabled(false, { db })
-    expect(domain.getAppSettings().diagnostics.enabled).toBe(false)
+    expect(appSettingsStore.getAppSettings().diagnostics.enabled).toBe(false)
   })
 
   it('resetAppSettings writes defaults and re-hydrates ok', async () => {
@@ -81,6 +81,6 @@ describe('diagnostics toggle actions', () => {
       .where(eq(appSettings.id, APP_SETTINGS_SINGLETON_ID))
     const r = await resetAppSettings({ db })
     expect(r).toEqual({ status: 'ok' })
-    expect(domain.getAppSettings().defaultProviderId).toBeNull()
+    expect(appSettingsStore.getAppSettings().defaultProviderId).toBeNull()
   })
 })

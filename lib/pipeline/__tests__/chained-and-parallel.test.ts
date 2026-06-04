@@ -10,7 +10,7 @@ import {
   runPipeline,
   type PhaseResult,
 } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { expectRan, makeHarness, resetSingletons } from './harness'
 
@@ -82,7 +82,7 @@ describe('chained transition', () => {
     expect(rows.length).toBe(2)
     expect(rows.every((r) => r.outcome === 'completed' && r.finishedAt !== null)).toBe(true)
 
-    expect(domain.getTxState().runs.size).toBe(0) // successor executed and cleared
+    expect(generationStore.getTxState().runs.size).toBe(0) // successor executed and cleared
   })
 
   it('keeps a hard-gate run present across the transition (no edit window)', async () => {
@@ -91,7 +91,7 @@ describe('chained transition', () => {
 
     let blockedAtPredComplete: boolean | null = null
     const off = pipelineEventBus.subscribe('run_complete', (e) => {
-      if (e.kind === 'pred') blockedAtPredComplete = isUserEditBlocked(domain.getTxState())
+      if (e.kind === 'pred') blockedAtPredComplete = isUserEditBlocked(generationStore.getTxState())
     })
     await runPipeline('pred', ctx)
     off()
@@ -123,7 +123,7 @@ describe('chained transition', () => {
     expect(result.outcome).toBe('completed') // origin (pred) committed
     const entries = await db.select().from(storyEntries)
     expect(entries.map((e) => e.id)).toEqual(['entry_pred']) // succ's entry reversed
-    expect(domain.getTxState().runs.size).toBe(0)
+    expect(generationStore.getTxState().runs.size).toBe(0)
   })
 })
 

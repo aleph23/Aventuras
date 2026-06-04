@@ -5,7 +5,7 @@ import { type PipelineAction } from '@/lib/actions'
 import { pipelineRuns, storyEntries } from '@/lib/db'
 import { getDiagnosticsSnapshot } from '@/lib/diagnostics'
 import { definePipeline, runPipeline, type PhaseResult } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { expectRan, makeHarness, resetSingletons } from './harness'
 
@@ -84,7 +84,7 @@ describe('orchestrator hardening', () => {
     expect(pr.finishedAt).not.toBeNull()
     const turn = getDiagnosticsSnapshot().turnCaptures.find((t) => t.actionId === result.actionId)
     expect(turn?.endedAt).toBeDefined() // turn finalized
-    expect(domain.getTxState().runs.size).toBe(0) // active run released
+    expect(generationStore.getTxState().runs.size).toBe(0) // active run released
   })
 
   it('a rejected MutationResult routes to abortRun as an action-layer error', async () => {
@@ -124,7 +124,7 @@ describe('orchestrator hardening', () => {
     const result = expectRan(await runPipeline('commitfail', { ...ctx, db }))
 
     expect(result.outcome).toBe('completed') // run logically completed; marker failure swallowed
-    expect(domain.getTxState().runs.size).toBe(0) // active run released
+    expect(generationStore.getTxState().runs.size).toBe(0) // active run released
     expect(
       getDiagnosticsSnapshot().logEntries.some((e) => e.kind === 'pipeline.marker_write_failed'),
     ).toBe(true)
@@ -147,6 +147,6 @@ describe('orchestrator hardening', () => {
     const result = expectRan(await runPipeline('abortfail', { ...ctx, db }))
 
     expect(result.outcome).toBe('failed')
-    expect(domain.getTxState().runs.size).toBe(0)
+    expect(generationStore.getTxState().runs.size).toBe(0)
   })
 })

@@ -5,12 +5,12 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Text } from '@/components/ui/text'
 import { db, runInTransaction } from '@/lib/db'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { runSmoke } from './run-smoke'
 
 export function SmokeTriggerButton() {
-  const inFlight = domain.useGeneration((s) => s.txState.runs.size > 0)
+  const inFlight = generationStore.useGeneration((s) => s.txState.runs.size > 0)
   const [outcome, setOutcome] = useState<string | null>(null)
 
   const onPress = async () => {

@@ -14,7 +14,7 @@ import { useTier } from '@/hooks/use-tier'
 import { setDebugLevelEnabled, setDiagnosticsEnabled } from '@/lib/actions'
 import { db } from '@/lib/db'
 import { t } from '@/lib/i18n'
-import { domain } from '@/lib/stores'
+import { appSettingsStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 
 type SettingsTabId =
@@ -36,8 +36,8 @@ export default function SettingsRoute() {
   const isPhone = useTier() === 'phone'
   const [selectedTab, setSelectedTab] = useState<SettingsTabId | null>(null)
 
-  const enabled = domain.useAppSettings((s) => s.diagnostics.enabled)
-  const debugEnabled = domain.useAppSettings((s) => s.diagnostics.debug_level_enabled)
+  const enabled = appSettingsStore.useAppSettings((s) => s.diagnostics.enabled)
+  const debugEnabled = appSettingsStore.useAppSettings((s) => s.diagnostics.debug_level_enabled)
 
   // Desktop/tablet always shows a detail pane, so fall back to the default tab;
   // phone is list-first, so no tab is "open" until one is tapped.

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Text } from '@/components/ui/text'
 import { t } from '@/lib/i18n'
-import { domain } from '@/lib/stores'
+import { navigationStore } from '@/lib/stores'
 
 // Temporary M1 nav stopgap: no story exists until a later slice's synthetic
 // story, so a dev-only affordance is the only path into the reader.
@@ -17,8 +17,8 @@ export default function Index() {
   const router = useRouter()
 
   const openReaderDebug = () => {
-    domain.setCurrentStory(DEBUG_ID)
-    domain.setCurrentBranch(DEBUG_ID)
+    navigationStore.setCurrentStory(DEBUG_ID)
+    navigationStore.setCurrentBranch(DEBUG_ID)
     router.push(`/reader-composer/${DEBUG_ID}`)
   }
 

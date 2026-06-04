@@ -479,7 +479,7 @@ invert the layering and close an import cycle.
 The gate is **injected, not imported**. At boot the composition root
 (`app/_layout.tsx`) calls
 `configureDiagnosticsGate({ isEnabled, isDebugEnabled })`, passing
-thunks that read `domain.getAppSettings().diagnostics.*` live;
+thunks that read `appSettingsStore.getAppSettings().diagnostics.*` live;
 `lib/diagnostics` holds the thunks (default `() => false` until
 configured) and checks them at each sink / `logger.*` entry, never
 importing `lib/stores`. The `__DEV__` force-on lives inside the

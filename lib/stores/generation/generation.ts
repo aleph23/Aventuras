@@ -39,7 +39,7 @@ type GenerationState = {
   __reset: () => void
 }
 
-const generationStore = createStore<GenerationState>()((set) => ({
+const store = createStore<GenerationState>()((set) => ({
   txState: { runs: new Map(), reversalInProgress: false },
   startRun: (run) =>
     set((s) => {
@@ -80,16 +80,16 @@ const generationStore = createStore<GenerationState>()((set) => ({
 }))
 
 function getTxState(): TxState {
-  return generationStore.getState().txState
+  return store.getState().txState
 }
 
 function useGeneration<T>(selector: (s: { txState: TxState }) => T): T {
-  return useStore(generationStore, selector as (s: GenerationState) => T)
+  return useStore(store, selector as (s: GenerationState) => T)
 }
 
-const api = generationStore.getState()
+const api = store.getState()
 
-export const generation = {
+export const generationStore = {
   useGeneration,
   getTxState,
   startRun: api.startRun,
@@ -100,5 +100,3 @@ export const generation = {
   setReversalInProgress: api.setReversalInProgress,
   __reset: api.__reset,
 }
-
-export { generationStore }

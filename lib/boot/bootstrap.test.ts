@@ -9,7 +9,7 @@ import {
 } from '@/lib/db'
 import { createTestDb } from '@/lib/db/__tests__/test-db'
 import { __resetDiagnosticsGate } from '@/lib/diagnostics'
-import { domain } from '@/lib/stores'
+import { appSettingsStore, resetAllStores } from '@/lib/stores'
 
 import { runBootstrap } from './bootstrap'
 
@@ -24,7 +24,7 @@ beforeEach(async () => {
   ctx = { db: t.db, runInTransaction: t.runInTransaction, sqlite: t.sqlite }
   __resetDiagnosticsGate()
 })
-afterEach(() => domain.__reset())
+afterEach(() => resetAllStores())
 
 const seedRow = (overrides: Record<string, unknown> = {}) =>
   ctx.db
@@ -36,13 +36,13 @@ describe('runBootstrap', () => {
     await seedRow({ defaultProviderId: 'p1' })
     const r = await runBootstrap(ctx)
     expect(r).toEqual({ status: 'ok' })
-    expect(domain.getAppSettings().defaultProviderId).toBe('p1')
+    expect(appSettingsStore.getAppSettings().defaultProviderId).toBe('p1')
   })
 
   it('absent row → ok with defaults', async () => {
     const r = await runBootstrap(ctx)
     expect(r).toEqual({ status: 'ok' })
-    expect(domain.getAppSettings().diagnostics.enabled).toBe(false)
+    expect(appSettingsStore.getAppSettings().diagnostics.enabled).toBe(false)
   })
 
   it('config-corrupt row → config-corrupt', async () => {
@@ -57,7 +57,7 @@ describe('runBootstrap', () => {
     })
     const r = await runBootstrap(ctx)
     expect(r).toEqual({ status: 'ok' })
-    expect(domain.getAppSettings().diagnostics.enabled).toBe(false)
+    expect(appSettingsStore.getAppSettings().diagnostics.enabled).toBe(false)
   })
 
   it('runs crash recovery during bootstrap (clean orphan deleted)', async () => {

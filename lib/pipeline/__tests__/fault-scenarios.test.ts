@@ -20,7 +20,7 @@ import {
   type PhaseResult,
   type PipelineError,
 } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { expectRan, makeHarness, resetSingletons } from './harness'
 
@@ -168,7 +168,7 @@ describe('stub fault scenarios', () => {
       ...base,
     })
     const off = pipelineEventBus.subscribe('phase_start', (e) => {
-      const run = domain.getTxState().runs.get(e.runId)
+      const run = generationStore.getTxState().runs.get(e.runId)
       run?.abortController.abort()
     })
 

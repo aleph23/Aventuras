@@ -12,19 +12,19 @@ async function ruleIds(code: string): Promise<(string | null)[]> {
 describe('lib/stores public-API surfaces', () => {
   it('flags deep imports of raw store handles', async () => {
     expect(
-      await ruleIds("import { generationStore } from '@/lib/stores/domain/generation'\n"),
+      await ruleIds("import { generationStore } from '@/lib/stores/generation/generation'\n"),
     ).toContain('boundaries/dependencies')
     expect(
-      await ruleIds("import { appSettingsStore } from '@/lib/stores/domain/app-settings'\n"),
+      await ruleIds("import { appSettingsStore } from '@/lib/stores/app-settings/app-settings'\n"),
     ).toContain('boundaries/dependencies')
     expect(
-      await ruleIds("import { navigationStore } from '@/lib/stores/domain/navigation'\n"),
+      await ruleIds("import { navigationStore } from '@/lib/stores/navigation/navigation'\n"),
     ).toContain('boundaries/dependencies')
   })
 
   it('allows the index import', async () => {
-    expect(await ruleIds("import { domain, ui } from '@/lib/stores'\n")).not.toContain(
-      'boundaries/dependencies',
-    )
+    expect(
+      await ruleIds("import { generationStore, navigationStore } from '@/lib/stores'\n"),
+    ).not.toContain('boundaries/dependencies')
   })
 })

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 
 import { APP_SETTINGS_SINGLETON_ID, type AppSettingsDiagnostics, appSettings } from '@/lib/db'
 import { clearBuffers } from '@/lib/diagnostics'
-import { domain, rehydrateAppSettings } from '@/lib/stores'
+import { appSettingsStore, rehydrateAppSettings } from '@/lib/stores'
 
 import type { SettingsActionCtx } from './types'
 
@@ -15,12 +15,12 @@ async function persist(ctx: SettingsActionCtx, next: AppSettingsDiagnostics): Pr
 }
 
 export async function setDiagnosticsEnabled(value: boolean, ctx: SettingsActionCtx): Promise<void> {
-  const current = domain.getAppSettings().diagnostics
+  const current = appSettingsStore.getAppSettings().diagnostics
   await persist(ctx, { ...current, enabled: value })
   if (!value) clearBuffers()
 }
 
 export async function setDebugLevelEnabled(value: boolean, ctx: SettingsActionCtx): Promise<void> {
-  const current = domain.getAppSettings().diagnostics
+  const current = appSettingsStore.getAppSettings().diagnostics
   await persist(ctx, { ...current, debug_level_enabled: value })
 }

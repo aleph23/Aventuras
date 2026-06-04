@@ -19,7 +19,7 @@ describe('lib public-API surfaces', () => {
     ).toContain('boundaries/dependencies')
     // the raw generation store handle is reachable only by deep import -> flagged
     expect(
-      await ruleIds("import { generationStore } from '@/lib/stores/domain/generation'\n"),
+      await ruleIds("import { generationStore } from '@/lib/stores/generation/generation'\n"),
     ).toContain('boundaries/dependencies')
   })
 
@@ -30,7 +30,7 @@ describe('lib public-API surfaces', () => {
     expect(await ruleIds("import { applyDeltaAction } from '@/lib/actions'\n")).not.toContain(
       'boundaries/dependencies',
     )
-    expect(await ruleIds("import { domain } from '@/lib/stores'\n")).not.toContain(
+    expect(await ruleIds("import { generationStore } from '@/lib/stores'\n")).not.toContain(
       'boundaries/dependencies',
     )
   })

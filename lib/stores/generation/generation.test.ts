@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { generation, generationStore, type RunState } from './generation'
+import { generationStore, type RunState } from './generation'
 
 function run(id: string, kind = 'synthetic'): RunState {
   return {
@@ -18,25 +18,21 @@ function run(id: string, kind = 'synthetic'): RunState {
 }
 
 describe('generation store', () => {
-  beforeEach(() => generation.__reset())
+  beforeEach(() => generationStore.__reset())
 
   it('startRun adds, abortRun removes', () => {
-    generation.startRun(run('run_1'))
-    expect(generation.getTxState().runs.has('run_1')).toBe(true)
-    generation.abortRun('run_1')
-    expect(generation.getTxState().runs.has('run_1')).toBe(false)
+    generationStore.startRun(run('run_1'))
+    expect(generationStore.getTxState().runs.has('run_1')).toBe(true)
+    generationStore.abortRun('run_1')
+    expect(generationStore.getTxState().runs.has('run_1')).toBe(false)
   })
 
   it('finishRun(predecessor, successor) is atomic — no empty intermediate state', () => {
-    generation.startRun(run('run_pred', 'per-turn'))
-    generation.finishRun('run_pred', run('run_succ', 'chapter-close'))
-    const runs = generation.getTxState().runs // synchronous read immediately after
+    generationStore.startRun(run('run_pred', 'per-turn'))
+    generationStore.finishRun('run_pred', run('run_succ', 'chapter-close'))
+    const runs = generationStore.getTxState().runs // synchronous read immediately after
     expect(runs.has('run_pred')).toBe(false)
     expect(runs.has('run_succ')).toBe(true)
     expect(runs.size).toBe(1)
-  })
-
-  it('raw store handle is module-internal (sanity)', () => {
-    expect(typeof generationStore.getState).toBe('function')
   })
 })

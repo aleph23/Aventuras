@@ -7,7 +7,7 @@ import {
   type PhaseContext,
   type PhaseResult,
 } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { expectRan, makeHarness, resetSingletons } from './harness'
 
@@ -61,7 +61,7 @@ describe('runPipeline concurrency entry + coordination', () => {
     const inflight = runPipeline('bg', ctx)
     await awaitRunTerminal('bg', 'cancel')
     expect(expectRan(await inflight).outcome).toBe('aborted')
-    expect(domain.getTxState().runs.size).toBe(0)
+    expect(generationStore.getTxState().runs.size).toBe(0)
   })
 
   it('awaitRunTerminal(finish) awaits the natural commit without aborting', async () => {

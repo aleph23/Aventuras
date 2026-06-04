@@ -40,7 +40,7 @@ describe('lib/diagnostics lint enforcement', () => {
     // Even the public barrel is disallowed: diagnostics must not depend on stores.
     expect(
       await ruleIds(
-        "import { domain } from '@/lib/stores'\n",
+        "import { generationStore } from '@/lib/stores'\n",
         'lib/diagnostics/__layering-fixture.ts',
       ),
     ).toContain('boundaries/dependencies')

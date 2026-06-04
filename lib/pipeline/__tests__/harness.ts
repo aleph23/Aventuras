@@ -8,7 +8,7 @@ import {
   type RunCtx,
   type TxResult,
 } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { resetAllStores } from '@/lib/stores'
 
 // Narrows runPipeline's union for the single-run tests that never hit a blocked start.
 export function expectRan(result: TxResult | RejectedStart): TxResult {
@@ -30,7 +30,7 @@ export async function makeHarness(): Promise<{
 export function resetSingletons(): void {
   __resetRegistry()
   __resetBus()
-  domain.__reset()
+  resetAllStores()
   clearBuffers()
   configureDiagnosticsGate({ isEnabled: () => true, isDebugEnabled: () => true })
 }

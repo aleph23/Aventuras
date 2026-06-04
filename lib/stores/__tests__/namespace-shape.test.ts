@@ -1,32 +1,35 @@
 import { describe, expect, it } from 'vitest'
 
-import { domain, ui, type RunState } from '@/lib/stores'
+import {
+  appSettingsStore,
+  generationStore,
+  navigationStore,
+  resetAllStores,
+  type RunState,
+} from '@/lib/stores'
 
-// Imports via the namespace only. A deep import of a raw handle is asserted by
-// public-api-surfaces.test.ts (boundaries lint) and public-api.typecheck.ts.
-describe('lib/stores public namespace', () => {
+// Each store is exposed as its own namespace off the lib/stores index. A deep
+// import of a raw handle is asserted by public-api-surfaces.test.ts (boundaries
+// lint) and public-api.typecheck.ts.
+describe('lib/stores public surface', () => {
   it('exposes the generation selector + mutators', () => {
-    expect(typeof domain.useGeneration).toBe('function')
-    expect(typeof domain.startRun).toBe('function')
-    expect(typeof domain.finishRun).toBe('function')
+    expect(typeof generationStore.useGeneration).toBe('function')
+    expect(typeof generationStore.startRun).toBe('function')
+    expect(typeof generationStore.finishRun).toBe('function')
   })
 
   it('exposes the app-settings read-model selectors', () => {
-    expect(typeof domain.useAppSettings).toBe('function')
-    expect(typeof domain.getAppSettings).toBe('function')
+    expect(typeof appSettingsStore.useAppSettings).toBe('function')
+    expect(typeof appSettingsStore.getAppSettings).toBe('function')
   })
 
   it('exposes the navigation selectors + mutators', () => {
-    expect(typeof domain.useNavigation).toBe('function')
-    expect(typeof domain.setCurrentStory).toBe('function')
-    expect(typeof domain.setCurrentBranch).toBe('function')
+    expect(typeof navigationStore.useNavigation).toBe('function')
+    expect(typeof navigationStore.setCurrentStory).toBe('function')
+    expect(typeof navigationStore.setCurrentBranch).toBe('function')
   })
 
-  it('declares an empty ui namespace', () => {
-    expect(ui).toEqual({})
-  })
-
-  it('domain.__reset clears every sub-store', () => {
+  it('resetAllStores clears every store', () => {
     const run: RunState = {
       runId: 'r1',
       kind: 'synthetic',
@@ -39,14 +42,14 @@ describe('lib/stores public namespace', () => {
       terminal: Promise.resolve(),
       resolveTerminal: () => {},
     }
-    domain.startRun(run)
-    domain.setCurrentStory('s1')
+    generationStore.startRun(run)
+    navigationStore.setCurrentStory('s1')
 
-    domain.__reset()
+    resetAllStores()
 
-    expect(domain.getTxState().runs.size).toBe(0)
-    expect(domain.getNavigation().currentStoryId).toBeNull()
-    expect(domain.getAppSettings()).toEqual({
+    expect(generationStore.getTxState().runs.size).toBe(0)
+    expect(navigationStore.getNavigation().currentStoryId).toBeNull()
+    expect(appSettingsStore.getAppSettings()).toEqual({
       providers: [],
       profiles: [],
       assignments: {},

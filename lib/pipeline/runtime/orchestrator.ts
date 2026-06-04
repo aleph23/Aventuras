@@ -10,7 +10,7 @@ import {
 import { pipelineRuns } from '@/lib/db'
 import { logger, makeLogger, turnCaptureSink } from '@/lib/diagnostics'
 import { generateId } from '@/lib/ids'
-import { domain, type RunState } from '@/lib/stores'
+import { generationStore, type RunState } from '@/lib/stores'
 
 import { getPipeline } from '../authoring/registry'
 import type {
@@ -68,7 +68,7 @@ function newRunState(kind: string, ctx: RunCtx): RunState {
 // mutually-blocking kind slipping in across an await boundary.
 function reserveRun(kind: string, ctx: RunCtx): RunState {
   const run = newRunState(kind, ctx)
-  domain.startRun(run)
+  generationStore.startRun(run)
   return run
 }
 
@@ -85,7 +85,7 @@ async function beginRun(run: RunState, ctx: RunCtx): Promise<void> {
     // Marker insert failed; unwind the synchronous reservation so a half-registered
     // run can't gate edits or hold the branch against a retry. Resolve terminal so a
     // waiter that grabbed it between reserve and failure isn't left hanging.
-    domain.abortRun(run.runId)
+    generationStore.abortRun(run.runId)
     run.resolveTerminal()
     throw e
   }
@@ -103,7 +103,7 @@ async function beginRun(run: RunState, ctx: RunCtx): Promise<void> {
 // doomed call winds down); 'finish' awaits the natural commit. The waiter need
 // not have started the run — it awaits the run's own terminal deferred.
 export function awaitRunTerminal(kind: string, disposition: 'finish' | 'cancel'): Promise<void> {
-  const run = [...domain.getTxState().runs.values()].find((r) => r.kind === kind)
+  const run = [...generationStore.getTxState().runs.values()].find((r) => r.kind === kind)
   if (!run) return Promise.resolve()
   if (disposition === 'cancel') run.abortController.abort()
   return run.terminal
@@ -181,7 +181,7 @@ async function runParallelGroup(
 }
 
 async function runNode(node: PhaseNode, run: RunState, ctx: RunCtx): Promise<PhaseResult> {
-  domain.setCurrentPhase(run.runId, node.name)
+  generationStore.setCurrentPhase(run.runId, node.name)
   turnCaptureSink.appendPhaseEvent(run.actionId, {
     phase: node.name,
     kind: 'enter',
@@ -193,7 +193,7 @@ async function runNode(node: PhaseNode, run: RunState, ctx: RunCtx): Promise<Pha
       ? await runParallelGroup(node.parallel, run, ctx)
       : await consumePhase(node.run(phaseContextOf(run)), run, ctx)
   turnCaptureSink.appendPhaseEvent(run.actionId, { phase: node.name, kind: 'exit', at: Date.now() })
-  domain.recordPhaseResult(run.runId, node.name, result)
+  generationStore.recordPhaseResult(run.runId, node.name, result)
   pipelineEventBus.emit({ type: 'phase_complete', runId: run.runId, name: node.name, result })
   return result
 }
@@ -222,7 +222,7 @@ async function commitRun(
   const pipeline = getPipeline(run.kind)
   const nextKind = pipeline.chainsTo?.(run) ?? null
   const successor = nextKind ? newRunState(nextKind, ctx) : undefined
-  domain.finishRun(run.runId, successor)
+  generationStore.finishRun(run.runId, successor)
   try {
     await ctx.db
       .update(pipelineRuns)
@@ -269,7 +269,7 @@ async function abortRun(
     error = { kind: 'orchestrator', detail: `reverse-replay failed: ${String(e.cause)}` }
     outcome = 'failed'
   }
-  domain.abortRun(run.runId)
+  generationStore.abortRun(run.runId)
   try {
     await ctx.db
       .update(pipelineRuns)
@@ -324,7 +324,7 @@ export async function runPipeline(kind: string, ctx: RunCtx): Promise<TxResult |
   // Loop so a yield-wait can't act on a stale decision: after aborting + awaiting the
   // yielding runs, re-check; a blocking run may have started during the wait.
   for (;;) {
-    const txState = domain.getTxState()
+    const txState = generationStore.getTxState()
     const decision = checkConcurrencyContract(kind, txState.runs, txState.reversalInProgress)
     if (decision.kind === 'blocked') {
       logger.debug('pipeline.run_rejected', { kind, blockedBy: decision.by })

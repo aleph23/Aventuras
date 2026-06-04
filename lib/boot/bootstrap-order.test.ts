@@ -4,7 +4,7 @@ import { APP_SETTINGS_DEFAULTS, APP_SETTINGS_SINGLETON_ID, appSettings } from '@
 import { createTestDb } from '@/lib/db/__tests__/test-db'
 import { __resetDiagnosticsGate } from '@/lib/diagnostics'
 import { recoverInFlightRuns } from '@/lib/pipeline'
-import { domain, hydrateAppSettings } from '@/lib/stores'
+import { hydrateAppSettings, resetAllStores } from '@/lib/stores'
 
 import { runBootstrap } from './bootstrap'
 
@@ -24,7 +24,7 @@ beforeEach(async () => {
   __resetDiagnosticsGate()
 })
 afterEach(() => {
-  domain.__reset()
+  resetAllStores()
   vi.clearAllMocks()
 })
 

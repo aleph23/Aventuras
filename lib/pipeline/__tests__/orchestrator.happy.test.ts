@@ -11,7 +11,7 @@ import {
   type PhaseContext,
   type PhaseResult,
 } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore } from '@/lib/stores'
 
 import { expectRan, makeHarness, resetSingletons } from './harness'
 
@@ -54,14 +54,14 @@ describe('orchestrator happy path', () => {
 
     let sizeDuringRun = -1
     const off = pipelineEventBus.subscribe('run_start', () => {
-      sizeDuringRun = domain.getTxState().runs.size
+      sizeDuringRun = generationStore.getTxState().runs.size
     })
     const result = expectRan(await runPipeline('synthetic', ctx))
     off()
 
     expect(result.outcome).toBe('completed')
     expect(sizeDuringRun).toBe(1) // run present during execution
-    expect(domain.getTxState().runs.size).toBe(0) // cleared after
+    expect(generationStore.getTxState().runs.size).toBe(0) // cleared after
 
     const [pr] = await db.select().from(pipelineRuns).where(eq(pipelineRuns.runId, result.runId))
     expect(pr.outcome).toBe('completed')

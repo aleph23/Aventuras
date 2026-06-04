@@ -11,7 +11,7 @@ import {
   getDiagnosticsSnapshot,
 } from '@/lib/diagnostics'
 import { __resetBus, __resetRegistry, pipelineEventBus } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { generationStore, resetAllStores } from '@/lib/stores'
 import { toastStore } from '@/lib/toast'
 
 import { runSmoke } from '../run-smoke'
@@ -20,7 +20,7 @@ import { SMOKE_BRANCH_ID, SMOKE_STORY_ID } from '../smoke-pipeline'
 beforeEach(() => {
   __resetRegistry()
   __resetBus()
-  domain.__reset()
+  resetAllStores()
   clearBuffers()
   resetTemporaryProvidersForTests()
   toastStore.__reset()
@@ -40,7 +40,7 @@ describe('runSmoke', () => {
     let sizeDuring = 0
     pipelineEventBus.subscribeAll((e) => {
       events.push(e.type)
-      if (e.type === 'run_start') sizeDuring = domain.getTxState().runs.size
+      if (e.type === 'run_start') sizeDuring = generationStore.getTxState().runs.size
     })
 
     const seen: { severity: string }[] = []
@@ -76,7 +76,7 @@ describe('runSmoke', () => {
     ).toBe(true)
 
     expect(sizeDuring).toBeGreaterThan(0)
-    expect(domain.getTxState().runs.size).toBe(0)
+    expect(generationStore.getTxState().runs.size).toBe(0)
     expect(events).toContain('run_start')
     expect(events).toContain('run_complete')
 

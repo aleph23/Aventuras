@@ -11,7 +11,7 @@ type NavigationState = {
 
 type NavigationSnapshot = Pick<NavigationState, 'currentStoryId' | 'currentBranchId'>
 
-const navigationStore = createStore<NavigationState>()((set) => ({
+const store = createStore<NavigationState>()((set) => ({
   currentStoryId: null,
   currentBranchId: null,
   setCurrentStory: (id) => set({ currentStoryId: id }),
@@ -20,17 +20,17 @@ const navigationStore = createStore<NavigationState>()((set) => ({
 }))
 
 function useNavigation<T>(selector: (s: NavigationSnapshot) => T): T {
-  return useStore(navigationStore, selector as (s: NavigationState) => T)
+  return useStore(store, selector as (s: NavigationState) => T)
 }
 
 function getNavigation(): NavigationSnapshot {
-  const s = navigationStore.getState()
+  const s = store.getState()
   return { currentStoryId: s.currentStoryId, currentBranchId: s.currentBranchId }
 }
 
-const api = navigationStore.getState()
+const api = store.getState()
 
-export const navigation = {
+export const navigationStore = {
   useNavigation,
   getNavigation,
   setCurrentStory: api.setCurrentStory,
@@ -38,5 +38,4 @@ export const navigation = {
   __reset: api.__reset,
 }
 
-export { navigationStore }
 export type { NavigationSnapshot, NavigationState }

@@ -25,18 +25,18 @@ const DEFAULT_SNAPSHOT: AppSettingsSnapshot = {
   diagnostics: APP_SETTINGS_DEFAULTS.diagnostics,
 }
 
-const appSettingsStore = createStore<AppSettingsState>()((set) => ({
+const store = createStore<AppSettingsState>()((set) => ({
   ...DEFAULT_SNAPSHOT,
   apply: (snapshot) => set(snapshot),
   __reset: () => set(DEFAULT_SNAPSHOT),
 }))
 
 function useAppSettings<T>(selector: (s: AppSettingsSnapshot) => T): T {
-  return useStore(appSettingsStore, selector as (s: AppSettingsState) => T)
+  return useStore(store, selector as (s: AppSettingsState) => T)
 }
 
 function getAppSettings(): AppSettingsSnapshot {
-  const s = appSettingsStore.getState()
+  const s = store.getState()
   return {
     providers: s.providers,
     profiles: s.profiles,
@@ -61,7 +61,7 @@ export async function hydrateAppSettings(read: () => Promise<unknown>): Promise<
   }
 
   if (raw === undefined) {
-    appSettingsStore.getState().apply(DEFAULT_SNAPSHOT)
+    store.getState().apply(DEFAULT_SNAPSHOT)
     return { status: 'ok' }
   }
 
@@ -84,15 +84,14 @@ export async function hydrateAppSettings(read: () => Promise<unknown>): Promise<
   }
   const diagnostics = diag.success ? diag.data : APP_SETTINGS_DEFAULTS.diagnostics
 
-  appSettingsStore.getState().apply({ ...config, diagnostics })
+  store.getState().apply({ ...config, diagnostics })
   return { status: 'ok' }
 }
 
-export const appSettings = {
+export const appSettingsStore = {
   useAppSettings,
   getAppSettings,
-  __reset: appSettingsStore.getState().__reset,
+  __reset: store.getState().__reset,
 }
 
-export { appSettingsStore }
 export type { AppSettingsSnapshot, AppSettingsState }

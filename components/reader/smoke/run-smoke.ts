@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 
 import { branches, stories } from '@/lib/db'
 import { runPipeline, type RunCtx, type TxResult } from '@/lib/pipeline'
-import { domain } from '@/lib/stores'
+import { navigationStore } from '@/lib/stores'
 import { toast } from '@/lib/toast'
 
 import {
@@ -39,8 +39,8 @@ export async function runSmoke(deps: SmokeRunDeps): Promise<TxResult | null> {
   if (typeof __DEV__ !== 'undefined' && !__DEV__) return null
 
   await ensureSmokeStoryAndBranch(deps)
-  domain.setCurrentStory(SMOKE_STORY_ID)
-  domain.setCurrentBranch(SMOKE_BRANCH_ID)
+  navigationStore.setCurrentStory(SMOKE_STORY_ID)
+  navigationStore.setCurrentBranch(SMOKE_BRANCH_ID)
   ensureSmokePipelineRegistered()
 
   const result = await runPipeline(SMOKE_KIND, {

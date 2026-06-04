@@ -2,8 +2,8 @@ import type { DbCtx } from '@/lib/actions'
 import { configureDiagnosticsGate, logger } from '@/lib/diagnostics'
 import { recoverInFlightRuns } from '@/lib/pipeline'
 import {
+  appSettingsStore,
   type BootHydrateResult,
-  domain,
   hydrateAppSettings,
   readAppSettingsRow,
 } from '@/lib/stores'
@@ -13,8 +13,9 @@ import {
 export function ensureDiagnosticsGate(): void {
   configureDiagnosticsGate({
     isEnabled: () =>
-      (typeof __DEV__ !== 'undefined' && __DEV__) || domain.getAppSettings().diagnostics.enabled,
-    isDebugEnabled: () => domain.getAppSettings().diagnostics.debug_level_enabled,
+      (typeof __DEV__ !== 'undefined' && __DEV__) ||
+      appSettingsStore.getAppSettings().diagnostics.enabled,
+    isDebugEnabled: () => appSettingsStore.getAppSettings().diagnostics.debug_level_enabled,
   })
 }
 
