@@ -13,8 +13,13 @@ defined `milestone.md`.
 ## How to read this doc
 
 - **Defined milestones** with full `milestone.md` files live under
-  [`milestones/`](./milestones/README.md). M1 (Spine) is the only
-  defined milestone today.
+  [`milestones/`](./milestones/README.md). Defined today: M1 (Spine)
+  and [M1.5 — Data foundation](./milestones/01b-data-foundation/milestone.md),
+  the latter inserted between M1 and M2 (no renumber). M1.5 front-loads
+  the full relational schema, typed working-set stores, and Tier-1 CRUD
+  arms, so the planned milestones below **no longer carry their own
+  schema-landing slices** — they consume the M1.5 substrate and build
+  feature behavior on top.
 - **Planned milestones** below are roadmap entries: a one-paragraph
   goal sketch, a likely slice list (titles only, no contracts), and
   notes on what gates the milestone and what's intentionally out of
@@ -70,8 +75,11 @@ Roadmap assumes 2–3 contributors working on **one milestone at a
 time** (per
 [Project · Implementation vocabulary](./conventions.md#hierarchy)).
 Cross-milestone parallelism is not used. Each milestone is sized to
-have at least two parallel slice paths after an initial
-gate-and-schema slice — same shape as M1.
+have at least two parallel slice paths after an initial gate slice —
+same shape as M1. With the data layer front-loaded in M1.5, that gate
+slice is now per-milestone wiring (provider, route, contract), not a
+schema-landing slice; the tables and CRUD the milestone needs already
+exist.
 
 ---
 
@@ -101,19 +109,21 @@ memory pipeline (M3) needs to tune against.
   redaction vitest suite with OAI-compat scenarios — value-match
   catches the key in OAI-compat's auth headers without per-
   provider configuration.
-- M2.2 — Entry data layer: `story_entries` + the entry kinds the
-  M2 loop exercises (`opening`, `user_action`, `ai_reply`); `system`
-  stub. CRUD actions through the action layer. Full enum per
-  [`data-model.md`](../data-model.md). Action layer enforces the
-  opening-entry position invariants and the `undo_payload` /
-  `log_position` / `encoding_version` delta-encoding rules per
+- M2.2 — Entry loop wiring: `story_entries` (full kind enum) and its
+  CRUD arms + delta-encoding rules already landed in M1 / M1.5; this
+  slice exercises the M2-loop kinds (`opening`, `user_action`,
+  `ai_reply`; `system` stub) and adds the **opening-entry position
+  invariants** (the entry-specific behavior the generic CRUD doesn't
+  encode) per
   [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
 - M2.3 — Story creation, minimum-viable wizard: step 1
   (definition + model + pack picks), step 2 (calendar — bundled
   calendars only), step 5 (opening generation via real provider),
   wizard auto-save + draft persistence. Steps 3 (lore) and 4
-  (cast) deferred to M3 alongside the data layers they manipulate;
-  refine / regenerate on opening deferred to M3. `react-hook-form`
+  (cast) deferred to M3.6, paired with the classifier that consumes
+  seeded lore / cast (the lore + entity data layer itself is already
+  present from M1.5); refine / regenerate on opening deferred to M3.
+  `react-hook-form`
   install lands with wizard step 1 (per
   [`tech-stack.md`](../tech-stack.md)).
 - M2.4 — Story list as a real surface: list real stories, navigate
@@ -202,8 +212,8 @@ turn's prompt. Stories made in M3 are coherent across a session.
 **Why now.** Real story data exists from M2; this milestone is
 where classifier prompt engineering and retrieval ranking get
 their first contact with real inputs. Lands before the rich UX
-because UX needs the data layer (entities, awareness, happenings)
-to render against.
+because UX needs **populated** entity / awareness / happening data
+to render against (the tables + stores exist from M1.5; M3 fills them).
 
 **Likely slices.**
 
@@ -229,41 +239,44 @@ to render against.
   main generation; scene metadata writes;
   entities + lore + happenings stub creation.
 - M3.3 — Periodic classifier: background pipeline; entity
-  reconciliation; awareness graph; happenings extraction;
-  `character_relationships` table + UPSERT-merge writes per
+  reconciliation; awareness graph; happenings extraction. Drives the
+  `character_relationships` UPSERT-merge / canonical-ordering write
+  primitive landed in M1.5 per
   [`data-model.md → Character-to-character relationships`](../data-model.md#character-to-character-relationships).
   Classifier writes `metadata.worldTime` to each new entry —
   first non-zero values flow through the calendar renderer
   shipped in M2.5. Auto-retry policy (30s → 2m → 5m backoff,
   3-strike failed-persistent state per
   [`memory/classifier.md → Auto-retry policy`](../memory/classifier.md#auto-retry-policy))
-  - per-branch `classifier_status` persistence.
-    `entities.name_collision_flag INTEGER` column lands here
-    (drives the M4 collision-review surface) per
+  - per-branch `classifier_status` persistence (the column landed in
+    M1.5; this slice writes lifecycle into it). Sets
+    `entities.name_collision_flag` on collision (the column landed in
+    M1.5; drives the M4 collision-review surface) per
     [`memory/classifier.md → Disambiguation`](../memory/classifier.md#disambiguation-on-new-character-mentions).
-  - Survival-anchor substrate (makes the classifier reversible-correct):
-    `deltas.source += 'periodic_classifier'`; per-fact provenance
-    stamped into `deltas.entry_id`; `processedThrough` in
-    `classifier_status` plus its reversal clamp; and the reversal
-    predicate that refines M2.5's naive suffix sweep so a lagging fact
-    about a surviving turn isn't over-reversed, per
+  - Survival-anchor logic (makes the classifier reversible-correct):
+    stamps `periodic_classifier` source + per-fact provenance into
+    `deltas.entry_id` (the `source` value landed in M1.5); maintains
+    `processedThrough` in `classifier_status` plus its reversal clamp;
+    and the reversal predicate that refines M2.5's naive suffix sweep
+    so a lagging fact about a surviving turn isn't over-reversed, per
     [`data-model.md → Survival anchor`](../data-model.md#survival-anchor).
 - M3.4 — Retrieval: embedding queries; ranker; budgets;
   context-bundle assembly into the per-turn prompt. Memory pack
   templates extend the Liquid engine to inject retrieved bundles.
   Per-injection `retrieval_count` increment on awareness rows
-  (load-bearing for chapter-close phase 3d in M5.2 per
+  (the delta-logged column landed in M1.5; load-bearing for
+  chapter-close phase 3d in M5.2 per
   [`memory/chapter-close.md → 3d awareness pin tuning`](../memory/chapter-close.md#3d--awareness-pin-tuning)).
-  Schema adds the `lore.keywords TEXT` column (distinct from
-  `lore.tags`) per
+  Drives the `lore.keywords` column (distinct from `lore.tags`; landed
+  in M1.5) through the keyword-retrieval pathway per
   [`memory/retrieval.md → Keywords schema`](../memory/retrieval.md#keywords-schema).
   `js-tiktoken` install lands here as the first budget-accounting
   consumer (per [`tech-stack.md`](../tech-stack.md)).
 - M3.5 — Minimal developer-only retrieval probe: log / inspect
   retrieval scores during impl. User-facing probe surface
-  deferred to M7. Schema delta lands here: `probe_captures`
-  table + `app_settings.diagnostics.enabled` +
-  `stories.settings.probe_mode_active` per
+  deferred to M7. Consumes the `probe_captures` table +
+  `app_settings.diagnostics.enabled` + `stories.settings.probe_mode_active`
+  (all landed in M1.5) and writes the first captures per
   [`memory/probe.md → Schema delta`](../memory/probe.md#schema-delta).
   Simulator-vs-prod-pass parity test ships alongside.
 - M3.6 — Wizard step 3 (lore editor) + step 4 (full bespoke cast
@@ -300,8 +313,9 @@ options` disclosures, status / lead / staged logic,
   [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
   Redo stack semantics unchanged.
 
-**Parallel paths.** {M3.1, M3.2} are sequential against entry
-schema; M3.3 runs in parallel with M3.4 once classifier writes
+**Parallel paths.** {M3.1, M3.2} build on the M1.5 data layer
+(entry / entity / lore tables + CRUD already present); M3.3 runs in
+parallel with M3.4 once classifier writes
 populate retrievable rows; M3.6 runs in parallel with M3.3 / M3.4
 after M3.2 lands the lore + entity stub writes; M3.7 gates on
 M3.2 + M3.3; M3.8 gates on M3.3; M3.9 gates on M3.3 (needs the
@@ -392,8 +406,10 @@ companions.
 
 **Likely slices.**
 
-- M5.1 — Chapter data layer: chapter rows, chapter-membership on
-  entries, chapter boundaries.
+- M5.1 — Chapter membership + boundaries: the `chapters` table + CRUD
+  landed in M1.5; this slice assigns `story_entries.chapter_id` across
+  closed ranges and detects boundaries (token-threshold crossing,
+  auto-close).
 - M5.2 — Chapter-close pipeline: phases 3a–3e, agent invocations,
   delta writes. Chapter-close consolidates `threads` rows that
   M3's classifier wrote sparsely; surface (plot panel threads
@@ -418,8 +434,11 @@ companions.
   Consumed by chapter delete (M5.3) and rollback-to-entry-N from
   the reader.
 
-**Parallel paths.** {M5.1, M5.2} are sequential against schema;
-{M5.3, M5.5} || {M5.4} once data layer exists.
+**Parallel paths.** {M5.1, M5.2} are sequential (the `chapters` table
+
+- CRUD already landed in M1.5; M5.1 membership/boundaries may even
+  fold into M5.2's close pipeline); {M5.3, M5.5} || {M5.4} once the close
+  pipeline populates chapters.
 
 **Gates.** M4 (chapter-close compacts entities + lore the world
 panel renders; surfaces would be invisible without M4).
@@ -440,17 +459,19 @@ per
 populates so branch comparisons are fast.
 
 **Why now.** Branches touch every domain table (delta-log
-filtering, branch-copy semantics, FK rewriting) so they need the
-data layer mostly built. Diff cache is bespoke compute caching;
+filtering, branch-copy semantics, FK rewriting) so they need the full
+data layer in place — present since M1.5, and exercised by the feature
+milestones in between. Diff cache is bespoke compute caching;
 building it after the rest of the substrate stabilizes avoids
 churn.
 
 **Likely slices.**
 
-- M6.1 — Branch schema + branch-copy at fork time + FK rewriting,
-  including the survival-anchor partition of post-fork deltas (copy
-  lagging `periodic_classifier` facts about kept entries instead of
-  rewinding them) per
+- M6.1 — Branch-copy at fork time + FK rewriting (the `branches` table,
+  incl. `classifier_status`, landed in M1.5; this slice is the fork
+  orchestration), including the survival-anchor partition of post-fork
+  deltas (copy lagging `periodic_classifier` facts about kept entries
+  instead of rewinding them) per
   [`data-model.md → Branch model`](../data-model.md#branch-model).
 - M6.2 — Delta-log branch filtering (reads scope to current
   branch's lineage).
@@ -526,8 +547,9 @@ the underlying configuration surfaces.
   [`story-settings.md → Section split`](../ui/screens/story-settings/story-settings.md)).
   Era-flip reader affordances (time-chip popover, per-entry
   icon, Actions menu entry, flip-era modal) land here paired
-  with the calendar tab's era-flips list + `branch_era_flips`
-  table. Memory tab adds the classifier panel (cadence in-place
+  with the calendar tab's era-flips list (the `branch_era_flips`
+  table + CRUD landed in M1.5). Memory tab adds the classifier panel
+  (cadence in-place
   edit, buffer-aware cadence indicator, status block,
   `[Run classifier now]`, top-bar error pill routed back) per
   [`memory/classifier.md → Settings · Memory · Classifier panel`](../memory/classifier.md#settings--memory--classifier-panel).
@@ -783,10 +805,11 @@ explicit.
   - **M7.1** — App settings calendar tab (`default_calendar_id`
     picker into the registry).
   - **M7.2** — Story settings calendar tab deep: picker + summary
-    - era-flips list + swap-warning UX; `branch_era_flips` table
-      lands here.
-  - **M8.3** — `vault_calendars` schema + CRUD + vault calendar
-    editor; registry init extends to merge bundled +
+    - era-flips list + swap-warning UX (the `branch_era_flips` table +
+      CRUD landed in M1.5).
+  - **M8.3** — `vault_calendars` CRUD + vault calendar editor (the
+    table landed in M1.5; its `CalendarSystem` Zod ships with
+    `lib/calendar`); registry init extends to merge bundled +
     `vault_calendars` rows.
 - **Pack-template / Liquid engine**
   ([`architecture.md → Prompt templates`](../architecture.md#prompt-templates-and-authoring)).

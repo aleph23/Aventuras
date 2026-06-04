@@ -136,12 +136,16 @@ erDiagram
     %% CHECK (occurred_at_entry IS NULL OR temporal IS NULL) — mutual exclusivity enforced at the SQLite level
 
     happening_involvements {
+        text id PK "hinv_${uuid}; surrogate single ID — needed as delta target (same reason as character_relationships)"
+        text branch_id FK "composite PK with id; forks with branches"
         text happening_id FK
         text entity_id FK "character | location | item | faction"
         text role "optional free-form — actor / target / site / etc."
     }
 
     happening_awareness {
+        text id PK "haw_${uuid}; surrogate single ID — needed as delta target (same reason as character_relationships)"
+        text branch_id FK "composite PK with id; forks with branches"
         text happening_id FK
         text character_id FK "entity where kind=character"
         integer learned_at_entry "when this character learned it"
@@ -202,6 +206,8 @@ erDiagram
     }
 
     entry_assets {
+        text id PK "ast_${uuid}; surrogate single ID — delta target handle"
+        text branch_id FK "composite PK with id; entry_assets fork with branches (rows copied; assets shared by reference)"
         text entry_id FK
         text asset_id FK
         text role "generated_image | background | reference | etc."
@@ -343,12 +349,22 @@ in storage but load-bearing for the placeholder substitution layer
 | Entry asset                    | `ast_`    |
 | Translation (singular PK case) | `tr_`     |
 | Character relationship         | `rel_`    |
+| Happening involvement          | `hinv_`   |
+| Happening awareness            | `haw_`    |
 
 External IDs (provider responses from OpenAI / Anthropic / etc.)
 keep their native format unchanged — only IDs that originate inside
-the app are prefixed. Composite PKs (awareness rows, involvements,
-translation lookups keyed by tuple) don't have a single ID to
-prefix.
+the app are prefixed. Every row that is a **delta target or
+translation target carries a surrogate single ID** so the delta log
+and `translations` table can address it by one value — this is why
+`character_relationships`, `happening_involvements`,
+`happening_awareness`, and `entry_assets` each have one
+(`rel_` / `hinv_` / `haw_` / `ast_`) despite a composite _natural_
+key, which is retained as a `UNIQUE` backstop. What stays
+tuple-addressed (no single prefixed ID) is pure lookups that are
+neither delta nor translation targets — the `translations`
+`(target_kind, target_id, field, language)` lookup and the
+`embeddings` UNIQUE tuple.
 
 #### Generation
 

@@ -40,6 +40,14 @@ migration-churn during the rapid early slices. Skeleton-first
 keeps the schema flexible while the dependency graph is being
 exercised for the first time.
 
+> **Superseded for the rest of the schema.** Once the v1 model froze,
+> that stress-test concern lapsed, and the full schema (plus typed
+> stores and Tier-1 CRUD) is now front-loaded in
+> [Milestone 1.5 — Data foundation](../../01b-data-foundation/milestone.md)
+> rather than deferred per consuming milestone. This slice's
+> milestone-1 table set stands as shipped; the defer-per-milestone
+> plan for the remaining tables does not.
+
 sqlite-vec is included in this slice for the extension wiring
 only — the loader runs at SQLite client init on both platforms.
 Vector tables (vec0 virtual tables for embeddings) defer to the
