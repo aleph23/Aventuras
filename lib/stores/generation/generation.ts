@@ -31,8 +31,6 @@ type GenerationState = {
     phase: string,
     result: { status: 'completed' | 'aborted' | 'failed' },
   ) => void
-  // Atomic predecessor-removal + optional successor-add in ONE setState — the
-  // chained-transition "no user-edit window" invariant (gen-pipeline spec).
   finishRun: (runId: string, successor?: RunState) => void
   abortRun: (runId: string) => void
   setReversalInProgress: (value: boolean) => void
