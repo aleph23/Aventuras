@@ -101,10 +101,12 @@ lang)`.
   doesn't fit the keyed-by-id factory; either extend the factory with a
   pluggable key, or ship a bespoke translation index store. Decide at
   authoring.
-- **Deferral** — if the milestone needs trimming, this slice is the
-  first to defer to its consumers (M4 / M8). The `assets` /
-  `entry_assets` / `translations` **tables** still land in the gate; only
-  the stores + arms here would slip.
+- **Deferral (decided: build it).** This slice ships its CRUD in M1.5.
+  Noted only as a contingency: it carries the least near-term value
+  (consumers are M4 / M8), so if later scope pressure hits, it's the
+  natural trim point — the `assets` / `entry_assets` / `translations`
+  **tables** still land in the gate regardless; only the stores + arms
+  here would slip.
 
 ## Implementation notes
 
