@@ -1,0 +1,47 @@
+import { eq } from 'drizzle-orm'
+import { describe, expect, it } from 'vitest'
+
+import { branches, deltas, stories, threads } from '@/lib/db'
+import { createTestDb } from '@/lib/db/__tests__/test-db'
+import { threadsStore } from '@/lib/stores'
+
+import { setThreadOperationalFlags } from './operational'
+
+async function setup() {
+  const { db, runInTransaction } = await createTestDb()
+  await db.insert(stories).values({ id: 'story_1', title: 'T', createdAt: 1, updatedAt: 1 })
+  await db.insert(branches).values({ id: 'br_1', storyId: 'story_1', name: 'main', createdAt: 1 })
+  await db.insert(threads).values({
+    id: 'thr_1',
+    branchId: 'br_1',
+    title: 'Quest',
+    status: 'active',
+    injectionMode: 'auto',
+    createdAt: 1,
+    updatedAt: 1,
+  })
+  threadsStore.__reset()
+  threadsStore.hydrate('br_1', [
+    (await db.select().from(threads).where(eq(threads.id, 'thr_1')))[0],
+  ])
+  return { db, ctx: { db, runInTransaction } }
+}
+
+describe('setThreadOperationalFlags', () => {
+  it('updates the column + store without writing a delta', async () => {
+    const { db, ctx } = await setup()
+    await setThreadOperationalFlags('br_1', 'thr_1', { embeddingStale: true }, ctx)
+    const [row] = await db.select().from(threads).where(eq(threads.id, 'thr_1'))
+    expect(row.embeddingStale).toBe(1)
+    expect(threadsStore.getById('thr_1')?.embeddingStale).toBe(1)
+    expect((await db.select().from(deltas)).length).toBe(0)
+  })
+
+  it('is a no-op when the flags object is empty', async () => {
+    const { db, ctx } = await setup()
+    await setThreadOperationalFlags('br_1', 'thr_1', {}, ctx)
+    const [row] = await db.select().from(threads).where(eq(threads.id, 'thr_1'))
+    expect(row.embeddingStale).toBe(0) // unchanged from the insert default
+    expect(threadsStore.getById('thr_1')?.embeddingStale).toBe(0)
+  })
+})

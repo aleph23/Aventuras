@@ -21,6 +21,10 @@ export {
   locationStateSchema,
 } from './entity-state-schema'
 export type { EntityKind } from './entity-state-schema'
+export { loreWriteSchema } from './lore-schema'
+export type { LoreWrite } from './lore-schema'
+export { threadWriteSchema } from './thread-schema'
+export type { ThreadWrite } from './thread-schema'
 export type {
   ClassifierLifecycleState,
   ClassifierStatus,

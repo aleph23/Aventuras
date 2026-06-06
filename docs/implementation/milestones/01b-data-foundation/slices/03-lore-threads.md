@@ -22,8 +22,8 @@ state, per
 `threads` is the broader plot view (quests, arcs, ambient pressures)
 with a `pending | active | resolved | failed` lifecycle per
 [`data-model.md → Happenings & character knowledge`](../../../../data-model.md#happenings--character-knowledge).
-Both carry `injection_mode` (always / auto / disabled) and flat-array
-JSON columns (`tags`; `lore.keywords`) that the delta encoder takes
+Both carry `injection_mode` (always / auto / disabled); `lore` adds
+flat-array JSON columns (`tags`, `keywords`) that the delta encoder takes
 **whole** (arrays go whole per the encoding rule). This slice ships the
 data layer only — the retrieval pathways that consume `keywords` /
 `priority` / `injection_mode`, and the panels that render these, are
@@ -100,4 +100,25 @@ later milestones.
 
 ## Implementation notes
 
-_Populated at finish: notable deviations from the plan and resolved developer decisions._
+- **`columnSchemas` is empty for both tables** — the one real divergence from
+  the entities precedent. `lore` and `threads` carry no nested-object JSON
+  column; their flat array and scalar columns take the whole prior value as the
+  `op=update` undo, and reverse-replay restores an unregistered column whole.
+  Registering a flat array would break the generic encoder, which requires a
+  `z.object` top level. Milestone contract C3 is satisfied vacuously: neither
+  table has a JSON column to register. Future flat-only domain slices follow
+  this shape rather than the entities nested-`state` one.
+- **The per-table write Zod gates the arms** (entities parity).
+  `loreWriteSchema` and `threadWriteSchema` validate at the write boundary —
+  create against the full writable shape, update against the partial — and
+  reject bad `status` / `injection_mode` enums and out-of-range `priority`. The
+  thread status enum stays internal to its schema rather than a public export,
+  since nothing consumes it standalone yet.
+- **The `embedding_stale` operational seam ships now**
+  (`setLoreOperationalFlags`, `setThreadOperationalFlags`), in parity with
+  entities: a non-delta SQLite write plus a direct store patch. The lifecycle
+  that drives it is deferred to the retrieval milestone (M3).
+- **Thread entry-ref columns normalize empty string to null** (`nullifyRef`
+  over `triggered_at_entry_id` / `resolved_at_entry_id`), applied on both create
+  and update, per the data-model rule that absent entry refs are `NULL`, never
+  an empty string.
