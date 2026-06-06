@@ -50,7 +50,7 @@ async function rowFor(db: Awaited<ReturnType<typeof setup>>['db'], id: string) {
   return r
 }
 
-describe('entities CRUD arms (AC2, AC4)', () => {
+describe('entities CRUD arms', () => {
   it('create writes the row + create-patch into the held-branch store', async () => {
     const { db, ctx } = await setup()
     await applyDeltaAction(

@@ -7,9 +7,7 @@ import type { DbCtx } from '../types'
 
 type OperationalFlags = Partial<{ embeddingStale: boolean; nameCollisionFlag: boolean }>
 
-// Non-delta write seam for the compute-lifecycle columns. These are operational, not
-// narrative: they bypass the delta log and patch the held-branch store directly. This is
-// the seam only — the embedding/collision lifecycle (the consumer that flips these) is M3.
+// Non-delta write seam for the compute-lifecycle columns
 export async function setEntityOperationalFlags(
   branchId: string,
   id: string,
