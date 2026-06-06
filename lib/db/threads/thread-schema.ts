@@ -1,7 +1,7 @@
 import { createInsertSchema } from 'drizzle-zod'
 import type { z } from 'zod'
 
-import { threads } from './schema'
+import { threads } from './threads.table'
 
 // Writable (delta-logged) thread columns, derived from the Drizzle table
 export const threadWriteSchema = createInsertSchema(threads).omit({

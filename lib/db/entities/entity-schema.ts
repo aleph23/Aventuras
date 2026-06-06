@@ -1,7 +1,7 @@
 import { createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-import { entities } from './schema'
+import { entities } from './entities.table'
 
 // Writable entity columns, derived from the Drizzle table
 export const entityWriteSchema = createInsertSchema(entities, {

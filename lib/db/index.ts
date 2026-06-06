@@ -10,7 +10,7 @@ export type {
   LocationState,
   ItemState,
   FactionState,
-} from './entities-types'
+} from './entities/entities-types'
 export {
   characterStateSchema,
   emptyEntityState,
@@ -19,14 +19,14 @@ export {
   factionStateSchema,
   itemStateSchema,
   locationStateSchema,
-} from './entity-state-schema'
-export type { EntityKind } from './entity-state-schema'
-export { entityWriteSchema } from './entity-schema'
-export type { EntityWrite } from './entity-schema'
-export { loreWriteSchema } from './lore-schema'
-export type { LoreWrite } from './lore-schema'
-export { threadWriteSchema } from './thread-schema'
-export type { ThreadWrite } from './thread-schema'
+} from './entities/entity-state-schema'
+export type { EntityKind } from './entities/entity-state-schema'
+export { entityWriteSchema } from './entities/entity-schema'
+export type { EntityWrite } from './entities/entity-schema'
+export { loreWriteSchema } from './lore/lore-schema'
+export type { LoreWrite } from './lore/lore-schema'
+export { threadWriteSchema } from './threads/thread-schema'
+export type { ThreadWrite } from './threads/thread-schema'
 export type {
   ClassifierLifecycleState,
   ClassifierStatus,
@@ -59,8 +59,8 @@ export type {
 } from './app-settings/app-settings-schema'
 export { db } from './runtime/client'
 export { DrizzleStudioDevTools } from './devtools/drizzle-studio-devtools'
-export { entryMetadataSchema } from './entry-metadata'
-export type { EntryMetadata } from './entry-metadata'
+export { entryMetadataSchema } from './story-entries/entry-metadata'
+export type { EntryMetadata } from './story-entries/entry-metadata'
 export {
   appSettings,
   assets,

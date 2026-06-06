@@ -1,7 +1,7 @@
 import { createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-import { lore } from './schema'
+import { lore } from './lore.table'
 
 // Writable (delta-logged) lore columns, derived from the Drizzle table
 export const loreWriteSchema = createInsertSchema(lore, {
