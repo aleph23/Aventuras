@@ -141,11 +141,6 @@ other branch-scoped table.
 
 ## Open questions
 
-- **Store shape for the cluster** — one happenings store holding
-  involvements + awareness as sub-collections, vs separate stores;
-  and whether `character_relationships` is its own store or folded
-  with entities. Lean: happenings store owns its two link collections;
-  relationships its own store. Confirm at authoring.
 - **`learned_at_entry_id` / `occurred_at_entry_id`** — resolved: store a
   branch-scoped `story_entries.id` (text), FK-less, resolved via
   `(branch_id, id)` — same convention as threads' `*_at_entry_id` refs and
@@ -155,4 +150,46 @@ other branch-scoped table.
 
 ## Implementation notes
 
-_Populated at finish: notable deviations from the plan and resolved developer decisions._
+- **No migration.** The gate slice had already landed all four tables
+  with every CHECK / UNIQUE / index, so this slice is write-schema,
+  stores, arms, and tests only.
+- **Store shape: separate flat store per table** (resolved the
+  store-shape open question). Four factory-built working-set stores
+  rather than the brief's leaned-toward sub-collections: the gate's
+  base factory is a flat `Map<id, Row>` with one patcher registered per
+  `target_table`, and milestone C4 mandates building on it, so
+  sub-collections would have meant a bespoke store plus bespoke
+  sub-map-routing patchers. Cross-collection reads are filtered
+  selectors instead (`getByHappening` on involvements / awareness,
+  `getByCharacter` on awareness). `character_relationships` is its own
+  store.
+- **Upsert is one delta.** The registry op is single
+  (`create` / `update` / `delete`), so each upsert resolves at runtime
+  to a create or an update against the natural-key row, never a new op
+  kind.
+- **Awareness merge policy.** A re-emit overwrites only the authored
+  fields present in the payload (`source`, `decayResistance`) and
+  preserves `learned_at_entry_id` (keep-first, the memory origin) and
+  `retrieval_count` (the M3 ranker owns it). **Forward seam for M5:**
+  the awareness upsert update branch has no write path for
+  `learned_at_entry_id`, but chapter-close lore-mgmt wants an
+  earliest-wins merge there — M5 must extend the awareness arm to
+  reach it.
+- **Relationship write path.** `upsertCharacterRelationship` normalizes
+  `a_id < b_id` inside the arm, so the classifier stays ordering-blind;
+  it resolves to create, update (sets only the emitted POV slot), or —
+  when the write would null the last remaining POV — a delete with a
+  full-row undo so reverse-replay restores both POVs. An explicit
+  `deleteCharacterRelationship` by id also exists. `getRelationships`
+  is a store selector that normalizes each row to the caller's POV.
+- **Happening delete is single-row.** Orphaned `happening_involvements`
+  / `happening_awareness` rows are not cascaded — the link tables are
+  FK-less and cascade is a Tier-2 composition owned by M3 (classifier
+  reconcile) / M4 (Plot delete-flow). Queued in
+  [`triage.md`](../../../triage.md).
+- **drizzle-zod override gotcha** (constrains future column Zod): a
+  `createInsertSchema` field override replaces the generated field
+  whole, dropping its inherited optionality. Overrides on nullable
+  columns must re-add `.nullable().optional()` or an absent value is
+  wrongly rejected — this bit the happenings, awareness, and
+  relationship write schemas during the slice.

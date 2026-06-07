@@ -80,3 +80,9 @@ slice-planning gate forces its resolution before that slice is planned.
   — a `<button>` nested inside a `<button>` — the likely cause of the
   unstable query. Predates this branch (last touched in `ee5efe2a`, on
   `main`). Fix the nested-button markup.
+- **Happening delete orphans its link rows** (M3/M4). `deleteHappening`
+  (slice M01b/04) removes only the `happenings` row — `happening_involvements`
+  and `happening_awareness` are FK-less link tables, so their rows are left
+  orphaned. Cascade/reconcile is a Tier-2 composition deferred to its
+  consumers: the M3 classifier reconcile and the M4 Plot delete-flow. Route to
+  whichever of those slices is authored first.

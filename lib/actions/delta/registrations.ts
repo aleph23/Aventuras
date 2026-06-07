@@ -2,7 +2,11 @@
 // (incl. boot recovery) resolves descriptors by target_table, so every delta-logged
 // table must be registered before any reverse-replay runs.
 import { registerEntities } from '../entities/register'
+import { registerHappeningAwareness } from '../happenings/register-awareness'
+import { registerHappenings } from '../happenings/register-happenings'
+import { registerHappeningInvolvements } from '../happenings/register-involvements'
 import { registerLore } from '../lore/register'
+import { registerCharacterRelationships } from '../relationships/register'
 import { registerStoryEntries } from '../story-entries/register'
 import { registerThreads } from '../threads/register'
 
@@ -13,6 +17,10 @@ export function registerAllDomains(): void {
   registerEntities()
   registerLore()
   registerThreads()
+  registerHappenings()
+  registerHappeningInvolvements()
+  registerHappeningAwareness()
+  registerCharacterRelationships()
   // <domain slices append their register*() call here>
   done = true
 }

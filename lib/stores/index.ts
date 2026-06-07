@@ -1,15 +1,23 @@
 import { appSettingsStore, hydrateAppSettings } from './app-settings/app-settings'
 import { readAppSettingsRow, rehydrateAppSettings } from './app-settings/app-settings-read'
+import { characterRelationshipsStore } from './character-relationships/character-relationships'
 import { entitiesStore } from './entities/entities'
 import { generationStore } from './generation/generation'
+import { happeningAwarenessStore } from './happenings/awareness'
+import { happeningsStore } from './happenings/happenings'
+import { happeningInvolvementsStore } from './happenings/involvements'
 import { loreStore } from './lore/lore'
 import { navigationStore } from './navigation/navigation'
 import { threadsStore } from './threads/threads'
 
 // Test-harness seam: resets every domain store in one call
 export function resetAllStores(): void {
+  characterRelationshipsStore.__reset()
   entitiesStore.__reset()
   generationStore.__reset()
+  happeningAwarenessStore.__reset()
+  happeningInvolvementsStore.__reset()
+  happeningsStore.__reset()
   loreStore.__reset()
   threadsStore.__reset()
   navigationStore.__reset()
@@ -18,8 +26,12 @@ export function resetAllStores(): void {
 
 export {
   appSettingsStore,
+  characterRelationshipsStore,
   entitiesStore,
   generationStore,
+  happeningAwarenessStore,
+  happeningInvolvementsStore,
+  happeningsStore,
   hydrateAppSettings,
   loreStore,
   navigationStore,
@@ -31,6 +43,7 @@ export {
 export { createWorkingSetStore } from './factory/working-set-store'
 
 export type { AppSettingsSnapshot, BootHydrateResult } from './app-settings/app-settings'
+export type { RelationshipView } from './character-relationships/character-relationships'
 export type { WorkingSetStore } from './factory/working-set-store'
 export type { RunState, TxState } from './generation/generation'
 export type { NavigationSnapshot } from './navigation/navigation'
