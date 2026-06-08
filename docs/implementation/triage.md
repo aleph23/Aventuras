@@ -29,13 +29,6 @@ slice-planning gate forces its resolution before that slice is planned.
   launch" — the OS-locale seed belongs in the boot / onboarding path,
   not a static schema default. Routes to the calendar domain (M8.3) and
   an onboarding / boot slice respectively.
-- **Pre-existing storybook flake** (observed during M1.5-gate full-suite
-  runs, ~20% of runs). `components/compounds/app-actions-menu-pure.stories.tsx`
-  "Diagnostics On" intermittently fails a `findByRole` with a
-  `TestingLibraryElementError`; the console shows a load-bearing DOM bug
-  — a `<button>` nested inside a `<button>` — the likely cause of the
-  unstable query. Predates this branch (last touched in `ee5efe2a`, on
-  `main`). Fix the nested-button markup.
 - **Happening delete orphans its link rows** (M3/M4). `deleteHappening`
   (slice M01b/04) removes only the `happenings` row — `happening_involvements`
   and `happening_awareness` are FK-less link tables, so their rows are left

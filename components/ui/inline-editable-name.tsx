@@ -2,7 +2,7 @@ import { Pencil } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform, Pressable, type TextInputKeyPressEvent, View } from 'react-native'
 
-import { IconAction } from '@/components/ui/icon-action'
+import { Icon } from '@/components/ui/icon'
 import { Input } from '@/components/ui/input'
 import { Text } from '@/components/ui/text'
 import { cn } from '@/lib/utils'
@@ -30,7 +30,7 @@ const TEXT_SIZE: Record<InlineEditableNameSize, 'sm' | 'base' | 'lg'> = {
   lg: 'lg',
 }
 
-const ICON_ACTION_SIZE: Record<InlineEditableNameSize, 'sm' | 'md' | 'lg'> = {
+const ICON_SIZE: Record<InlineEditableNameSize, 'sm' | 'md' | 'lg'> = {
   sm: 'sm',
   md: 'sm',
   lg: 'md',
@@ -160,11 +160,12 @@ export function InlineEditableName({
       ) : (
         <Text size={TEXT_SIZE[size]}>{value}</Text>
       )}
-      <IconAction
-        icon={Pencil}
-        label="Edit name"
-        size={ICON_ACTION_SIZE[size]}
-        onPress={enterEdit}
+      {/* Decorative glyph: the whole row is the button, so the pencil must not be a
+          nested interactive element (a <button> in a <button> is invalid DOM). */}
+      <Icon
+        as={Pencil}
+        size={ICON_SIZE[size]}
+        className={cn('text-fg-secondary', Platform.select({ web: 'group-hover:text-fg-primary' }))}
       />
     </Pressable>
   )
