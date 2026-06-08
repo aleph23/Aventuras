@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { describe, expect, it } from 'vitest'
 
-import { branches, stories } from '@/lib/db'
+import { branches, deltas, stories } from '@/lib/db'
 import { createTestDb } from '@/lib/db/__tests__/test-db'
 import { createWorkingSetStore } from '@/lib/stores'
 
@@ -223,5 +223,31 @@ describe('fixture domain self-registration + roundtrip (AC5)', () => {
 
     expect((await db.select().from(fixtures).where(eq(fixtures.id, 'f1'))).length).toBe(0)
     expect(store.getRows().has('f1')).toBe(false)
+  })
+
+  it('rejects a branch-mismatch payload without writing a row or a delta', async () => {
+    const { db, runInTransaction, store } = await setup()
+    store.hydrate('b1', [])
+
+    // Delta branch is b1, but the payload row claims b2. Every arm guards this so
+    // reverse-replay can't be aimed at the wrong branch's row; assert it short-circuits
+    // before any write.
+    const result = await applyDeltaAction(
+      {
+        action: {
+          kind: 'fixtureCreate',
+          source: 'user_edit',
+          payload: { row: { ...ROW, branchId: 'b2' } },
+        },
+        actionId: 'act_mismatch',
+        branchId: 'b1',
+      },
+      { db, runInTransaction },
+    )
+
+    expect(result.status).toBe('rejected')
+    expect((await db.select().from(fixtures)).length).toBe(0)
+    expect((await db.select().from(deltas)).length).toBe(0)
+    expect(store.getRows().size).toBe(0)
   })
 })
