@@ -23,6 +23,10 @@ Used by:
 
 ## Compound API
 
+The `kind` prop uses UI-layer names: `user` / `ai` abbreviate the
+DB `story_entries.kind` values `user_action` / `ai_reply`, and
+`streaming` is a transient render state with no persisted row.
+
 ```ts
 type EntryCardProps = {
   kind: 'user' | 'ai' | 'opening' | 'system' | 'streaming'

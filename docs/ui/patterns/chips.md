@@ -61,6 +61,8 @@ Used by:
   Also: the [detail-pane context header](../screens/diagnostics/diagnostics.md#detail-pane-context-header-per-turn-inspector)
   uses an outcome-coded [Tag](#tag--pill-labeled-content) (same
   three tones) as the per-turn outcome badge.
+- [Memory probe](../screens/memory-probe/memory-probe.md) — filter
+  chips in the capture-list filter row.
 
 ## Chip — square, toggleable
 

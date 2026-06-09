@@ -26,6 +26,8 @@ Used by:
 - [Diagnostics Hub · Delta log tab](../screens/diagnostics/diagnostics.md#tab-5--delta-log)
   (cursor-walking history pattern + virtualization on the
   `deltas` table query)
+- [Memory probe](../screens/memory-probe/memory-probe.md)
+  (capture-table virtualization, empty / no-results states)
 
 ---
 

@@ -37,7 +37,7 @@ This file is session 5 of the mobile-foundations multi-session pass
   to accommodate the iOS swipe-back gesture.
 - **Tooltips and keyboard shortcuts are desktop-only.**
 - **Breadcrumb tappability** is generalized in
-  [`../../principles.md → Breadcrumb tappability`](../../principles.md)
+  [`../../principles.md → Breadcrumb tappability`](../../principles.md#breadcrumb-tappability)
   alongside this session.
 
 ## Hover translation
@@ -225,7 +225,7 @@ In scope today:
 - **Top-bar story-title slot** (already pinned in session 2).
 - **Current segment of a breadcrumb** (the "you are here" segment;
   inert per the
-  [`../../principles.md → Breadcrumb tappability`](../../principles.md)
+  [`../../principles.md → Breadcrumb tappability`](../../principles.md#breadcrumb-tappability)
   amendment). When truncated, tap reveals the full segment in a
   popover.
 - **Status badges, sub-screen labels, anywhere chrome carries an

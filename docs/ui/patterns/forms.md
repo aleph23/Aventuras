@@ -44,6 +44,8 @@ Used by:
   (Select primitive: 2-segment "Branch scope" pick `[This branch |
 All branches]` as a semantic two-option pick; dropdown-mode
   "Time range" with preset windows in the Toolbar.Sort slot)
+- [Memory probe](../screens/memory-probe/memory-probe.md)
+  (Select primitive — sort and branch dropdowns)
 
 ---
 

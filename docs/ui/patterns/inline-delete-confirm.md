@@ -17,8 +17,8 @@ Used by:
 
 - [Branch navigator](../screens/reader-composer/branch-navigator/branch-navigator.md#inline-delete-confirm)
   — `× Delete this branch?` row collapses in place.
-- [Story Settings · Branches](../screens/story-settings/story-settings.md)
-  — same inline-confirm contract, cites this pattern.
+- [Story Settings · Calendar · era flips](../screens/story-settings/story-settings.md#inline-delete-confirm)
+  — orphan era-flip delete collapses in place; cites this pattern.
 
 ## Shape
 
@@ -46,7 +46,7 @@ layout glitch.
 - **Destructive scope is local.** A single row is being removed; the
   consequence is bounded to that row's data.
 - **Host surface is already overlay-shaped.** Branch navigator is a
-  popover; Story Settings · Branches is a panel. A modal-on-modal
+  popover; Story Settings is a panel. A modal-on-modal
   feels heavy and steals focus from the host the user is already
   engaging with.
 - **Cancel cost is trivial.** Click `Cancel` and you're back. The

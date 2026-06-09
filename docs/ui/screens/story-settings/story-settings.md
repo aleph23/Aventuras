@@ -760,7 +760,7 @@ reader is the path.
 ### Inline delete confirm
 
 Click `×` → inline confirm in place (matching the
-[branch-navigator inline delete pattern](../reader-composer/branch-navigator/branch-navigator.md#inline-delete-confirm)):
+[inline delete confirm pattern](../../patterns/inline-delete-confirm.md)):
 
 ```
    Reiwa · Reiwa 1 · May 1, 2019

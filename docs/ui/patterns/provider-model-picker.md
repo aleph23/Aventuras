@@ -29,7 +29,7 @@ type ModelRef = { providerId: string; modelId: string }
 
 type Capabilities = {
   reasoning?: boolean
-  structured?: boolean
+  structuredOutput?: boolean
   // additional v1 capability flags as defined
 }
 
