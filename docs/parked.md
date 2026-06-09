@@ -1852,7 +1852,7 @@ list-pane chip cluster's filter row with a [Toolbar.Search](./ui/patterns/toolba
 slot above the chips and possibly a Time Select borrowing Tab 5's
 preset shape.
 
-### Two-stage touch feedback (light hover + stronger press)
+#### Two-stage touch feedback (light hover + stronger press)
 
 Some mobile apps (Discord noted) ship a two-stage feedback on
 touch: a light "hover-like" highlight that fires on touch-down,
@@ -1874,7 +1874,7 @@ something where the distinction would matter (e.g., a
 context-menu trigger where touch-down should feel different from
 commit-press).
 
-### Toast — auto-timer pause on hover / touch
+#### Toast — auto-timer pause on hover / touch
 
 The Toast primitive ([`ui/patterns/toast.md`](./ui/patterns/toast.md))
 auto-dismisses after per-severity durations (3s success / 5s info /
@@ -1889,7 +1889,7 @@ too short in practice — e.g., users report missing the message
 while skimming — implement as a per-toast `Date.now()` pause /
 resume on the timer.
 
-### AlertDialog scroll-on-overflow
+#### AlertDialog scroll-on-overflow
 
 [`ui/patterns/alert-dialog.md`](./ui/patterns/alert-dialog.md)
 ships v1 without scroll handling on the dialog body. v1 consumers
@@ -1902,7 +1902,7 @@ between header and footer.
 Surface again when a use case forces it; until then the centered
 modal stays bounded by content.
 
-### Filter chip pill→square wireframe consolidation
+#### Filter chip pill→square wireframe consolidation
 
 [`ui/patterns/chips.md`](./ui/patterns/chips.md) splits Chip
 (square, toggleable filter / state) and Tag (pill, labeled content)
@@ -1923,7 +1923,7 @@ wireframe state, and the wireframes still communicate the right UX
 shape. Surface again when wireframes are next on the touch list
 or when a visual-identity sweep ships.
 
-### Toast — visibility-API tab pause (web)
+#### Toast — visibility-API tab pause (web)
 
 The web Toast timer keeps running while the browser tab is hidden,
 so a user returning to a tab after several minutes may find no
@@ -1936,7 +1936,7 @@ documented call-sites (save success, onboarding completion, wizard
 lead-unset). Surface again if users report missed toasts after
 returning to a backgrounded tab.
 
-### Recency-bias diversity mitigation for suggestion category mix
+#### Recency-bias diversity mitigation for suggestion category mix
 
 v1 ships a prompt-level diversity nudge ("vary which categories you
 draw from") in all three suggestion emission paths
@@ -1949,7 +1949,7 @@ the emission prompt with "prefer categories other than these unless
 none fit." Schema already supports it (prior-turn data lives on the
 preceding entry's metadata). Surface when real signal emerges.
 
-### Split granular translation toggle for suggestions
+#### Split granular translation toggle for suggestions
 
 Next-turn suggestion chip text rides
 `stories.settings.translation.granularToggles.narrative` in v1 —
@@ -1960,7 +1960,7 @@ split control (language-learning users wanting translated narrative
   some other use), add `granularToggles.suggestions: boolean` as its
   own toggle. Lands on demand.
 
-### Split capability flag for `<suggestions>` parse reliability
+#### Split capability flag for `<suggestions>` parse reliability
 
 The piggyback + classifier emission paths reuse the existing tagged-
 block reliability capability flag on
@@ -1972,7 +1972,7 @@ reliably too. If field evidence shows a model reliable on
 reliability axis), split into a dedicated `suggestionsBlock`
 capability flag. Surface on signal.
 
-### Re-roll cancel-and-restart on rapid double-click
+#### Re-roll cancel-and-restart on rapid double-click
 
 The `suggestion-refresh` pipeline's concurrency policy self-blocks,
 so a second refresh click while the first is still loading is a
@@ -1981,7 +1981,7 @@ composer text to feed the in-flight re-roll without waiting — switch
 to cancel-previous-and-restart semantics. Adds cancel + restart
 machinery to the pipeline kind. Surface on signal.
 
-### Narrative quality empirical risk under suggestion fold
+#### Narrative quality empirical risk under suggestion fold
 
 When `piggybackMode='on'`, the narrative model emits prose AND
 `<state>` AND `<suggestions>` in one call. The design assumes
@@ -1994,7 +1994,7 @@ agent-always (route on-turn emission through the dedicated
 `models.suggestion` agent instead of the narrative trailing block,
 regardless of `piggybackMode`). Monitor in field; act on signal.
 
-### Restore-draft mechanism for tap-after-typing on suggestion chips
+#### Restore-draft mechanism for tap-after-typing on suggestion chips
 
 When the user has typed unsaved content in the composer and taps a
 suggestion chip, the chip text replaces the composer content and
