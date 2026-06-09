@@ -15,7 +15,7 @@ const TONE_CLASSES: Record<TagTone, { container: string; label: string; filled: 
     filled: false,
   },
   soft: {
-    container: 'border-border-strong bg-bg-region',
+    container: 'border-border-strong bg-bg-raised',
     label: 'text-fg-muted',
     filled: false,
   },
@@ -45,7 +45,7 @@ type TagProps = {
   /**
    * Visual tone:
    * - `default` — outline + muted text (neutral, default).
-   * - `soft` — `bg-region` tint (inline entity references, tag chips).
+   * - `soft` — `bg-raised` tint (inline entity references, tag chips).
    * - `success` — filled `bg-success` + `text-success-fg` (staged entity, Resolved thread).
    * - `warning` — filled `bg-warning` + `text-warning-fg` (retired entity, Pending thread, error-pill variant).
    * - `danger` — filled `bg-danger` + `text-danger-fg` (Failed thread).

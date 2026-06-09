@@ -76,14 +76,14 @@ export const SingleOpen: Story = {
 
 // Per docs/ui/patterns/accordion.md → Card vs strip — composition.
 // Consumers wanting card chrome add it via className on
-// AccordionItem (drop border-b, add border + radius + bg-region).
+// AccordionItem (drop border-b, add border + radius + bg-raised).
 export const CardComposition: Story = {
   render: () => (
     <View style={{ width: 480 }} className="gap-3.5">
       <Accordion type="multiple" defaultValue={['narrative']}>
         <AccordionItem
           value="narrative"
-          className="bg-bg-region rounded-md border border-border px-4"
+          className="rounded-md border border-border bg-bg-raised px-4"
         >
           <AccordionTrigger>
             <View>
@@ -99,7 +99,7 @@ export const CardComposition: Story = {
         </AccordionItem>
         <AccordionItem
           value="fast"
-          className="bg-bg-region mt-3 rounded-md border border-border px-4"
+          className="mt-3 rounded-md border border-border bg-bg-raised px-4"
         >
           <AccordionTrigger>
             <View>

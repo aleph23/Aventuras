@@ -161,7 +161,7 @@ Visual contract:
 | Tone      | Tokens                                                             | Row + chrome uses                                     |
 | --------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
 | `default` | `border-border-strong text-fg-muted bg-bg-base`                    | active entity row, Active thread, neutral             |
-| `soft`    | `border-border-strong text-fg-muted bg-bg-region`                  | inline entity refs, tag chips                         |
+| `soft`    | `border-border-strong text-fg-muted bg-bg-raised`                  | inline entity refs, tag chips                         |
 | `success` | translucent success tint + colored text and border                 | staged entity, Resolved thread                        |
 | `warning` | `bg-warning` (12% opacity overlay) + `border-warning text-warning` | retired entity, Pending thread, **status-pill error** |
 | `danger`  | translucent danger tint + colored text and border                  | Failed thread                                         |

@@ -315,7 +315,7 @@ Sync with the active theme:
   `mode: 'light' | 'dark'`; status-bar style binds directly.
 
 **Android-specific:** also set the status-bar background color
-to match the top-bar's `--bg-region` token via
+to match the top-bar's `--bg-base` token via
 `StatusBar.setBackgroundColor(...)`. iOS doesn't need this (the
 status bar overlays the app's chrome).
 

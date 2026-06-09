@@ -113,7 +113,7 @@ export const SwapWarningShape: Story = {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <View className="gap-3">
-          <View className="bg-bg-region gap-1 rounded-md border border-warning p-3">
+          <View className="gap-1 rounded-md border border-warning bg-bg-raised p-3">
             <Text size="sm" className="font-medium">
               Origin tuple — Stardate&apos;s tier set differs.
             </Text>
@@ -121,7 +121,7 @@ export const SwapWarningShape: Story = {
               You&apos;ll need to re-pick the story-start moment.
             </Text>
           </View>
-          <View className="bg-bg-region gap-1 rounded-md border border-warning p-3">
+          <View className="gap-1 rounded-md border border-warning bg-bg-raised p-3">
             <Text size="sm" className="font-medium">
               Era support mismatch.
             </Text>
@@ -129,7 +129,7 @@ export const SwapWarningShape: Story = {
               4 era flips on this branch reference an era Stardate doesn&apos;t define.
             </Text>
           </View>
-          <View className="bg-bg-region gap-1 rounded-md border border-info p-3">
+          <View className="gap-1 rounded-md border border-info bg-bg-raised p-3">
             <Text size="sm" className="font-medium">
               Display format change.
             </Text>

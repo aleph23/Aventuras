@@ -21,17 +21,17 @@ Used by:
 Two visual flavors land via composition, not a primitive variant:
 
 - **Strip (default)** — items joined by `border-b`, no margin between. Ships from the rn-reusables baseline as-is.
-- **Card** — each item is its own bordered card with bg-region. Used by App Settings provider / profile lists where each item is a substantive editable entity.
+- **Card** — each item is its own bordered card with bg-raised. Used by App Settings provider / profile lists where each item is a substantive editable entity.
 
 Card chrome is purely visual — adding a variant would mix presentation with behavior. Consumers wanting card style pass:
 
 ```tsx
-<AccordionItem className="bg-bg-region mb-3.5 rounded-md border border-border" value={profile.id}>
+<AccordionItem className="mb-3.5 rounded-md border border-border bg-bg-raised" value={profile.id}>
   ...
 </AccordionItem>
 ```
 
-The explicit `border` + `rounded-md` + `bg-bg-region` make each item card-shaped; the baseline's `border-b border-border` doubles up with consumer-side `border` to produce a uniform 1px outline on all four sides. `mb-3.5` provides the gap between cards.
+The explicit `border` + `rounded-md` + `bg-bg-raised` make each item card-shaped; the baseline's `border-b border-border` doubles up with consumer-side `border` to produce a uniform 1px outline on all four sides. `mb-3.5` provides the gap between cards.
 
 ## Single vs multi-open
 

@@ -100,7 +100,7 @@ export default function AccordionDevRoute() {
             <Accordion type="multiple" defaultValue={['narrative']}>
               <AccordionItem
                 value="narrative"
-                className="bg-bg-region rounded-md border border-border px-4"
+                className="rounded-md border border-border bg-bg-raised px-4"
               >
                 <AccordionTrigger>
                   <View>
@@ -116,7 +116,7 @@ export default function AccordionDevRoute() {
               </AccordionItem>
               <AccordionItem
                 value="fast"
-                className="bg-bg-region mt-3 rounded-md border border-border px-4"
+                className="mt-3 rounded-md border border-border bg-bg-raised px-4"
               >
                 <AccordionTrigger>
                   <View>
