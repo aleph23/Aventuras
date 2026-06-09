@@ -410,7 +410,7 @@ implementation.
 
 Image generation is **deferred** as a feature; no `imageGen` agent
 entry until the feature lands. Tracked in
-[`followups.md`](../../../parked.md#image-generation).
+[`parked.md → Image generation`](../../../parked.md#image-generation).
 
 ### Reset Profiles to defaults
 

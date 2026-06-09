@@ -524,10 +524,11 @@ work in Electron's renderer context as-is.
 
 ## Open questions
 
-None blocking v1. Related followups:
+None blocking v1. Related open items:
 
-- [`followups.md → Native overlay impl vs JS-based overlay`](../../followups.md)
-  — both `Sheet` and `Dialog` are built on `@rn-primitives/dialog`
+- **Native overlay impl vs JS-based overlay** (open question, owned
+  here — not blocking, no ledger entry) — both `Sheet` and `Dialog`
+  are built on `@rn-primitives/dialog`
   (JS overlay); should the native paths migrate to native
   `<Modal presentationStyle="formSheet">` per
   [`ui-native-modals.md`](../../../.agents/skills/vercel-react-native-skills/rules/ui-native-modals.md)?

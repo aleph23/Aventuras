@@ -160,7 +160,7 @@ their currently-resolved chain:
   calls inside the [story-creation wizard](../wizard/wizard.md))
 
 (Image generation is deferred — see
-[followups.md](../../../parked.md#image-generation).)
+[`parked.md → Image generation`](../../../parked.md#image-generation).)
 
 User picks an agent; the override row materializes with a model
 picker. `×` on the row removes the override; agent reverts to App
@@ -197,8 +197,8 @@ the profile chain entirely:
   only the model id can be overridden).
 
 Tracked as granular per-story controls in
-[followups.md](../../../followups.md) — extension when demand
-emerges.
+[`parked.md → Granular per-story model controls`](../../../parked.md#granular-per-story-model-controls)
+— extension when demand emerges.
 
 ### Data model
 
@@ -568,7 +568,7 @@ for the full invariant.
   was considered and rejected — cost + ambiguity outweigh benefit.
   Multiple-language conversion of an existing story is handled by
   the Translation Wizard (a separate flow that batches conversions —
-  see [followups.md](../../../followups.md)).
+  see [`parked.md → Translation Wizard`](../../../parked.md#translation-wizard)).
 - When disabled, target + granular toggles grey out; no translation
   writes happen.
 
@@ -700,7 +700,7 @@ calendar tab is where everything calendar-related already lives.
   [hidden-vs-disabled rule](../../patterns/icon-actions.md#disabled-vs-hidden).
 
 No inline rename in v1 — see
-[followups](../../../parked.md#inline-rename-for-era-flips-in-story-settings--calendar)
+[`parked.md → Inline rename for era flips`](../../../parked.md#inline-rename-for-era-flips-in-story-settings--calendar)
 for the deferral.
 
 **Sort.** `at_worldtime` ascending — chronological within the

@@ -318,8 +318,9 @@ planning reconciled both, so several brief items were superseded.
   Navigation carries the slice's only mutators.
 - **Toast dropped.** `lib/toast/` and `components/ui/toast.tsx` already
   implement the queue and `<Toaster>`; the `ui` namespace ships empty.
-  The `toast.md`-vs-`lib/toast` gap (warning severity, action button)
-  is logged in [`followups.md`](../../../../followups.md).
+  The earlier `toast.md`-vs-`lib/toast` gap (warning severity, action
+  button) is now closed in the spec — both land in
+  [`toast.md`](../../../../ui/patterns/toast.md#severity).
 - **QueryClient lives in `lib/cache`, not inline at the app root.** The
   original `app/_queryClient.ts` placement broke desktop boot:
   expo-router scans `app/**/*.test.ts` into the web bundle, which

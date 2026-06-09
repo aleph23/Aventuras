@@ -225,8 +225,9 @@ surface — at-a-glance the user sees what the classifier just wrote,
 and clicking through teaches them what each marker means.
 
 The deeper observability surface (global delta log browser, filters
-by source / target_table / action_id) is its own panel; see
-[`followups.md`](../../../followups.md).
+by source / target_table / action_id) is its own panel — the
+Diagnostics Hub's delta-log tab; see
+[`diagnostics.md → Tab 5 — Delta log`](../diagnostics/diagnostics.md#tab-5--delta-log).
 
 ## Manual creation + per-row import
 

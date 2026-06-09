@@ -547,7 +547,8 @@ are built.
   the classifier barrier (see
   [`generation-pipeline.md → Prose reversals and the classifier barrier`](./generation-pipeline.md#prose-reversals-and-the-classifier-barrier)),
   so swipe inherits the contract for free. The residual log-position
-  over-reversal is tracked in [`followups.md`](./followups.md).
+  over-reversal is spared by the survival-anchor predicate (see
+  [`data-model.md → Survival anchor`](./data-model.md#survival-anchor)).
 
 ---
 
