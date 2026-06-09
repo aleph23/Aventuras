@@ -39,7 +39,7 @@ contracts.
   focus traps, dynamic-type scaling, screen-reader announcements.
 - **Status bar style** — `light-content` for dark themes,
   `dark-content` for light themes; binds to the active theme's
-  `themeMode` from
+  `mode` from
   [`../theming.md`](../theming.md).
 
 ## Platform targets

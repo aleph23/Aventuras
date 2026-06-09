@@ -509,7 +509,7 @@ phone-tier specifics below.
   compresses.
 - **Provider exit-link** (`Set up Anthropic / OpenAI / Google →`)
   wraps onto two lines on phone. Acceptable.
-- **Status bar style** binds to the active theme's `themeMode` per
+- **Status bar style** binds to the active theme's `mode` per
   [platform.md → Status bar style](../../foundations/mobile/platform.md#status-bar-style);
   Step 1's theme pick takes effect for the rest of onboarding once
   committed.
