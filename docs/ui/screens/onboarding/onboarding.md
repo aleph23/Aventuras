@@ -333,8 +333,8 @@ Selecting a curated entry and clicking `Finish`:
    `LICENSE.txt` + `.attestation` per
    [`memory/model-management.md → Download flow`](../../../memory/model-management.md#download-flow).
 3. Seeds:
-   - `app_settings.default_story_settings.embeddingBackend = 'local'`
-   - `app_settings.default_story_settings.embedding_model_id = '<picked-id>'`
+   - `app_settings.embedding_model_id = '<picked-id>'`
+   - `app_settings.embedding_provider_id = null` (null ⇒ local backend)
 4. Routes to Story list (no banner — embedder configured).
 
 If the user **declines the license** or **cancels mid-download**,
@@ -358,10 +358,11 @@ Selecting a provider entry and clicking `Finish`:
 1. No download — the model lives on the provider, nothing to fetch
    locally.
 2. Seeds:
-   - `app_settings.default_story_settings.embeddingBackend = 'provider'`
-   - `app_settings.default_story_settings.embedding_model_id = '<picked-id>'`
-   - `app_settings.default_story_settings.embedding_provider_id = '<picked-provider-id>'`
-     (see
+   - `app_settings.embedding_model_id = '<picked-id>'`
+   - `app_settings.embedding_provider_id = '<picked-provider-id>'`
+     (non-null ⇒ provider backend; the top-level pointers mirror
+     `default_provider_id`, and a new story copies them at creation —
+     see
      [`data-model.md → app_settings storage`](../../../data-model.md#app-settings-storage)).
 3. Routes to Story list (no banner).
 
@@ -442,10 +443,10 @@ action consults.
   configures profiles and assigns them.
 - **Embedder default** (Step 4) — when the user finishes Step 4
   with a curated pick or provider pick:
-  - `app_settings.default_story_settings.embeddingBackend` set to
-    `'local'` or `'provider'` per the pick.
-  - `app_settings.default_story_settings.embedding_model_id` set
-    to the chosen model id.
+  - `app_settings.embedding_model_id` set to the chosen model id,
+    and `app_settings.embedding_provider_id` set to the provider id
+    (provider pick) or `null` (local pick) — backend derives from
+    the provider id, mirroring `default_provider_id`.
   - For curated picks, the model file lands in
     `<embedders-root>/<sanitized-id>/` per
     [`memory/model-management.md → Storage layout`](../../../memory/model-management.md#storage-layout).

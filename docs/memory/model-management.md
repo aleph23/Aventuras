@@ -127,10 +127,12 @@ Actions:
 - **Pick a curated model + Next** — proceeds to the
   [Download flow](#download-flow) (license dialog, download,
   verification, attestation).
-- **Advanced setup** — routes to Settings · Memory, where the user
-  can pick a provider embedder or run a
-  [custom file import](#custom-file-import). Returns to onboarding
-  on completion.
+- **Advanced setup** — routes to Settings · Memory for cases
+  onboarding doesn't surface inline: a
+  [custom file import](#custom-file-import), or a provider embedder
+  from a provider other than the one just configured. (An embedder
+  on the just-configured provider is picked inline — onboarding
+  Path B.) Returns to onboarding on completion.
 - **Skip** — onboarding completes with the embedder unconfigured.
   Story creation is blocked until the user returns to Settings.
   This isn't a "fallback mode," just a deferred decision.

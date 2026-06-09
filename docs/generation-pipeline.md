@@ -531,7 +531,9 @@ phase list, e.g. piggyback mode is off) + suggestions (if
 `stories.settings.suggestionsEnabled`); the chapter-close pipeline
 validates the chapter-close agent's resolved config; the periodic
 classifier validates classifier's config at its scheduled fire
-time; the memory probe validates retrieval's config.
+time. The memory probe is not a pipeline — it captures as a
+side-effect of the per-turn pipeline's retrieval phase, covered by
+that pipeline's pre-flight.
 
 **On failure**, the run halts before phase 0 fires — no LLM call
 goes out, no tokens spent, no deltas written. The orchestrator
@@ -542,7 +544,7 @@ piling up multiple system entries when the user has multiple
 broken references).
 
 **Surfacing.** Pre-flight failure on **turn-blocking pipelines**
-(per-turn, chapter-close, memory probe) emits a system-kind entry
+(per-turn, chapter-close) emits a system-kind entry
 into the affected story per
 [`reader-composer.md → Error surface`](./ui/screens/reader-composer/reader-composer.md#error-surface--system-entries-vs-persistent-state-pill).
 Pre-flight failure on **background pipelines** (periodic
