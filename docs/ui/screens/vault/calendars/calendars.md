@@ -202,8 +202,8 @@ type. No confirmation prompt; clone is non-destructive (deletable).
 
 Compact reference summary, **always read-only** even on custom
 calendars in v1 — structural editing (tier shape, rollover rules,
-`secondsPerBaseUnit`, `displayFormat`, era flipMode,
-`leapDayPosition`) is L3 territory. The
+`secondsPerBaseUnit`, `displayFormat`, era flipMode) is L3
+territory. The
 `[Edit structure (deferred · L3)]` placeholder makes the L3 path
 discoverable without enabling it.
 

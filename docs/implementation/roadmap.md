@@ -530,7 +530,7 @@ the underlying configuration surfaces.
   override, per-section staggered refresh, `Add custom model id`,
   provider `⋯` menu with deletion-semantics AlertDialog,
   reset-profiles action) — deletion runs the full embedding-story
-  block + `assignments` key removal + `profiles.length ≥ 1`
+  block + `assignments` key removal + `providers[].length ≥ 1`
   invariant per
   [`data-model.md → App settings storage`](../data-model.md#app-settings-storage);
   **embedder tab** full surface (curated catalog + HF-id import +

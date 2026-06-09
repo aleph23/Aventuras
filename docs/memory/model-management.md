@@ -310,9 +310,10 @@ story currently has the model selected:
   stories:
 
   > Stories _Title A_, _Title B_, _Title C_ use this embedding
-  > model. After removal, those stories will be unable to generate
-  > new embeddings until you swap them to a different embedder.
-  > Existing retrieval still works for already-embedded rows.
+  > model. After removal, those stories can't generate new
+  > embeddings or run retrieval (the query vector needs an embedder
+  > too) until you swap them to a different embedder. Already-computed
+  > embeddings are preserved.
   >
   > `[ Cancel ]` `[ Remove ]`
 

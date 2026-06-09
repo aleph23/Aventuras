@@ -277,7 +277,7 @@ erDiagram
     vault_calendars {
         text id PK "UUID; user-authored calendars only — built-ins live in code/repo JSON loaded at boot"
         text name "display name; for clones, original-preset-name copied verbatim. Type indicator (built-in/custom) is a UI chip, not encoded in the name"
-        json definition "CalendarSystem shape per calendar-systems/spec.md — tiers, eras, displayFormat, baseUnitName, secondsPerBaseUnit, leapDayPosition?, etc."
+        json definition "CalendarSystem shape per calendar-systems/spec.md — tiers, eras, displayFormat, baseUnitName, secondsPerBaseUnit, exampleStartValue, etc."
         integer favorite "0/1; user-toggled per row; surfaced as a star in Vault and as the curated list in pickers"
         integer created_at
         integer updated_at
@@ -1944,13 +1944,13 @@ involvements or awareness; the conflation would muddy both domains.
   batched reverse-replay touching multiple flips must sequence
   per-row to avoid a transient mid-undo collision.
 - A flip at `at_worldtime = 0` overrides the calendar's
-  `EraDeclaration.defaultStartName`. The story-creation wizard
-  (deferred — not yet drawn; lands with the wizard pass) is the
-  intended surface for picking the initial era at story creation;
-  if it ships an era-picker that produces a non-default choice, it
-  writes a flip at 0. Until the wizard exists, new stories
-  inherit `defaultStartName` and the user's first explicit flip is
-  whatever they trigger from the reader chrome.
+  `EraDeclaration.defaultStartName`. The story-creation wizard's
+  era picker (specced in
+  [`wizard.md`](./ui/screens/wizard/wizard.md)) is the intended
+  surface for picking the initial era at story creation: picking a
+  non-default era writes a flip at 0. Until the wizard ships, new
+  stories inherit `defaultStartName` and the user's first explicit
+  flip is whatever they trigger from the reader chrome.
 
 **Resolver convention.** "Active era at worldTime N" = the row with
 the largest `at_worldtime ≤ N` for the current branch. Before any
