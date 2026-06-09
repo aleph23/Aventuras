@@ -19,7 +19,12 @@ defined `milestone.md`.
   the full relational schema, typed working-set stores, and Tier-1 CRUD
   arms, so the planned milestones below **no longer carry their own
   schema-landing slices** — they consume the M1.5 substrate and build
-  feature behavior on top.
+  feature behavior on top. Three deliberate M1.5 exclusions remain
+  downstream work: the vec0 `embeddings` virtual tables (M3.1 — the one
+  schema-landing job left in v1), mutators on the config tables
+  (stories / branches / app_settings writes, landing with the wizard
+  and settings UI), and the `story_entries` delete / content-update
+  arms (M2.2).
 - **Planned milestones** below are roadmap entries: a one-paragraph
   goal sketch, a likely slice list (titles only, no contracts), and
   notes on what gates the milestone and what's intentionally out of
@@ -79,7 +84,7 @@ have at least two parallel slice paths after an initial gate slice —
 same shape as M1. With the data layer front-loaded in M1.5, that gate
 slice is now per-milestone wiring (provider, route, contract), not a
 schema-landing slice; the tables and CRUD the milestone needs already
-exist.
+exist (the narrow exceptions are named above).
 
 ---
 
@@ -102,24 +107,42 @@ memory pipeline (M3) needs to tune against.
 
 **Likely slices.**
 
-- M2.1 — Provider abstraction filled in; provider config types;
-  **OAI-compat as the first provider** (most universal, covers
-  the contributor test cases). Other providers add incrementally
+- M2.1 — Provider abstraction filled in: **OAI-compat as the first
+  provider** (most universal, covers the contributor test cases);
+  the agent→profile→provider resolution chain (M1's
+  `lib/ai/model.ts` resolves only an explicit `providerId` and
+  `modelId`, behind the temporary `findTemporaryProvider` dev seam
+  this slice replaces); the provider config **mutators** — the
+  config types / Zod (providers, profiles, assignments, capability
+  flags) landed in the M1.5 gate, but config-table writes were
+  deliberately excluded there. Other providers add incrementally
   in M7 alongside the providers settings tab. Extends the M1.4
   redaction vitest suite with OAI-compat scenarios — value-match
   catches the key in OAI-compat's auth headers without per-
   provider configuration.
-- M2.2 — Entry loop wiring: `story_entries` (full kind enum) and its
-  CRUD arms + delta-encoding rules already landed in M1 / M1.5; this
-  slice exercises the M2-loop kinds (`opening`, `user_action`,
-  `ai_reply`; `system` stub) and adds the **opening-entry position
-  invariants** (the entry-specific behavior the generic CRUD doesn't
-  encode) per
+- M2.2 — Entry-arm completion + loop wiring: `story_entries` (full
+  kind enum), its delta-encoding rules, and the create /
+  metadata-update arms landed in M1 / M1.5 — but only those two
+  arms. This slice adds the **delete arm** (full-row `undo_payload`
+  capture per the M1.5 gate's C4 note) and the **content-update
+  arm** (both consumed by M2.5's edit / delete actions and the
+  rollback-confirm modal), exercises the M2-loop kinds (`opening`,
+  `user_action`, `ai_reply`; `system` stub), and adds the
+  **opening-entry position invariants** (the entry-specific
+  behavior the generic CRUD doesn't encode) per
   [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
 - M2.3 — Story creation, minimum-viable wizard: step 1
   (definition + model + pack picks), step 2 (calendar — bundled
   calendars only), step 5 (opening generation via real provider),
-  wizard auto-save + draft persistence. Steps 3 (lore) and 4
+  wizard auto-save + draft persistence. Brings the **stories and
+  branches creation mutators plus a stories store** — M1.5
+  deliberately excluded config-table mutators, and wizard creation
+  is delta-log-exempt bulk insert per
+  [`wizard.md`](../ui/screens/wizard/wizard.md), so these are
+  settings-style writes, not Tier-1 delta arms. The
+  structured-output parse path and the `jsonrepair` install land
+  here with their first consumer, wizard-assist opening generation
+  (per [`tech-stack.md`](../tech-stack.md)). Steps 3 (lore) and 4
   (cast) deferred to M3.6, paired with the classifier that consumes
   seeded lore / cast (the lore + entity data layer itself is already
   present from M1.5); refine / regenerate on opening deferred to M3.
@@ -150,36 +173,46 @@ memory pipeline (M3) needs to tune against.
     Deferred to later milestones: refine / regenerate (M3), peek
     drawer + awareness chips (M4), chapter management (M5), branch
     picker (M6).
-- M2.6 — End-to-end wiring: user action → translation
-  short-circuit → pipeline → provider → entry write → UI refresh.
-  Pack-template / Liquid engine lands here (minimal runtime +
-  macro resolver + variable binding) since the pipeline call
-  needs a rendered prompt. Bundled-pack `active+in-scene-entity`
-  injection invariant test (per
+- M2.6 — Pack-template / Liquid engine: minimal runtime + macro
+  resolver + variable binding, the bundled pack, and the pack
+  include-compatibility validator at pack load per
+  [`architecture.md → Macros`](../architecture.md#macros--reusable-liquid-snippets-not-code-side-formatters).
+  Bundled-pack `active+in-scene-entity` injection invariant test
+  (per
   [`architecture.md → Structural floor — always inject`](../architecture.md#structural-floor--always-inject))
-  lands alongside the bundled pack. Substrate that lands
-  alongside: ID placeholder substitution (`IdBiMap`,
+  lands alongside the bundled pack. First render consumers: the
+  wizard's opening generation (M2.3) and the per-turn pipeline
+  call (M2.7).
+- M2.7 — End-to-end wiring: user action → translation
+  short-circuit → pipeline → provider → entry write → UI refresh,
+  rendering the M2.6 bundled pack through the M2.1 resolution
+  chain. Substrate that lands alongside: ID placeholder
+  substitution (`IdBiMap`,
   `substituteIds`, reverse-substitution on parse) per
   [`generation-pipeline.md → ID placeholder substitution`](../generation-pipeline.md#id-placeholder-substitution);
   per-pipeline-kind config pre-flight scope with
   `run_complete(failed)` emission before phase 0 per
   [`generation-pipeline.md → Config pre-flight validation`](../generation-pipeline.md#config-pre-flight-validation)
-  — needs two framework pieces M1 didn't ship: phases declaring their
-  resolver inputs (a `Pipeline` / `PhaseNode` addition; M1 phases are
-  opaque generators) and the agent→profile→provider resolution chain
-  (M1's `lib/ai/model.ts` resolves only an explicit `providerId` and
-  `modelId`);
-  crash-recovery modal (`pendingRecoveryReport` slot, boot
-  ordering migrations → stores → recovery → render, loading screen until render) per
-  [`generation-pipeline.md → Recovery modal`](../generation-pipeline.md#recovery-modal);
-  pack include-compatibility validator at pack load per
-  [`architecture.md → Macros`](../architecture.md#macros--reusable-liquid-snippets-not-code-side-formatters);
-  settings parse-failure recovery surfaces (`app_settings`
-  blocking screen, per-story badge with `Open file` /
-  `Reset settings`) per
-  [`architecture.md → Settings`](../architecture.md#settings-strict-types-defaults-at-load).
-  `jsonrepair` install lands with the structured-output parse
-  path (per [`tech-stack.md`](../tech-stack.md)). The first real phase
+  — needs the one framework piece M1 didn't ship: phases declaring
+  their resolver inputs (a `Pipeline` / `PhaseNode` addition; M1
+  phases are opaque generators; the resolution chain itself is
+  M2.1's);
+  crash-recovery modal — the `pendingRecoveryReport` slot and its
+  AlertDialog drain per
+  [`generation-pipeline.md → Recovery modal`](../generation-pipeline.md#recovery-modal)
+  (the boot ordering and loading-until-render shipped in 1.7a);
+  the per-story settings parse-failure badge with `Open file` /
+  `Reset settings` per
+  [`architecture.md → Settings`](../architecture.md#settings-strict-types-defaults-at-load)
+  (the boot-blocking `app_settings` recovery screen shipped in
+  1.7a; only the story-open half remains);
+  wiring the M1.5 working-set `hydrate(branchId)` trigger on
+  story-open (the gate shipped it unwired; the injection floor
+  here and the M3 / M4 consumers read hydrated stores);
+  smoke-scaffolding teardown per
+  [`followups.md`](../followups.md) — `components/reader/smoke/`,
+  the reader-route trigger, and the `registerStubProvider()` seam
+  (M2.4 removes only the landing debug button). The first real phase
   to call `callWithRetry` lands here, so the `CallRetryError →
 PipelineError` mapping (test-only in Slice 1.5b) is promoted to a
   shipped helper. That phase's AI-SDK call config is settled (checked
@@ -190,8 +223,10 @@ PipelineError` mapping (test-only in Slice 1.5b) is promoted to a
   suppressing `maxRetries` also drops the SDK's exponential backoff, which
   `callWithRetry` currently lacks.
 
-**Parallel paths after M2.1 + M2.2.** {M2.3, M2.4} || {M2.5}, then
-M2.6 wires.
+**Parallel paths after M2.1 + M2.2.** {M2.4} || {M2.5} || {M2.6};
+M2.3 follows M2.1 + M2.6 (step 5's opening generation consumes the
+resolution chain and rendered prompts; steps 1–2 can start
+earlier); M2.7 wires.
 
 **Gates.** Nothing; M1 spine is the only prereq.
 
@@ -220,6 +255,9 @@ to render against (the tables + stores exist from M1.5; M3 fills them).
 - M3.1 — Embedder integration + the hard onboarding gate (story
   creation requires embedder per
   [`memory/model-management.md`](../memory/model-management.md));
+  lands the per-type vec0 `embeddings` virtual tables — the one
+  schema piece M1.5 deliberately excluded (the sqlite-vec
+  extension itself loads since M1.2);
   embedder configuration in app settings;
   `embedding_stale` opportunistic drain worker (makes "retry"
   meaningful after embedder failure per
@@ -227,9 +265,10 @@ to render against (the tables + stores exist from M1.5; M3 fills them).
   `embedding_swap_target` two-phase stage-then-flip pipeline +
   crash-recovery resume / cancel prompt on story-open (per
   [`memory/retrieval.md → Model swap UX`](../memory/retrieval.md#model-swap-ux)).
-  Adds Matryoshka effective-dim machinery (capability flags
-  `matryoshkaSupported` / `matryoshkaDims`, `effectiveDim`,
-  truncation + renorm at every embed-write) per
+  Adds the Matryoshka effective-dim machinery — `effectiveDim`
+  resolution plus truncation + renorm at every embed-write; the
+  `matryoshkaSupported` / `matryoshkaDims` capability flags
+  already ship in the M1.5 app-settings Zod — per
   [`memory/retrieval.md → Matryoshka effective dim`](../memory/retrieval.md#matryoshka-effective-dim)
   and the top-bar staleness pill + Settings · Memory per-story
   resolution panel per
@@ -300,9 +339,10 @@ options` disclosures, status / lead / staged logic,
   [`reader-composer.md → Next-turn suggestions`](../ui/screens/reader-composer/reader-composer.md#next-turn-suggestions)),
   reader-composer suggestions panel between AI replies and the
   next composer input, `suggestionsEnabled` story setting toggle.
-  Adds `app_settings.default_suggestion_categories` and the
-  Story Settings · Composer categories editor (consuming the
-  shipped `SuggestionCategoriesEditor`) plus a
+  Adds the Story Settings · Composer categories editor (consuming
+  the shipped `SuggestionCategoriesEditor`) over
+  `app_settings.default_suggestion_categories` — the column and
+  its seed default landed in the M1.5 gate — plus a
   `kind: 'suggestion-refresh'` pipeline declaration per
   [`next-turn-suggestions exploration`](../explorations/2026-05-19-next-turn-suggestions.md).
   Suggestion agent profile slot in app-settings extends M7.1.
@@ -381,8 +421,22 @@ chapter-management is M5.
   awareness chips on entries per
   [`reader-composer.md → Peek drawer`](../ui/screens/reader-composer/reader-composer.md#peek-drawer--lead-affordance-for-characters).
   Gates on M3.3 awareness writes.
+- M4.6 — Per-row imports: first wiring of the already-built
+  `ImportDialog` compound — World / Plot per-row entity / lore /
+  thread / happening import per
+  [`patterns/import-dialog.md`](../ui/patterns/import-dialog.md);
+  adds the per-row `.avts` envelope kinds (`aventuras-entity`,
+  `aventuras-lore`, `aventuras-thread`, `aventuras-happening`)
+  with kind-narrowed Zod payload schemas per
+  [`data-model.md → Aventuras file format`](../data-model.md#aventuras-file-format-avts).
+  Implementation prerequisite: `expo-document-picker` +
+  `expo-file-system` install and a dev-client rebuild **before
+  the slice runs** (web has no native-build step). Pattern reused
+  by vault calendar import (M8.3) and story import (M9.4).
 
-**Parallel paths.** {M4.1, M4.2} || {M4.3} || {M4.4} || {M4.5}.
+**Parallel paths.** {M4.1, M4.2} || {M4.3} || {M4.4} || {M4.5};
+M4.6 once the M4.1 / M4.3 shells exist to host the import
+affordances.
 
 **Gates.** M3 (no entities without classifier; no awareness
 without classifier; no retrieval scores without retrieval).
@@ -412,16 +466,24 @@ companions.
 
 **Likely slices.**
 
-- M5.1 — Chapter membership + boundaries: the `chapters` table + CRUD
-  landed in M1.5; this slice assigns `story_entries.chapter_id` across
-  closed ranges and detects boundaries (token-threshold crossing,
-  auto-close).
-- M5.2 — Chapter-close pipeline: phases 3a–3e, agent invocations,
+- M5.2 — Chapter membership, boundaries + chapter-close pipeline.
+  Absorbs the previously sketched M5.1: the M1.5 chapters slice
+  deliberately shipped the full updatable-column primitive surface,
+  so membership / boundary assignment is too thin to stand alone
+  (no M5.1 exists; the number is kept so existing references to
+  M5.2 = close pipeline stay correct). Assigns
+  `story_entries.chapter_id` across closed ranges, detects
+  boundaries (token-threshold crossing, auto-close), and builds
+  the close pipeline: phases 3a–3e, agent invocations,
   delta writes. Chapter-close consolidates `threads` rows that
   M3's classifier wrote sparsely; surface (plot panel threads
   tab) already exists from M4.3. Per-chapter `retrieval_count`
   reset under the chapter-close `action_id` (paired with M3.4's
-  per-injection increment). This is the first real `chainsTo`
+  per-injection increment). Extends the M1.5 awareness upsert arm
+  with an earliest-wins `learned_at_entry_id` merge path — the
+  shipped arm keeps-first with no write path to that column
+  (forward seam named in the M1.5 happenings slice), and the
+  lore-mgmt phase needs it. This is the first real `chainsTo`
   consumer (per-turn → chapter-close): M5.2 declares per-turn's
   `chainsTo` predicate and builds the chapter-close pipeline. The
   orchestrator's chained-execution capability (driving the successor
@@ -440,11 +502,9 @@ companions.
   Consumed by chapter delete (M5.3) and rollback-to-entry-N from
   the reader.
 
-**Parallel paths.** {M5.1, M5.2} are sequential (the `chapters` table
-
-- CRUD already landed in M1.5; M5.1 membership/boundaries may even
-  fold into M5.2's close pipeline); {M5.3, M5.5} || {M5.4} once the close
-  pipeline populates chapters.
+**Parallel paths.** M5.2 is the gate (it absorbed the membership /
+boundary work the old M5.1 sketch carried); {M5.3, M5.5} || {M5.4}
+once the close pipeline populates chapters.
 
 **Gates.** M4 (chapter-close compacts entities + lore the world
 panel renders; surfaces would be invisible without M4).
@@ -623,12 +683,19 @@ already-shipped calendar editor.
 **Likely slices.**
 
 - M8.1 — Translation pipeline: user-action-translation phase,
-  display-translation lookup, `translations` table.
+  display-translation lookup against the M1.5 substrate — the
+  `translations` table, its CRUD arms, and the indexed store with
+  its synchronous `getTranslation` selector all landed in the
+  M1.5 content slice; the reactive subscription was explicitly
+  deferred to M8 and lands in M8.2.
   `translation-retry` pipeline declaration (separate v1 pipeline
   kind with `hard-gate` concurrency per
   [`generation-pipeline.md → V1 declarations`](../generation-pipeline.md#v1-declarations))
   lands alongside.
-- M8.2 — Translation UI: language picker in story settings,
+- M8.2 — Translation UI: the reactive `useTranslation`
+  subscription over the M1.5 store (render reactivity was scoped
+  out of the content slice to land with this display-translation
+  reader), language picker in story settings,
   graceful degradation contract per
   [`architecture.md`](../architecture.md); miss-toast +
   sticky generation-status-pill surface for user-driven retry
@@ -692,7 +759,8 @@ isn't a per-feature concern.
   [`parked.md → Backup / export packaging shape`](../parked.md#backup--export-packaging-shape).
 - M9.4 — Per-story export `.avts` envelope; per-story import
   `.avts` (story list `[Import story…]` affordance routes through
-  the `ImportDialog` compound landed at M4); cross-version
+  the `ImportDialog` compound, built in foundations and first
+  wired at M4.6); cross-version
   resilience. Bulk-import embed batching with progress UI for
   `.avts` import and DB-migration paths per
   [`memory/retrieval.md → Compute lifecycle`](../memory/retrieval.md#compute-lifecycle)
@@ -832,9 +900,11 @@ explicit.
     `vault_calendars` rows.
 - **Pack-template / Liquid engine**
   ([`architecture.md → Prompt templates`](../architecture.md#prompt-templates-and-authoring)).
-  - **M2.6** — First pipeline call renders a pack template
-    (bundled pack only) into the provider call; minimal Liquid
-    runtime + macro resolver + variable binding.
+  - **M2.6** — Engine lands: minimal Liquid runtime + macro
+    resolver + variable binding, the bundled pack, the
+    include-compatibility validator. First renders: the wizard's
+    opening generation (M2.3) and the per-turn pipeline call
+    (M2.7).
   - **M3.4** — Memory templates extend the engine to inject
     retrieved bundles (entities / lore / happenings) into
     rendered context.
@@ -853,7 +923,7 @@ explicit.
     emissions during the stub-LLM smoke. Redaction vitest suite
     (raw / prefixed / query-string / short-key cases) lands with
     the sink in M1.4.
-  - **M2.1 / M2.6** — Real OAI-compat provider HTTP traffic flows
+  - **M2.1 / M2.7** — Real OAI-compat provider HTTP traffic flows
     through `httpCallSink` (extends the M1.4 redaction suite with
     OAI-compat scenarios); real per-turn captures populate via
     `turnCaptureSink`.
@@ -890,17 +960,14 @@ explicit.
 - **Import / `ImportDialog` compound**
   ([`patterns/import-dialog.md`](../ui/patterns/import-dialog.md)).
   Design pass landed 2026-05-26
-  ([exploration record](../explorations/2026-05-26-import-dialog.md)).
-  Compound scaffolds at first consumer and threads through the
-  rest:
-  - **M4** — First consumer: World / Plot per-row entity import.
-    Implementation prerequisite: add `expo-document-picker` +
-    `expo-file-system` and trigger a dev-client rebuild before
-    the slice runs (web has no native-build step). Adds per-row
-    `.avts` envelope kinds (`aventuras-entity`,
-    `aventuras-lore`, `aventuras-thread`, `aventuras-happening`)
-    with kind-narrowed Zod payload schemas per
-    [`data-model.md → Aventuras file format`](../data-model.md#aventuras-file-format-avts).
+  ([exploration record](../explorations/2026-05-26-import-dialog.md));
+  the compound itself is already built (foundations, with
+  stories). Consumers wire it:
+  - **M4.6** — First consumer: World / Plot per-row entity / lore /
+    thread / happening import, the per-row `.avts` envelope kinds,
+    and the `expo-document-picker` + `expo-file-system` install
+    with its dev-client rebuild prerequisite (details in the M4.6
+    slice entry).
   - **M8.3** — Vault calendars import.
   - **M9.4** — Story `.avts` import on the story list.
 
