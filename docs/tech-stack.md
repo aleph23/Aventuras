@@ -9,7 +9,7 @@ Update entries as choices change; move items between sections as state shifts.
 
 Foundation layer:
 
-- **Mobile:** Expo SDK 55 + Expo Router 6 (TypeScript)
+- **Mobile:** Expo SDK 55 + Expo Router 55.x (SDK-aligned versioning; TypeScript)
 - **Desktop:** Electron 41 wrapping the Expo Web export
   - Custom `app://` protocol for asset loading in packaged builds
   - `ready-to-show` pattern to avoid first-paint layout glitches
@@ -24,9 +24,9 @@ Foundation layer:
 
 ---
 
-## Decided, not yet installed
+## Decided
 
-Items numbered in install order — each layer composes with the previous.
+Items numbered in install order — each layer composes with the previous. State is mixed: items 1 (SQLite + Drizzle), 2 (Zustand), 4 (Zod), 5 (Vercel AI SDK — `ai` + `@ai-sdk/anthropic` so far), and 11 (i18n) are installed in `package.json`; the rest are pending their first consumer.
 
 ### 1. SQLite + Drizzle ORM
 
