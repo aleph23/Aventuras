@@ -377,7 +377,7 @@ App-global. Storage splits across two homes (per
 // User-authored — vault_calendars rows. Mutable.
 //   Clones of built-ins + future from-scratch entries.
 
-app_settings.default_calendar_id: string   // pointer; seeds new stories
+app_settings.default_calendar_id: string | null   // pointer; null at first init; seeds new stories
 ```
 
 App init merges built-ins + `vault_calendars` rows into one
@@ -428,9 +428,13 @@ Hooks into the existing [generation context](../architecture.md#the-single-conte
    calendar definition from the merged registry (built-ins +
    `vault_calendars`) → register its `displayFormat` Liquid template.
 2. Anywhere a worldTime needs a display string:
-   1. Compute `tierTuple = worldTimeToTuple(worldTime, calendar)`.
-      Variable-length tiers (rule, table) require accumulated
-      lookups; cache per-year cumulative lengths lazily.
+   1. Compute `tierTuple = worldTimeToTuple(worldTime, calendar, worldTimeOrigin)`.
+      The elapsed `worldTime` seconds are anchored onto the story's
+      `worldTimeOrigin` tuple before decomposing into the calendar's
+      tiers, so the tuple is the absolute in-world instant, not
+      elapsed-since-start. Variable-length tiers (rule, table)
+      require accumulated lookups; cache per-year cumulative lengths
+      lazily.
    2. Compute sub-division values (weekday) from `daysSinceEpoch`
       and the sub-division's modulus.
    3. Compute current era — find the era whose `at` is the largest
