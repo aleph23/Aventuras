@@ -24,11 +24,14 @@
     Bot,
     Download,
   } from 'lucide-svelte'
+  import { untrack, onDestroy } from 'svelte'
   import TagInput from '$lib/components/tags/TagInput.svelte'
   import VaultLorebookEntryFields from './VaultLorebookEntryFields.svelte'
   import VaultPendingOperations, { type PendingOperation } from './VaultPendingOperations.svelte'
+  import { vaultEditor } from '$lib/stores/vaultEditorStore.svelte'
   import { LorebookImportExport } from '$lib/services/lorebookImportExport'
   import { ui } from '$lib/stores/ui.svelte'
+  import { lorebookVault } from '$lib/stores/lorebookVault.svelte'
 
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
@@ -41,7 +44,6 @@
   interface Props {
     lorebook: VaultLorebook
     onSave: (updatedLorebook: VaultLorebook) => Promise<void> | void
-    onSaveAndClose?: (updatedLorebook: VaultLorebook) => Promise<void> | void
     onClose: () => void
     initialEntryIndex?: number | null
     isEmbedded?: boolean
@@ -54,12 +56,12 @@
     onOpenAssistant?: (entity: FocusedEntity) => void
     onApproveAllAsync?: () => Promise<string | null>
     hideHeader?: boolean
+    hasChanges?: boolean
   }
 
   let {
     lorebook,
     onSave,
-    onSaveAndClose,
     onClose,
     initialEntryIndex = null,
     isEmbedded = false,
@@ -71,14 +73,27 @@
     onOpenAssistant,
     onApproveAllAsync,
     hideHeader = false,
+    hasChanges = $bindable(false),
   }: Props = $props()
 
   // Local state for editing - initialized from props but mutable
   let name = $derived(lorebook.name)
   let description = $derived(lorebook.description ?? '')
   let tags = $derived<string[]>([...lorebook.tags])
-  // svelte-ignore state_referenced_locally
-  let entries = $state<VaultLorebookEntry[]>(JSON.parse(JSON.stringify(lorebook.entries))) // Deep copy — $state so manual adds persist
+  // Deep-copy the source entries once for revert support.
+  // In embedded mode, use the vault store's canonical list (previewLorebook may
+  // have pending deletes already applied, which would break index mapping).
+  const revertSnapshot: VaultLorebookEntry[] = JSON.parse(
+    JSON.stringify(
+      untrack(() =>
+        isEmbedded
+          ? (lorebookVault.getById(lorebook.id)?.entries ?? lorebook.entries)
+          : lorebook.entries,
+      ),
+    ),
+  )
+
+  let entries = $state<VaultLorebookEntry[]>(JSON.parse(JSON.stringify(revertSnapshot)))
 
   // New-entry draft: not in entries[] until user clicks Save
   let newEntryDraft = $state<VaultLorebookEntry | null>(null)
@@ -86,25 +101,55 @@
   // Track locally deleted entry names so the sync effect won't re-add them
   let locallyDeleted = $state<Set<string>>(new Set())
 
+  // Track indices of entries the user has edited locally so the sync effect
+  // won't overwrite them with external changes.
+  let dirtyEntryIndices = $state<Set<number>>(new Set())
+
   // Inline delete confirmation
   let confirmingDeleteIndex = $state<number | null>(null)
 
-  // Sync entries from the lorebook prop when vault updates add or remove entries
-  // (e.g. after pending creates are approved and saved, or deletes are applied).
-  // Only needed in embedded mode where the AI can add entries concurrently.
+  // Sync entries from the vault store when the lorebook is updated externally
+  // (e.g. after AI creates/updates are approved). Uses untrack() to avoid
+  // re-firing on every keystroke (entries is $state, so reading it in $effect
+  // would track it as a dependency). Only fires when the vault store changes.
   $effect(() => {
-    if (!isEmbedded) return
+    const vaultLorebook = lorebookVault.getById(lorebook.id)
+    if (!vaultLorebook) return
 
-    const localNames = new Set(entries.map((e) => e.name))
+    untrack(() => {
+      const vault = vaultLorebook.entries
+      let changed = false
 
-    // Only add entries that are new in the prop and not locally deleted
-    const newFromVault = lorebook.entries.filter(
-      (e) => !localNames.has(e.name) && !locallyDeleted.has(e.name),
-    )
+      // Pointwise: update entries at common indices where vault content differs
+      // Skip entries the user has edited locally (their edits take precedence).
+      const commonLen = Math.min(entries.length, vault.length)
+      const updated = [...entries]
+      for (let i = 0; i < commonLen; i++) {
+        if (dirtyEntryIndices.has(i)) continue
+        if (JSON.stringify(updated[i]) !== JSON.stringify(vault[i])) {
+          updated[i] = JSON.parse(JSON.stringify(vault[i]))
+          changed = true
+        }
+      }
 
-    if (newFromVault.length > 0) {
-      entries = [...entries, ...newFromVault.map((e) => JSON.parse(JSON.stringify(e)))]
-    }
+      // Trim excess when entries were deleted from vault
+      if (vault.length < updated.length) {
+        updated.splice(vault.length)
+        changed = true
+      }
+
+      // Append when entries were inserted into vault
+      if (vault.length > updated.length) {
+        for (let i = updated.length; i < vault.length; i++) {
+          updated.push(JSON.parse(JSON.stringify(vault[i])))
+          changed = true
+        }
+      }
+
+      if (changed) {
+        entries = updated
+      }
+    })
   })
 
   // UI State
@@ -119,7 +164,18 @@
   // Dirty tracking & save feedback
   let settingsDirty = $state(false)
   let entriesDirty = $state(false)
+  const _hasChanges = $derived(settingsDirty || entriesDirty)
+  $effect(() => {
+    hasChanges = _hasChanges
+  })
   let savedFeedback = $state<'settings' | 'entry' | null>(null)
+
+  $effect(() => {
+    vaultEditor.editorDirty = entriesDirty
+    return () => {
+      vaultEditor.editorDirty = false
+    }
+  })
   let savedFeedbackTimer: ReturnType<typeof setTimeout> | null = null
 
   function showSavedFeedback(type: 'settings' | 'entry') {
@@ -206,11 +262,14 @@
         }
       }
       if (editMap.has(i)) {
+        const editChange = editMap.get(i)!
+        const updateData =
+          'data' in editChange ? (editChange.data as Partial<VaultLorebookEntry>) : {}
         return {
-          entry: e,
+          entry: { ...e, ...updateData } as VaultLorebookEntry,
           index: i,
           isPending: true,
-          pendingChange: editMap.get(i)!,
+          pendingChange: editChange,
           pendingAction: 'edit' as const,
         }
       }
@@ -352,15 +411,8 @@
     const combined = combinedEntries.find((c) => c.index === selectedIndex)
     if (!combined) return null
 
-    // For edits: merge partial update data onto the full existing entry
-    if (combined.pendingAction === 'edit' && combined.pendingChange) {
-      const updateData =
-        'data' in combined.pendingChange
-          ? (combined.pendingChange.data as Partial<VaultLorebookEntry>)
-          : {}
-      return { ...combined.entry, ...updateData }
-    }
-
+    // For edits: combined.entry already has the update data overlaid,
+    // so no further merging is needed.
     return combined.entry
   })
 
@@ -400,6 +452,7 @@
   async function handleSaveClick(
     saveHandler: (updatedLorebook: VaultLorebook) => Promise<void> | void = onSave,
   ) {
+    if (saving || !_hasChanges) return
     if (!name.trim()) {
       error = 'Lorebook name is required'
       return
@@ -409,6 +462,21 @@
     error = null
 
     try {
+      // Merge in entries from the vault store that aren't in the local working
+      // copy (e.g. added externally by vault assistant) — prevents overwriting
+      // on save. Do NOT update existing entries here; that's handled by the
+      // sync effect, and this is a save path (local state is the source of truth).
+      const vaultLorebook = lorebookVault.getById(lorebook.id)
+      if (vaultLorebook) {
+        const localNames = new Set(entries.map((e) => e.name))
+        const externalAdditions = vaultLorebook.entries.filter(
+          (e) => !localNames.has(e.name) && !locallyDeleted.has(e.name),
+        )
+        if (externalAdditions.length > 0) {
+          entries = [...entries, ...externalAdditions.map((e) => JSON.parse(JSON.stringify(e)))]
+        }
+      }
+
       // Update metadata entry breakdown
       const breakdown: Record<EntryType, number> = {
         character: 0,
@@ -437,7 +505,12 @@
       }
 
       await saveHandler(updatedLorebook)
+      locallyDeleted = new Set()
+      dirtyEntryIndices = new Set()
+      entriesDirty = false
+      settingsDirty = false
       saving = false
+      ui.showToast('Lorebook saved', 'info')
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to save lorebook'
       saving = false
@@ -455,6 +528,40 @@
     }
   }
 
+  let closeCooldownActive = $state(false)
+  let closeCooldownTimer: ReturnType<typeof setTimeout> | undefined = $state()
+  const CLOSE_COOLDOWN_MS = 3000
+
+  onDestroy(() => {
+    clearTimeout(closeCooldownTimer)
+    if (savedFeedbackTimer) clearTimeout(savedFeedbackTimer)
+  })
+
+  function handleCloseAttempt() {
+    if (_hasChanges) {
+      if (closeCooldownActive) {
+        clearTimeout(closeCooldownTimer)
+        closeCooldownActive = false
+        onClose()
+      } else {
+        closeCooldownActive = true
+        ui.showToast('Unsaved Changes — Press close again to discard changes', 'warning')
+        closeCooldownTimer = setTimeout(() => {
+          closeCooldownActive = false
+        }, CLOSE_COOLDOWN_MS)
+      }
+    } else {
+      onClose()
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault()
+      handleSaveClick(onSave)
+    }
+  }
+
   function handleAddEntry() {
     newEntryDraft = {
       name: '',
@@ -469,6 +576,23 @@
     activeTab = 'editor'
     searchQuery = ''
     confirmingDeleteIndex = null
+  }
+
+  function handleRevertChanges() {
+    if (isEmbedded) {
+      const vaultLorebook = lorebookVault.getById(lorebook.id)
+      if (vaultLorebook) {
+        entries = JSON.parse(JSON.stringify(vaultLorebook.entries))
+      } else {
+        entries = JSON.parse(JSON.stringify(revertSnapshot))
+      }
+    } else {
+      entries = JSON.parse(JSON.stringify(revertSnapshot))
+    }
+    locallyDeleted = new Set()
+    dirtyEntryIndices = new Set()
+    entriesDirty = false
+    selectedIndex = null
   }
 
   function handleSaveNewEntry() {
@@ -1004,6 +1128,7 @@
                       )}
                       onclick={() => {
                         handleSaveClick()
+                        dirtyEntryIndices = new Set()
                         entriesDirty = false
                         showSavedFeedback('entry')
                       }}
@@ -1014,9 +1139,21 @@
                         Saved
                       {:else}
                         <Save class="h-3.5 w-3.5" />
-                        Save Entry
+                        Save All Entries
                       {/if}
                     </Button>
+                    {#if entriesDirty}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="gap-1.5 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        onclick={handleRevertChanges}
+                        disabled={saving}
+                      >
+                        <span class="hidden sm:inline">Revert Changes</span>
+                        <span class="sm:hidden">Revert</span>
+                      </Button>
+                    {/if}
                   {/if}
                   {#if selectedIndex >= 0}
                     <Button
@@ -1059,6 +1196,9 @@
                     changedFields={entryChangedFields}
                     onUpdate={(newData) => {
                       entriesDirty = true
+                      if (selectedIndex !== null && selectedIndex >= 0) {
+                        dirtyEntryIndices = new Set([...dirtyEntryIndices, selectedIndex])
+                      }
                       if (selectedIndex === -1) {
                         // Editing the new entry draft
                         newEntryDraft = newData
@@ -1124,7 +1264,7 @@
         <Button
           variant="outline"
           class="border-surface-600 h-8 w-10 p-0 text-xs sm:w-auto sm:px-3"
-          onclick={onClose}
+          onclick={handleCloseAttempt}
           disabled={saving}
         >
           <X class="h-3.5 w-3.5" />
@@ -1132,8 +1272,8 @@
         </Button>
         <Button
           class="h-8 flex-1 text-xs sm:flex-none"
-          onclick={() => handleSaveClick(onSaveAndClose ?? onSave)}
-          disabled={saving || !name.trim()}
+          onclick={() => handleSaveClick(onSave)}
+          disabled={saving || !name.trim() || !_hasChanges}
         >
           {#if saving}
             <div
@@ -1148,3 +1288,5 @@
     </div>
   {/if}
 </div>
+
+<svelte:window onkeydown={handleKeydown} />

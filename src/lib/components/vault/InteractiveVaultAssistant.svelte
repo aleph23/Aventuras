@@ -377,6 +377,15 @@
     abortController = new AbortController()
 
     try {
+      // Check for external lorebook edits before streaming
+      const lorebookId =
+        focusedEntity?.entityType === 'lorebook'
+          ? focusedEntity.entityId
+          : vaultEditor.currentLorebookId
+      if (lorebookId) {
+        service.injectLorebookChangeNote(lorebookId)
+      }
+
       const vaultState: VaultState = {
         characters: () => characterVault.items,
         lorebooks: () => lorebookVault.items,
@@ -549,18 +558,24 @@
 
   async function handleApprove(change?: VaultPendingChange) {
     if (!service) return
+    if (vaultEditor.editorDirty) {
+      error = 'Save your local edits before approving changes.'
+      return
+    }
     const target = change ?? vaultEditor.activeChange
     if (!target) return
     try {
       await vaultEditor.approve(target, service)
+      await service.saveConversation(messages, vaultEditor.pendingChanges).catch(() => {})
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to apply change'
     }
   }
 
-  function handleReject(change: VaultPendingChange) {
+  async function handleReject(change: VaultPendingChange) {
     if (!service) return
     vaultEditor.reject(change, service)
+    await service.saveConversation(messages, vaultEditor.pendingChanges).catch(() => {})
   }
 
   function handleEdit(change: VaultPendingChange) {
@@ -571,8 +586,15 @@
 
   async function handleApproveAll(): Promise<string | null> {
     if (!service) return 'Service not initialized'
+    if (vaultEditor.editorDirty) {
+      error = 'Save your local edits before approving changes.'
+      return 'Editor has unsaved changes'
+    }
     const err = await vaultEditor.approveAll(service)
     if (err) error = err
+    if (!err) {
+      await service.saveConversation(messages, vaultEditor.pendingChanges).catch(() => {})
+    }
     return err
   }
 
@@ -595,6 +617,28 @@
       streamingChanges = []
       error = 'Generation stopped'
     }
+  }
+
+  /**
+   * Handle dialog open state changes.
+   * Guards against spurious close during mount (mounted flag),
+   * aborts generation if user closes mid-stream, then always
+   * delegates to onClose to ensure showVaultAssistant is reset.
+   */
+  function handleOpenChange(open: boolean) {
+    if (open) return
+    if (!mounted) return
+    if (isGenerating) {
+      if (abortController) {
+        abortController.abort()
+        abortController = null
+      }
+      isGenerating = false
+      isThinking = false
+      activeToolCalls = []
+      streamingChanges = []
+    }
+    onClose()
   }
 </script>
 
@@ -1171,7 +1215,7 @@
 {/snippet}
 
 {#if isCompact.current}
-  <Dialog.Root open={true} onOpenChange={(open) => !open && mounted && !isGenerating && onClose()}>
+  <Dialog.Root open={true} onOpenChange={handleOpenChange}>
     <Dialog.Content
       class="flex h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-none p-0"
       style="padding-top: var(--safe-top);"
@@ -1181,10 +1225,7 @@
     </Dialog.Content>
   </Dialog.Root>
 {:else}
-  <ResponsiveModal.Root
-    open={true}
-    onOpenChange={(open) => !open && mounted && !isGenerating && onClose()}
-  >
+  <ResponsiveModal.Root open={true} onOpenChange={handleOpenChange}>
     <ResponsiveModal.Content
       class={cn(
         'flex h-[90vh] w-full flex-col gap-0 overflow-hidden p-0',
