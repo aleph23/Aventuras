@@ -26,9 +26,11 @@ defined `milestone.md`.
   and settings UI), and the `story_entries` delete / content-update
   arms (M2.2).
 - **Planned milestones** below are roadmap entries: a one-paragraph
-  goal sketch, a likely slice list (titles only, no contracts), and
+  goal sketch, a likely slice list (titles only, no contracts),
   notes on what gates the milestone and what's intentionally out of
-  scope.
+  scope, a parallel-paths sketch, and **slice-authoring notes** —
+  parallelism hazards and split candidates recorded here to be
+  resolved when the milestone is promoted.
 - When a milestone is ready to author, its roadmap entry is
   **promoted**: a `milestones/NN-name/milestone.md` is written, and
   the roadmap entry shrinks to a one-line pointer at the section
@@ -76,15 +78,49 @@ Three consequences worth naming up front:
 
 ## Multi-contributor model
 
-Roadmap assumes 2–3 contributors working on **one milestone at a
-time** (per
+Roadmap assumes 2–3 contributors with **one milestone in flight as
+the validation focus at a time** (per
 [Project · Implementation vocabulary](./conventions.md#hierarchy)).
-Cross-milestone parallelism is not used. Each milestone is sized to
-have at least two parallel slice paths after an initial gate slice —
-same shape as M1. With the data layer front-loaded in M1.5, that gate
-slice is now per-milestone wiring (provider, route, contract), not a
-schema-landing slice; the tables and CRUD the milestone needs already
-exist (the narrow exceptions are named above).
+Each milestone is sized to have at least two parallel slice paths
+after an initial gate slice — same shape as M1. With the data layer
+front-loaded in M1.5, that gate slice is now per-milestone wiring
+(provider, route, contract), not a schema-landing slice; the tables
+and CRUD the milestone needs already exist (the narrow exceptions
+are named above).
+
+**Bounded cross-milestone look-ahead is allowed.** The M1.5
+substrate decouples more work than a strict one-milestone rule
+assumes. A slice from a later milestone may start early when both
+hold:
+
+- it depends only on the M1.5 substrate plus already-**merged**
+  milestones — nothing in flight; and
+- the shapes it builds against are frozen spec (data model,
+  screen docs), not implementation-discovered behavior.
+
+Read-heavy UI qualifies most often: the DB can be seeded with mock
+rows conforming to frozen shapes, so surfaces like the M4 world /
+plot panels can be built before their real-data producers exist.
+Two costs to weigh per pick: review focus fragments, and
+settings / UX surfaces for not-yet-implemented subsystems carry
+rework risk where implementation refines the spec (the M7 embedder
+tab is the canonical example — it waits for M3.1; the appearance
+tab has no such exposure). Look-ahead changes when work _starts_,
+not when milestones _close_: a milestone's definition of done still
+gates on its prerequisites' real data even where its surfaces were
+built early against seeds, and the
+[sequencing thesis](#sequencing-thesis) validation order is
+unchanged. Milestone authoring (solo-owner work per
+[conventions](./conventions.md#authorship)) overlaps the prior
+milestone's tail freely.
+
+Standing look-ahead candidates, by in-flight milestone: during M2 —
+M3.1 (embedder infra, independent of the M2 loop), M3.6's editor
+build (once M2.3's wizard shell merges), M4 read surfaces on seeded
+rows, M7's appearance tab and M7.3 diagnostics screen (M1-era
+substrate; turn-capture shape extends later); during M4 — M5.1
+membership; during M7 — M8.3 vault shell; during M8 — M9.1 and
+M9.3.
 
 ---
 
@@ -223,10 +259,32 @@ PipelineError` mapping (test-only in Slice 1.5b) is promoted to a
   suppressing `maxRetries` also drops the SDK's exponential backoff, which
   `callWithRetry` currently lacks.
 
-**Parallel paths after M2.1 + M2.2.** {M2.4} || {M2.5} || {M2.6};
-M2.3 follows M2.1 + M2.6 (step 5's opening generation consumes the
-resolution chain and rendered prompts; steps 1–2 can start
-earlier); M2.7 wires.
+**Parallel paths.** Day-one startable: {M2.1} || {M2.2} || {M2.6} ||
+{M2.4} || {M2.5-bulk}. M2.6 depends on neither gate slice; M2.4
+needs only seedable story rows and the existing smoke reader route
+(its debug-button removal waits for M2.5's real reader path); the
+bulk of M2.5 — entry list, pagination, scroll-anchoring, composer,
+markdown pipeline, Harper wiring — needs only M1.5, with the
+edit / delete actions and rollback-confirm modal waiting on M2.2,
+the calendar renderer on M2.3's `lib/calendar` substrate, and
+trigger-generation wiring against the M1 `registerStubProvider()`
+seam until M2.7 swaps in the real provider. M2.3 follows
+M2.1 + M2.6 (step 5's opening generation consumes the resolution
+chain and rendered prompts; steps 1–2 can start earlier); M2.7
+wires.
+
+**Slice-authoring notes.** Pin stories-store ownership: M2.3
+("brings … a stories store") and M2.4 ("basic store") both claim it
+and now run in parallel — one owns, the other consumes. M2.7 as
+sketched carries four independently buildable pieces that should
+split out so the tail isn't a one-person serialization point: the
+ID-substitution lib (pure library, zero deps, day-one); the
+`PhaseNode` resolver-input declaration with config pre-flight
+(framework addition over M1 code, day-one); the crash-recovery
+modal and story-settings parse-failure badge (UI over 1.7a slots,
+day-one); the `callWithRetry` promotion with its AI-SDK call config
+(pairs with M2.1). M2.7 proper keeps end-to-end wiring and the
+smoke-scaffolding teardown.
 
 **Gates.** Nothing; M1 spine is the only prereq.
 
@@ -359,13 +417,25 @@ options` disclosures, status / lead / staged logic,
   [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
   Redo stack semantics unchanged.
 
-**Parallel paths.** {M3.1, M3.2} build on the M1.5 data layer
-(entry / entity / lore tables + CRUD already present); M3.3 runs in
-parallel with M3.4 once classifier writes
-populate retrievable rows; M3.6 runs in parallel with M3.3 / M3.4
-after M3.2 lands the lore + entity stub writes; M3.7 gates on
-M3.2 + M3.3; M3.8 gates on M3.3; M3.9 gates on M3.3 (needs the
-survival-anchor reversal substrate).
+**Parallel paths.** Day-one startable: {M3.1} || {M3.2} || {M3.6} —
+M3.6's editor build needs only the M1.5 lore / entity layer and
+M2.3's wizard shell; the earlier "after M3.2" gate was about the
+classifier consuming seeded cast, which is verification, not a
+build dependency. M3.3 runs in parallel with M3.4 once M3.2's stub
+writes populate retrievable rows (M3.4 also needs M3.1's
+embeddings); M3.5 follows M3.4; M3.7 gates on M3.2 + M3.3; M3.8
+gates on M3.3; M3.9 gates on M3.3 (needs the survival-anchor
+reversal substrate).
+
+**Slice-authoring notes.** M3.3 as sketched exceeds the
+days-not-weeks sizing rule. First split to take: the reversal
+predicate and `processedThrough` clamp are undo-side code — move
+them to M3.9 (which owns undo semantics), leaving M3.3 the
+stamp / provenance side, and pin that seam explicitly since both
+slices touch the survival anchor. If M3.3 still stretches, its
+output processors (entity reconciliation vs awareness /
+happenings / cascade) can split against a pinned classifier
+structured-output shape.
 
 **Gates.** M2 (entries + real provider needed before classifier
 has anything to classify).
@@ -438,8 +508,17 @@ chapter-management is M5.
 M4.6 once the M4.1 / M4.3 shells exist to host the import
 affordances.
 
-**Gates.** M3 (no entities without classifier; no awareness
-without classifier; no retrieval scores without retrieval).
+**Gates.** M3 for real-data validation (no entities without the
+classifier; no awareness without it; no retrieval scores without
+retrieval). The UI build itself can look ahead against seeded mock
+rows — the entity / lore / happening / awareness shapes are frozen
+in [`data-model.md`](../data-model.md) — making M4 the strongest
+cross-milestone look-ahead candidate (see
+[Multi-contributor model](#multi-contributor-model)); surfaces
+ready mid-M3 also serve the human-inspection need named in
+[Milestones that may merge or split](#milestones-that-may-merge-or-split).
+M4's definition of done still requires rendering real classifier
+output.
 
 **Scope: out.** Bulk operations (parked); character-side awareness
 tab (parked); image generation; chapter-close UX (M5).
@@ -466,15 +545,16 @@ companions.
 
 **Likely slices.**
 
-- M5.2 — Chapter membership, boundaries + chapter-close pipeline.
-  Absorbs the previously sketched M5.1: the M1.5 chapters slice
-  deliberately shipped the full updatable-column primitive surface,
-  so membership / boundary assignment is too thin to stand alone
-  (no M5.1 exists; the number is kept so existing references to
-  M5.2 = close pipeline stay correct). Assigns
+- M5.1 — Chapter membership and boundaries (thin gate): assigns
   `story_entries.chapter_id` across closed ranges, detects
-  boundaries (token-threshold crossing, auto-close), and builds
-  the close pipeline: phases 3a–3e, agent invocations,
+  boundaries (token-threshold crossing, auto-close), and lands the
+  manual-boundary primitive consumed by M5.4's insert-break. An
+  earlier sketch absorbed this into M5.2 as too thin to stand alone
+  (the M1.5 chapters slice shipped the full updatable-column
+  primitive surface) — reinstated because a thin gate is the
+  intended gate-then-parallel milestone shape, and the absorption
+  made the close pipeline gate every UI slice in the milestone.
+- M5.2 — Chapter-close pipeline: phases 3a–3e, agent invocations,
   delta writes. Chapter-close consolidates `threads` rows that
   M3's classifier wrote sparsely; surface (plot panel threads
   tab) already exists from M4.3. Per-chapter `retrieval_count`
@@ -502,9 +582,17 @@ companions.
   Consumed by chapter delete (M5.3) and rollback-to-entry-N from
   the reader.
 
-**Parallel paths.** M5.2 is the gate (it absorbed the membership /
-boundary work the old M5.1 sketch carried); {M5.3, M5.5} || {M5.4}
-once the close pipeline populates chapters.
+**Parallel paths.** M5.1 is the gate, and it's thin; then
+{M5.2} || {M5.3} || {M5.4} || {M5.5}. M5.3's timeline renders
+membership-populated chapters; M5.4's insert-break consumes M5.1's
+boundary primitive; M5.5's reverse-replay walks the delta log
+regardless of which action wrote the deltas, so it develops against
+synthetic close deltas and integration-validates the cascade
+warning once M5.2's real close output exists.
+
+**Slice-authoring notes.** M5.3's chapter delete routes through
+M5.5's deep-rollback surface — pin that surface's API as a slice
+contract so the two parallel slices don't collide.
 
 **Gates.** M4 (chapter-close compacts entities + lore the world
 panel renders; surfaces would be invisible without M4).
@@ -555,8 +643,17 @@ churn.
   [`story-list.md → Story card`](../ui/screens/story-list/story-list.md#story-card--text-first).
   Structurally similar to branch-copy (M6.1) but story-scoped.
 
-**Parallel paths.** {M6.1, M6.2} sequential; {M6.3, M6.4, M6.5}
-parallel once branch reads work.
+**Parallel paths.** {M6.1} || {M6.2} — a
+[doc-as-contract](./conventions.md#sequencing-vs-doc-as-contract)
+pair: the lineage shape both build against is fixed by the
+[branch-copy manifest](../data-model.md#branch-model), so M6.2's
+lineage-scoped reads develop against hand-seeded branch rows before
+fork orchestration exists. {M6.3, M6.4, M6.5} parallel once branch
+reads work; M6.6 follows M6.1.
+
+**Slice-authoring notes.** M6.1 and M6.6 share a copy-core — either
+M6.1 owns it and M6.6 sequences after, or authoring extracts the
+core as a pinned contract and M6.6 parallelizes too.
 
 **Gates.** M5 (chapter-close writes that branches must respect
 need to exist first).
@@ -651,9 +748,24 @@ the underlying configuration surfaces.
   override UX, full-backup AlertDialog with key-leak
   acknowledgment).
 
-**Parallel paths.** Internal ordering + parallelism handled at
-milestone-authoring time. Sketch: {M7.1, M7.2, M7.3, M7.4, M7.5}
-nearly independent; M7.6 finishes once M7.1 is in.
+**Parallel paths.** Sketch: {M7.1, M7.2, M7.3, M7.4, M7.5} nearly
+independent; M7.6 finishes once M7.1 is in.
+
+**Slice-authoring notes.** M7.1 as sketched is several weeks of
+work — split it per tab (sizing rule: days, not weeks), which also
+load-balances the milestone. The per-tab slices have different true
+gates: appearance and data tabs need nothing newer than
+foundations; the providers tab needs M2.1's config mutators and
+capability detection; the models tab needs M3.7's suggestion slot;
+the embedder tab needs M3.1. The first tab slice owns the settings
+shell; the rest consume it. The data tab's backup / restore actions
+front-run the M9.3 backup pipeline — pin the invocation seam or
+ship those actions stubbed. The spec-stable tabs (appearance, data
+chrome) plus M7.3's diagnostics screen are look-ahead candidates
+long before M7 opens (see
+[Multi-contributor model](#multi-contributor-model)); the embedder
+tab is the canonical _don't_ — M3.1's implementation will refine
+its spec.
 
 **Gates.** M6 (settings should reflect real branching + multi-
 story behavior; diagnostics should inspect real branch-aware
@@ -712,7 +824,11 @@ already-shipped calendar editor.
   edge cases per
   [`memory/edge-cases.md`](../memory/edge-cases.md).
 
-**Parallel paths.** {M8.1, M8.2} sequential; {M8.3} || {M8.4}.
+**Parallel paths.** {M8.1} || {M8.2-bulk} || {M8.3} — M8.2's
+reactive `useTranslation` subscription and language picker sit over
+the M1.5 store and story settings, not the pipeline; only its
+miss-toast and sticky retry pill (which invoke `translation-retry`)
+wait on M8.1. M8.4 follows M8.1, parallel with M8.3.
 
 **Gates.** M7 (settings surfaces translation toggles).
 
@@ -773,8 +889,14 @@ isn't a per-feature concern.
   placeholders (per
   [`tech-stack.md → Pre-launch polish`](../tech-stack.md)).
 
-**Parallel paths.** {M9.1, M9.2} || {M9.3, M9.4} || {M9.5}; M9.6
-gates on all.
+**Parallel paths.** {M9.1} || {M9.2} || {M9.3, M9.4} || {M9.5};
+M9.6 gates on all. M9.3 → M9.4 stays sequenced: the packaging-shape
+sub-design pass in M9.3 decides asset handling the `.avts` envelope
+inherits.
+
+**Slice-authoring notes.** M9.2 shards naturally per screen-group —
+author it as 2–3 slices so the audit spreads across contributors
+instead of serializing on one.
 
 **Gates.** M8 (every user-facing surface must exist before the
 visual audit, and translation must round-trip cleanly through
