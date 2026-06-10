@@ -13,9 +13,11 @@ defined `milestone.md`.
 ## How to read this doc
 
 - **Defined milestones** with full `milestone.md` files live under
-  [`milestones/`](./milestones/README.md). Defined today: M1 (Spine)
-  and [M1.5 — Data foundation](./milestones/01b-data-foundation/milestone.md),
-  the latter inserted between M1 and M2 (no renumber). M1.5 front-loads
+  [`milestones/`](./milestones/README.md). Defined today: M1 (Spine),
+  [M1.5 — Data foundation](./milestones/01b-data-foundation/milestone.md)
+  (inserted between M1 and M2; no renumber), and
+  [M2 — First user loop](./milestones/02-first-user-loop/milestone.md).
+  M1.5 front-loads
   the full relational schema, typed working-set stores, and Tier-1 CRUD
   arms, so the planned milestones below **no longer carry their own
   schema-landing slices** — they consume the M1.5 substrate and build
@@ -128,169 +130,9 @@ M9.3.
 
 ### M2 — First user loop
 
-**Goal.** Smallest end-to-end story loop with a real provider.
-User completes the wizard's minimum-viable path, writes entries in
-the reader, gets responses from a real LLM, saves the story, sees
-it on the story list. No memory pipeline, no awareness, no
-chapter management — each turn sends the last N entries verbatim
-as context.
-
-**Why now.** Validates the full request path (UI → action layer →
-pipeline framework → real provider → entry write → diagnostics)
-end-to-end with a human-perceptible outcome, replacing M1's
-fault-injection stub. Produces the first real-story data the
-memory pipeline (M3) needs to tune against.
-
-**Likely slices.**
-
-- M2.1 — Provider abstraction filled in: **OAI-compat as the first
-  provider** (most universal, covers the contributor test cases);
-  the agent→profile→provider resolution chain (M1's
-  `lib/ai/model.ts` resolves only an explicit `providerId` and
-  `modelId`, behind the temporary `findTemporaryProvider` dev seam
-  this slice replaces); the provider config **mutators** — the
-  config types / Zod (providers, profiles, assignments, capability
-  flags) landed in the M1.5 gate, but config-table writes were
-  deliberately excluded there. Other providers add incrementally
-  in M7 alongside the providers settings tab. Extends the M1.4
-  redaction vitest suite with OAI-compat scenarios — value-match
-  catches the key in OAI-compat's auth headers without per-
-  provider configuration.
-- M2.2 — Entry-arm completion + loop wiring: `story_entries` (full
-  kind enum), its delta-encoding rules, and the create /
-  metadata-update arms landed in M1 / M1.5 — but only those two
-  arms. This slice adds the **delete arm** (full-row `undo_payload`
-  capture per the M1.5 gate's C4 note) and the **content-update
-  arm** (both consumed by M2.5's edit / delete actions and the
-  rollback-confirm modal), exercises the M2-loop kinds (`opening`,
-  `user_action`, `ai_reply`; `system` stub), and adds the
-  **opening-entry position invariants** (the entry-specific
-  behavior the generic CRUD doesn't encode) per
-  [`data-model.md → Entry mutability & rollback`](../data-model.md#entry-mutability--rollback).
-- M2.3 — Story creation, minimum-viable wizard: step 1
-  (definition + model + pack picks), step 2 (calendar — bundled
-  calendars only), step 5 (opening generation via real provider),
-  wizard auto-save + draft persistence. Brings the **stories and
-  branches creation mutators plus a stories store** — M1.5
-  deliberately excluded config-table mutators, and wizard creation
-  is delta-log-exempt bulk insert per
-  [`wizard.md`](../ui/screens/wizard/wizard.md), so these are
-  settings-style writes, not Tier-1 delta arms. The
-  structured-output parse path and the `jsonrepair` install land
-  here with their first consumer, wizard-assist opening generation
-  (per [`tech-stack.md`](../tech-stack.md)). Steps 3 (lore) and 4
-  (cast) deferred to M3.6, paired with the classifier that consumes
-  seeded lore / cast (the lore + entity data layer itself is already
-  present from M1.5); refine / regenerate on opening deferred to M3.
-  `react-hook-form`
-  install lands with wizard step 1 (per
-  [`tech-stack.md`](../tech-stack.md)).
-- M2.4 — Story list as a real surface: list real stories, navigate
-  to reader, basic store. Removes the M1 `__DEV__` landing
-  "Open reader (debug)" button (Slice 1.7b's only path into the
-  reader) once this real reader path exists.
-- M2.5 — Reader-composer minimum: entry list rendering (with
-  load-older pagination + scroll-anchoring on prepend per
-  [`reader-composer.md → Loaded-set model`](../ui/screens/reader-composer/reader-composer.md#loaded-set-model)),
-  composer below, trigger generation, basic edit / delete entry
-  actions, rollback-confirm modal compound (single-entry cascade
-  preview per
-  [`reader-composer/rollback-confirm/`](../ui/screens/reader-composer/rollback-confirm/rollback-confirm.md);
-  extends to multi-chapter deep rollback in M5).
-  Markdown rendering pipeline (htmlStreaming port from old app
-  per [`tech-stack.md`](../tech-stack.md) — `marked`/`markdown-it`
-  - `juice` + `DOMPurify` + `react-native-render-html` + streaming
-    buffer-until-tag-boundary). Harper.js spellcheck install +
-    composer wiring (per tech-stack). CTRL-Z basic single-action
-    undo + redo stack (extends to action-batched undo in M3 once
-    classifier writes share `action_id`). Calendar renderer for
-    in-world time chrome lands here (see
-    [Subsystems → Calendar](#subsystems-that-ship-incrementally)).
-    Deferred to later milestones: refine / regenerate (M3), peek
-    drawer + awareness chips (M4), chapter management (M5), branch
-    picker (M6).
-- M2.6 — Pack-template / Liquid engine: minimal runtime + macro
-  resolver + variable binding, the bundled pack, and the pack
-  include-compatibility validator at pack load per
-  [`architecture.md → Macros`](../architecture.md#macros--reusable-liquid-snippets-not-code-side-formatters).
-  Bundled-pack `active+in-scene-entity` injection invariant test
-  (per
-  [`architecture.md → Structural floor — always inject`](../architecture.md#structural-floor--always-inject))
-  lands alongside the bundled pack. First render consumers: the
-  wizard's opening generation (M2.3) and the per-turn pipeline
-  call (M2.7).
-- M2.7 — End-to-end wiring: user action → translation
-  short-circuit → pipeline → provider → entry write → UI refresh,
-  rendering the M2.6 bundled pack through the M2.1 resolution
-  chain. Substrate that lands alongside: ID placeholder
-  substitution (`IdBiMap`,
-  `substituteIds`, reverse-substitution on parse) per
-  [`generation-pipeline.md → ID placeholder substitution`](../generation-pipeline.md#id-placeholder-substitution);
-  per-pipeline-kind config pre-flight scope with
-  `run_complete(failed)` emission before phase 0 per
-  [`generation-pipeline.md → Config pre-flight validation`](../generation-pipeline.md#config-pre-flight-validation)
-  — needs the one framework piece M1 didn't ship: phases declaring
-  their resolver inputs (a `Pipeline` / `PhaseNode` addition; M1
-  phases are opaque generators; the resolution chain itself is
-  M2.1's);
-  crash-recovery modal — the `pendingRecoveryReport` slot and its
-  AlertDialog drain per
-  [`generation-pipeline.md → Recovery modal`](../generation-pipeline.md#recovery-modal)
-  (the boot ordering and loading-until-render shipped in 1.7a);
-  the per-story settings parse-failure badge with `Open file` /
-  `Reset settings` per
-  [`architecture.md → Settings`](../architecture.md#settings-strict-types-defaults-at-load)
-  (the boot-blocking `app_settings` recovery screen shipped in
-  1.7a; only the story-open half remains);
-  wiring the M1.5 working-set `hydrate(branchId)` trigger on
-  story-open (the gate shipped it unwired; the injection floor
-  here and the M3 / M4 consumers read hydrated stores);
-  smoke-scaffolding teardown per
-  [`followups.md`](../followups.md) — `components/reader/smoke/`,
-  the reader-route trigger, and the `registerStubProvider()` seam
-  (M2.4 removes only the landing debug button). The first real phase
-  to call `callWithRetry` lands here, so the `CallRetryError →
-PipelineError` mapping (test-only in Slice 1.5b) is promoted to a
-  shipped helper. That phase's AI-SDK call config is settled (checked
-  against v1 + the AI SDK v6 docs): `maxRetries: 0` (SDK default is 2 —
-  `callWithRetry` is the sole retry authority), the SDK-native `timeout`
-  (`totalMs` / `stepMs`, `chunkMs` for streams) instead of a fetch-level
-  timeout, and Retry-After-aware backoff added to `callWithRetry` —
-  suppressing `maxRetries` also drops the SDK's exponential backoff, which
-  `callWithRetry` currently lacks.
-
-**Parallel paths.** Day-one startable: {M2.1} || {M2.2} || {M2.6} ||
-{M2.4} || {M2.5-bulk}. M2.6 depends on neither gate slice; M2.4
-needs only seedable story rows and the existing smoke reader route
-(its debug-button removal waits for M2.5's real reader path); the
-bulk of M2.5 — entry list, pagination, scroll-anchoring, composer,
-markdown pipeline, Harper wiring — needs only M1.5, with the
-edit / delete actions and rollback-confirm modal waiting on M2.2,
-the calendar renderer on M2.3's `lib/calendar` substrate, and
-trigger-generation wiring against the M1 `registerStubProvider()`
-seam until M2.7 swaps in the real provider. M2.3 follows
-M2.1 + M2.6 (step 5's opening generation consumes the resolution
-chain and rendered prompts; steps 1–2 can start earlier); M2.7
-wires.
-
-**Slice-authoring notes.** Pin stories-store ownership: M2.3
-("brings … a stories store") and M2.4 ("basic store") both claim it
-and now run in parallel — one owns, the other consumes. M2.7 as
-sketched carries four independently buildable pieces that should
-split out so the tail isn't a one-person serialization point: the
-ID-substitution lib (pure library, zero deps, day-one); the
-`PhaseNode` resolver-input declaration with config pre-flight
-(framework addition over M1 code, day-one); the crash-recovery
-modal and story-settings parse-failure badge (UI over 1.7a slots,
-day-one); the `callWithRetry` promotion with its AI-SDK call config
-(pairs with M2.1). M2.7 proper keeps end-to-end wiring and the
-smoke-scaffolding teardown.
-
-**Gates.** Nothing; M1 spine is the only prereq.
-
-**Scope: out.** Memory pipeline, entity tracking, branches,
-chapters, translation, story settings depth, app settings depth,
-multiple providers, vault.
+**Promoted** — defined in
+[`milestones/02-first-user-loop/`](./milestones/02-first-user-loop/milestone.md)
+(milestone + ten slice docs).
 
 ---
 

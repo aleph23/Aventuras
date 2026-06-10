@@ -15,3 +15,8 @@ directory (`NN-name/`) with a `milestone.md` definition and a
   action arms, landed up front so feature milestones build against a
   complete substrate and parallelize. Inserted between M1 and M2; not
   a renumber (M2–M9 stay provisional roadmap entries).
+- [Milestone 2 — First user loop](./02-first-user-loop/milestone.md).
+  Smallest end-to-end story loop with a real provider: OAI-compat
+  provider + resolution chain, minimum-viable wizard, story list,
+  reader-composer minimum, Liquid engine + bundled pack, end-to-end
+  wiring; ten slices, eight day-one startable.
