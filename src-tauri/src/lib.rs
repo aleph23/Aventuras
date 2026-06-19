@@ -11,6 +11,8 @@ use sync::commands::{
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let migrations = vec![
         Migration {
             version: 1,
@@ -208,6 +210,12 @@ pub fn run() {
             version: 33,
             description: "vault_assistant_conversations",
             sql: include_str!("../migrations/033_vault_assistant_conversations.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 34,
+            description: "model_health_cache",
+            sql: include_str!("../migrations/034_model_health_cache.sql"),
             kind: MigrationKind::Up,
         }
     ];

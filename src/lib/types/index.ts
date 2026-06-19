@@ -117,6 +117,7 @@ export interface StorySettings {
   imageGenerationMode?: 'none' | 'agentic' | 'inline' // Image generation strategy
   backgroundImagesEnabled?: boolean
   referenceMode?: boolean
+  customSystemPrompt?: string // Per-story Liquid template override; bypasses pack template when set
 }
 
 export interface StoryEntry {
@@ -695,6 +696,7 @@ export interface APIProfile {
   fetchedModels: TextModel[] // Auto-fetched from /models endpoint
   hiddenModels: string[] // Models hidden from selection lists
   favoriteModels: string[] // Models shown at the top of selection lists
+  pingEnabled?: boolean // Opt-in: enable pings to show model availability status (OR free / NIM only)
   createdAt: number // Timestamp
 }
 
@@ -741,6 +743,7 @@ export interface UISettings {
   autoScroll: boolean
   showScrollToTop: boolean
   showScrollToBottom: boolean
+  storyMaxWidth: '2xl' | '3xl' | '4xl' | '5xl' | '7xl' | '9xl'
 }
 
 export interface UpdateSettings {

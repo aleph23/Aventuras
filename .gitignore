@@ -124,6 +124,8 @@ DerivedData/
 .project
 .classpath
 .settings/
+.devcontainer/
+.devcontainer
 *.settings
 
 # JetBrains
@@ -246,6 +248,7 @@ CLAUDE.md
 .claude/
 scripts/ralph/
 tasks/
+docs/superpowers/
 
 # -----------------------------------------------------------------------------
 # Antigravity
@@ -274,6 +277,7 @@ aventura-release.keystore.old
 key.properties
 nul
 test_data/
+debug_screenshot/
 .agent/
 .roo/rules-merge-resolver/
 .roomodes

@@ -616,7 +616,6 @@
         }
 
         if (event.type === 'phase_complete' && event.phase === 'narrative' && fullResponse.trim()) {
-          ui.endStreaming()
           narrationEntry = await story.addEntry(
             'narration',
             fullResponse,
@@ -624,6 +623,7 @@
             fullReasoning || undefined,
             narrationEntryId,
           )
+          ui.endStreaming()
           emitNarrativeResponse(narrationEntry.id, fullResponse)
           if (inlineImageTracker?.hasPendingImages) await inlineImageTracker.flushToDatabase()
         }
@@ -1083,6 +1083,10 @@
 
   async function handleRetryLastMessage() {
     const backup = ui.retryBackup
+    console.log('[handleRetryLastMessage] called', {
+      hasBackup: !!backup,
+      isGenerating: ui.isGenerating,
+    })
     if (!backup || ui.isGenerating || !story.currentStory) return
     if (backup.storyId !== story.currentStory.id) {
       ui.clearRetryBackup(false)
@@ -1094,6 +1098,7 @@
     ui.clearGenerationError()
     ui.clearSuggestions(storyId)
     ui.clearActionChoices(storyId)
+    ui.setLastRetrievalResult(null)
     lastImageGenContext = null
 
     const result = await retryService.handleRetryLastMessage(
