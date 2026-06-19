@@ -22,6 +22,8 @@
     Zap,
   } from 'lucide-svelte'
   import { fade } from 'svelte/transition'
+  import { vaultEditor } from '$lib/stores/vaultEditorStore.svelte'
+  import { computeDelta } from '$lib/utils/vaultMerge'
 
   interface Props {
     change: VaultPendingChange
@@ -199,6 +201,12 @@
 
   // --- Computed display data per entity type ---
 
+  function formatEntityData(data: Record<string, unknown>): string {
+    if (change.entityType === 'character') return formatCharacter(data)
+    if (change.entityType === 'scenario') return formatScenario(data)
+    return ''
+  }
+
   function formatChangeData(): string {
     if (!('data' in change)) return ''
     if (change.entityType === 'character') {
@@ -241,6 +249,27 @@
       ? change.previousEntries
       : undefined,
   )
+
+  // --- Single-change preview for update entities (character / scenario) ---
+  // Shows what the entity would look like if ONLY this change were approved,
+  // starting from the original state and applying this change's delta.
+  // Uses the edited version if the user modified it in the editor.
+
+  const afterData = $derived.by(() => {
+    if (change.action !== 'update') return null
+    if (change.entityType !== 'character' && change.entityType !== 'scenario') return null
+    if (!('previous' in change) || !change.previous) return null
+
+    const effective = vaultEditor.getEffectiveChange(change)
+    const data = (effective as { data?: Record<string, unknown> }).data
+    const prev = (effective as { previous?: Record<string, unknown> }).previous
+    if (!data) return null
+
+    const base = JSON.parse(JSON.stringify(change.previous)) as Record<string, unknown>
+    const delta = computeDelta(data, prev ?? (change.previous as Record<string, unknown>))
+    Object.assign(base, delta)
+    return base
+  })
 </script>
 
 <div
@@ -356,7 +385,11 @@
           <div
             class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
           >
-            {formatChangeData()}
+            {#if afterData}
+              {formatEntityData(afterData)}
+            {:else}
+              {formatChangeData()}
+            {/if}
           </div>
         </div>
       </div>
