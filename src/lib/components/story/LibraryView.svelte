@@ -42,13 +42,10 @@
 
   async function deleteStory(storyId: string, event: MouseEvent) {
     event.stopPropagation()
-    const confirmed = await ask(
-      'Are you sure you want to delete this story? This action cannot be undone.',
-      {
-        title: 'Delete Story',
-        kind: 'warning',
-      },
-    )
+    const confirmed = await ask('Are you sure you want to delete this story? This action cannot be undone.', {
+      title: 'Delete Story',
+      kind: 'warning',
+    })
     if (confirmed) {
       await story.deleteStory(storyId)
     }
@@ -88,12 +85,8 @@
     <!-- Header -->
     <div class="mb-6 flex flex-row items-start justify-between gap-3 sm:mb-8 sm:gap-4">
       <div class="mr-2 min-w-0 flex-1">
-        <h1 class="text-foreground truncate pb-1 text-xl font-bold tracking-tight sm:text-3xl">
-          Story Library
-        </h1>
-        <p class="text-muted-foreground -mt-1 truncate text-sm sm:text-base">
-          Your adventures await...
-        </p>
+        <h1 class="text-foreground truncate pb-1 text-xl font-bold tracking-tight sm:text-3xl">Story Library</h1>
+        <p class="text-muted-foreground -mt-1 truncate text-sm sm:text-base">Your adventures await...</p>
       </div>
       <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <Button
@@ -110,13 +103,7 @@
           title="Vault"
           onclick={() => ui.setActivePanel('vault')}
         />
-        <Button
-          icon={Upload}
-          label="Import"
-          variant="outline"
-          title="Import Story"
-          onclick={triggerImport}
-        />
+        <Button icon={Upload} label="Import" variant="outline" title="Import Story" onclick={triggerImport} />
         <input
           type="file"
           accept="*/*,.avt,.json,application/json,application/octet-stream"
@@ -131,13 +118,7 @@
           title="Import from SillyTavern"
           onclick={openSTImportWizard}
         />
-        <Button
-          variant="default"
-          icon={Plus}
-          label="New Story"
-          title="New Story"
-          onclick={openSetupWizard}
-        />
+        <Button variant="default" icon={Plus} label="New Story" title="New Story" onclick={openSetupWizard} />
       </div>
     </div>
 

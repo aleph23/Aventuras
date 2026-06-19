@@ -36,15 +36,9 @@ export function createFandomTools(context: FandomToolContext) {
       description:
         'Search for articles on a Fandom wiki (e.g., "harrypotter", "starwars", "lotr"). Returns article titles and snippets.',
       inputSchema: z.object({
-        wiki: z
-          .string()
-          .describe('The wiki subdomain (e.g., "harrypotter", "starwars", "lotr", "elderscrolls")'),
+        wiki: z.string().describe('The wiki subdomain (e.g., "harrypotter", "starwars", "lotr", "elderscrolls")'),
         query: z.string().describe('Search query'),
-        limit: z
-          .number()
-          .optional()
-          .default(10)
-          .describe('Maximum results to return (default: 10, max: 50)'),
+        limit: z.number().optional().default(10).describe('Maximum results to return (default: 10, max: 50)'),
       }),
       execute: async ({
         wiki,
@@ -113,9 +107,7 @@ export function createFandomTools(context: FandomToolContext) {
         title: z.string().describe('Exact article title'),
         sectionIndex: z
           .string()
-          .describe(
-            'Section index (use "0" for intro, or get indices from get_fandom_article_info)',
-          ),
+          .describe('Section index (use "0" for intro, or get indices from get_fandom_article_info)'),
       }),
       execute: async ({
         wiki,

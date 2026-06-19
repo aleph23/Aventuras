@@ -73,9 +73,7 @@
       <BookOpen class="h-4 w-4" />
       Available in Vault
     </h4>
-    <Button variant="link" size="sm" class="h-auto p-0 text-xs" onclick={onNavigateToVault}>
-      Manage Vault
-    </Button>
+    <Button variant="link" size="sm" class="h-auto p-0 text-xs" onclick={onNavigateToVault}>Manage Vault</Button>
   </div>
 
   <UniversalVaultBrowser
@@ -111,12 +109,7 @@
         Imported Lorebooks ({importedLorebooks.length})
       </h3>
       {#if importedLorebooks.length > 1}
-        <Button
-          variant="ghost"
-          size="sm"
-          onclick={onClearAll}
-          class="text-muted-foreground hover:text-destructive h-8"
-        >
+        <Button variant="ghost" size="sm" onclick={onClearAll} class="text-muted-foreground hover:text-destructive h-8">
           Clear All
         </Button>
       {/if}
@@ -124,11 +117,7 @@
 
     <div class="grid gap-3">
       {#each importedLorebooks as lorebook (lorebook.id)}
-        <Collapsible.Root
-          open={lorebook.expanded}
-          onOpenChange={() => onToggleExpanded(lorebook.id)}
-          class="group"
-        >
+        <Collapsible.Root open={lorebook.expanded} onOpenChange={() => onToggleExpanded(lorebook.id)} class="group">
           <Card.Root
             class={cn(
               'border-muted-foreground/20 bg-muted/10 overflow-hidden transition-all',
@@ -146,10 +135,7 @@
                 disabled={lorebook.isLoading}
               >
                 <ChevronRight
-                  class={cn(
-                    'h-4 w-4 transition-transform duration-200',
-                    lorebook.expanded && 'rotate-90',
-                  )}
+                  class={cn('h-4 w-4 transition-transform duration-200', lorebook.expanded && 'rotate-90')}
                 />
               </Collapsible.Trigger>
 
@@ -185,18 +171,14 @@
                       {#if lorebook.classificationProgress}
                         <span
                           >{Math.round(
-                            (lorebook.classificationProgress.current /
-                              lorebook.classificationProgress.total) *
-                              100,
+                            (lorebook.classificationProgress.current / lorebook.classificationProgress.total) * 100,
                           )}%</span
                         >
                       {/if}
                     </p>
                     {#if lorebook.classificationProgress}
                       <Progress
-                        value={(lorebook.classificationProgress.current /
-                          lorebook.classificationProgress.total) *
-                          100}
+                        value={(lorebook.classificationProgress.current / lorebook.classificationProgress.total) * 100}
                         class="h-1.5"
                       />
                     {/if}
@@ -248,21 +230,14 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-2 pb-1">
-                  <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                    Preview
-                  </h4>
+                  <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Preview</h4>
                 </div>
 
                 <ScrollArea class="bg-background h-45 w-full rounded-md border">
                   <div class="space-y-1 p-2">
                     {#each lorebook.entries.slice(0, 10) as entry (entry.name)}
-                      <div
-                        class="hover:bg-muted/50 flex items-center gap-2 rounded-sm p-2 text-sm transition-colors"
-                      >
-                        <Badge
-                          variant="outline"
-                          class="bg-muted/20 h-5 shrink-0 px-1.5 text-[10px] font-normal"
-                        >
+                      <div class="hover:bg-muted/50 flex items-center gap-2 rounded-sm p-2 text-sm transition-colors">
+                        <Badge variant="outline" class="bg-muted/20 h-5 shrink-0 px-1.5 text-[10px] font-normal">
                           <span class={getTypeColor(entry.type)}>{entry.type}</span>
                         </Badge>
                         <span class="flex-1 truncate text-xs font-medium sm:text-sm">
@@ -306,9 +281,7 @@
     <!-- Summary Card -->
     {#if importedLorebooks.length > 1 && importSummary}
       <Card.Root class="bg-primary/5 border-primary/10 shadow-none">
-        <Card.Content
-          class="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center"
-        >
+        <Card.Content class="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center">
           <div>
             <p class="text-foreground font-medium">Total Imported Content</p>
             <p class="text-muted-foreground text-xs">

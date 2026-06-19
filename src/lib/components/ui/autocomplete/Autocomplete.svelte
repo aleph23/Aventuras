@@ -57,9 +57,7 @@
     return items.filter((item) => itemLabel(item).toLowerCase().includes(search))
   })
 
-  let inputMatchesExisting = $derived(
-    items.some((item) => itemLabel(item).toLowerCase() === inputValue.toLowerCase()),
-  )
+  let inputMatchesExisting = $derived(items.some((item) => itemLabel(item).toLowerCase() === inputValue.toLowerCase()))
 
   let showCustomOption = $derived(allowCustom && inputValue.length > 0 && !inputMatchesExisting)
 
@@ -145,9 +143,7 @@
     if (open && !virtualized && selectedIndex >= 0) {
       // Find the selected item element after the popover has opened and rendered
       setTimeout(() => {
-        const selectedEl = document.querySelector(
-          `[data-autocomplete-item-index="${selectedIndex}"]`,
-        )
+        const selectedEl = document.querySelector(`[data-autocomplete-item-index="${selectedIndex}"]`)
         if (selectedEl) {
           selectedEl.scrollIntoView({ block: 'nearest' })
         }
@@ -197,29 +193,18 @@
                     {#snippet item({ style, index })}
                       <div {style}>
                         {#if showCustomOption && index === 0}
-                          <Command.Item
-                            value={`__custom__${inputValue}`}
-                            onSelect={handleCustomSelection}
-                          >
+                          <Command.Item value={`__custom__${inputValue}`} onSelect={handleCustomSelection}>
                             <Plus class="mr-2 h-4 w-4" />
                             Use "{inputValue}"
                           </Command.Item>
                         {:else}
                           {@const itemIndex = showCustomOption ? index - 1 : index}
                           {@const itemData = filteredItems[itemIndex]}
-                          <Command.Item
-                            value={itemValue(itemData)}
-                            onSelect={() => handleSelect(itemData)}
-                          >
+                          <Command.Item value={itemValue(itemData)} onSelect={() => handleSelect(itemData)}>
                             {#if itemSnippet}
                               {@render itemSnippet(itemData, itemIndex)}
                             {:else}
-                              <Check
-                                class={cn(
-                                  'mr-2 h-4 w-4',
-                                  isSelected(itemData) ? 'opacity-100' : 'opacity-0',
-                                )}
-                              />
+                              <Check class={cn('mr-2 h-4 w-4', isSelected(itemData) ? 'opacity-100' : 'opacity-0')} />
                               <span class="truncate">{itemLabel(itemData)}</span>
                             {/if}
                           </Command.Item>
@@ -245,9 +230,7 @@
                   {#if itemSnippet}
                     {@render itemSnippet(itemData, i)}
                   {:else}
-                    <Check
-                      class={cn('mr-2 h-4 w-4', isSelected(itemData) ? 'opacity-100' : 'opacity-0')}
-                    />
+                    <Check class={cn('mr-2 h-4 w-4', isSelected(itemData) ? 'opacity-100' : 'opacity-0')} />
                     <span class="truncate">{itemLabel(itemData)}</span>
                   {/if}
                 </Command.Item>

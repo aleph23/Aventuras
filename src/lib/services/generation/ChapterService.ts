@@ -3,15 +3,7 @@
  * Coordinates AI analysis and chapter creation without triggering lore management directly.
  */
 
-import type {
-  Chapter,
-  StoryEntry,
-  MemoryConfig,
-  TimeTracker,
-  StoryMode,
-  POV,
-  Tense,
-} from '$lib/types'
+import type { Chapter, StoryEntry, MemoryConfig, TimeTracker, StoryMode, POV, Tense } from '$lib/types'
 import type { ChapterAnalysis, ChapterSummaryResult } from '$lib/services/ai/sdk/schemas/memory'
 import { createLogger } from '$lib/log'
 
@@ -75,8 +67,7 @@ export class ChapterService {
   }
 
   async checkAndCreateChapter(input: ChapterCheckInput): Promise<ChapterCreationResult> {
-    const { entries, tokensOutsideBuffer, memoryConfig, currentBranchChapters, mode, pov, tense } =
-      input
+    const { entries, tokensOutsideBuffer, memoryConfig, currentBranchChapters, mode, pov, tense } = input
 
     log('checkAndCreateChapter', {
       tokensSinceLastChapter: input.tokensSinceLastChapter,
@@ -127,10 +118,7 @@ export class ChapterService {
       return { created: false, loreManagementTriggered: false }
     }
 
-    const clampedEndIndex = Math.min(
-      Math.max(analysis.optimalEndIndex, startIndex + 1),
-      maxSelectableEndIndex,
-    )
+    const clampedEndIndex = Math.min(Math.max(analysis.optimalEndIndex, startIndex + 1), maxSelectableEndIndex)
 
     if (clampedEndIndex !== analysis.optimalEndIndex) {
       log('Adjusted chapter endpoint to non-protected range', {
@@ -155,13 +143,7 @@ export class ChapterService {
     }
 
     const previousChapters = [...currentBranchChapters].sort((a, b) => a.number - b.number)
-    const summary = await this.deps.summarizeChapter(
-      chapterEntries,
-      previousChapters,
-      mode,
-      pov,
-      tense,
-    )
+    const summary = await this.deps.summarizeChapter(chapterEntries, previousChapters, mode, pov, tense)
     const chapterNumber = await this.deps.getNextChapterNumber()
 
     const firstEntry = chapterEntries[0]

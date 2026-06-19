@@ -34,9 +34,7 @@ class LorebookVaultStore {
     }
   }
 
-  async add(
-    input: Omit<VaultLorebook, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
-  ): Promise<VaultLorebook> {
+  async add(input: Omit<VaultLorebook, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<VaultLorebook> {
     const now = Date.now()
     const lorebook: VaultLorebook = {
       ...input,
@@ -53,9 +51,7 @@ class LorebookVaultStore {
 
   async update(id: string, updates: Partial<VaultLorebook>): Promise<void> {
     await database.updateVaultLorebook(id, updates)
-    this.lorebooks = this.lorebooks.map((lb) =>
-      lb.id === id ? { ...lb, ...updates, updatedAt: Date.now() } : lb,
-    )
+    this.lorebooks = this.lorebooks.map((lb) => (lb.id === id ? { ...lb, ...updates, updatedAt: Date.now() } : lb))
     log('Updated vault lorebook:', id)
   }
 
@@ -84,9 +80,7 @@ class LorebookVaultStore {
   ): Promise<VaultLorebook> {
     // Dedup: if an embedded lorebook from the same file already exists, reuse it
     if (linkedFrom) {
-      const existing = this.lorebooks.find(
-        (lb) => lb.originalFilename === filename && lb.name === name,
-      )
+      const existing = this.lorebooks.find((lb) => lb.originalFilename === filename && lb.name === name)
       if (existing) return existing
     }
 
@@ -123,11 +117,7 @@ class LorebookVaultStore {
   /**
    * Save lorebook entries from a story to the vault.
    */
-  async saveFromStory(
-    name: string,
-    entries: VaultLorebookEntry[],
-    storyId: string,
-  ): Promise<VaultLorebook> {
+  async saveFromStory(name: string, entries: VaultLorebookEntry[], storyId: string): Promise<VaultLorebook> {
     const entryBreakdown: Record<EntryType, number> = {
       character: 0,
       location: 0,

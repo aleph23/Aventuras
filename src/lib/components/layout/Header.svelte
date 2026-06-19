@@ -42,44 +42,34 @@
 
   // Subscribe to image generation events
   onMount(() => {
-    const unsubAnalysisStarted = eventBus.subscribe<ImageAnalysisStartedEvent>(
-      'ImageAnalysisStarted',
+    const unsubAnalysisStarted = eventBus.subscribe<ImageAnalysisStartedEvent>('ImageAnalysisStarted', () =>
+      ui.setImageAnalysisInProgress(true),
+    )
+
+    const unsubAnalysisComplete = eventBus.subscribe<ImageAnalysisCompleteEvent>('ImageAnalysisComplete', () =>
+      ui.setImageAnalysisInProgress(false),
+    )
+
+    const unsubImageQueued = eventBus.subscribe<ImageQueuedEvent>('ImageQueued', () => ui.incrementImagesGenerating())
+
+    const unsubImageReady = eventBus.subscribe<ImageReadyEvent>('ImageReady', () => ui.decrementImagesGenerating())
+
+    const unsubBackgroundImageAnalysisStarted = eventBus.subscribe<BackgroundImageAnalysisStartedEvent>(
+      'BackgroundImageAnalysisStarted',
       () => ui.setImageAnalysisInProgress(true),
     )
 
-    const unsubAnalysisComplete = eventBus.subscribe<ImageAnalysisCompleteEvent>(
-      'ImageAnalysisComplete',
+    const unsubBackgroundImageAnalysisComplete = eventBus.subscribe<BackgroundImageAnalysisCompleteEvent>(
+      'BackgroundImageAnalysisComplete',
       () => ui.setImageAnalysisInProgress(false),
     )
 
-    const unsubImageQueued = eventBus.subscribe<ImageQueuedEvent>('ImageQueued', () =>
+    const unsubBackgroundImageQueued = eventBus.subscribe<BackgroundImageQueuedEvent>('BackgroundImageQueued', () =>
       ui.incrementImagesGenerating(),
     )
 
-    const unsubImageReady = eventBus.subscribe<ImageReadyEvent>('ImageReady', () =>
+    const unsubBackgroundImageReady = eventBus.subscribe<BackgroundImageReadyEvent>('BackgroundImageReady', () =>
       ui.decrementImagesGenerating(),
-    )
-
-    const unsubBackgroundImageAnalysisStarted =
-      eventBus.subscribe<BackgroundImageAnalysisStartedEvent>(
-        'BackgroundImageAnalysisStarted',
-        () => ui.setImageAnalysisInProgress(true),
-      )
-
-    const unsubBackgroundImageAnalysisComplete =
-      eventBus.subscribe<BackgroundImageAnalysisCompleteEvent>(
-        'BackgroundImageAnalysisComplete',
-        () => ui.setImageAnalysisInProgress(false),
-      )
-
-    const unsubBackgroundImageQueued = eventBus.subscribe<BackgroundImageQueuedEvent>(
-      'BackgroundImageQueued',
-      () => ui.incrementImagesGenerating(),
-    )
-
-    const unsubBackgroundImageReady = eventBus.subscribe<BackgroundImageReadyEvent>(
-      'BackgroundImageReady',
-      () => ui.decrementImagesGenerating(),
     )
 
     return () => {
@@ -106,10 +96,7 @@
       }
     } catch (error) {
       console.error('[Header] Export failed:', error)
-      ui.showToast(
-        `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'error',
-      )
+      ui.showToast(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
     }
   }
 
@@ -140,14 +127,7 @@
     const currentStory = story.currentStory
     if (!currentStory) return
     await handleExport(
-      () =>
-        exportService.exportToMarkdown(
-          currentStory,
-          story.entries,
-          story.characters,
-          story.locations,
-          true,
-        ),
+      () => exportService.exportToMarkdown(currentStory, story.entries, story.characters, story.locations, true),
       'Markdown (.md)',
     )
   }
@@ -155,10 +135,7 @@
   async function exportText() {
     const currentStory = story.currentStory
     if (!currentStory) return
-    await handleExport(
-      () => exportService.exportToText(currentStory, story.entries),
-      'Plain Text (.txt)',
-    )
+    await handleExport(() => exportService.exportToText(currentStory, story.entries), 'Plain Text (.txt)')
   }
 </script>
 
@@ -184,9 +161,7 @@
   </DropdownMenu.Item>
 {/snippet}
 
-<header
-  class="bg-card relative z-10 flex h-12 items-center justify-between border-b px-1 sm:h-14 sm:px-4"
->
+<header class="bg-card relative z-10 flex h-12 items-center justify-between border-b px-1 sm:h-14 sm:px-4">
   <!-- Left side: Story title -->
   <div class="flex min-w-0 flex-1 items-center">
     <div class="flex min-w-0 items-center gap-3 px-2.5 sm:px-1">
@@ -198,15 +173,11 @@
       ></div>
       {#if story.currentStory}
         <div class="flex min-w-0 items-center gap-2">
-          <span
-            class="text-foreground truncate text-sm font-semibold sm:translate-y-[-1.5px] sm:text-base"
-          >
+          <span class="text-foreground truncate text-sm font-semibold sm:translate-y-[-1.5px] sm:text-base">
             {story.currentStory.title}
           </span>
           {#if ui.isGenerating}
-            <div
-              class="bg-accent-500 h-2 w-2 flex-shrink-0 animate-pulse rounded-full sm:hidden"
-            ></div>
+            <div class="bg-accent-500 h-2 w-2 flex-shrink-0 animate-pulse rounded-full sm:hidden"></div>
           {/if}
         </div>
         {#if settings.uiSettings.showWordCount}
@@ -233,10 +204,7 @@
 
       <!-- Image generation status indicators -->
       {#if ui.imageAnalysisInProgress}
-        <div
-          class="flex items-center gap-1.5 text-sm text-blue-400"
-          title="Analyzing scene for images"
-        >
+        <div class="flex items-center gap-1.5 text-sm text-blue-400" title="Analyzing scene for images">
           <ImageIcon class="h-3.5 w-3.5 animate-pulse" />
           <span class="hidden sm:inline">Analyzing...</span>
         </div>

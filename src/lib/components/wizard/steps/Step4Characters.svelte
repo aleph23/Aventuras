@@ -1,16 +1,6 @@
 <script lang="ts">
   import { slide } from 'svelte/transition'
-  import {
-    Archive,
-    Loader2,
-    Check,
-    Sparkles,
-    PenTool,
-    User,
-    RefreshCw,
-    ChevronDown,
-    AlertCircle,
-  } from 'lucide-svelte'
+  import { Archive, Loader2, Check, Sparkles, PenTool, User, RefreshCw, ChevronDown, AlertCircle } from 'lucide-svelte'
   import UniversalVaultBrowser from '$lib/components/vault/UniversalVaultBrowser.svelte'
   import type { ExpandedSetting, GeneratedProtagonist } from '$lib/services/ai/sdk'
   import type { StoryMode, VaultCharacter } from '$lib/types'
@@ -187,28 +177,17 @@
           <Archive class="h-4 w-4" />
           Load from Vault
         </h4>
-        <Button
-          variant="link"
-          size="sm"
-          class="h-auto p-0 text-xs"
-          onclick={() => onNavigateToVault?.()}
-        >
+        <Button variant="link" size="sm" class="h-auto p-0 text-xs" onclick={() => onNavigateToVault?.()}>
           Manage Vault
         </Button>
       </div>
 
-      <div
-        class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm"
-      >
+      <div class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm">
         <Collapsible.Root open={showVaultPicker} onOpenChange={(open) => (showVaultPicker = open)}>
           <div class="flex items-center gap-3 p-3 pl-4">
-            <Collapsible.Trigger
-              class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left"
-            >
+            <Collapsible.Trigger class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left">
               <div class="flex items-center gap-3">
-                <div
-                  class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-                >
+                <div class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors">
                   <User class="text-primary h-4 w-4" />
                 </div>
                 <div class="text-left">
@@ -216,9 +195,7 @@
                     {loadedVaultCharacterId ? 'Character Selected' : 'Select a Character'}
                   </div>
                   <div class="text-muted-foreground text-xs">
-                    {loadedVaultCharacterId
-                      ? 'Click to change selection'
-                      : 'Browse your saved protagonists'}
+                    {loadedVaultCharacterId ? 'Click to change selection' : 'Browse your saved protagonists'}
                   </div>
                 </div>
               </div>
@@ -250,10 +227,7 @@
 
     <!-- Create/Edit Section -->
     {#if !protagonist || isEditingProtagonist}
-      <div
-        class="bg-card text-card-foreground space-y-4 rounded-lg border p-4 shadow-sm"
-        transition:slide
-      >
+      <div class="bg-card text-card-foreground space-y-4 rounded-lg border p-4 shadow-sm" transition:slide>
         <div class="space-y-1">
           <h4 class="text-foreground flex items-center gap-2 text-sm font-medium">
             <User class="h-4 w-4" />
@@ -279,9 +253,7 @@
             id="char-name"
             value={isEditingProtagonist ? editName : manualCharacterName}
             oninput={(e) =>
-              isEditingProtagonist
-                ? (editName = e.currentTarget.value)
-                : onManualNameChange(e.currentTarget.value)}
+              isEditingProtagonist ? (editName = e.currentTarget.value) : onManualNameChange(e.currentTarget.value)}
             placeholder="e.g., Alex, Jordan..."
           />
           <Input
@@ -342,10 +314,7 @@
         <!-- AI Options & Actions -->
         <div class="space-y-4 pt-2">
           {#if !isEditingProtagonist}
-            <Collapsible.Root
-              open={showAdjustWithAI}
-              onOpenChange={(open) => (showAdjustWithAI = open)}
-            >
+            <Collapsible.Root open={showAdjustWithAI} onOpenChange={(open) => (showAdjustWithAI = open)}>
               <div class="flex items-center justify-between">
                 <Button
                   variant="outline"
@@ -355,26 +324,17 @@
                 >
                   <Sparkles class="h-3.5 w-3.5" />
                   {showAdjustWithAI ? 'Hide AI Options' : 'Expand with AI'}
-                  <ChevronDown
-                    class="h-3 w-3 transition-transform {showAdjustWithAI ? 'rotate-180' : ''}"
-                  />
+                  <ChevronDown class="h-3 w-3 transition-transform {showAdjustWithAI ? 'rotate-180' : ''}" />
                 </Button>
 
-                <Button
-                  size="sm"
-                  onclick={onUseManualCharacter}
-                  disabled={!manualCharacterName.trim()}
-                  class="gap-2"
-                >
+                <Button size="sm" onclick={onUseManualCharacter} disabled={!manualCharacterName.trim()} class="gap-2">
                   <Check class="h-3.5 w-3.5" />
                   Use Character
                 </Button>
               </div>
 
               <Collapsible.Content>
-                <div
-                  class="bg-card text-card-foreground mt-3 space-y-4 rounded-lg border p-4 shadow-sm"
-                >
+                <div class="bg-card text-card-foreground mt-3 space-y-4 rounded-lg border p-4 shadow-sm">
                   <div class="space-y-2">
                     <Label for="ai-guidance" class="text-xs">AI Guidance (Optional)</Label>
                     <Textarea
@@ -512,14 +472,10 @@
               <div class="flex flex-wrap gap-1.5 pt-0.5">
                 {#if Array.isArray(protagonist.traits)}
                   {#each protagonist.traits as trait (trait)}
-                    <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-normal"
-                      >{trait}</Badge
-                    >
+                    <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-normal">{trait}</Badge>
                   {/each}
                 {:else if typeof protagonist.traits === 'string'}
-                  <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-normal"
-                    >{protagonist.traits}</Badge
-                  >
+                  <Badge variant="secondary" class="h-5 px-1.5 text-[10px] font-normal">{protagonist.traits}</Badge>
                 {/if}
               </div>
             {/if}

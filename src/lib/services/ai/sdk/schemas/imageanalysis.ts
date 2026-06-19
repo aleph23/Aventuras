@@ -13,24 +13,12 @@ import { z } from 'zod'
 export const imageableSceneSchema = z.object({
   prompt: z
     .string()
-    .describe(
-      'Detailed image generation prompt (below 500 characters for standard, shorter for reference mode)',
-    ),
-  sourceText: z
-    .string()
-    .describe('Exact verbatim quote from narrative (3-15 words) for text matching'),
-  sceneType: z
-    .enum(['action', 'item', 'character', 'environment'])
-    .describe('Type of visual moment'),
+    .describe('Detailed image generation prompt (below 500 characters for standard, shorter for reference mode)'),
+  sourceText: z.string().describe('Exact verbatim quote from narrative (3-15 words) for text matching'),
+  sceneType: z.enum(['action', 'item', 'character', 'environment']).describe('Type of visual moment'),
   priority: z.number().min(1).max(10).describe('Priority 1-10, higher = more important'),
-  characters: z
-    .array(z.string())
-    .default([])
-    .describe('Character names depicted (up to 3, first is primary)'),
-  generatePortrait: z
-    .boolean()
-    .default(false)
-    .describe('If true, generate a portrait for the first character'),
+  characters: z.array(z.string()).default([]).describe('Character names depicted (up to 3, first is primary)'),
+  generatePortrait: z.boolean().default(false).describe('If true, generate a portrait for the first character'),
 })
 
 /**

@@ -114,9 +114,7 @@
 
   const isCreativeMode = $derived(story.storyMode === 'creative-writing')
 
-  const sendKeyHint = $derived(
-    isTouchDevice() ? 'Shift+Enter to send' : 'Enter to send, Shift+Enter for new line',
-  )
+  const sendKeyHint = $derived(isTouchDevice() ? 'Shift+Enter to send' : 'Enter to send, Shift+Enter for new line')
 
   // Block generation when any service is missing a model or has an invalid profile
   const blockGeneration = $derived(settings.hasGenerationConfigIssues)
@@ -198,8 +196,7 @@
 
   $effect(() => {
     const storyId = story.currentStory?.id ?? null
-    if (!storyId || (lastImageGenContext && lastImageGenContext.storyId !== storyId))
-      lastImageGenContext = null
+    if (!storyId || (lastImageGenContext && lastImageGenContext.storyId !== storyId)) lastImageGenContext = null
   })
 
   $effect(() => {
@@ -245,12 +242,7 @@
       runTimelineFill: (visibleEntries, chapters) =>
         aiService.runTimelineFill(visibleEntries, chapters, story.getChapterEntries.bind(story)),
       answerChapterQuestion: (chapterNumber, question, chapters) =>
-        aiService.answerChapterQuestion(
-          chapterNumber,
-          question,
-          chapters,
-          story.getChapterEntries.bind(story),
-        ),
+        aiService.answerChapterQuestion(chapterNumber, question, chapters, story.getChapterEntries.bind(story)),
       answerChapterRangeQuestion: (startChapter, endChapter, question, chapters) =>
         aiService.answerChapterRangeQuestion(
           startChapter,
@@ -271,8 +263,7 @@
           imageSettings: settings.systemServicesSettings.imageGeneration,
           getImageProfile: (id) => settings.getImageProfile(id),
         }),
-      isImageGenerationEnabled: (storySettings, type) =>
-        aiService.isImageGenerationEnabled(storySettings, type),
+      isImageGenerationEnabled: (storySettings, type) => aiService.isImageGenerationEnabled(storySettings, type),
       generateSuggestions: aiService.generateSuggestions.bind(aiService),
       translateSuggestions: aiService.translateSuggestions.bind(aiService),
       generateActionChoices: aiService.generateActionChoices.bind(aiService),
@@ -301,10 +292,7 @@
     }
   }
 
-  function buildBackgroundTaskInput(
-    countStyleReview: boolean,
-    styleReviewSource: string,
-  ): BackgroundTaskInput {
+  function buildBackgroundTaskInput(countStyleReview: boolean, styleReviewSource: string): BackgroundTaskInput {
     const storyId = story.currentStory?.id ?? ''
     const mode = story.currentStory?.mode ?? 'adventure'
 
@@ -388,16 +376,14 @@
    */
   async function sendGenerationNotification(responseText: string, success: boolean) {
     try {
-      const { sendNotification, isPermissionGranted } =
-        await import('@tauri-apps/plugin-notification')
+      const { sendNotification, isPermissionGranted } = await import('@tauri-apps/plugin-notification')
       const permitted = await isPermissionGranted()
       if (!permitted) return
 
       if (success) {
         const previewText =
           settings.experimentalFeatures.notificationPreview && responseText.length > 0
-            ? responseText.slice(0, 120).replace(/[<>]/g, '') +
-              (responseText.length > 120 ? '…' : '')
+            ? responseText.slice(0, 120).replace(/[<>]/g, '') + (responseText.length > 120 ? '…' : '')
             : 'Tap to return to your story.'
         sendNotification({
           title: 'Story generation complete',
@@ -418,10 +404,7 @@
 
   /** Send a failure notification if the user was backgrounded during this generation. */
   async function notifyFailureIfBackgrounded() {
-    if (
-      ui.wasBackgroundedDuringGeneration &&
-      settings.experimentalFeatures.generationNotifications
-    ) {
+    if (ui.wasBackgroundedDuringGeneration && settings.experimentalFeatures.generationNotifications) {
       await sendGenerationNotification('', false)
     }
   }
@@ -436,8 +419,7 @@
     },
   ) {
     const countStyleReview = options?.countStyleReview ?? true
-    const styleReviewSource =
-      options?.styleReviewSource ?? (countStyleReview ? 'new' : 'regenerate')
+    const styleReviewSource = options?.styleReviewSource ?? (countStyleReview ? 'new' : 'regenerate')
 
     if (!story.currentStory) return
 
@@ -458,11 +440,7 @@
 
     let inlineImageTracker: InlineImageTracker | null = null
     if (inlineImageMode) {
-      inlineImageTracker = new InlineImageTracker(
-        currentStoryRef.id,
-        narrationEntryId,
-        () => story.characters,
-      )
+      inlineImageTracker = new InlineImageTracker(currentStoryRef.id, narrationEntryId, () => story.characters)
     }
 
     // Android: start foreground service to keep process alive when backgrounded
@@ -562,9 +540,7 @@
             .updateStoryEntry(narrationEntry.id, {
               suggestedActions: JSON.stringify(actions),
             })
-            .catch((err) =>
-              console.warn(`[ActionInput] Failed to save suggested ${type} to entry:`, err),
-            )
+            .catch((err) => console.warn(`[ActionInput] Failed to save suggested ${type} to entry:`, err))
         }
       }
 
@@ -610,10 +586,7 @@
           fullResponse += event.content
           if (event.reasoning) fullReasoning += event.reasoning
           if (inlineImageTracker)
-            inlineImageTracker.processChunk(
-              fullResponse,
-              currentStoryRef.settings?.referenceMode ?? false,
-            )
+            inlineImageTracker.processChunk(fullResponse, currentStoryRef.settings?.referenceMode ?? false)
         }
 
         if (event.type === 'phase_complete' && event.phase === 'narrative' && fullResponse.trim()) {
@@ -640,9 +613,7 @@
 
           if (currentStoryRef.settings?.imageGenerationMode !== 'none') {
             const presentCharacters = story.characters.filter(
-              (c) =>
-                event.result.scene.presentCharacterNames.includes(c.name) ||
-                c.relationship === 'self',
+              (c) => event.result.scene.presentCharacterNames.includes(c.name) || c.relationship === 'self',
             )
             const imageGenChatHistory = story.visibleEntries
               .filter((e) => e.type === 'user_action' || e.type === 'narration')
@@ -655,8 +626,7 @@
               narrativeResponse: fullResponse,
               userAction: userActionContent,
               presentCharacters,
-              currentLocation:
-                event.result.scene.currentLocationName ?? worldState.currentLocation?.name,
+              currentLocation: event.result.scene.currentLocationName ?? worldState.currentLocation?.name,
               chatHistory: imageGenChatHistory,
               lorebookContext: undefined,
               referenceMode: currentStoryRef.settings?.referenceMode ?? false,
@@ -748,9 +718,7 @@
       const coordinator = new BackgroundTaskCoordinator(buildBackgroundTaskDependencies())
       const input = buildBackgroundTaskInput(countStyleReview, styleReviewSource)
       if (!story.memoryConfig.autoSummarize) input.chapterCheck.tokensOutsideBuffer = 0
-      coordinator
-        .runBackgroundTasks(input)
-        .catch((err) => log('Background tasks failed (non-fatal)', err))
+      coordinator.runBackgroundTasks(input).catch((err) => log('Background tasks failed (non-fatal)', err))
 
       // Android: notify user that generation completed while app is still backgrounded.
       // Awaited so the foreground service isn't torn down before the notification fires.
@@ -768,8 +736,7 @@
       // record the error entry and send a failure notification.
       if (stopRequested) return
       console.error('[ActionInput] Generation error:', error)
-      const baseMessage =
-        error instanceof Error ? error.message : 'Failed to generate response. Please try again.'
+      const baseMessage = error instanceof Error ? error.message : 'Failed to generate response. Please try again.'
       const errorMessage = ui.wasBackgroundedDuringGeneration
         ? `Generation may have been interrupted while the app was in the background. ${baseMessage}`
         : baseMessage
@@ -828,17 +795,16 @@
         }
 
         const protagonist = story.characters.find((c) => c.relationship === 'self')
-        const promptContext: import('$lib/services/generation/phases/PostGenerationPhase').PromptContext =
-          {
-            mode: 'adventure',
-            pov: story.pov,
-            tense: story.tense,
-            protagonistName: protagonist?.name || 'the protagonist',
-            genre: story.currentStory.genre ?? undefined,
-            settingDescription: story.currentStory.description ?? undefined,
-            tone: story.currentStory.settings?.tone ?? undefined,
-            themes: story.currentStory.settings?.themes ?? undefined,
-          }
+        const promptContext: import('$lib/services/generation/phases/PostGenerationPhase').PromptContext = {
+          mode: 'adventure',
+          pov: story.pov,
+          tense: story.tense,
+          protagonistName: protagonist?.name || 'the protagonist',
+          genre: story.currentStory.genre ?? undefined,
+          settingDescription: story.currentStory.description ?? undefined,
+          tone: story.currentStory.settings?.tone ?? undefined,
+          themes: story.currentStory.settings?.themes ?? undefined,
+        }
 
         const worldState = {
           characters: story.characters,
@@ -865,9 +831,7 @@
             .updateStoryEntry(lastNarration.id, {
               suggestedActions: JSON.stringify(result.choices),
             })
-            .catch((err) =>
-              console.warn('[ActionInput] Failed to save regenerated action choices:', err),
-            )
+            .catch((err) => console.warn('[ActionInput] Failed to save regenerated action choices:', err))
         }
       } catch (error) {
         console.warn('[ActionInput] Failed to regenerate action choices after delete:', error)
@@ -915,9 +879,7 @@
           .updateStoryEntry(lastNarration.id, {
             suggestedActions: JSON.stringify(result.suggestions),
           })
-          .catch((err) =>
-            console.warn('[ActionInput] Failed to save refreshed suggestions to entry:', err),
-          )
+          .catch((err) => console.warn('[ActionInput] Failed to save refreshed suggestions to entry:', err))
       }
     } catch (error) {
       log('Failed to generate suggestions:', error)
@@ -987,10 +949,7 @@
       story.currentStory.timeTracker,
     )
 
-    const { promptContent, originalInput } = await translateUserInput(
-      content,
-      settings.translationSettings,
-    )
+    const { promptContent, originalInput } = await translateUserInput(content, settings.translationSettings)
 
     const userActionEntry = await story.addEntry('user_action', promptContent)
 
@@ -1158,9 +1117,7 @@
 
   function handleKeydown(event: KeyboardEvent) {
     const isMobile = isTouchDevice()
-    const shouldSubmit = isMobile
-      ? event.key === 'Enter' && event.shiftKey
-      : event.key === 'Enter' && !event.shiftKey
+    const shouldSubmit = isMobile ? event.key === 'Enter' && event.shiftKey : event.key === 'Enter' && !event.shiftKey
     if (shouldSubmit) {
       event.preventDefault()
       handleSubmit()
@@ -1187,9 +1144,7 @@
 
 <div class="ml-1 space-y-3">
   {#if ui.lastGenerationError && !ui.isGenerating}
-    <div
-      class="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3"
-    >
+    <div class="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
       <div class="flex items-center gap-2 text-sm text-red-400">
         <span>Generation failed. Would you like to try again?</span>
       </div>
@@ -1216,9 +1171,7 @@
         ? 'sm:border-l-surface-600 bg-surface-400/5'
         : 'border-l-accent-500 bg-card'} relative transition-colors duration-200"
     >
-      {#if settings.uiSettings.showWordCount}<div
-          class="absolute -top-[2.05rem] -right-3 sm:hidden"
-        >
+      {#if settings.uiSettings.showWordCount}<div class="absolute -top-[2.05rem] -right-3 sm:hidden">
           <div
             class="bg-surface-800 border-surface-500/30 text-surface-400 rounded-tl-md border border-b-0 px-2 py-0.5 text-sm"
           >
@@ -1260,9 +1213,8 @@
             onclick={handleSubmit}
             disabled={!inputValue.trim() || blockGeneration}
             class="text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 flex h-11 w-11 flex-shrink-0 -translate-y-0.5 items-center justify-center rounded-lg p-0 transition-all active:scale-95 disabled:opacity-50 sm:translate-y-0"
-            title={blockGeneration
-              ? 'AI configuration incomplete — check Settings'
-              : `Send direction (${sendKeyHint})`}><Send class="h-6 w-6" /></button
+            title={blockGeneration ? 'AI configuration incomplete — check Settings' : `Send direction (${sendKeyHint})`}
+            ><Send class="h-6 w-6" /></button
           >{/if}
       </div>
     </div>
@@ -1272,9 +1224,7 @@
         ? 'sm:border-l-surface-60'
         : `${actionBorderColors[actionType]}`} bg-card relative transition-colors duration-200"
     >
-      {#if settings.uiSettings.showWordCount}<div
-          class="absolute -top-[2.05rem] -right-3 sm:hidden"
-        >
+      {#if settings.uiSettings.showWordCount}<div class="absolute -top-[2.05rem] -right-3 sm:hidden">
           <div
             class="bg-surface-800 border-surface-500/30 text-surface-400 rounded-tl-md border border-b-0 px-2 py-0.5 text-sm"
           >
@@ -1282,9 +1232,7 @@
           </div>
         </div>{/if}
       {#if !settings.uiSettings.disableActionPrefixes}
-        <div
-          class="border-surface-700/30 flex items-center gap-1 px-1 pt-0 pb-0 sm:border-b sm:px-2 sm:py-1"
-        >
+        <div class="border-surface-700/30 flex items-center gap-1 px-1 pt-0 pb-0 sm:border-b sm:px-2 sm:py-1">
           {#each actionTypes as type (type)}{@const Icon = actionIcons[type]}<button
               class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1 text-[10px] font-medium transition-all duration-150 sm:flex-none sm:px-3 sm:py-1 sm:text-xs {actionType ===
               type
@@ -1332,9 +1280,8 @@
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg p-0 transition-all active:scale-95 disabled:opacity-50 {actionButtonStyles[
               actionType
             ]} -translate-y-0.5 sm:translate-y-0"
-            title={blockGeneration
-              ? 'AI configuration incomplete — check Settings'
-              : `Send (${sendKeyHint})`}><Send class="h-6 w-6" /></button
+            title={blockGeneration ? 'AI configuration incomplete — check Settings' : `Send (${sendKeyHint})`}
+            ><Send class="h-6 w-6" /></button
           >{/if}
       </div>
     </div>
@@ -1352,9 +1299,7 @@
           : 'Generate images for the last narration'}
         class="gap-1.5 text-xs"
       >
-        {#if isManualImageGenRunning}<Loader2 class="h-4 w-4 animate-spin" />{:else}<ImageIcon
-            class="h-4 w-4"
-          />{/if}
+        {#if isManualImageGenRunning}<Loader2 class="h-4 w-4 animate-spin" />{:else}<ImageIcon class="h-4 w-4" />{/if}
         {isManualImageGenRunning ? 'Generating...' : 'Generate Images'}
       </Button>
     </div>

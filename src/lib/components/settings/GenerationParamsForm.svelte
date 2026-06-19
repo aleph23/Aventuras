@@ -3,11 +3,7 @@
   import { Brain, Settings2 } from 'lucide-svelte'
   import type { ReasoningEffort } from '$lib/types'
   import { cn } from '$lib/utils/cn'
-  import {
-    supportsReasoning,
-    supportsBinaryReasoning,
-    supportsCapabilityFetch,
-  } from '$lib/services/ai/sdk/providers'
+  import { supportsReasoning, supportsBinaryReasoning, supportsCapabilityFetch } from '$lib/services/ai/sdk/providers'
 
   import { Label } from '$lib/components/ui/label'
   import { Slider } from '$lib/components/ui/slider'
@@ -255,10 +251,7 @@
 
   <!-- Temperature & Max Output Tokens row -->
   <div
-    class={cn(
-      'grid grid-cols-1 gap-6 border-t pt-4 md:grid-cols-2',
-      isManualMode && 'pointer-events-none opacity-50',
-    )}
+    class={cn('grid grid-cols-1 gap-6 border-t pt-4 md:grid-cols-2', isManualMode && 'pointer-events-none opacity-50')}
   >
     <!-- Temperature -->
     <div class="grid gap-4">
@@ -266,14 +259,7 @@
         <Label>Temperature</Label>
         <span class="text-muted-foreground text-xs">{temperature.toFixed(2)}</span>
       </div>
-      <Slider
-        value={temperature}
-        type="single"
-        min={0}
-        max={2}
-        step={0.05}
-        onValueChange={onTemperatureChange}
-      />
+      <Slider value={temperature} type="single" min={0} max={2} step={0.05} onValueChange={onTemperatureChange} />
       <div class="text-muted-foreground flex justify-between text-xs">
         <span>Focused</span>
         <span>Creative</span>
@@ -285,9 +271,7 @@
       <div class="flex items-center justify-between">
         <div class="grid gap-0.5">
           <Label>Max Output Tokens</Label>
-          <span class="text-muted-foreground text-[10px] leading-tight">
-            Includes reasoning + response tokens
-          </span>
+          <span class="text-muted-foreground text-[10px] leading-tight"> Includes reasoning + response tokens </span>
         </div>
         <div class="flex items-center gap-1.5">
           {#if isTokenManualOverride || showNumericOverride}
@@ -308,9 +292,7 @@
               'rounded p-0.5 transition-colors',
               showNumericOverride ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
             )}
-            title={showNumericOverride
-              ? 'Close manual override (snap to slider)'
-              : 'Set exact value (expert)'}
+            title={showNumericOverride ? 'Close manual override (snap to slider)' : 'Set exact value (expert)'}
           >
             <Settings2 class="h-3.5 w-3.5" />
           </button>
@@ -354,9 +336,7 @@
           onblur={handleNumericBlur}
           placeholder="256 – 262144"
         />
-        <p class="text-muted-foreground text-[10px]">
-          Expert override: accepts any value from 256 to 262,144
-        </p>
+        <p class="text-muted-foreground text-[10px]">Expert override: accepts any value from 256 to 262,144</p>
       {/if}
     </div>
   </div>

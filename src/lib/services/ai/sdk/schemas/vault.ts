@@ -17,9 +17,7 @@ export const vaultCharacterInputSchema = z.object({
   name: z.string().describe('Character name'),
   description: z.string().nullable().describe('Brief character description'),
   traits: z.array(z.string()).describe('Personality traits'),
-  visualDescriptors: visualDescriptorsSchema.describe(
-    'Visual appearance details for image generation',
-  ),
+  visualDescriptors: visualDescriptorsSchema.describe('Visual appearance details for image generation'),
   portrait: z.string().nullable().optional().describe('Portrait data URL (usually not set by AI)'),
   tags: z.array(z.string()).describe('Tags for organization'),
   favorite: z.boolean().optional().describe('Whether this character is favorited'),
@@ -168,10 +166,7 @@ const lorebookEntryMergeSchema = z.object({
   lorebookId: z.string().describe('ID of the lorebook containing the entries'),
   entryIndices: z.array(z.number()).describe('Indices of entries to merge'),
   data: vaultLorebookEntrySchema.describe('Merged entry result'),
-  previousEntries: z
-    .array(vaultLorebookEntrySchema)
-    .optional()
-    .describe('Previous entries being merged (for undo)'),
+  previousEntries: z.array(vaultLorebookEntrySchema).optional().describe('Previous entries being merged (for undo)'),
 })
 
 // --- Scenario changes ---

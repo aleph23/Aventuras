@@ -86,9 +86,7 @@
   const revertSnapshot: VaultLorebookEntry[] = JSON.parse(
     JSON.stringify(
       untrack(() =>
-        isEmbedded
-          ? (lorebookVault.getById(lorebook.id)?.entries ?? lorebook.entries)
-          : lorebook.entries,
+        isEmbedded ? (lorebookVault.getById(lorebook.id)?.entries ?? lorebook.entries) : lorebook.entries,
       ),
     ),
   )
@@ -263,8 +261,7 @@
       }
       if (editMap.has(i)) {
         const editChange = editMap.get(i)!
-        const updateData =
-          'data' in editChange ? (editChange.data as Partial<VaultLorebookEntry>) : {}
+        const updateData = 'data' in editChange ? (editChange.data as Partial<VaultLorebookEntry>) : {}
         return {
           entry: { ...e, ...updateData } as VaultLorebookEntry,
           index: i,
@@ -317,8 +314,7 @@
     const q = searchQuery.toLowerCase()
     return all.filter(
       ({ entry }) =>
-        entry.name.toLowerCase().includes(q) ||
-        (entry.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false),
+        entry.name.toLowerCase().includes(q) || (entry.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false),
     )
   })
 
@@ -449,9 +445,7 @@
     event: Calendar,
   }
 
-  async function handleSaveClick(
-    saveHandler: (updatedLorebook: VaultLorebook) => Promise<void> | void = onSave,
-  ) {
+  async function handleSaveClick(saveHandler: (updatedLorebook: VaultLorebook) => Promise<void> | void = onSave) {
     if (saving || !_hasChanges) return
     if (!name.trim()) {
       error = 'Lorebook name is required'
@@ -698,9 +692,7 @@
 
     if (op.type === 'merge') {
       // Select the merge result entry to show its content
-      const result = combinedEntries.find(
-        (c) => c.pendingAction === 'merge-result' && c.pendingChange?.id === op.id,
-      )
+      const result = combinedEntries.find((c) => c.pendingAction === 'merge-result' && c.pendingChange?.id === op.id)
       if (result) {
         selectedIndex = result.index
       }
@@ -774,37 +766,26 @@
     </div>
   {:else if !hideHeader}
     <!-- Embedded header with close button -->
-    <div
-      class="border-surface-700 bg-surface-900 flex flex-shrink-0 items-center justify-between border-b px-4 py-2"
-    >
+    <div class="border-surface-700 bg-surface-900 flex flex-shrink-0 items-center justify-between border-b px-4 py-2">
       <div class="flex items-center gap-2">
         <div class="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-500/15">
           <List class="h-3 w-3 text-cyan-400" />
         </div>
         <span class="text-surface-200 text-xs font-semibold">Lorebook Editor</span>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        class="text-surface-400 hover:text-foreground h-6 w-6"
-        onclick={onClose}
-      >
+      <Button variant="ghost" size="icon" class="text-surface-400 hover:text-foreground h-6 w-6" onclick={onClose}>
         <X class="h-3.5 w-3.5" />
       </Button>
     </div>
   {/if}
   {#if isEmbedded && error}
-    <div
-      class="w-full border-b border-red-500/20 bg-red-500/8 py-1 text-center text-xs text-red-400"
-    >
+    <div class="w-full border-b border-red-500/20 bg-red-500/8 py-1 text-center text-xs text-red-400">
       {error}
     </div>
   {/if}
 
   <Tabs.Root bind:value={activeTab} class="flex flex-1 flex-col overflow-hidden">
-    <div
-      class="border-surface-700 bg-surface-800 flex shrink-0 items-center justify-between border-b"
-    >
+    <div class="border-surface-700 bg-surface-800 flex shrink-0 items-center justify-between border-b">
       <Tabs.List class="h-10 justify-start bg-transparent p-0">
         <Tabs.Trigger
           value="editor"
@@ -832,12 +813,7 @@
             <div class="space-y-4">
               <div class="space-y-2">
                 <Label for="name">Lorebook Name</Label>
-                <Input
-                  id="name"
-                  bind:value={name}
-                  oninput={() => (settingsDirty = true)}
-                  placeholder="Lorebook Name"
-                />
+                <Input id="name" bind:value={name} oninput={() => (settingsDirty = true)} placeholder="Lorebook Name" />
               </div>
 
               <div class="space-y-2">
@@ -868,15 +844,11 @@
               <div class="border-surface-700 bg-surface-800 rounded-xl border p-4">
                 <h4 class="text-surface-300 mb-3 text-xs font-semibold">Statistics</h4>
                 <div class="grid grid-cols-2 gap-3 text-xs">
-                  <div
-                    class="border-surface-700 bg-surface-900 flex justify-between rounded-lg border p-2.5"
-                  >
+                  <div class="border-surface-700 bg-surface-900 flex justify-between rounded-lg border p-2.5">
                     <span class="text-surface-400">Total Entries</span>
                     <span class="text-surface-200 font-semibold">{entries.length}</span>
                   </div>
-                  <div
-                    class="border-surface-700 bg-surface-900 flex justify-between rounded-lg border p-2.5"
-                  >
+                  <div class="border-surface-700 bg-surface-900 flex justify-between rounded-lg border p-2.5">
                     <span class="text-surface-400">Active Entries</span>
                     <span class="text-surface-200 font-semibold"
                       >{entries.filter((e) => e.injectionMode !== 'never').length}</span
@@ -890,8 +862,7 @@
                 <Button
                   class={cn(
                     'w-full gap-1.5',
-                    savedFeedback === 'settings' &&
-                      'bg-emerald-600 text-white hover:bg-emerald-700',
+                    savedFeedback === 'settings' && 'bg-emerald-600 text-white hover:bg-emerald-700',
                   )}
                   onclick={() => {
                     handleSaveClick()
@@ -904,9 +875,7 @@
                     <Check class="h-4 w-4" />
                     Saved
                   {:else if saving}
-                    <div
-                      class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-                    ></div>
+                    <div class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                     Saving...
                   {:else}
                     <Save class="h-4 w-4" />
@@ -971,13 +940,11 @@
               {:else}
                 {#each combinedEntries as { entry, index, isPending, pendingChange, pendingAction } (isPending ? `pending-${pendingChange?.id ?? 'x'}-${index}` : index)}
                   {@const Icon = typeIcons[entry.type]}
-                  {@const isBeingRemoved =
-                    pendingAction === 'delete' || pendingAction === 'merge-source'}
+                  {@const isBeingRemoved = pendingAction === 'delete' || pendingAction === 'merge-source'}
                   <button
                     class={cn(
                       'hover:bg-foreground/5 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-                      selectedIndex === index &&
-                        'bg-accent-500/10 text-accent-foreground ring-accent-500/20 ring-1',
+                      selectedIndex === index && 'bg-accent-500/10 text-accent-foreground ring-accent-500/20 ring-1',
                       pendingAction === 'edit' && 'border-l-2 border-l-blue-500/30',
                       pendingAction === 'delete' && 'border-l-2 border-l-red-500/30',
                       pendingAction === 'create' && 'border-l-2 border-l-emerald-500/30',
@@ -1017,20 +984,15 @@
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-1.5 text-xs font-medium">
-                        <span class={cn('truncate', isBeingRemoved && 'line-through')}
-                          >{entry.name}</span
-                        >
+                        <span class={cn('truncate', isBeingRemoved && 'line-through')}>{entry.name}</span>
                         {#if pendingAction === 'edit'}
-                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500"
-                          ></span>
+                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500"></span>
                         {:else if pendingAction === 'delete'}
                           <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"></span>
                         {:else if pendingAction === 'create'}
-                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
-                          ></span>
+                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"></span>
                         {:else if pendingAction === 'merge-source' || pendingAction === 'merge-result'}
-                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
-                          ></span>
+                          <span class="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"></span>
                         {/if}
                       </div>
                       <div class="text-surface-500 flex items-center gap-1.5 text-[10px]">
@@ -1056,9 +1018,7 @@
             )}
           >
             {#if selectedEntry !== null && selectedIndex !== null}
-              <div
-                class="border-surface-700 flex flex-shrink-0 items-center justify-between border-b px-4 py-2.5"
-              >
+              <div class="border-surface-700 flex flex-shrink-0 items-center justify-between border-b px-4 py-2.5">
                 <div class="flex min-w-0 flex-1 items-center gap-2">
                   <Button
                     variant="ghost"
@@ -1097,8 +1057,7 @@
                           ? 'bg-red-600 hover:bg-red-700'
                           : selectedPendingAction === 'edit'
                             ? 'bg-blue-600 hover:bg-blue-700'
-                            : selectedPendingAction === 'merge-source' ||
-                                selectedPendingAction === 'merge-result'
+                            : selectedPendingAction === 'merge-source' || selectedPendingAction === 'merge-result'
                               ? 'bg-amber-600 hover:bg-amber-700'
                               : 'bg-emerald-600 hover:bg-emerald-700',
                       )}
@@ -1123,8 +1082,7 @@
                       size="sm"
                       class={cn(
                         'gap-1.5',
-                        savedFeedback === 'entry' &&
-                          'bg-emerald-600 text-white hover:bg-emerald-700',
+                        savedFeedback === 'entry' && 'bg-emerald-600 text-white hover:bg-emerald-700',
                       )}
                       onclick={() => {
                         handleSaveClick()
@@ -1231,9 +1189,7 @@
 
   <!-- Footer -->
   {#if !isEmbedded}
-    <div
-      class="border-surface-700 bg-surface-800 flex flex-shrink-0 items-center gap-2 border-t px-4 py-2.5"
-    >
+    <div class="border-surface-700 bg-surface-800 flex flex-shrink-0 items-center gap-2 border-t px-4 py-2.5">
       {#if onOpenAssistant}
         <Button
           variant="outline"
@@ -1276,9 +1232,7 @@
           disabled={saving || !name.trim() || !_hasChanges}
         >
           {#if saving}
-            <div
-              class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
-            ></div>
+            <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
           {:else}
             <Save class="h-3.5 w-3.5" />
           {/if}

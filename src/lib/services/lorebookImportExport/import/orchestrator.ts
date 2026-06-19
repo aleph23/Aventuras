@@ -8,10 +8,7 @@ import type { ImportOptions, ImportResult, LorebookImportResult } from '../types
 import { classifyEntries } from '../classify/classify'
 import { convertToEntries } from './convert'
 
-export async function importEntries(
-  parseResult: LorebookImportResult,
-  options: ImportOptions,
-): Promise<ImportResult> {
+export async function importEntries(parseResult: LorebookImportResult, options: ImportOptions): Promise<ImportResult> {
   const { storyId, useAIClassification, storyMode, onProgress } = options
   const errors: string[] = []
   const warnings: string[] = [...parseResult.warnings]

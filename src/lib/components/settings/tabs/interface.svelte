@@ -153,11 +153,7 @@
   <!-- Theme Selection -->
   <div>
     <Label class="mb-2 block">Theme</Label>
-    <Select.Root
-      type="single"
-      value={settings.uiSettings.theme}
-      onValueChange={(v) => settings.setTheme(v)}
-    >
+    <Select.Root type="single" value={settings.uiSettings.theme} onValueChange={(v) => settings.setTheme(v)}>
       <Select.Trigger class="h-10 w-full">
         {THEMES.find((t) => t.id === settings.uiSettings.theme)?.label ?? 'Select theme'}
       </Select.Trigger>
@@ -203,9 +199,7 @@
         {STORY_WIDTH_OPTIONS[storyWidthIndex]?.label ?? 'Default'}
       </span>
     </div>
-    <p class="text-muted-foreground text-xs">
-      Max width of the story area — applies to text and inline images
-    </p>
+    <p class="text-muted-foreground text-xs">Max width of the story area — applies to text and inline images</p>
     <Slider
       type="single"
       min={0}
@@ -224,9 +218,7 @@
   <div class="flex items-center justify-between">
     <div>
       <Label>Word Count</Label>
-      <p class="text-muted-foreground text-xs">
-        Display current story word count in the status bar
-      </p>
+      <p class="text-muted-foreground text-xs">Display current story word count in the status bar</p>
     </div>
     <Switch
       checked={settings.uiSettings.showWordCount}
@@ -243,10 +235,7 @@
       <Label>Spellcheck</Label>
       <p class="text-muted-foreground text-xs">Grammar and spelling suggestions while typing</p>
     </div>
-    <Switch
-      checked={settings.uiSettings.spellcheckEnabled}
-      onCheckedChange={(v) => settings.setSpellcheckEnabled(v)}
-    />
+    <Switch checked={settings.uiSettings.spellcheckEnabled} onCheckedChange={(v) => settings.setSpellcheckEnabled(v)} />
   </div>
 
   <!-- Custom Dictionary -->
@@ -315,9 +304,7 @@
   <div class="flex items-center justify-between">
     <div>
       <Label>Suggestions</Label>
-      <p class="text-muted-foreground text-xs">
-        Show AI-generated action choices and plot suggestions
-      </p>
+      <p class="text-muted-foreground text-xs">Show AI-generated action choices and plot suggestions</p>
     </div>
     <Switch
       checked={!settings.uiSettings.disableSuggestions}
@@ -343,47 +330,32 @@
       <Label>Reasoning Block</Label>
       <p class="text-muted-foreground text-xs">Show thought process display</p>
     </div>
-    <Switch
-      checked={settings.uiSettings.showReasoning}
-      onCheckedChange={(v) => settings.setShowReasoning(v)}
-    />
+    <Switch checked={settings.uiSettings.showReasoning} onCheckedChange={(v) => settings.setShowReasoning(v)} />
   </div>
 
   <!-- Auto Scroll Toggle -->
   <div class="flex items-center justify-between">
     <div>
       <Label>Auto Scroll</Label>
-      <p class="text-muted-foreground text-xs">
-        Automatically scroll to the latest message during generation
-      </p>
+      <p class="text-muted-foreground text-xs">Automatically scroll to the latest message during generation</p>
     </div>
-    <Switch
-      checked={settings.uiSettings.autoScroll}
-      onCheckedChange={(v) => settings.setAutoScroll(v)}
-    />
+    <Switch checked={settings.uiSettings.autoScroll} onCheckedChange={(v) => settings.setAutoScroll(v)} />
   </div>
 
   <!-- Scroll to Top Toggle -->
   <div class="flex items-center justify-between">
     <div>
       <Label>Floating Scroll to Top Button</Label>
-      <p class="text-muted-foreground text-xs">
-        Show a floating button to jump to the first story entry
-      </p>
+      <p class="text-muted-foreground text-xs">Show a floating button to jump to the first story entry</p>
     </div>
-    <Switch
-      checked={settings.uiSettings.showScrollToTop}
-      onCheckedChange={(v) => settings.setShowScrollToTop(v)}
-    />
+    <Switch checked={settings.uiSettings.showScrollToTop} onCheckedChange={(v) => settings.setShowScrollToTop(v)} />
   </div>
 
   <!-- Scroll to Bottom Toggle -->
   <div class="flex items-center justify-between">
     <div>
       <Label>Floating Scroll to Bottom Button</Label>
-      <p class="text-muted-foreground text-xs">
-        Show a floating button to jump to the latest story entry
-      </p>
+      <p class="text-muted-foreground text-xs">Show a floating button to jump to the latest story entry</p>
     </div>
     <Switch
       checked={settings.uiSettings.showScrollToBottom}
@@ -402,8 +374,7 @@
       <div>
         <Label>Enable Translation</Label>
         <p class="text-muted-foreground text-xs">
-          Translate AI responses to your language while keeping English prompts for optimal LLM
-          performance
+          Translate AI responses to your language while keeping English prompts for optimal LLM performance
         </p>
       </div>
       <Switch
@@ -428,9 +399,8 @@
           }}
         >
           <Select.Trigger class="h-10 w-full">
-            {getSupportedLanguages().find(
-              (l) => l.code === settings.translationSettings.targetLanguage,
-            )?.name ?? 'Select language'}
+            {getSupportedLanguages().find((l) => l.code === settings.translationSettings.targetLanguage)?.name ??
+              'Select language'}
           </Select.Trigger>
           <Select.Content class="max-h-60">
             {#each getSupportedLanguages() as lang (lang.code)}
@@ -447,9 +417,7 @@
       <div class="flex items-center justify-between">
         <div>
           <Label>Translate Narration</Label>
-          <p class="text-muted-foreground text-xs">
-            Translate AI-generated story content after generation
-          </p>
+          <p class="text-muted-foreground text-xs">Translate AI-generated story content after generation</p>
         </div>
         <Switch
           checked={settings.translationSettings.translateNarration}
@@ -464,9 +432,7 @@
       <div class="flex items-center justify-between">
         <div>
           <Label>Translate User Input</Label>
-          <p class="text-muted-foreground text-xs">
-            Translate your input to English before sending to the AI
-          </p>
+          <p class="text-muted-foreground text-xs">Translate your input to English before sending to the AI</p>
         </div>
         <Switch
           checked={settings.translationSettings.translateUserInput}
@@ -481,9 +447,7 @@
       <div class="flex items-center justify-between">
         <div>
           <Label>Translate World State</Label>
-          <p class="text-muted-foreground text-xs">
-            Translate character names, locations, and items in the UI
-          </p>
+          <p class="text-muted-foreground text-xs">Translate character names, locations, and items in the UI</p>
         </div>
         <Switch
           checked={settings.translationSettings.translateWorldState}
@@ -504,12 +468,7 @@
 
     <!-- Check for Updates Button -->
     <div class="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={handleCheckForUpdates}
-        disabled={isCheckingUpdates}
-      >
+      <Button variant="outline" size="sm" onclick={handleCheckForUpdates} disabled={isCheckingUpdates}>
         {#if isCheckingUpdates}
           <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           Checking...
@@ -527,28 +486,18 @@
     <div class="flex items-center justify-between">
       <div>
         <Label>Check on Startup</Label>
-        <p class="text-muted-foreground text-xs">
-          Automatically check for updates when the app starts
-        </p>
+        <p class="text-muted-foreground text-xs">Automatically check for updates when the app starts</p>
       </div>
-      <Switch
-        checked={settings.updateSettings.autoCheck}
-        onCheckedChange={(v) => settings.setAutoCheck(v)}
-      />
+      <Switch checked={settings.updateSettings.autoCheck} onCheckedChange={(v) => settings.setAutoCheck(v)} />
     </div>
 
     <!-- Auto-download Updates Toggle -->
     <div class="flex items-center justify-between">
       <div>
         <Label>Auto-download Updates</Label>
-        <p class="text-muted-foreground text-xs">
-          Automatically download updates in the background
-        </p>
+        <p class="text-muted-foreground text-xs">Automatically download updates in the background</p>
       </div>
-      <Switch
-        checked={settings.updateSettings.autoDownload}
-        onCheckedChange={(v) => settings.setAutoDownload(v)}
-      />
+      <Switch checked={settings.updateSettings.autoDownload} onCheckedChange={(v) => settings.setAutoDownload(v)} />
     </div>
   </div>
 </div>

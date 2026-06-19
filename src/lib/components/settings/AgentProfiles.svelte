@@ -230,9 +230,7 @@
   let isLoadingPresetModels = $state(false)
 
   // Auto-persist: debounced save to avoid a DB write on every slider tick
-  const { trigger: debouncedSave, flush: flushSave } = createDebouncedSave(() =>
-    settings.saveGenerationPresets(),
-  )
+  const { trigger: debouncedSave, flush: flushSave } = createDebouncedSave(() => settings.saveGenerationPresets())
 
   // Flush any pending save when the component is destroyed (e.g. Settings modal closed)
   onDestroy(() => flushSave())
@@ -252,11 +250,7 @@
 
     isLoadingPresetModels = true
     try {
-      const result = await fetchModelsFromProvider(
-        profile.providerType,
-        profile.baseUrl,
-        profile.apiKey,
-      )
+      const result = await fetchModelsFromProvider(profile.providerType, profile.baseUrl, profile.apiKey)
       await settings.updateProfile(profile.id, {
         ...profile,
         fetchedModels: result,
@@ -321,13 +315,10 @@
     const preset = settings.generationPresets.find((p) => p.id === presetId)
     if (!preset) return
 
-    const confirmed = await ask(
-      `Delete profile "${preset.name}"? Tasks assigned to it will revert to Unassigned.`,
-      {
-        title: 'Delete Profile',
-        kind: 'warning',
-      },
-    )
+    const confirmed = await ask(`Delete profile "${preset.name}"? Tasks assigned to it will revert to Unassigned.`, {
+      title: 'Delete Profile',
+      kind: 'warning',
+    })
 
     if (confirmed) {
       settings.generationPresets = settings.generationPresets.filter((p) => p.id !== presetId)
@@ -348,10 +339,10 @@
   }
 
   async function handleApplyMainToAll() {
-    const confirmed = await ask(
-      'Apply the Main Narrative profile and model to all agent profiles?',
-      { title: 'Apply Main to All', kind: 'warning' },
-    )
+    const confirmed = await ask('Apply the Main Narrative profile and model to all agent profiles?', {
+      title: 'Apply Main to All',
+      kind: 'warning',
+    })
     if (!confirmed) return
 
     const mainProfileId = settings.apiSettings.mainNarrativeProfileId
@@ -462,16 +453,9 @@
         <Card.Header class="pb-3">
           <div class="flex items-start justify-between">
             <Card.Title class="text-base">
-              {settings.generationPresets.find((p) => p.id === editingPresetId)
-                ? 'Edit Profile'
-                : 'Create Profile'}
+              {settings.generationPresets.find((p) => p.id === editingPresetId) ? 'Edit Profile' : 'Create Profile'}
             </Card.Title>
-            <Button
-              variant="text"
-              size="icon"
-              class="-mt-2 -mr-2 h-6 w-6"
-              onclick={closeEditingPreset}
-            >
+            <Button variant="text" size="icon" class="-mt-2 -mr-2 h-6 w-6" onclick={closeEditingPreset}>
               <X class="h-4 w-4" />
             </Button>
           </div>
@@ -519,9 +503,7 @@
               const previousModel = preset.model
               preset.profileId = id
               await fetchModelsForPreset()
-              const models = settings.getAvailableModels(
-                preset.profileId || settings.getDefaultProfileIdForProvider(),
-              )
+              const models = settings.getAvailableModels(preset.profileId || settings.getDefaultProfileIdForProvider())
               if (!models.find((m) => m.id === previousModel)) {
                 preset.model = ''
               }
@@ -569,8 +551,8 @@
               {/each}
             </div>
             <p class="text-muted-foreground text-xs">
-              Auto uses provider/model capability detection. Force On/Off to override. Using
-              structured output can break reasoning when using local model servers.
+              Auto uses provider/model capability detection. Force On/Off to override. Using structured output can break
+              reasoning when using local model servers.
             </p>
           </div>
 
@@ -583,10 +565,9 @@
               <div class="space-y-0.5">
                 <Label class="text-sm">Thinking nudge</Label>
                 <p class="text-muted-foreground text-xs">
-                  Inject a prompt to encourage the model to use <code>&lt;think&gt;</code> tags properly.
-                  Useful for some local models such as Mistral models, but may cause issues with other
-                  models such as Qwen 3.5. Has no effect when using structured output with local model
-                  servers.
+                  Inject a prompt to encourage the model to use <code>&lt;think&gt;</code> tags properly. Useful for some
+                  local models such as Mistral models, but may cause issues with other models such as Qwen 3.5. Has no effect
+                  when using structured output with local model servers.
                 </p>
               </div>
               <Switch
@@ -663,9 +644,7 @@
                     No models available
                   </div>
                 {:else if _models.length === 0}
-                  <div class="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-                    No models fetched
-                  </div>
+                  <div class="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">No models fetched</div>
                 {/if}
               {/if}
             </div>
@@ -693,9 +672,7 @@
 
           <Card.Content class="bg-muted/30 flex flex-1 flex-col gap-2 p-3">
             {#each getServicesForProfile(preset.id) as service (service.id)}
-              <div
-                class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all"
-              >
+              <div class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all">
                 <button
                   class="group hover:bg-muted/50 flex w-full items-center gap-2 p-2 text-left transition-colors select-none"
                   onclick={(e) => handleTaskClick(e, service.id)}
@@ -704,9 +681,7 @@
                   <service.icon class="text-primary h-3 w-3 shrink-0" />
                   <span class="flex-1 truncate text-xs">{service.label}</span>
                   <ChevronDown
-                    class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(
-                      service.id,
-                    )
+                    class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(service.id)
                       ? 'rotate-180'
                       : ''}"
                   />
@@ -714,9 +689,7 @@
 
                 {#if isTaskMenuOpen(service.id)}
                   <div class="bg-muted/50 flex flex-col gap-0.5 border-t p-1">
-                    <div
-                      class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
-                    >
+                    <div class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase">
                       Move to...
                     </div>
                     {#each settings.generationPresets as targetPreset (targetPreset.id)}
@@ -746,9 +719,7 @@
               </div>
             {/each}
             {#if getServicesForProfile(preset.id).length === 0}
-              <div
-                class="text-muted-foreground flex flex-1 items-center justify-center py-2 text-xs italic"
-              >
+              <div class="text-muted-foreground flex flex-1 items-center justify-center py-2 text-xs italic">
                 No tasks assigned
               </div>
             {/if}
@@ -764,8 +735,7 @@
           <div class="text-muted-foreground text-sm font-medium">Unassigned</div>
         </div>
         <Card.Content
-          class="flex flex-1 flex-col gap-2 p-3 transition-all {getServicesForProfile('custom')
-            .length > 0
+          class="flex flex-1 flex-col gap-2 p-3 transition-all {getServicesForProfile('custom').length > 0
             ? 'bg-muted/30'
             : ''}"
         >
@@ -777,9 +747,7 @@
             </div>
           {/if}
           {#each getServicesForProfile('custom') as service (service.id)}
-            <div
-              class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all"
-            >
+            <div class="bg-background flex flex-col overflow-hidden rounded-md border shadow-sm transition-all">
               <button
                 class="group hover:bg-muted/50 flex w-full items-center gap-2 p-2 text-left transition-colors select-none"
                 onclick={(e) => handleTaskClick(e, service.id)}
@@ -788,9 +756,7 @@
                 <service.icon class="text-muted-foreground h-3 w-3 shrink-0" />
                 <span class="flex-1 truncate text-xs">{service.label}</span>
                 <ChevronDown
-                  class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(
-                    service.id,
-                  )
+                  class="text-muted-foreground ml-auto h-3 w-3 transition-transform {isTaskMenuOpen(service.id)
                     ? 'rotate-180'
                     : ''}"
                 />
@@ -798,9 +764,7 @@
 
               {#if isTaskMenuOpen(service.id)}
                 <div class="bg-muted/50 flex flex-col gap-0.5 border-t p-1">
-                  <div
-                    class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
-                  >
+                  <div class="text-muted-foreground px-2 py-1 text-[10px] font-bold tracking-wider uppercase">
                     Move to...
                   </div>
                   {#each settings.generationPresets as targetPreset (targetPreset.id)}

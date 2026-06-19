@@ -300,7 +300,4 @@ End at a natural narrative beat.{% endif %}
 {% endif %}{% if chapterSummaries != '' %}{{ chapterSummaries }}{% endif %}{% if styleGuidance != '' %}{{ styleGuidance }}{% endif %}`,
 }
 
-export const storyTemplates: PromptTemplate[] = [
-  adventurePromptTemplate,
-  creativeWritingPromptTemplate,
-]
+export const storyTemplates: PromptTemplate[] = [adventurePromptTemplate, creativeWritingPromptTemplate]

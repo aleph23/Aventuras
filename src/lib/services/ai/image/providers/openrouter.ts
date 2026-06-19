@@ -67,18 +67,7 @@ function mapSizeToImageConfig(size: string): Record<string, string> {
 
   // Map to OpenRouter's supported aspect ratios
   const ratioKey = `${rw}:${rh}`
-  const supportedRatios = new Set([
-    '1:1',
-    '2:3',
-    '3:2',
-    '3:4',
-    '4:3',
-    '4:5',
-    '5:4',
-    '9:16',
-    '16:9',
-    '21:9',
-  ])
+  const supportedRatios = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'])
 
   const aspectRatio = supportedRatios.has(ratioKey) ? ratioKey : '1:1'
 
@@ -170,9 +159,7 @@ export function createOpenRouterProvider(config: ImageProviderConfig): ImageProv
         const models = data?.data || []
 
         // Filter for models that have "image" in output_modalities
-        const imageModels = models.filter((m: OpenRouterModel) =>
-          m.architecture?.output_modalities?.includes('image'),
-        )
+        const imageModels = models.filter((m: OpenRouterModel) => m.architecture?.output_modalities?.includes('image'))
 
         if (imageModels.length === 0) return getFallbackModels()
 

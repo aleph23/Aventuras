@@ -72,10 +72,7 @@ export class TimelineFillService extends BaseAIService {
   /**
    * Generate queries to fill gaps in timeline knowledge.
    */
-  async generateQueries(
-    visibleEntries: StoryEntry[],
-    chapters: Chapter[],
-  ): Promise<TimelineQuery[]> {
+  async generateQueries(visibleEntries: StoryEntry[], chapters: Chapter[]): Promise<TimelineQuery[]> {
     log('generateQueries called', {
       visibleEntriesCount: visibleEntries.length,
       chaptersCount: chapters.length,
@@ -93,21 +90,14 @@ export class TimelineFillService extends BaseAIService {
       .join('\n\n')
 
     // Build timeline from chapters
-    const timeline = chapters
-      .map((c) => `Chapter ${c.number}: ${c.summary.trim() || 'No summary'}`)
-      .join('\n')
+    const timeline = chapters.map((c) => `Chapter ${c.number}: ${c.summary.trim() || 'No summary'}`).join('\n')
 
     const ctx = new ContextBuilder()
     ctx.add({ chapterHistory, timeline })
     const { system, user: prompt } = await ctx.render('timeline-fill')
 
     try {
-      const result = await this.generate(
-        timelineQueriesResultSchema,
-        system,
-        prompt,
-        'timeline-fill',
-      )
+      const result = await this.generate(timelineQueriesResultSchema, system, prompt, 'timeline-fill')
 
       log('Generated queries:', result.queries.length)
       return result.queries.slice(0, this.maxQueries)
@@ -136,9 +126,7 @@ export class TimelineFillService extends BaseAIService {
 
     // Filter to specific chapters if provided
     const targetChapters =
-      chapterNumbers && chapterNumbers.length > 0
-        ? chapters.filter((c) => chapterNumbers.includes(c.number))
-        : chapters
+      chapterNumbers && chapterNumbers.length > 0 ? chapters.filter((c) => chapterNumbers.includes(c.number)) : chapters
 
     if (targetChapters.length === 0) {
       return {
@@ -236,12 +224,7 @@ export class TimelineFillService extends BaseAIService {
           }
         }
 
-        const answer = await this.answerQuestion(
-          q.query,
-          chapters,
-          chapterNumbers,
-          getChapterEntries,
-        )
+        const answer = await this.answerQuestion(q.query, chapters, chapterNumbers, getChapterEntries)
 
         return {
           query: q.query,

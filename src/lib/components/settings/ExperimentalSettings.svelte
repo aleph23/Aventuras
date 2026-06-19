@@ -51,9 +51,7 @@
 
   // SQL Query Box state — initialized from module-level persisted values
   let sqlQuery = $state(_sqlQuery)
-  let queryResult = $state<{ columns: string[]; rows: Record<string, unknown>[] } | null>(
-    _queryResult,
-  )
+  let queryResult = $state<{ columns: string[]; rows: Record<string, unknown>[] } | null>(_queryResult)
   let queryError = $state<string | null>(_queryError)
   let isQuerying = $state(false)
   let queryTime = $state<number>(_queryTime)
@@ -214,8 +212,7 @@
     if (checked) {
       // Request notification permission on Android 13+
       try {
-        const { isPermissionGranted, requestPermission } =
-          await import('@tauri-apps/plugin-notification')
+        const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification')
         let granted = await isPermissionGranted()
         if (!granted) {
           const result = await requestPermission()
@@ -270,18 +267,11 @@
       <Label class="text-sm font-medium">Data Safety</Label>
     </div>
     <p class="text-muted-foreground text-xs">
-      Download a full backup of your database and all stories as a ZIP archive. Includes the raw
-      SQLite database and individual story exports (.avt) for maximum safety. You can restore from a
-      backup to revert to a previous state.
+      Download a full backup of your database and all stories as a ZIP archive. Includes the raw SQLite database and
+      individual story exports (.avt) for maximum safety. You can restore from a backup to revert to a previous state.
     </p>
     <div class="flex items-center gap-3">
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={handleBackup}
-        disabled={isBackingUp || isRestoring}
-        class="gap-2"
-      >
+      <Button variant="outline" size="sm" onclick={handleBackup} disabled={isBackingUp || isRestoring} class="gap-2">
         {#if isBackingUp}
           <Loader2 class="h-4 w-4 animate-spin" />
           Creating Backup...
@@ -290,13 +280,7 @@
           Download Backup
         {/if}
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={handleRestore}
-        disabled={isBackingUp || isRestoring}
-        class="gap-2"
-      >
+      <Button variant="outline" size="sm" onclick={handleRestore} disabled={isBackingUp || isRestoring} class="gap-2">
         {#if isRestoring}
           <Loader2 class="h-4 w-4 animate-spin" />
           Restoring...
@@ -335,13 +319,11 @@
           <Label>State Tracking</Label>
         </div>
         <p class="text-muted-foreground text-xs">
-          Record world state changes (deltas) on each story entry after AI classification. This is
-          the foundation for rollback and lightweight branches.
+          Record world state changes (deltas) on each story entry after AI classification. This is the foundation for
+          rollback and lightweight branches.
         </p>
         {#if settings.experimentalFeatures.stateTracking}
-          <p class="pt-1 text-xs font-medium text-amber-500">
-            Active — deltas will be recorded on new entries.
-          </p>
+          <p class="pt-1 text-xs font-medium text-amber-500">Active — deltas will be recorded on new entries.</p>
         {/if}
       </div>
       <Switch bind:checked={stateTrackingChecked} onCheckedChange={handleStateTrackingToggle} />
@@ -349,8 +331,7 @@
 
     <!-- Rollback on Delete -->
     <div
-      class="flex flex-row items-center justify-between {!settings.experimentalFeatures
-        .stateTracking
+      class="flex flex-row items-center justify-between {!settings.experimentalFeatures.stateTracking
         ? 'opacity-50'
         : ''}"
     >
@@ -360,13 +341,11 @@
           <Label>Rollback on Delete</Label>
         </div>
         <p class="text-muted-foreground text-xs">
-          When deleting a message, automatically undo all world state changes from that point
-          onward. Entries after the deleted one are also removed (cascade).
+          When deleting a message, automatically undo all world state changes from that point onward. Entries after the
+          deleted one are also removed (cascade).
         </p>
         {#if !settings.experimentalFeatures.stateTracking}
-          <p class="text-muted-foreground pt-1 text-xs italic">
-            Requires State Tracking to be enabled.
-          </p>
+          <p class="text-muted-foreground pt-1 text-xs italic">Requires State Tracking to be enabled.</p>
         {:else if settings.experimentalFeatures.rollbackOnDelete}
           <p class="pt-1 text-xs font-medium text-amber-500">
             Active — deleting entries will cascade and rollback state.
@@ -382,8 +361,7 @@
 
     <!-- Lightweight Branches -->
     <div
-      class="flex flex-row items-center justify-between {!settings.experimentalFeatures
-        .stateTracking
+      class="flex flex-row items-center justify-between {!settings.experimentalFeatures.stateTracking
         ? 'opacity-50'
         : ''}"
     >
@@ -393,17 +371,13 @@
           <Label>Lightweight Branches</Label>
         </div>
         <p class="text-muted-foreground text-xs">
-          New branches share parent world state instead of copying all entities. Changes are
-          copy-on-write — only modified entities get duplicated.
+          New branches share parent world state instead of copying all entities. Changes are copy-on-write — only
+          modified entities get duplicated.
         </p>
         {#if !settings.experimentalFeatures.stateTracking}
-          <p class="text-muted-foreground pt-1 text-xs italic">
-            Requires State Tracking to be enabled.
-          </p>
+          <p class="text-muted-foreground pt-1 text-xs italic">Requires State Tracking to be enabled.</p>
         {:else if settings.experimentalFeatures.lightweightBranches}
-          <p class="pt-1 text-xs font-medium text-amber-500">
-            Active — new branches will use copy-on-write.
-          </p>
+          <p class="pt-1 text-xs font-medium text-amber-500">Active — new branches will use copy-on-write.</p>
         {/if}
       </div>
       <Switch
@@ -423,8 +397,8 @@
       <Label>Auto-Snapshot Interval</Label>
     </div>
     <p class="text-muted-foreground text-xs">
-      Number of entries between automatic world state snapshots. Lower values allow faster rollback
-      but use more storage.
+      Number of entries between automatic world state snapshots. Lower values allow faster rollback but use more
+      storage.
     </p>
     <div class="flex items-center gap-4">
       <Slider
@@ -461,8 +435,8 @@
             <Label>Background Generation</Label>
           </div>
           <p class="text-muted-foreground text-xs">
-            Keeps the app alive during text generation when you switch apps or lock your screen.
-            Uses a foreground service and wake lock — may use slightly more battery.
+            Keeps the app alive during text generation when you switch apps or lock your screen. Uses a foreground
+            service and wake lock — may use slightly more battery.
           </p>
           {#if settings.experimentalFeatures.backgroundGeneration}
             <p class="pt-1 text-xs font-medium text-amber-500">
@@ -478,8 +452,7 @@
 
       <!-- Generation Notifications toggle -->
       <div
-        class="flex flex-row items-center justify-between {!settings.experimentalFeatures
-          .backgroundGeneration
+        class="flex flex-row items-center justify-between {!settings.experimentalFeatures.backgroundGeneration
           ? 'opacity-50'
           : ''}"
       >
@@ -492,9 +465,7 @@
             Send a notification when text generation finishes while the app is in the background.
           </p>
           {#if !settings.experimentalFeatures.backgroundGeneration}
-            <p class="text-muted-foreground pt-1 text-xs italic">
-              Requires Background Generation to be enabled.
-            </p>
+            <p class="text-muted-foreground pt-1 text-xs italic">Requires Background Generation to be enabled.</p>
           {/if}
         </div>
         <Switch
@@ -506,8 +477,7 @@
 
       <!-- Notification Preview toggle -->
       <div
-        class="flex flex-row items-center justify-between {!settings.experimentalFeatures
-          .generationNotifications
+        class="flex flex-row items-center justify-between {!settings.experimentalFeatures.generationNotifications
           ? 'opacity-50'
           : ''}"
       >
@@ -520,9 +490,7 @@
             Show the first few lines of generated text in the notification body.
           </p>
           {#if !settings.experimentalFeatures.generationNotifications}
-            <p class="text-muted-foreground pt-1 text-xs italic">
-              Requires Completion Notifications to be enabled.
-            </p>
+            <p class="text-muted-foreground pt-1 text-xs italic">Requires Completion Notifications to be enabled.</p>
           {/if}
         </div>
         <Switch
@@ -533,9 +501,8 @@
       </div>
 
       <p class="text-muted-foreground text-xs italic">
-        Note: Some phone manufacturers (Xiaomi, Huawei, Samsung, etc.) have aggressive battery
-        optimization that may still interrupt generation. You may need to exempt Aventura from
-        battery optimization in your device settings.
+        Note: Some phone manufacturers (Xiaomi, Huawei, Samsung, etc.) have aggressive battery optimization that may
+        still interrupt generation. You may need to exempt Aventura from battery optimization in your device settings.
       </p>
     </div>
 
@@ -546,9 +513,7 @@
   <div class="flex items-center justify-between">
     <div class="space-y-0.5">
       <p class="text-sm font-medium">Reset Experimental Features</p>
-      <p class="text-muted-foreground text-xs">
-        Disable all experimental features and reset to defaults.
-      </p>
+      <p class="text-muted-foreground text-xs">Disable all experimental features and reset to defaults.</p>
     </div>
     <Button variant="outline" size="sm" onclick={handleResetAll} class="gap-2">
       <RotateCcw class="h-4 w-4" />
@@ -565,24 +530,19 @@
         <Terminal class="text-muted-foreground h-4 w-4" />
         <Label>SQL Query Console</Label>
       </div>
-      <p class="text-muted-foreground text-xs">
-        Run raw SQL queries directly against the internal SQLite database.
-      </p>
+      <p class="text-muted-foreground text-xs">Run raw SQL queries directly against the internal SQLite database.</p>
     </div>
     <Switch checked={showSqlEditor} onCheckedChange={(v) => (showSqlEditor = v)} />
   </div>
 
   {#if showSqlEditor}
     <div class="space-y-3">
-      <div
-        class="bg-destructive/10 border-destructive/30 flex items-start gap-3 rounded-lg border p-3"
-      >
+      <div class="bg-destructive/10 border-destructive/30 flex items-start gap-3 rounded-lg border p-3">
         <AlertTriangle class="text-destructive mt-0.5 h-4 w-4 shrink-0" />
         <p class="text-destructive text-xs">
-          <strong>Danger zone.</strong> Write queries (INSERT, UPDATE, DELETE, DROP) can permanently
-          modify or corrupt your data. Always create a backup first. Press
-          <kbd class="bg-destructive/20 rounded px-1 py-0.5 font-mono text-[10px]">Ctrl+Enter</kbd> to
-          run.
+          <strong>Danger zone.</strong> Write queries (INSERT, UPDATE, DELETE, DROP) can permanently modify or corrupt
+          your data. Always create a backup first. Press
+          <kbd class="bg-destructive/20 rounded px-1 py-0.5 font-mono text-[10px]">Ctrl+Enter</kbd> to run.
         </p>
       </div>
 
@@ -638,9 +598,7 @@
             <thead class="bg-surface-800 sticky top-0">
               <tr>
                 {#each queryResult.columns as col (col)}
-                  <th
-                    class="border-surface-700 text-muted-foreground border-b px-3 py-2 text-left font-medium"
-                  >
+                  <th class="border-surface-700 text-muted-foreground border-b px-3 py-2 text-left font-medium">
                     {col}
                   </th>
                 {/each}
@@ -650,10 +608,7 @@
               {#each queryResult.rows as row (JSON.stringify(row))}
                 <tr class="border-surface-700/50 hover:bg-surface-800/50 border-b last:border-b-0">
                   {#each queryResult.columns as col (col)}
-                    <td
-                      class="text-foreground max-w-xs truncate px-3 py-1.5 font-mono"
-                      title={String(row[col] ?? '')}
-                    >
+                    <td class="text-foreground max-w-xs truncate px-3 py-1.5 font-mono" title={String(row[col] ?? '')}>
                       {row[col] === null ? 'NULL' : row[col]}
                     </td>
                   {/each}
@@ -708,8 +663,7 @@
       </Dialog.Title>
       <Dialog.Description class="space-y-3 pt-2">
         <p>
-          This will <strong class="text-destructive">replace your entire database</strong> with the one
-          from the backup ZIP.
+          This will <strong class="text-destructive">replace your entire database</strong> with the one from the backup ZIP.
         </p>
         <p>
           A safety copy of your current database will be saved as

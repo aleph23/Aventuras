@@ -106,9 +106,7 @@ export function createPollinationsProvider(config: ImageProviderConfig): ImagePr
         if (!Array.isArray(data) || data.length === 0) return getFallbackModels()
 
         return (data as PollinationsImageModelResponse[])
-          .filter(
-            (model) => (model.output_modalities?.includes('image') ?? false) && !model.paid_only,
-          )
+          .filter((model) => (model.output_modalities?.includes('image') ?? false) && !model.paid_only)
           .map((model) => ({
             id: model.name,
             name: model.name,

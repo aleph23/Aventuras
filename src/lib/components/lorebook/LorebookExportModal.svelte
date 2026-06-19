@@ -127,14 +127,9 @@
             >
               <RadioGroupItem value={format} id={`format-${format}`} class="mt-1" />
               <div class="flex-1 space-y-1">
-                <Label
-                  for={`format-${format}`}
-                  class="flex cursor-pointer items-center gap-2 font-medium"
-                >
+                <Label for={`format-${format}`} class="flex cursor-pointer items-center gap-2 font-medium">
                   {info.label}
-                  <span class="text-muted-foreground ml-auto text-xs font-normal"
-                    >{info.extension}</span
-                  >
+                  <span class="text-muted-foreground ml-auto text-xs font-normal">{info.extension}</span>
                 </Label>
                 <p class="text-muted-foreground text-xs">{info.description}</p>
               </div>

@@ -60,9 +60,7 @@
   const hasItems = $derived(items.length > 0)
 </script>
 
-<div
-  class="border-muted-foreground/20 bg-muted/10 flex h-full min-h-0 flex-col overflow-hidden rounded-lg border"
->
+<div class="border-muted-foreground/20 bg-muted/10 flex h-full min-h-0 flex-col overflow-hidden rounded-lg border">
   <!-- Search -->
   {#if hasItems || isLoading}
     <div class="border-muted-foreground/10 bg-background/50 relative shrink-0 border-b">

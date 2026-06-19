@@ -24,14 +24,7 @@
     hideHeader?: boolean
   }
 
-  let {
-    change,
-    onApprove,
-    onReject,
-    onApproveAllAsync,
-    onClose,
-    hideHeader = false,
-  }: Props = $props()
+  let { change, onApprove, onReject, onApproveAllAsync, onClose, hideHeader = false }: Props = $props()
 
   let charData = $state<VaultCharacterInput | null>(null)
   let scenarioData = $state<VaultScenarioInput | null>(null)
@@ -51,11 +44,7 @@
     if (vaultEditor.viewEntityType !== 'character' || !eid) return null
     const existing = characterVault.getById(eid)
     if (!existing) return null
-    const composed = vaultEditor.composePendingChanges(
-      characterToRecord(existing),
-      'character',
-      eid,
-    )
+    const composed = vaultEditor.composePendingChanges(characterToRecord(existing), 'character', eid)
     return {
       name: composed.name as string,
       description: composed.description as string | null,
@@ -204,10 +193,7 @@
           // edited it (form differs from originalData). Otherwise use
           // originalData to preserve this change's intent, preventing
           // sibling scalar values from leaking via composedData.
-          result[key] =
-            JSON.stringify(form[key]) !== JSON.stringify(originalData[key])
-              ? form[key]
-              : originalData[key]
+          result[key] = JSON.stringify(form[key]) !== JSON.stringify(originalData[key]) ? form[key] : originalData[key]
         }
       }
     }
@@ -265,11 +251,7 @@
   const isViewMode = $derived(vaultEditor.viewMode)
 
   const actionLabel = $derived(
-    isViewMode
-      ? 'View'
-      : 'action' in change
-        ? change.action.charAt(0).toUpperCase() + change.action.slice(1)
-        : '',
+    isViewMode ? 'View' : 'action' in change ? change.action.charAt(0).toUpperCase() + change.action.slice(1) : '',
   )
 
   /** Save edits directly to the vault store (view mode only) */
@@ -310,8 +292,7 @@
 
   function stringify(val: unknown): string {
     if (val == null) return ''
-    if (Array.isArray(val))
-      return val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ')
+    if (Array.isArray(val)) return val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ')
     if (typeof val === 'object') return JSON.stringify(val)
     return String(val)
   }
@@ -377,13 +358,10 @@
     <!-- Standard UI for character / scenario -->
     {#if !hideHeader}
       <!-- Header -->
-      <div
-        class="border-surface-700 bg-surface-900 flex shrink-0 items-center justify-between border-b px-4 py-2.5"
-      >
+      <div class="border-surface-700 bg-surface-900 flex shrink-0 items-center justify-between border-b px-4 py-2.5">
         <div class="flex items-center gap-2.5">
           <div
-            class="flex h-6 w-6 items-center justify-center rounded-md {change.entityType ===
-            'character'
+            class="flex h-6 w-6 items-center justify-center rounded-md {change.entityType === 'character'
               ? 'bg-amber-500/15'
               : change.entityType === 'lorebook-entry'
                 ? 'bg-cyan-500/15'
@@ -399,12 +377,7 @@
           </div>
           <span class="text-surface-200 text-xs font-semibold">{actionLabel} {entityLabel}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="text-surface-400 hover:text-foreground h-6 w-6"
-          onclick={onClose}
-        >
+        <Button variant="ghost" size="icon" class="text-surface-400 hover:text-foreground h-6 w-6" onclick={onClose}>
           <X class="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -436,21 +409,15 @@
         />
       {:else if !('data' in change)}
         <div class="p-4">
-          <p class="text-muted-foreground text-sm">
-            Delete operations cannot be edited — approve or reject directly.
-          </p>
+          <p class="text-muted-foreground text-sm">Delete operations cannot be edited — approve or reject directly.</p>
         </div>
       {/if}
     </div>
 
     <!-- Footer -->
-    <div
-      class="border-surface-700 bg-surface-900 flex shrink-0 items-center justify-end gap-2 border-t px-4 py-2.5"
-    >
+    <div class="border-surface-700 bg-surface-900 flex shrink-0 items-center justify-end gap-2 border-t px-4 py-2.5">
       {#if isViewMode}
-        <Button variant="outline" size="sm" class="border-surface-600 h-7 text-xs" onclick={onClose}
-          >Close</Button
-        >
+        <Button variant="outline" size="sm" class="border-surface-600 h-7 text-xs" onclick={onClose}>Close</Button>
         <Button
           size="sm"
           class="h-7 gap-1.5 bg-blue-600 text-xs text-white hover:bg-blue-500"
@@ -460,9 +427,7 @@
           Save
         </Button>
       {:else}
-        <Button variant="outline" size="sm" class="border-surface-600 h-7 text-xs" onclick={onClose}
-          >Cancel</Button
-        >
+        <Button variant="outline" size="sm" class="border-surface-600 h-7 text-xs" onclick={onClose}>Cancel</Button>
         <Button
           size="sm"
           class="h-7 gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-500"

@@ -72,8 +72,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
      * Read full details of a specific scenario by ID.
      */
     read_scenario: tool({
-      description:
-        'Read the full details of a vault scenario by ID. Use list_scenarios first to find scenario IDs.',
+      description: 'Read the full details of a vault scenario by ID. Use list_scenarios first to find scenario IDs.',
       inputSchema: z.object({
         scenarioId: z.string().describe('The ID of the scenario to read'),
       }),
@@ -113,18 +112,10 @@ export function createScenarioTools(context: ScenarioToolContext) {
         name: z.string().describe('Scenario name'),
         description: z.string().nullable().describe('Brief scenario description'),
         settingSeed: z.string().describe('Setting seed text describing the world and context'),
-        npcs: z
-          .array(vaultScenarioNpcSchema)
-          .optional()
-          .default([])
-          .describe('NPCs in the scenario'),
+        npcs: z.array(vaultScenarioNpcSchema).optional().default([]).describe('NPCs in the scenario'),
         primaryCharacterName: z.string().describe('Name of the primary character / protagonist'),
         firstMessage: z.string().nullable().optional().describe('Opening message'),
-        alternateGreetings: z
-          .array(z.string())
-          .optional()
-          .default([])
-          .describe('Alternative opening messages'),
+        alternateGreetings: z.array(z.string()).optional().default([]).describe('Alternative opening messages'),
         tags: z.array(z.string()).optional().default([]).describe('Tags for organization'),
         favorite: z.boolean().optional().default(false).describe('Whether to favorite'),
       }),
@@ -191,10 +182,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
         name: z.string().optional().describe('New name'),
         description: z.string().nullable().optional().describe('New description'),
         settingSeed: z.string().optional().describe('New setting seed'),
-        npcs: z
-          .array(vaultScenarioNpcSchema)
-          .optional()
-          .describe('New NPC list (FULLY replaces existing)'),
+        npcs: z.array(vaultScenarioNpcSchema).optional().describe('New NPC list (FULLY replaces existing)'),
         primaryCharacterName: z.string().optional().describe('New primary character name'),
         firstMessage: z.string().nullable().optional().describe('New first message'),
         replaceAlternateGreetings: z
@@ -216,10 +204,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
           .optional()
           .describe('Complete replacement of all tags. Prefer addTags/removeTags instead'),
         addTags: z.array(z.string()).optional().describe('Tags to add to the existing list'),
-        removeTags: z
-          .array(z.string())
-          .optional()
-          .describe('Tags to remove from the existing list'),
+        removeTags: z.array(z.string()).optional().describe('Tags to remove from the existing list'),
         favorite: z.boolean().optional().describe('New favorite status'),
       }),
       execute: async ({
@@ -273,9 +258,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
             resolvedGreetings = [...resolvedGreetings, ...addAlternateGreetings]
           }
           if (removeAlternateGreetings?.length) {
-            resolvedGreetings = resolvedGreetings.filter(
-              (g) => !removeAlternateGreetings.includes(g),
-            )
+            resolvedGreetings = resolvedGreetings.filter((g) => !removeAlternateGreetings.includes(g))
           }
         }
 
@@ -284,9 +267,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
         // Strip undefined, null, and empty-string values to prevent
         // accidental overwrites (e.g. the AI sending description: null)
         const cleanUpdates = Object.fromEntries(
-          Object.entries(scalarUpdates).filter(
-            ([_, v]) => v !== undefined && v !== null && v !== '',
-          ),
+          Object.entries(scalarUpdates).filter(([_, v]) => v !== undefined && v !== null && v !== ''),
         ) as Partial<z.infer<typeof vaultScenarioInputSchema>>
 
         const previous = toScenarioInput(scenario)
@@ -367,13 +348,7 @@ export function createScenarioTools(context: ScenarioToolContext) {
         scenarioId: z.string().describe('ID of the scenario to add the NPC to'),
         npc: vaultScenarioNpcSchema.describe('The NPC to add'),
       }),
-      execute: async ({
-        scenarioId,
-        npc,
-      }: {
-        scenarioId: string
-        npc: z.infer<typeof vaultScenarioNpcSchema>
-      }) => {
+      execute: async ({ scenarioId, npc }: { scenarioId: string; npc: z.infer<typeof vaultScenarioNpcSchema> }) => {
         const scenario = scenarios().find((s) => s.id === scenarioId)
 
         if (!scenario) {

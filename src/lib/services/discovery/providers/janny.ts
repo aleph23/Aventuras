@@ -108,10 +108,7 @@ export class JannyProvider implements DiscoveryProvider {
   icon = GENERIC_ICON
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }
@@ -256,9 +253,7 @@ export class JannyProvider implements DiscoveryProvider {
   }
 
   private parseAstroProps(html: string): any {
-    const astroMatch = html.match(
-      /astro-island[^>]*component-export="CharacterButtons"[^>]*props="([^"]+)"/,
-    )
+    const astroMatch = html.match(/astro-island[^>]*component-export="CharacterButtons"[^>]*props="([^"]+)"/)
     if (!astroMatch) {
       throw new Error('Could not find character data in JannyAI page')
     }

@@ -14,10 +14,4 @@ export {
   type AgentResult,
 } from './factory'
 
-export {
-  stopOnTerminalTool,
-  stopOnAnyToolCall,
-  stopOnAny,
-  stopOnCostExceeded,
-  stopWhenDone,
-} from './stopConditions'
+export { stopOnTerminalTool, stopOnAnyToolCall, stopOnAny, stopOnCostExceeded, stopWhenDone } from './stopConditions'

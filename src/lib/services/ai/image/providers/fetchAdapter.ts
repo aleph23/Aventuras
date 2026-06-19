@@ -105,12 +105,8 @@ export async function imageFetch(options: {
       )
       const err = errorPayload as any
       const humanMessage =
-        typeof errorPayload === 'string'
-          ? errorPayload
-          : (err?.error?.message ?? err?.message ?? err?.error)
-      throw new Error(
-        `Image API error ${response.status}: ${humanMessage ?? JSON.stringify(errorPayload)}`,
-      )
+        typeof errorPayload === 'string' ? errorPayload : (err?.error?.message ?? err?.message ?? err?.error)
+      throw new Error(`Image API error ${response.status}: ${humanMessage ?? JSON.stringify(errorPayload)}`)
     }
 
     // Log successful response for debug panel
@@ -165,13 +161,7 @@ export async function imageGetFetch(
 
     if (!response.ok) {
       const errorText = await response.text()
-      debug.addDebugResponse(
-        debugId,
-        serviceId,
-        { status: response.status, error: errorText },
-        startTime,
-        errorText,
-      )
+      debug.addDebugResponse(debugId, serviceId, { status: response.status, error: errorText }, startTime, errorText)
       throw new Error(`Image API error ${response.status}: ${errorText}`)
     }
 

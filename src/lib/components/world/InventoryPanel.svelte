@@ -1,18 +1,7 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte'
   import { ui } from '$lib/stores/ui.svelte'
-  import {
-    Plus,
-    Package,
-    Shield,
-    Pencil,
-    ArrowDown,
-    ArrowUp,
-    MapPin,
-    ChevronDown,
-    Save,
-    X,
-  } from 'lucide-svelte'
+  import { Plus, Package, Shield, Pencil, ArrowDown, ArrowUp, MapPin, ChevronDown, Save, X } from 'lucide-svelte'
   import type { Item } from '$lib/types'
   import type { RuntimeVariable, RuntimeVarsMap } from '$lib/services/packs/types'
   import { Button } from '$lib/components/ui/button'
@@ -63,11 +52,7 @@
     }
   }
 
-  function updateEditRuntimeVar(
-    defId: string,
-    variableName: string,
-    value: string | number | null,
-  ) {
+  function updateEditRuntimeVar(defId: string, variableName: string, value: string | number | null) {
     editRuntimeVars = {
       ...editRuntimeVars,
       [defId]: { variableName, v: value },
@@ -226,9 +211,7 @@
         </div>
       </div>
       <div class="mt-3 flex justify-end gap-2">
-        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>
-          Cancel
-        </Button>
+        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>Cancel</Button>
         <Button size="sm" class="h-7" onclick={addItem} disabled={!newName.trim()}>Add</Button>
       </div>
     </div>
@@ -237,9 +220,7 @@
   <!-- Equipped Items -->
   {#if story.equippedItems.length > 0}
     <div class="mb-4 space-y-2">
-      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">
-        Equipped
-      </h4>
+      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">Equipped</h4>
       {#each story.equippedItems as item (item.id)}
         {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const isEditing = editingId === item.id}
@@ -257,20 +238,13 @@
                 <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Editing {item.name}
                 </h4>
-                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-                  ><X class="h-4 w-4" /></Button
-                >
+                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Name</Label>
-                  <Input
-                    type="text"
-                    bind:value={editName}
-                    placeholder="Item name"
-                    class="h-8 text-sm"
-                  />
+                  <Input type="text" bind:value={editName} placeholder="Item name" class="h-8 text-sm" />
                 </div>
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Quantity</Label>
@@ -290,11 +264,7 @@
 
               <div class="space-y-1">
                 <Label class="text-xs">Description</Label>
-                <Textarea
-                  bind:value={editDescription}
-                  placeholder="Description"
-                  class="min-h-15 resize-none text-xs"
-                />
+                <Textarea bind:value={editDescription} placeholder="Description" class="min-h-15 resize-none text-xs" />
               </div>
 
               <!-- Runtime Variables (Edit - Equipped) -->
@@ -311,15 +281,8 @@
               {/if}
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => saveEdit(item)}
-                  disabled={!editName.trim()}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => saveEdit(item)} disabled={!editName.trim()}>
                   <Save class="mr-1.5 h-3.5 w-3.5" />
                   Save
                 </Button>
@@ -337,8 +300,7 @@
                 <Select.Trigger class="h-8 text-xs">
                   <div class="flex items-center gap-2 overflow-hidden">
                     <span class="truncate">
-                      {story.locations.find((l) => l.id === dropLocationId)?.name ||
-                        'Select location'}
+                      {story.locations.find((l) => l.id === dropLocationId)?.name || 'Select location'}
                     </span>
                   </div>
                 </Select.Trigger>
@@ -347,24 +309,15 @@
                     <Select.Item value="" disabled>No locations available</Select.Item>
                   {:else}
                     {#each story.locations as location (location.id)}
-                      <Select.Item value={location.id} label={location.name}
-                        >{location.name}</Select.Item
-                      >
+                      <Select.Item value={location.id} label={location.name}>{location.name}</Select.Item>
                     {/each}
                   {/if}
                 </Select.Content>
               </Select.Root>
 
               <div class="flex justify-end gap-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => dropItem(item)}
-                  disabled={!dropLocationId}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => dropItem(item)} disabled={!dropLocationId}>
                   Drop
                 </Button>
               </div>
@@ -385,10 +338,7 @@
                   {item.translatedName ?? item.name}
                 </span>
                 <div class="flex items-center gap-1.5">
-                  <Badge
-                    variant="default"
-                    class="h-4 w-fit px-1.5 py-0 text-[10px] tracking-wide uppercase"
-                  >
+                  <Badge variant="default" class="h-4 w-fit px-1.5 py-0 text-[10px] tracking-wide uppercase">
                     Equipped
                   </Badge>
                   {#if item.quantity > 1}
@@ -441,10 +391,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}
@@ -481,9 +428,7 @@
   {#if story.inventoryItems.filter((item) => !item.equipped).length > 0}
     <div class="space-y-2">
       {#if story.equippedItems.length > 0}
-        <h4 class="text-muted-foreground mt-4 pl-1 text-xs font-semibold tracking-wider uppercase">
-          Backpack
-        </h4>
+        <h4 class="text-muted-foreground mt-4 pl-1 text-xs font-semibold tracking-wider uppercase">Backpack</h4>
       {/if}
       {#each story.inventoryItems.filter((item) => !item.equipped) as item (item.id)}
         {@const isCollapsed = ui.isEntityCollapsed(item.id)}
@@ -502,20 +447,13 @@
                 <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Editing {item.name}
                 </h4>
-                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-                  ><X class="h-4 w-4" /></Button
-                >
+                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Name</Label>
-                  <Input
-                    type="text"
-                    bind:value={editName}
-                    placeholder="Item name"
-                    class="h-8 text-sm"
-                  />
+                  <Input type="text" bind:value={editName} placeholder="Item name" class="h-8 text-sm" />
                 </div>
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Quantity</Label>
@@ -556,15 +494,8 @@
               {/if}
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => saveEdit(item)}
-                  disabled={!editName.trim()}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => saveEdit(item)} disabled={!editName.trim()}>
                   <Save class="mr-1.5 h-3.5 w-3.5" />
                   Save
                 </Button>
@@ -582,8 +513,7 @@
                 <Select.Trigger class="h-8 text-xs">
                   <div class="flex items-center gap-2 overflow-hidden">
                     <span class="truncate">
-                      {story.locations.find((l) => l.id === dropLocationId)?.name ||
-                        'Select location'}
+                      {story.locations.find((l) => l.id === dropLocationId)?.name || 'Select location'}
                     </span>
                   </div>
                 </Select.Trigger>
@@ -592,24 +522,15 @@
                     <Select.Item value="" disabled>No locations available</Select.Item>
                   {:else}
                     {#each story.locations as location (location.id)}
-                      <Select.Item value={location.id} label={location.name}
-                        >{location.name}</Select.Item
-                      >
+                      <Select.Item value={location.id} label={location.name}>{location.name}</Select.Item>
                     {/each}
                   {/if}
                 </Select.Content>
               </Select.Root>
 
               <div class="flex justify-end gap-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => dropItem(item)}
-                  disabled={!dropLocationId}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => dropItem(item)} disabled={!dropLocationId}>
                   Drop
                 </Button>
               </div>
@@ -678,10 +599,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}
@@ -723,11 +641,7 @@
         <Package class="text-muted-foreground h-6 w-6" />
       </div>
       <p class="text-muted-foreground text-sm">Empty inventory</p>
-      <Button
-        variant="text"
-        class="text-primary mt-1 h-auto p-0 text-xs"
-        onclick={() => (showAddForm = true)}
-      >
+      <Button variant="text" class="text-primary mt-1 h-auto p-0 text-xs" onclick={() => (showAddForm = true)}>
         <Plus class="h-3.5 w-3.5" />
         Add first item
       </Button>
@@ -737,9 +651,7 @@
   <!-- World Items -->
   {#if worldItems.length > 0}
     <div class="mt-4 space-y-2">
-      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">
-        World Items
-      </h4>
+      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">World Items</h4>
       {#each worldItems as item (item.id)}
         {@const isCollapsed = ui.isEntityCollapsed(item.id)}
         {@const isEditing = editingId === item.id}
@@ -757,20 +669,13 @@
                 <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Editing {item.name}
                 </h4>
-                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-                  ><X class="h-4 w-4" /></Button
-                >
+                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Name</Label>
-                  <Input
-                    type="text"
-                    bind:value={editName}
-                    placeholder="Item name"
-                    class="h-8 text-sm"
-                  />
+                  <Input type="text" bind:value={editName} placeholder="Item name" class="h-8 text-sm" />
                 </div>
                 <div class="col-span-2 space-y-1 sm:col-span-1">
                   <Label class="text-xs">Quantity</Label>
@@ -783,11 +688,7 @@
 
               <div class="space-y-1">
                 <Label class="text-xs">Description</Label>
-                <Textarea
-                  bind:value={editDescription}
-                  placeholder="Description"
-                  class="min-h-15 resize-none text-xs"
-                />
+                <Textarea bind:value={editDescription} placeholder="Description" class="min-h-15 resize-none text-xs" />
               </div>
 
               <!-- Runtime Variables (Edit - World) -->
@@ -804,15 +705,8 @@
               {/if}
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => saveEdit(item)}
-                  disabled={!editName.trim()}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => saveEdit(item)} disabled={!editName.trim()}>
                   <Save class="mr-1.5 h-3.5 w-3.5" />
                   Save
                 </Button>
@@ -830,8 +724,7 @@
                 <Select.Trigger class="h-8 text-xs">
                   <div class="flex items-center gap-2 overflow-hidden">
                     <span class="truncate">
-                      {story.locations.find((l) => l.id === dropLocationId)?.name ||
-                        'Select location'}
+                      {story.locations.find((l) => l.id === dropLocationId)?.name || 'Select location'}
                     </span>
                   </div>
                 </Select.Trigger>
@@ -840,18 +733,14 @@
                     <Select.Item value="" disabled>No locations available</Select.Item>
                   {:else}
                     {#each story.locations as location (location.id)}
-                      <Select.Item value={location.id} label={location.name}
-                        >{location.name}</Select.Item
-                      >
+                      <Select.Item value={location.id} label={location.name}>{location.name}</Select.Item>
                     {/each}
                   {/if}
                 </Select.Content>
               </Select.Root>
 
               <div class="flex justify-end gap-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>
-                  Cancel
-                </Button>
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelDrop}>Cancel</Button>
                 <Button
                   size="sm"
                   class="h-7 px-4 text-xs"
@@ -934,10 +823,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}

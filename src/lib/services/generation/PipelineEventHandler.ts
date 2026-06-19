@@ -53,20 +53,14 @@ function parallelStatusMessage(activePhases: Set<string>, isCreativeMode: boolea
   return `Processing ${activePhases.size} tasks...`
 }
 
-export function handleEvent(
-  event: GenerationEvent,
-  state: PipelineEventState,
-  callbacks: PipelineUICallbacks,
-): void {
+export function handleEvent(event: GenerationEvent, state: PipelineEventState, callbacks: PipelineUICallbacks): void {
   switch (event.type) {
     case 'phase_start':
       if (event.phase === 'narrative') {
         callbacks.startStreaming(state.visualProseMode, state.streamingEntryId)
       } else if (PARALLEL_PHASES.has(event.phase)) {
         state.activeParallelPhases.add(event.phase)
-        callbacks.setGenerationStatus(
-          parallelStatusMessage(state.activeParallelPhases, state.isCreativeMode),
-        )
+        callbacks.setGenerationStatus(parallelStatusMessage(state.activeParallelPhases, state.isCreativeMode))
 
         // Keep loading spinners for suggestions/actions
         if (event.phase === 'post') {
@@ -90,20 +84,14 @@ export function handleEvent(
     case 'phase_complete':
       if (PARALLEL_PHASES.has(event.phase)) {
         state.activeParallelPhases.delete(event.phase)
-        callbacks.setGenerationStatus(
-          parallelStatusMessage(state.activeParallelPhases, state.isCreativeMode),
-        )
+        callbacks.setGenerationStatus(parallelStatusMessage(state.activeParallelPhases, state.isCreativeMode))
       }
 
       if (event.phase === 'post') {
-        const postResult = event.result as
-          | { suggestions: any[] | null; actionChoices: any[] | null }
-          | undefined
+        const postResult = event.result as { suggestions: any[] | null; actionChoices: any[] | null } | undefined
         if (postResult?.suggestions) {
           callbacks.setSuggestions(postResult.suggestions, state.storyId)
-          callbacks.emitSuggestionsReady(
-            postResult.suggestions.map((s: any) => ({ text: s.text, type: s.type })),
-          )
+          callbacks.emitSuggestionsReady(postResult.suggestions.map((s: any) => ({ text: s.text, type: s.type })))
           callbacks.setSuggestionsLoading(false)
         } else if (postResult?.actionChoices) {
           callbacks.setActionChoices(postResult.actionChoices, state.storyId)

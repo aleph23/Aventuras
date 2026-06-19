@@ -27,9 +27,7 @@ export class SettingStore {
   savedScenarioToVaultConfirm = $state(false)
 
   // Derived
-  expandedSettingDisplay = $derived<ExpandedSetting | null>(
-    this.expandedSettingTranslated ?? this.expandedSetting,
-  )
+  expandedSettingDisplay = $derived<ExpandedSetting | null>(this.expandedSettingTranslated ?? this.expandedSetting)
 
   // Actions
   clearSettingEditState() {
@@ -168,10 +166,7 @@ export class SettingStore {
     }
   }
 
-  private async translateExpandedSetting(
-    setting: ExpandedSetting,
-    targetLanguage: string,
-  ): Promise<ExpandedSetting> {
+  private async translateExpandedSetting(setting: ExpandedSetting, targetLanguage: string): Promise<ExpandedSetting> {
     const fields: Record<string, string> = {
       name: setting.name,
       description: setting.description,
@@ -233,17 +228,12 @@ export class SettingStore {
       traits: c.traits || [],
     }))
 
-    await scenarioVault.saveFromWizard(
-      storyTitle || 'Untitled Scenario',
-      this.settingSeed,
-      vaultNpcs,
-      {
-        description: this.expandedSetting?.description,
-        firstMessage: cardImportedFirstMessage || undefined,
-        alternateGreetings: cardImportedAlternateGreetings,
-        tags: ['wizard'],
-      },
-    )
+    await scenarioVault.saveFromWizard(storyTitle || 'Untitled Scenario', this.settingSeed, vaultNpcs, {
+      description: this.expandedSetting?.description,
+      firstMessage: cardImportedFirstMessage || undefined,
+      alternateGreetings: cardImportedAlternateGreetings,
+      tags: ['wizard'],
+    })
 
     this.savedScenarioToVaultConfirm = true
     setTimeout(() => (this.savedScenarioToVaultConfirm = false), 2000)

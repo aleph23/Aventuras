@@ -6,21 +6,13 @@
  */
 
 import { database } from './database'
-import {
-  PING_TTL_DEFAULT_MS,
-  type CachedHealth,
-  type HealthStatus,
-  type PingResult,
-} from '$lib/constants/modelHealth'
+import { PING_TTL_DEFAULT_MS, type CachedHealth, type HealthStatus, type PingResult } from '$lib/constants/modelHealth'
 
 export function isFresh(checkedAt: number, ttlMs = PING_TTL_DEFAULT_MS): boolean {
   return Date.now() - checkedAt < ttlMs
 }
 
-export async function getAllForKey(
-  providerId: string,
-  baseUrl: string,
-): Promise<Map<string, CachedHealth>> {
+export async function getAllForKey(providerId: string, baseUrl: string): Promise<Map<string, CachedHealth>> {
   const rows = await database.getModelHealthForKey(providerId, baseUrl)
   const out = new Map<string, CachedHealth>()
   for (const r of rows) {

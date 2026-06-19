@@ -21,17 +21,13 @@ function buildCardContext(card: ParsedCard): string {
     sections.push(`<scenario>\n${normalizeUserMacro(card.scenario)}\n</scenario>`)
   }
   if (card.description.trim()) {
-    sections.push(
-      `<character_description>\n${normalizeUserMacro(card.description)}\n</character_description>`,
-    )
+    sections.push(`<character_description>\n${normalizeUserMacro(card.description)}\n</character_description>`)
   }
   if (card.personality.trim()) {
     sections.push(`<personality>\n${normalizeUserMacro(card.personality)}\n</personality>`)
   }
   if (card.exampleMessages.trim()) {
-    sections.push(
-      `<example_messages>\n${normalizeUserMacro(card.exampleMessages)}\n</example_messages>`,
-    )
+    sections.push(`<example_messages>\n${normalizeUserMacro(card.exampleMessages)}\n</example_messages>`)
   }
 
   return sections.join('\n\n')
@@ -50,12 +46,7 @@ class AIService extends BaseAIService {
     ctx.add({ title: cardTitle, genre, cardContent })
     const { system, user: prompt } = await ctx.render('character-card-import')
 
-    const result = await this.generate(
-      cardImportResultSchema,
-      system,
-      prompt,
-      'character-card-import',
-    )
+    const result = await this.generate(cardImportResultSchema, system, prompt, 'character-card-import')
 
     const npcs: GeneratedCharacter[] = result.npcs.map((npc) => ({
       name: npc.name,
@@ -92,12 +83,7 @@ class AIService extends BaseAIService {
     ctx.add({ cardContent })
     const { system, user: prompt } = await ctx.render('vault-character-import')
 
-    const result = await this.generate(
-      vaultCharacterImportSchema,
-      system,
-      prompt,
-      'vault-character-import',
-    )
+    const result = await this.generate(vaultCharacterImportSchema, system, prompt, 'vault-character-import')
 
     log('Character sanitization successful', { name: result.name })
 
@@ -115,10 +101,7 @@ const aiService = new AIService()
 /**
  * Convert a parsed character card into a clean character card using LLM.
  */
-export async function clean(
-  jsonString: string,
-  genre: Genre = 'fantasy',
-): Promise<CardImportResult> {
+export async function clean(jsonString: string, genre: Genre = 'fantasy'): Promise<CardImportResult> {
   const card = parseJson(jsonString)
   if (!card) {
     return {
@@ -129,9 +112,7 @@ export async function clean(
       storyTitle: '',
       firstMessage: '',
       alternateGreetings: [],
-      errors: [
-        'Failed to parse character card. Please ensure the file is a valid SillyTavern character card JSON.',
-      ],
+      errors: ['Failed to parse character card. Please ensure the file is a valid SillyTavern character card JSON.'],
     }
   }
 

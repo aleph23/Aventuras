@@ -158,8 +158,7 @@ export function createTimeoutFetch(
                   if (dataStr === '[DONE]') return { done: true }
                   try {
                     const parsed = JSON.parse(dataStr)
-                    if (parsed.promptFeedback)
-                      providerMetadata.promptFeedback = parsed.promptFeedback
+                    if (parsed.promptFeedback) providerMetadata.promptFeedback = parsed.promptFeedback
                     if (parsed.candidates?.[0]?.safetyRatings) {
                       providerMetadata.safetyRatings = parsed.candidates[0].safetyRatings
                     }
@@ -196,8 +195,7 @@ export function createTimeoutFetch(
                   const delta = choice.delta || {}
                   if (delta.role) agg.message.role = delta.role
                   if (delta.content) agg.message.content += delta.content
-                  if (delta.reasoning)
-                    agg.message.reasoning = (agg.message.reasoning || '') + delta.reasoning
+                  if (delta.reasoning) agg.message.reasoning = (agg.message.reasoning || '') + delta.reasoning
                   if (delta.tool_calls) {
                     if (!agg.message.tool_calls) agg.message.tool_calls = []
                     for (const tc of delta.tool_calls) {
@@ -215,8 +213,7 @@ export function createTimeoutFetch(
                       if (tc.id) aggTc.id = tc.id
                       if (tc.type) aggTc.type = tc.type
                       if (tc.function?.name) aggTc.function.name = tc.function.name
-                      if (typeof tc.function?.arguments === 'string')
-                        aggTc.function.arguments += tc.function.arguments
+                      if (typeof tc.function?.arguments === 'string') aggTc.function.arguments += tc.function.arguments
                     }
                   }
                   if (choice.finish_reason !== undefined && choice.finish_reason !== null)
@@ -253,8 +250,7 @@ export function createTimeoutFetch(
               serviceId,
               {
                 body: parsedBody,
-                providerMetadata:
-                  Object.keys(providerMetadata).length > 0 ? providerMetadata : undefined,
+                providerMetadata: Object.keys(providerMetadata).length > 0 ? providerMetadata : undefined,
                 stream: true,
               },
               startTime,
@@ -277,12 +273,8 @@ export function createTimeoutFetch(
 
       const providerMetadata: Record<string, any> = {}
       if (typeof responsePayload === 'object' && responsePayload !== null) {
-        if (responsePayload.promptFeedback)
-          providerMetadata.promptFeedback = responsePayload.promptFeedback
-        if (
-          Array.isArray(responsePayload.candidates) &&
-          responsePayload.candidates[0]?.safetyRatings
-        ) {
+        if (responsePayload.promptFeedback) providerMetadata.promptFeedback = responsePayload.promptFeedback
+        if (Array.isArray(responsePayload.candidates) && responsePayload.candidates[0]?.safetyRatings) {
           providerMetadata.safetyRatings = responsePayload.candidates[0].safetyRatings
         }
       }
@@ -298,9 +290,7 @@ export function createTimeoutFetch(
       )
 
       if (typeof responsePayload === 'object' && responsePayload !== null) {
-        const patched = JSON.stringify(
-          patchResponseJson(responsePayload as Record<string, unknown>),
-        )
+        const patched = JSON.stringify(patchResponseJson(responsePayload as Record<string, unknown>))
         return new Response(patched, {
           status: response.status,
           statusText: response.statusText,

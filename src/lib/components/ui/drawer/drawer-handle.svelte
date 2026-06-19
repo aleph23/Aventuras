@@ -2,11 +2,7 @@
   import { Drawer as DrawerPrimitive } from 'vaul-svelte'
   import { cn } from '$lib/utils/cn'
 
-  let {
-    ref = $bindable(null),
-    class: className,
-    ...restProps
-  }: DrawerPrimitive.HandleProps = $props()
+  let { ref = $bindable(null), class: className, ...restProps }: DrawerPrimitive.HandleProps = $props()
 </script>
 
 <DrawerPrimitive.Handle

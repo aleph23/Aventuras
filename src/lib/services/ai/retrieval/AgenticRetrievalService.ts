@@ -136,10 +136,7 @@ export class AgenticRetrievalService extends BaseAIService {
     const chapterList =
       context.chapters
         ?.slice(0, 20) // Limit for prompt size
-        .map(
-          (ch) =>
-            `- Chapter ${ch.number}${ch.title ? `: ${ch.title}` : ''} - ${ch.summary.slice(0, 100)}...`,
-        )
+        .map((ch) => `- Chapter ${ch.number}${ch.title ? `: ${ch.title}` : ''} - ${ch.summary.slice(0, 100)}...`)
         .join('\n') ?? 'No chapters available.'
 
     // Build entry list for user prompt
@@ -178,10 +175,7 @@ export class AgenticRetrievalService extends BaseAIService {
 
     // Extract the terminal result
 
-    const terminalResult = extractTerminalToolResult<FinishRetrievalResult>(
-      result.steps as any,
-      'finish_retrieval',
-    )
+    const terminalResult = extractTerminalToolResult<FinishRetrievalResult>(result.steps as any, 'finish_retrieval')
 
     const iterations = result.steps.length
 

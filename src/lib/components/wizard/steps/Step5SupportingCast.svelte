@@ -1,18 +1,6 @@
 <script lang="ts">
   import { slide } from 'svelte/transition'
-  import {
-    Archive,
-    Loader2,
-    Check,
-    Sparkles,
-    X,
-    PenTool,
-    Users,
-    Plus,
-    Trash2,
-    ChevronDown,
-    User,
-  } from 'lucide-svelte'
+  import { Archive, Loader2, Check, Sparkles, X, PenTool, Users, Plus, Trash2, ChevronDown, User } from 'lucide-svelte'
   import UniversalVaultBrowser from '$lib/components/vault/UniversalVaultBrowser.svelte'
   import { characterVault } from '$lib/stores/characterVault.svelte'
   import type { GeneratedCharacter, GeneratedProtagonist } from '$lib/services/ai/sdk'
@@ -104,13 +92,9 @@
   let showVaultPicker = $state(false)
   let loadedVaultCharacterId = $state<string | null>(null)
 
-  const hasVaultCharacters = $derived(
-    characterVault.isLoaded && characterVault.characters.length > 0,
-  )
+  const hasVaultCharacters = $derived(characterVault.isLoaded && characterVault.characters.length > 0)
 
-  const addedVaultCharacterIds = $derived(
-    supportingCharacters.map((c) => c.vaultId).filter((id): id is string => !!id),
-  )
+  const addedVaultCharacterIds = $derived(supportingCharacters.map((c) => c.vaultId).filter((id): id is string => !!id))
 
   function handleSelectFromVault(character: VaultCharacter) {
     loadedVaultCharacterId = character.id
@@ -140,28 +124,17 @@
         <Archive class="h-4 w-4" />
         Load from Vault
       </h4>
-      <Button
-        variant="link"
-        size="sm"
-        class="h-auto p-0 text-xs"
-        onclick={() => onNavigateToVault?.()}
-      >
+      <Button variant="link" size="sm" class="h-auto p-0 text-xs" onclick={() => onNavigateToVault?.()}>
         Manage Vault
       </Button>
     </div>
 
-    <div
-      class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm"
-    >
+    <div class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm">
       <Collapsible.Root open={showVaultPicker} onOpenChange={(open) => (showVaultPicker = open)}>
         <div class="flex items-center gap-3 p-3 pl-4">
-          <Collapsible.Trigger
-            class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left"
-          >
+          <Collapsible.Trigger class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left">
             <div class="flex items-center gap-3">
-              <div
-                class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-              >
+              <div class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors">
                 <Users class="text-primary h-4 w-4" />
               </div>
               <div class="text-left">
@@ -293,11 +266,7 @@
         </div>
 
         <!-- AI Adjustments -->
-        <Collapsible.Root
-          open={showAdjustWithAI}
-          onOpenChange={(open) => (showAdjustWithAI = open)}
-          class="space-y-2"
-        >
+        <Collapsible.Root open={showAdjustWithAI} onOpenChange={(open) => (showAdjustWithAI = open)} class="space-y-2">
           <div class="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -307,17 +276,14 @@
             >
               <Sparkles class="h-3.5 w-3.5" />
               {showAdjustWithAI ? 'Hide AI Options' : 'Adjust with AI'}
-              <ChevronDown
-                class="h-3 w-3 transition-transform {showAdjustWithAI ? 'rotate-180' : ''}"
-              />
+              <ChevronDown class="h-3 w-3 transition-transform {showAdjustWithAI ? 'rotate-180' : ''}" />
             </Button>
           </div>
 
           <Collapsible.Content class="-mt-3 space-y-2">
             <div class="space-y-1.5">
-              <Label
-                for="ai-guidance-supp"
-                class="text-muted-foreground text-[10px] tracking-wider uppercase">Guidance</Label
+              <Label for="ai-guidance-supp" class="text-muted-foreground text-[10px] tracking-wider uppercase"
+                >Guidance</Label
               >
               <Textarea
                 id="ai-guidance-supp"
@@ -349,11 +315,7 @@
 
         <div class="flex justify-end gap-2">
           <Button variant="ghost" onclick={onCancelSupportingForm}>Cancel</Button>
-          <Button
-            class="gap-2"
-            onclick={onUseSupportingAsIs}
-            disabled={!supportingCharacterName.trim()}
-          >
+          <Button class="gap-2" onclick={onUseSupportingAsIs} disabled={!supportingCharacterName.trim()}>
             <Check class="h-4 w-4" />
             {editingSupportingCharacterIndex !== null ? 'Update' : 'Add Character'}
           </Button>
@@ -390,9 +352,7 @@
                   {/if}
                 </div>
 
-                <div
-                  class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                >
+                <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="icon"

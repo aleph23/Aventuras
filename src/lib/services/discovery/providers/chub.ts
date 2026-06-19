@@ -13,10 +13,7 @@ export class ChubProvider implements DiscoveryProvider {
   icon = 'https://avatars.charhub.io/icons/assets/full_logo.png'
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'lorebook', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     const sortMap: Record<string, string> = {
       popular: 'download_count',
       new: 'created_at',
@@ -110,9 +107,7 @@ export class ChubProvider implements DiscoveryProvider {
       raw: {
         ...node,
         pageUrl:
-          type === 'lorebook'
-            ? `https://chub.ai/lorebooks/${fullPath}`
-            : `https://chub.ai/characters/${fullPath}`,
+          type === 'lorebook' ? `https://chub.ai/lorebooks/${fullPath}` : `https://chub.ai/characters/${fullPath}`,
       },
     }
   }

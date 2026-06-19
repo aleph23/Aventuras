@@ -38,8 +38,7 @@ export function sanitizeVisualProse(html: string, entryId: string): string {
   // Remove buttons except inline image action buttons
   const buttons = fragment.querySelectorAll('button')
   buttons.forEach((btn) => {
-    const isInlineImageBtn =
-      btn.classList.contains('inline-image-btn') || btn.hasAttribute('data-action')
+    const isInlineImageBtn = btn.classList.contains('inline-image-btn') || btn.hasAttribute('data-action')
     if (!isInlineImageBtn) {
       btn.remove()
     }
@@ -232,8 +231,7 @@ export function sanitizeTextForTTS(html: string, options: TTSSanitizeOptions): s
 
   const shouldRemoveContent = (tag: string): boolean => {
     if (options.removeAllTagContent) return true
-    if (options.htmlTagsToRemoveContent && options.htmlTagsToRemoveContent.includes(tag))
-      return true
+    if (options.htmlTagsToRemoveContent && options.htmlTagsToRemoveContent.includes(tag)) return true
     return false
   }
 

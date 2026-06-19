@@ -2,16 +2,7 @@
   import type { VaultScenarioInput } from '$lib/services/ai/sdk/schemas/vault'
   import type { VaultCharacter } from '$lib/types'
   import { characterVault } from '$lib/stores/characterVault.svelte'
-  import {
-    Plus,
-    Trash2,
-    Users,
-    MessageSquare,
-    FileText,
-    ChevronRight,
-    Search,
-    User,
-  } from 'lucide-svelte'
+  import { Plus, Trash2, Users, MessageSquare, FileText, ChevronRight, Search, User } from 'lucide-svelte'
   import TagInput from '$lib/components/tags/TagInput.svelte'
   import { normalizeImageDataUrl } from '$lib/utils/image'
 
@@ -33,9 +24,7 @@
   let { data, onUpdate, changedFields }: Props = $props()
 
   const changed = (field: string) =>
-    changedFields?.has(field)
-      ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg'
-      : ''
+    changedFields?.has(field) ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg' : ''
 
   let showCharacterSelector = $state(false)
   let charSearchQuery = $state('')
@@ -94,11 +83,7 @@
   }
 </script>
 
-<Tabs.Root
-  value={activeTab}
-  onValueChange={(v) => (activeTab = v)}
-  class="flex flex-1 flex-col overflow-hidden"
->
+<Tabs.Root value={activeTab} onValueChange={(v) => (activeTab = v)} class="flex flex-1 flex-col overflow-hidden">
   <div class="bg-muted/20 border-b">
     <Tabs.List class="h-12 w-full justify-start bg-transparent p-0">
       <Tabs.Trigger
@@ -131,12 +116,7 @@
         <div class="space-y-4">
           <div class="space-y-2 {changed('name')}">
             <Label for="name">Scenario Name</Label>
-            <Input
-              id="name"
-              bind:value={data.name}
-              oninput={handleInput}
-              placeholder="e.g. The Cyberpunk City"
-            />
+            <Input id="name" bind:value={data.name} oninput={handleInput} placeholder="e.g. The Cyberpunk City" />
           </div>
 
           <div class="space-y-2 {changed('description')}">
@@ -175,9 +155,7 @@
                 class="min-h-[200px] resize-y font-mono text-sm leading-relaxed"
                 placeholder="Detailed world setting..."
               />
-              <div
-                class="text-muted-foreground bg-background/80 absolute right-2 bottom-2 rounded px-2 py-0.5 text-xs"
-              >
+              <div class="text-muted-foreground bg-background/80 absolute right-2 bottom-2 rounded px-2 py-0.5 text-xs">
                 Markdown supported
               </div>
             </div>
@@ -199,9 +177,7 @@
       </Tabs.Content>
 
       <Tabs.Content value="npcs" class="mt-0 space-y-6 {changed('npcs')}">
-        <div
-          class="bg-background sticky top-0 z-10 mb-4 flex items-center justify-between border-b pt-2 pb-4"
-        >
+        <div class="bg-background sticky top-0 z-10 mb-4 flex items-center justify-between border-b pt-2 pb-4">
           <h3 class="text-muted-foreground text-sm font-medium">Supporting Characters</h3>
           <div class="flex items-center gap-2">
             <Button
@@ -236,9 +212,7 @@
               <div class="bg-card text-card-foreground group rounded-lg border shadow-sm">
                 <Collapsible.Root>
                   <div class="flex items-center gap-3 p-3 pl-4">
-                    <Collapsible.Trigger
-                      class="group/trigger flex flex-1 items-center gap-2 text-left"
-                    >
+                    <Collapsible.Trigger class="group/trigger flex flex-1 items-center gap-2 text-left">
                       <div
                         class="bg-muted/50 group-hover/trigger:bg-muted flex h-8 w-8 items-center justify-center rounded-md transition-colors"
                       >
@@ -368,9 +342,7 @@
           {/each}
 
           {#if (data.alternateGreetings ?? []).length === 0}
-            <p class="text-muted-foreground py-4 text-center text-sm italic">
-              No variations added.
-            </p>
+            <p class="text-muted-foreground py-4 text-center text-sm italic">No variations added.</p>
           {/if}
         </div>
       </Tabs.Content>
@@ -380,10 +352,7 @@
 
 <!-- Character Import Modal -->
 {#if showCharacterSelector}
-  <ResponsiveModal.Root
-    open={showCharacterSelector}
-    onOpenChange={(open) => (showCharacterSelector = open)}
-  >
+  <ResponsiveModal.Root open={showCharacterSelector} onOpenChange={(open) => (showCharacterSelector = open)}>
     <ResponsiveModal.Content class="flex h-[500px] flex-col p-0 sm:max-w-md">
       <ResponsiveModal.Header class="border-b px-4 py-3">
         <h3 class="font-semibold">Import Character</h3>
@@ -409,10 +378,7 @@
               onclick={() => addNpcFromCharacter(char)}
             >
               <Avatar.Root class="h-10 w-10 border">
-                <Avatar.Image
-                  src={normalizeImageDataUrl(char.portrait) ?? ''}
-                  class="object-cover"
-                />
+                <Avatar.Image src={normalizeImageDataUrl(char.portrait) ?? ''} class="object-cover" />
                 <Avatar.Fallback><User class="h-5 w-5" /></Avatar.Fallback>
               </Avatar.Root>
               <div class="min-w-0 flex-1">

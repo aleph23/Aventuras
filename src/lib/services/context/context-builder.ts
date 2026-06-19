@@ -123,15 +123,11 @@ export class ContextBuilder {
       })
     }
 
-    const systemResult = systemTemplate?.content
-      ? templateEngine.render(systemTemplate.content, this.context)
-      : ''
+    const systemResult = systemTemplate?.content ? templateEngine.render(systemTemplate.content, this.context) : ''
     if (systemResult === null) {
       log('ERROR: system template render failed, using raw content', { templateId })
     }
-    const userResult = userTemplate?.content
-      ? templateEngine.render(userTemplate.content, this.context)
-      : ''
+    const userResult = userTemplate?.content ? templateEngine.render(userTemplate.content, this.context) : ''
     if (userResult === null) {
       log('ERROR: user template render failed, using raw content', { templateId })
     }

@@ -8,13 +8,7 @@ import { createLogger } from '$lib/log'
 const log = createLogger('GenerationPipeline')
 
 import type { GenerationEvent, GenerationContext, ErrorEvent, RetrievalResult } from './types'
-import type {
-  EmbeddedImage,
-  ActionInputType,
-  TranslationSettings,
-  Character,
-  StoryBeat,
-} from '$lib/types'
+import type { EmbeddedImage, ActionInputType, TranslationSettings, Character, StoryBeat } from '$lib/types'
 import type { StoryMode, POV, Tense } from '$lib/types'
 import type { StyleReviewResult } from '$lib/services/ai/generation/StyleReviewerService'
 import type { ActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService'
@@ -109,10 +103,7 @@ export class GenerationPipeline {
     this.postPhase = new PostGenerationPhase(deps)
   }
 
-  async *execute(
-    ctx: GenerationContext,
-    cfg: PipelineConfig,
-  ): AsyncGenerator<GenerationEvent, PipelineResult> {
+  async *execute(ctx: GenerationContext, cfg: PipelineConfig): AsyncGenerator<GenerationEvent, PipelineResult> {
     const r: PipelineResult = {
       preGeneration: null,
       narrative: null,
@@ -169,12 +160,7 @@ export class GenerationPipeline {
       // Background and postGeneration are fully independent.
       const allPhases = yield* mergeGenerators({
         // [Classification ‖ Translation] → Image (sequential dependency)
-        imagePipeline: this.runImagePipeline(
-          ctx,
-          cfg,
-          r.narrative!.content,
-          r.preGeneration?.visualProseMode ?? false,
-        ),
+        imagePipeline: this.runImagePipeline(ctx, cfg, r.narrative!.content, r.preGeneration?.visualProseMode ?? false),
         // Independent phases
         background: this.backgroundPhase.execute({
           storyId: ctx.story.id,
@@ -257,13 +243,7 @@ export class GenerationPipeline {
       }
     }
 
-    const imageInput = this.buildImageInput(
-      ctx,
-      cfg,
-      narrativeContent,
-      imageDeps.classification,
-      imageDeps.translation,
-    )
+    const imageInput = this.buildImageInput(ctx, cfg, narrativeContent, imageDeps.classification, imageDeps.translation)
     const image = yield* this.imagePhase.execute(imageInput)
 
     return {
@@ -281,9 +261,7 @@ export class GenerationPipeline {
     translation: TranslationResult2,
   ) {
     const names = classification?.classificationResult?.scene?.presentCharacterNames ?? []
-    const presentCharacters: Character[] = ctx.worldState.characters.filter((c) =>
-      names.includes(c.name),
-    )
+    const presentCharacters: Character[] = ctx.worldState.characters.filter((c) => names.includes(c.name))
     return {
       storyId: ctx.story.id,
       entryId: ctx.narrationEntryId || ctx.userAction.entryId,

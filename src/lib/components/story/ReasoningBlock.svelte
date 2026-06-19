@@ -61,16 +61,11 @@
     )}
     onclick={toggleOpen}
     disabled={!isToggleEnabled}
-    title={isToggleEnabled
-      ? isOpen
-        ? 'Hide thinking'
-        : 'Show thinking'
-      : 'Reasoning display is disabled in settings'}
+    title={isToggleEnabled ? (isOpen ? 'Hide thinking' : 'Show thinking') : 'Reasoning display is disabled in settings'}
   >
     <Brain class={cn('h-3.5 w-3.5', isReasoningPhase && 'animate-pulse')} />
     {#if isStreaming}
-      <span class="absolute top-0.5 right-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400"
-      ></span>
+      <span class="absolute top-0.5 right-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400"></span>
     {/if}
   </Button>
 {:else}

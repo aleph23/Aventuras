@@ -52,8 +52,7 @@
   })
 
   const canCreate = $derived(
-    searchQuery.trim() &&
-      !filteredTags.some((t) => t.name.toLowerCase() === searchQuery.toLowerCase()),
+    searchQuery.trim() && !filteredTags.some((t) => t.name.toLowerCase() === searchQuery.toLowerCase()),
   )
 
   function startEdit(tag: VaultTag) {
@@ -72,9 +71,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (
-      confirm('Are you sure you want to delete this tag? It will be removed from all vault items.')
-    ) {
+    if (confirm('Are you sure you want to delete this tag? It will be removed from all vault items.')) {
       await tagStore.delete(id)
     }
   }
@@ -132,9 +129,7 @@
                   <div class="flex flex-1 items-center gap-3">
                     <!-- Color Picker -->
                     <div class="relative">
-                      <div
-                        class={`h-6 w-6 rounded-full bg-${editColor} ring-muted cursor-pointer ring-2`}
-                      ></div>
+                      <div class={`h-6 w-6 rounded-full bg-${editColor} ring-muted cursor-pointer ring-2`}></div>
                       <div
                         class="bg-background absolute top-full left-0 z-10 mt-2 hidden w-48 flex-wrap gap-1 rounded-lg border p-2 shadow-xl group-hover:flex"
                       >
@@ -163,12 +158,7 @@
                       >
                         <Check class="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        class="h-8 w-8"
-                        onclick={() => (editingId = null)}
-                      >
+                      <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => (editingId = null)}>
                         <Trash2 class="h-4 w-4" />
                       </Button>
                     </div>
@@ -180,15 +170,8 @@
                     <span class="font-medium">{tag.name}</span>
                   </div>
 
-                  <div
-                    class="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8"
-                      onclick={() => startEdit(tag)}
-                    >
+                  <div class="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => startEdit(tag)}>
                       <Edit2 class="h-4 w-4" />
                     </Button>
                     <Button

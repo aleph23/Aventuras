@@ -59,9 +59,7 @@ if (!newVersion) {
 // Pre-check 2: Ensure no uncommitted changes
 const gitStatus = execSync('git status --porcelain').toString()
 if (gitStatus) {
-  console.error(
-    'Error: Uncommitted changes found. Please commit or stash them before running the release script.',
-  )
+  console.error('Error: Uncommitted changes found. Please commit or stash them before running the release script.')
   process.exit(1)
 }
 

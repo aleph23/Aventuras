@@ -39,20 +39,12 @@ function prefixSelectorsInBlock(css: string, scopeClass: string): string {
     const trimmedSelectors = selectors.trim()
 
     // Skip if empty or starts with @ or is a placeholder
-    if (
-      !trimmedSelectors ||
-      trimmedSelectors.startsWith('@') ||
-      trimmedSelectors.startsWith('__KEYFRAMES_')
-    ) {
+    if (!trimmedSelectors || trimmedSelectors.startsWith('@') || trimmedSelectors.startsWith('__KEYFRAMES_')) {
       return match
     }
 
     // Skip percentage selectors (keyframe steps)
-    if (
-      /^\d+%$/.test(trimmedSelectors) ||
-      trimmedSelectors === 'from' ||
-      trimmedSelectors === 'to'
-    ) {
+    if (/^\d+%$/.test(trimmedSelectors) || trimmedSelectors === 'from' || trimmedSelectors === 'to') {
       return match
     }
 

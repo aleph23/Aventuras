@@ -93,9 +93,7 @@
   let editingCharacter = $state<VaultCharacter | null>(null)
   let editingLorebook = $state<VaultLorebook | null>(null)
   let editingScenarioId = $state<string | null>(null)
-  let editingScenario = $derived(
-    editingScenarioId ? (scenarioVault.getById(editingScenarioId) ?? null) : null,
-  )
+  let editingScenario = $derived(editingScenarioId ? (scenarioVault.getById(editingScenarioId) ?? null) : null)
 
   let showDiscoveryModal = $state(false)
   let discoveryMode = $state<VaultType>('character')
@@ -355,12 +353,7 @@
   }
 
   function guardPromptNavigation(action: () => void) {
-    if (
-      activeTab === 'prompts' &&
-      promptsViewState.mode === 'editing' &&
-      isPromptEditorDirty &&
-      promptEditorRef
-    ) {
+    if (activeTab === 'prompts' && promptsViewState.mode === 'editing' && isPromptEditorDirty && promptEditorRef) {
       promptEditorRef.guardNavigation(() => {
         promptsViewState = { mode: 'browsing' }
         action()
@@ -442,9 +435,7 @@
       </div>
 
       <!-- Right Side Actions -->
-      <div
-        class="flex flex-1 items-center justify-end gap-2 [&_[data-button-label]]:max-lg:!hidden"
-      >
+      <div class="flex flex-1 items-center justify-end gap-2 [&_[data-button-label]]:max-lg:!hidden">
         <Button
           icon={Bot}
           label="Vault Assistant"
@@ -455,22 +446,9 @@
         />
 
         {#if activeTab === 'prompts' && promptsViewState.mode === 'browsing'}
-          <Button
-            icon={Download}
-            label="Import"
-            variant="outline"
-            size="sm"
-            class="h-9"
-            onclick={handleImportPack}
-          />
+          <Button icon={Download} label="Import" variant="outline" size="sm" class="h-9" onclick={handleImportPack} />
 
-          <Button
-            icon={Plus}
-            label="New Pack"
-            size="sm"
-            class="h-9"
-            onclick={() => (showCreatePackDialog = true)}
-          />
+          <Button icon={Plus} label="New Pack" size="sm" class="h-9" onclick={() => (showCreatePackDialog = true)} />
         {:else if activeTab !== 'prompts'}
           <Button
             icon={Tags}
@@ -509,13 +487,7 @@
               </div>
 
               {#if section.createAction}
-                <Button
-                  icon={Plus}
-                  label={section.createLabel!}
-                  size="sm"
-                  class="h-9"
-                  onclick={section.createAction}
-                />
+                <Button icon={Plus} label={section.createLabel!} size="sm" class="h-9" onclick={section.createAction} />
               {/if}
             {/if}
           {/each}
@@ -587,10 +559,7 @@
 
   <!-- Content -->
   {#each sections as section (section.id)}
-    <TabsContent
-      value={section.id}
-      class="m-0 flex-1 overflow-hidden p-0 outline-none data-[state=inactive]:hidden"
-    >
+    <TabsContent value={section.id} class="m-0 flex-1 overflow-hidden p-0 outline-none data-[state=inactive]:hidden">
       <ScrollArea class="h-full">
         <div class="flex min-h-full flex-col px-4 pb-36 sm:pb-16">
           {#if !section.store.isLoaded}
@@ -652,19 +621,13 @@
                       try {
                         const result = await section.store.duplicate(item.id)
                         if (!result) {
-                          ui.showToast(
-                            `Original ${section.singularLabel.toLowerCase()} not found`,
-                            'error',
-                          )
+                          ui.showToast(`Original ${section.singularLabel.toLowerCase()} not found`, 'error')
                           return
                         }
                         ui.showToast(`${section.singularLabel} duplicated`, 'info')
                       } catch (e) {
                         console.error('Duplicate failed:', e)
-                        ui.showToast(
-                          `Failed to duplicate ${section.singularLabel.toLowerCase()}`,
-                          'error',
-                        )
+                        ui.showToast(`Failed to duplicate ${section.singularLabel.toLowerCase()}`, 'error')
                       }
                     }}
                   />
@@ -678,17 +641,11 @@
   {/each}
 
   <!-- Prompts Tab Content -->
-  <TabsContent
-    value="prompts"
-    class="m-0 flex-1 overflow-hidden p-0 outline-none data-[state=inactive]:hidden"
-  >
+  <TabsContent value="prompts" class="m-0 flex-1 overflow-hidden p-0 outline-none data-[state=inactive]:hidden">
     {#if promptsViewState.mode === 'browsing'}
       <ScrollArea class="h-full">
         <div class="flex min-h-full flex-col px-4 pt-4 pb-36 sm:pb-16">
-          <PromptPackList
-            onOpenPack={handleOpenPack}
-            bind:showCreateDialog={showCreatePackDialog}
-          />
+          <PromptPackList onOpenPack={handleOpenPack} bind:showCreateDialog={showCreatePackDialog} />
         </div>
       </ScrollArea>
     {:else}
@@ -737,11 +694,7 @@
 {/if}
 
 <!-- Discovery Modal -->
-<DiscoveryModal
-  isOpen={showDiscoveryModal}
-  mode={discoveryMode}
-  onClose={() => (showDiscoveryModal = false)}
-/>
+<DiscoveryModal isOpen={showDiscoveryModal} mode={discoveryMode} onClose={() => (showDiscoveryModal = false)} />
 
 <!-- Tag Manager Modal -->
 {#if showTagManager}

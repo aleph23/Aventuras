@@ -38,9 +38,7 @@
   })
 
   // Show detail panel on desktop when entry selected, or on mobile when showing detail
-  const showDetail = $derived(
-    (!isMobile && (selectedEntry || creatingNew)) || (isMobile && ui.lorebookShowDetail),
-  )
+  const showDetail = $derived((!isMobile && (selectedEntry || creatingNew)) || (isMobile && ui.lorebookShowDetail))
 
   // Show list on desktop always, or on mobile when not showing detail
   const showList = $derived(!isMobile || !ui.lorebookShowDetail)
@@ -76,13 +74,7 @@
   }
 
   async function handleSaveNew(entry: Entry) {
-    const {
-      id: _id,
-      storyId: _storyId,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      ...entryData
-    } = entry
+    const { id: _id, storyId: _storyId, createdAt: _createdAt, updatedAt: _updatedAt, ...entryData } = entry
     const newEntry = await story.addLorebookEntry(entryData)
     creatingNew = false
     ui.setLorebookEditMode(false)

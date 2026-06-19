@@ -3,17 +3,7 @@
  * Core types for the generation pipeline. Events use a discriminated union pattern.
  */
 
-import type {
-  Story,
-  StoryEntry,
-  Chapter,
-  Character,
-  Location,
-  Item,
-  StoryBeat,
-  MemoryConfig,
-  Entry,
-} from '$lib/types'
+import type { Story, StoryEntry, Chapter, Character, Location, Item, StoryBeat, MemoryConfig, Entry } from '$lib/types'
 import type { ClassificationResult } from '$lib/services/ai/sdk/schemas/classifier'
 import type { TimelineFillResult } from '$lib/services/ai/retrieval'
 import type { EntryRetrievalResult } from '$lib/services/ai/retrieval/EntryRetrievalService'

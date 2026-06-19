@@ -185,19 +185,12 @@
   <div class="flex min-h-0 flex-1">
     <!-- Mobile sidebar overlay (tap to close) -->
     {#if ui.sidebarOpen && story.currentStory}
-      <button
-        class="mobile-sidebar-overlay"
-        onclick={() => ui.toggleSidebar()}
-        aria-label="Close sidebar"
-      ></button>
+      <button class="mobile-sidebar-overlay" onclick={() => ui.toggleSidebar()} aria-label="Close sidebar"></button>
     {/if}
 
     <!-- Right edge swipe zone for opening sidebar (when closed) -->
     {#if !ui.sidebarOpen && story.currentStory}
-      <div
-        class="swipe-edge-zone"
-        use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 30 }}
-      ></div>
+      <div class="swipe-edge-zone" use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 30 }}></div>
     {/if}
 
     <!-- Main content area -->

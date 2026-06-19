@@ -65,36 +65,31 @@ export function createChutesProvider(config: ImageProviderConfig): ImageProvider
         const data = await response.json()
         const items = data.items || []
 
-        const imageModels = items.filter(
-          (item: { standard_template?: string | null; name?: string }) => {
-            if (item.standard_template === 'diffusion') return true
-            if (item.standard_template === null) {
-              const name = item.name?.toLowerCase() || ''
-              return name.includes('image') || name.includes('z-image')
-            }
-            return false
-          },
-        )
+        const imageModels = items.filter((item: { standard_template?: string | null; name?: string }) => {
+          if (item.standard_template === 'diffusion') return true
+          if (item.standard_template === null) {
+            const name = item.name?.toLowerCase() || ''
+            return name.includes('image') || name.includes('z-image')
+          }
+          return false
+        })
 
         if (imageModels.length === 0) return getFallbackModels()
 
-        const models: ImageModelInfo[] = imageModels.map(
-          (item: { name: string; tagline?: string }) => {
-            const name = item.name
-            const nameLower = name.toLowerCase()
-            const supportsImg2Img =
-              nameLower.includes('edit') ||
-              (nameLower.includes('qwen-image') && !nameLower.includes('turbo'))
+        const models: ImageModelInfo[] = imageModels.map((item: { name: string; tagline?: string }) => {
+          const name = item.name
+          const nameLower = name.toLowerCase()
+          const supportsImg2Img =
+            nameLower.includes('edit') || (nameLower.includes('qwen-image') && !nameLower.includes('turbo'))
 
-            return {
-              id: name,
-              name: formatName(name),
-              description: item.tagline || undefined,
-              supportsSizes: ['576x576', '1024x1024', '2048x2048'],
-              supportsImg2Img,
-            }
-          },
-        )
+          return {
+            id: name,
+            name: formatName(name),
+            description: item.tagline || undefined,
+            supportsSizes: ['576x576', '1024x1024', '2048x2048'],
+            supportsImg2Img,
+          }
+        })
 
         models.sort((a, b) => {
           const aL = a.id.toLowerCase()

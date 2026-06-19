@@ -132,49 +132,32 @@
       <Archive class="h-4 w-4" />
       Load from Vault
     </h4>
-    <Button
-      variant="link"
-      size="sm"
-      class="h-auto p-0 text-xs"
-      onclick={() => onNavigateToVault?.()}
-    >
+    <Button variant="link" size="sm" class="h-auto p-0 text-xs" onclick={() => onNavigateToVault?.()}>
       Manage Vault
     </Button>
   </div>
 
-  <div
-    class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm"
-  >
+  <div class="border-muted-foreground/20 bg-muted/10 text-card-foreground rounded-lg border shadow-sm">
     <Collapsible.Root open={showScenarioVaultPicker} onOpenChange={onShowVaultPickerChange}>
       <div class="flex items-center gap-3 p-3 pl-4">
-        <Collapsible.Trigger
-          class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left"
-        >
+        <Collapsible.Trigger class="group/trigger flex w-full flex-1 items-center justify-between gap-2 text-left">
           <div class="flex items-center gap-3">
-            <div
-              class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-            >
+            <div class="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-md transition-colors">
               <MapPin class="text-primary h-4 w-4" />
             </div>
             <div class="text-left">
               <div class="text-sm font-medium">
-                {selectedScenarioId && loadedVaultScenarioId
-                  ? 'Scenario Selected'
-                  : 'Select a Scenario'}
+                {selectedScenarioId && loadedVaultScenarioId ? 'Scenario Selected' : 'Select a Scenario'}
               </div>
               <div class="text-muted-foreground text-xs">
-                {selectedScenarioId && loadedVaultScenarioId
-                  ? 'Click to change selection'
-                  : 'Browse your saved worlds'}
+                {selectedScenarioId && loadedVaultScenarioId ? 'Click to change selection' : 'Browse your saved worlds'}
               </div>
             </div>
           </div>
           <div
             class="bg-muted/50 group-hover/trigger:bg-muted flex h-8 w-8 items-center justify-center rounded-md transition-colors"
           >
-            <ChevronDown
-              class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/trigger:rotate-180"
-            />
+            <ChevronDown class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/trigger:rotate-180" />
           </div>
         </Collapsible.Trigger>
       </div>
@@ -207,9 +190,7 @@
         : 'bg-muted/20 hover:bg-muted/40 border-muted-foreground/20'}"
     >
       <div class="flex min-w-0 items-center gap-2">
-        <Icon
-          class="text-muted-foreground group-hover:text-primary h-4 w-4 shrink-0 transition-colors"
-        />
+        <Icon class="text-muted-foreground group-hover:text-primary h-4 w-4 shrink-0 transition-colors" />
         <span class="truncate text-sm leading-none font-medium">{seed.name}</span>
       </div>
       {#if selectedScenarioId === seed.id}
@@ -230,9 +211,7 @@
       oninput={(e) => onCustomGenreChange(e.currentTarget.value)}
       placeholder="e.g. Dark Fantasy, Cyberpunk Noir, etc."
     />
-    <p class="text-muted-foreground text-[0.8rem]">
-      A short tag describing the style/tone of your story.
-    </p>
+    <p class="text-muted-foreground text-[0.8rem]">A short tag describing the style/tone of your story.</p>
   </div>
 
   <!-- Setting Description -->
@@ -313,9 +292,7 @@
 
 <!-- Card Import Status -->
 {#if importedCardNpcs.length > 0}
-  <div
-    class="flex items-center justify-between rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm"
-  >
+  <div class="flex items-center justify-between rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm">
     <span class="flex items-center gap-2 text-green-500">
       <Check class="h-4 w-4" />
       Imported NPCs: {importedCardNpcs.map((n) => n.name).join(', ')}
@@ -337,10 +314,7 @@
 <!-- Selected Expanded Setting Display -->
 {#if expandedSetting}
   <Separator class="my-4" />
-  <div
-    class="bg-card text-card-foreground space-y-2 rounded-lg border p-2 shadow-sm"
-    transition:slide
-  >
+  <div class="bg-card text-card-foreground space-y-2 rounded-lg border p-2 shadow-sm" transition:slide>
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <Check class="h-4 w-4 text-green-500" />

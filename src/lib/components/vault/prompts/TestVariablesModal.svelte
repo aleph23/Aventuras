@@ -93,13 +93,7 @@
     },
     {
       name: 'Style & Lore',
-      varNames: [
-        'passageCount',
-        'passages',
-        'entrySummary',
-        'recentStorySection',
-        'chapterSummary',
-      ],
+      varNames: ['passageCount', 'passages', 'entrySummary', 'recentStorySection', 'chapterSummary'],
     },
     {
       name: 'Retrieval',
@@ -107,14 +101,7 @@
     },
     {
       name: 'Translation',
-      varNames: [
-        'targetLanguage',
-        'sourceLanguage',
-        'content',
-        'elementsJson',
-        'suggestionsJson',
-        'choicesJson',
-      ],
+      varNames: ['targetLanguage', 'sourceLanguage', 'content', 'elementsJson', 'suggestionsJson', 'choicesJson'],
     },
     {
       name: 'Image',
@@ -210,9 +197,7 @@
 
   let filteredSystem = $derived(systemVars.filter((v) => matchesSearch(v.name, v.description)))
   let filteredCustom = $derived(
-    customVariables.filter((v) =>
-      matchesSearch(v.variableName, v.displayName + ' ' + (v.description ?? '')),
-    ),
+    customVariables.filter((v) => matchesSearch(v.variableName, v.displayName + ' ' + (v.description ?? ''))),
   )
   let filteredRuntimeGroups = $derived(
     runtimeGroups
@@ -239,11 +224,7 @@
     </div>
     <div class={useTextarea ? 'col-span-2 w-full' : 'w-48'}>
       {#if type === 'enum' && enumValues}
-        <Select.Root
-          type="single"
-          value={draft[name] ?? ''}
-          onValueChange={(v) => updateDraft(name, v)}
-        >
+        <Select.Root type="single" value={draft[name] ?? ''} onValueChange={(v) => updateDraft(name, v)}>
           <Select.Trigger class="h-7 w-full text-xs">
             {draft[name] || ''}
           </Select.Trigger>
@@ -291,9 +272,7 @@
       <ResponsiveModal.Title class="flex items-center gap-2">
         Test Variables
         {#if overrideCount > 0}
-          <Badge variant="default" class="text-[10px]"
-            >{overrideCount} override{overrideCount === 1 ? '' : 's'}</Badge
-          >
+          <Badge variant="default" class="text-[10px]">{overrideCount} override{overrideCount === 1 ? '' : 's'}</Badge>
         {/if}
       </ResponsiveModal.Title>
       <ResponsiveModal.Description>
@@ -303,12 +282,7 @@
 
     <!-- Search bar -->
     <div class="border-b px-6 py-2.5">
-      <Input
-        leftIcon={Search}
-        placeholder="Filter variables..."
-        class="h-8 text-xs"
-        bind:value={searchQuery}
-      />
+      <Input leftIcon={Search} placeholder="Filter variables..." class="h-8 text-xs" bind:value={searchQuery} />
     </div>
 
     <!-- Scrollable variable list -->

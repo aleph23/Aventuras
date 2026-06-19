@@ -4,13 +4,7 @@
  * Uses interchangeable profiles - this phase does NOT change that architecture.
  */
 
-import type {
-  GenerationEvent,
-  PhaseStartEvent,
-  PhaseCompleteEvent,
-  AbortedEvent,
-  ErrorEvent,
-} from '../types'
+import type { GenerationEvent, PhaseStartEvent, PhaseCompleteEvent, AbortedEvent, ErrorEvent } from '../types'
 import type { ImageGenerationContext } from '$lib/services/ai'
 import type { Character } from '$lib/types'
 
@@ -98,8 +92,7 @@ export class ImagePhase {
     // Check if image generation is actually configured (profile exists)
     if (
       !this.deps.isImageGenerationEnabled(imageSettings, 'standard') ||
-      (imageSettings.referenceMode &&
-        !this.deps.isImageGenerationEnabled(imageSettings, 'reference'))
+      (imageSettings.referenceMode && !this.deps.isImageGenerationEnabled(imageSettings, 'reference'))
     ) {
       const result: ImageResult = { started: false, skippedReason: 'not_configured' }
       yield { type: 'phase_complete', phase: 'image', result } satisfies PhaseCompleteEvent

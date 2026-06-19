@@ -228,11 +228,7 @@ class PackService {
         if (existingUser) {
           const newUserHash = await hashContent(template.userContent)
           if (existingUser.contentHash !== newUserHash) {
-            await database.setPackTemplateContent(
-              'default-pack',
-              userContentId,
-              template.userContent,
-            )
+            await database.setPackTemplateContent('default-pack', userContentId, template.userContent)
           }
         }
       }

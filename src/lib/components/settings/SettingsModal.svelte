@@ -79,8 +79,7 @@
   function handleTouchStart(e: TouchEvent) {
     const touch = e.changedTouches[0]
     const target = e.target as HTMLElement
-    const interactiveSelector =
-      'input, textarea, select, [role="slider"], [role="switch"], button, a'
+    const interactiveSelector = 'input, textarea, select, [role="slider"], [role="switch"], button, a'
 
     isInteractiveTouch = !!target.closest(interactiveSelector)
     if (isInteractiveTouch) return
@@ -174,9 +173,7 @@
 
 <ResponsiveModal.Root open={ui.settingsModalOpen} onOpenChange={(v) => !v && safeClose()}>
   <ResponsiveModal.Content class="flex h-[90vh] max-w-6xl flex-col overflow-hidden p-0">
-    <div
-      class="text-muted-foreground/30 absolute top-1 left-2 z-[110] font-mono text-[10px] md:top-auto md:bottom-1"
-    >
+    <div class="text-muted-foreground/30 absolute top-1 left-2 z-[110] font-mono text-[10px] md:top-auto md:bottom-1">
       v{appVersion}
     </div>
     <ResponsiveModal.Header class="px-6 pb-4">
@@ -185,12 +182,8 @@
           <Settings2 class="text-primary h-5 w-5" />
         </div>
         <div class="flex-1 text-center md:text-left">
-          <ResponsiveModal.Title class="text-2xl font-semibold sm:text-xl"
-            >Settings</ResponsiveModal.Title
-          >
-          <p class="text-muted-foreground hidden text-sm md:block">
-            Configure your Aventuras experience
-          </p>
+          <ResponsiveModal.Title class="text-2xl font-semibold sm:text-xl">Settings</ResponsiveModal.Title>
+          <p class="text-muted-foreground hidden text-sm md:block">Configure your Aventuras experience</p>
         </div>
       </div>
     </ResponsiveModal.Header>
@@ -271,9 +264,7 @@
                       <div class="space-y-6">
                         <AdvancedSettings />
 
-                        <div
-                          class="border-destructive/50 flex items-center justify-between rounded-lg border p-4"
-                        >
+                        <div class="border-destructive/50 flex items-center justify-between rounded-lg border p-4">
                           <div class="space-y-0.5">
                             <p class="text-destructive font-medium">Reset All Settings</p>
                             <p class="text-muted-foreground text-xs">
@@ -342,8 +333,7 @@
     <Dialog.Header>
       <Dialog.Title>{manualBodyEditorTitle}</Dialog.Title>
       <Dialog.Description>
-        Edit the manual request body. This overrides request parameters; messages and tools are
-        managed by Aventuras.
+        Edit the manual request body. This overrides request parameters; messages and tools are managed by Aventuras.
       </Dialog.Description>
     </Dialog.Header>
 

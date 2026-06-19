@@ -9,8 +9,7 @@
   import { Play, Square, RefreshCw, Loader2 } from 'lucide-svelte'
   import { GOOGLE_TRANSLATE_LANGUAGES, aiTTSService } from '$lib/services/ai/utils/TTSService'
 
-  const PREVIEW_TEXT =
-    'This is a preview of the selected voice. The story narration will sound like this.'
+  const PREVIEW_TEXT = 'This is a preview of the selected voice. The story narration will sound like this.'
 
   let isPlayingPreview = $state(false)
   let isLoadingPreview = $state(false)
@@ -178,10 +177,7 @@
           }
 
           // Ensure google voice is valid
-          if (
-            provider === 'google' &&
-            !GOOGLE_TRANSLATE_LANGUAGES.some((lang) => lang.id === tts.voice)
-          ) {
+          if (provider === 'google' && !GOOGLE_TRANSLATE_LANGUAGES.some((lang) => lang.id === tts.voice)) {
             tts.voice = 'en'
             if (tts.providerVoices) tts.providerVoices['google'] = 'en'
           }
@@ -190,8 +186,7 @@
         }}
       >
         <Select.Trigger class="h-10 w-full">
-          {providers.find((p) => p.value === settings.systemServicesSettings.tts.provider)?.label ??
-            'Select provider'}
+          {providers.find((p) => p.value === settings.systemServicesSettings.tts.provider)?.label ?? 'Select provider'}
         </Select.Trigger>
         <Select.Content>
           {#each providers as provider (provider.value)}
@@ -293,8 +288,8 @@
             }}
           >
             <Select.Trigger class="h-10 w-full">
-              {systemVoices.find((v) => v.name === settings.systemServicesSettings.tts.voice)
-                ?.name ?? 'Select system voice'}
+              {systemVoices.find((v) => v.name === settings.systemServicesSettings.tts.voice)?.name ??
+                'Select system voice'}
             </Select.Trigger>
             <Select.Content>
               {#each systemVoices as voice (voice.name)}
@@ -323,9 +318,8 @@
           }}
         >
           <Select.Trigger class="h-10 w-full">
-            {GOOGLE_TRANSLATE_LANGUAGES.find(
-              (l) => l.id === settings.systemServicesSettings.tts.voice,
-            )?.name ?? 'Select language'}
+            {GOOGLE_TRANSLATE_LANGUAGES.find((l) => l.id === settings.systemServicesSettings.tts.voice)?.name ??
+              'Select language'}
           </Select.Trigger>
           <Select.Content>
             {#each GOOGLE_TRANSLATE_LANGUAGES as lang (lang.id)}
@@ -416,18 +410,14 @@
         step={0.05}
         class="w-full"
       />
-      <p class="text-muted-foreground mt-1 text-xs">
-        Adjust the speed of speech generation (0.25-4.0).
-      </p>
+      <p class="text-muted-foreground mt-1 text-xs">Adjust the speed of speech generation (0.25-4.0).</p>
     </div>
 
     <!-- Auto-Play Toggle -->
     <div class="flex items-center justify-between">
       <div>
         <Label>Auto-Play Narration</Label>
-        <p class="text-muted-foreground text-xs">
-          Automatically play TTS audio when story is narrated.
-        </p>
+        <p class="text-muted-foreground text-xs">Automatically play TTS audio when story is narrated.</p>
       </div>
       <Switch
         checked={settings.systemServicesSettings.tts.autoPlay}
@@ -458,9 +448,7 @@
       <div class="flex items-center justify-between">
         <div>
           <Label>Remove HTML tags</Label>
-          <p class="text-muted-foreground text-xs">
-            Remove HTML tags from narrated text before sending to TTS.
-          </p>
+          <p class="text-muted-foreground text-xs">Remove HTML tags from narrated text before sending to TTS.</p>
         </div>
         <Switch
           checked={settings.systemServicesSettings.tts.removeHtmlTags}
@@ -495,9 +483,7 @@
         <div class="flex items-center justify-between">
           <div>
             <Label>Remove all tag content</Label>
-            <p class="text-muted-foreground text-xs">
-              Removes content inside any HTML tag before narration.
-            </p>
+            <p class="text-muted-foreground text-xs">Removes content inside any HTML tag before narration.</p>
           </div>
           <Switch
             checked={settings.systemServicesSettings.tts.removeAllHtmlContent}

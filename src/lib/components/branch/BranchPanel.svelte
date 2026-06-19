@@ -1,16 +1,7 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte'
   import { ask } from '@tauri-apps/plugin-dialog'
-  import {
-    GitBranch,
-    ChevronRight,
-    ChevronDown,
-    Plus,
-    Trash2,
-    Edit2,
-    Check,
-    X,
-  } from 'lucide-svelte'
+  import { GitBranch, ChevronRight, ChevronDown, Plus, Trash2, Edit2, Check, X } from 'lucide-svelte'
   import type { Branch, Checkpoint } from '$lib/types'
   import { SvelteSet } from 'svelte/reactivity'
 
@@ -94,9 +85,7 @@
   function getLatestCheckpoint() {
     if (story.checkpoints.length === 0) return null
     const currentBranchId = story.currentStory?.currentBranchId ?? null
-    const eligible = story.checkpoints.filter(
-      (checkpoint) => getCheckpointBranchId(checkpoint) === currentBranchId,
-    )
+    const eligible = story.checkpoints.filter((checkpoint) => getCheckpointBranchId(checkpoint) === currentBranchId)
     if (eligible.length === 0) return null
     // Sort by createdAt descending and return the most recent
     const sorted = [...eligible].sort((a, b) => b.createdAt - a.createdAt)
@@ -109,19 +98,13 @@
   async function handleCreateBranch() {
     if (!newBranchName.trim()) return
     if (!latestCheckpoint) {
-      alert(
-        'Cannot create a branch without a checkpoint. Checkpoints are created at chapter boundaries.',
-      )
+      alert('Cannot create a branch without a checkpoint. Checkpoints are created at chapter boundaries.')
       return
     }
 
     try {
       // Create branch from the most recent checkpoint
-      await story.createBranchFromCheckpoint(
-        newBranchName.trim(),
-        latestCheckpoint.lastEntryId,
-        latestCheckpoint.id,
-      )
+      await story.createBranchFromCheckpoint(newBranchName.trim(), latestCheckpoint.lastEntryId, latestCheckpoint.id)
       newBranchName = ''
       showCreateForm = false
     } catch (error) {
@@ -156,12 +139,7 @@
   }
 
   $effect(() => {
-    const _ = [
-      story.currentStory?.id,
-      story.currentStory?.currentBranchId,
-      story.branches.length,
-      story.entries.length,
-    ]
+    const _ = [story.currentStory?.id, story.currentStory?.currentBranchId, story.branches.length, story.entries.length]
     refreshEntryCounts()
   })
 
@@ -233,9 +211,7 @@
     {@const children = getChildBranches(branch.id)}
     <div class="ml-4">
       <div
-        class="group flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors {isCurrent(
-          branch.id,
-        )
+        class="group flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors {isCurrent(branch.id)
           ? 'bg-accent-500/20 border-accent-500 border-l-2'
           : 'hover:bg-surface-700/50'}"
         onclick={() => handleSwitchBranch(branch.id)}
@@ -340,9 +316,7 @@
   <div class="space-y-1">
     <!-- Main Branch -->
     <div
-      class="flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors {isCurrent(
-        null,
-      )
+      class="flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors {isCurrent(null)
         ? 'bg-accent-500/20 border-accent-500 border-l-2'
         : 'hover:bg-surface-700/50'}"
       onclick={() => handleSwitchBranch(null)}
@@ -385,8 +359,7 @@
       {#if canCreateBranch}
         No branches yet. Create one to explore alternate storylines.
       {:else}
-        Branches can be created from checkpoints. Checkpoints are automatically saved at chapter
-        boundaries.
+        Branches can be created from checkpoints. Checkpoints are automatically saved at chapter boundaries.
       {/if}
     </p>
   {/if}

@@ -8,12 +8,7 @@
 import type { APIProfile } from '$lib/types'
 import { settings } from '$lib/stores/settings.svelte'
 import { pingModel, getEffectiveBaseUrl } from '$lib/services/ai/sdk/providers/modelPing'
-import {
-  upsertBatch,
-  isFresh,
-  deleteModelHealthForKey,
-  type UpsertRow,
-} from '$lib/services/modelHealthCache'
+import { upsertBatch, isFresh, deleteModelHealthForKey, type UpsertRow } from '$lib/services/modelHealthCache'
 import { modelHealth } from '$lib/stores/modelHealth.svelte'
 import {
   PING_CONCURRENCY,

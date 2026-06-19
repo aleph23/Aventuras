@@ -22,9 +22,7 @@
   })
 
   const changed = (field: string) =>
-    changedFields?.has(field)
-      ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg'
-      : ''
+    changedFields?.has(field) ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg' : ''
 
   // Type options
   const entryTypes: EntryType[] = ['character', 'location', 'item', 'faction', 'concept', 'event']
@@ -97,9 +95,7 @@
       }}
       placeholder="Comma-separated alternative names..."
     />
-    <p class="text-muted-foreground text-[0.8rem]">
-      Alternative names or spellings for this entry.
-    </p>
+    <p class="text-muted-foreground text-[0.8rem]">Alternative names or spellings for this entry.</p>
   </div>
 
   <div class="flex flex-1 flex-col space-y-2 {changed('description')}">

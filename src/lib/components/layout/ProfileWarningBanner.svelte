@@ -40,9 +40,7 @@
 </script>
 
 {#if hasIssues}
-  <div
-    class="flex items-center justify-between gap-3 bg-amber-500/90 px-4 py-2 text-amber-950 shadow-md"
-  >
+  <div class="flex items-center justify-between gap-3 bg-amber-500/90 px-4 py-2 text-amber-950 shadow-md">
     <div class="flex min-w-0 flex-1 items-center gap-3">
       <AlertTriangle class="h-5 w-5 shrink-0" />
       <p class="truncate text-sm font-medium">{message}</p>

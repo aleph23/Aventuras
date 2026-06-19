@@ -10,11 +10,7 @@
   import { Badge } from '$lib/components/ui/badge'
 
   import type { StoryMode, POV, Tense } from '$lib/types'
-  import type {
-    ExpandedSetting,
-    GeneratedOpening,
-    GeneratedProtagonist,
-  } from '$lib/services/ai/sdk'
+  import type { ExpandedSetting, GeneratedOpening, GeneratedProtagonist } from '$lib/services/ai/sdk'
   import type { Genre } from '$lib/services/ai/wizard'
   import type { POVOption } from '../wizardTypes'
   import { styleUserPlaceholders, tenseOptions } from '../wizardTypes'
@@ -145,9 +141,7 @@
         <!-- Greeting Selection (if alternate greetings exist) -->
         {#if cardImportedAlternateGreetings.length > 0}
           <div>
-            <Label class="text-muted-foreground mb-2 block text-xs font-medium"
-              >Select Opening</Label
-            >
+            <Label class="text-muted-foreground mb-2 block text-xs font-medium">Select Opening</Label>
             <div class="flex flex-wrap gap-2">
               <Button
                 size="sm"
@@ -211,9 +205,7 @@
     <Card.Root class="bg-surface-900 border-surface-700">
       <Card.Content class="space-y-3 p-4">
         <h4 class="text-foreground font-medium">Opening Scene</h4>
-        <p class="text-muted-foreground text-sm">
-          Write your own opening scene or generate one with AI
-        </p>
+        <p class="text-muted-foreground text-sm">Write your own opening scene or generate one with AI</p>
 
         <!-- Manual Text Entry -->
         <div class="space-y-2">
@@ -227,9 +219,7 @@
             disabled={isGeneratingOpening || isRefiningOpening || generatedOpening !== null}
           />
           {#if generatedOpening}
-            <p class="text-xs text-amber-400">
-              AI-generated opening active. Clear it below to write your own.
-            </p>
+            <p class="text-xs text-amber-400">AI-generated opening active. Clear it below to write your own.</p>
           {:else if manualOpeningText.trim()}
             <p class="text-xs text-green-400">✓ Custom opening ready</p>
           {/if}
@@ -245,9 +235,7 @@
           >
             <Sparkles class="h-3.5 w-3.5" />
             {showExpandOptions ? 'Hide AI Options' : 'Expand with AI'}
-            <ChevronDown
-              class="h-3 w-3 transition-transform {showExpandOptions ? 'rotate-180' : ''}"
-            />
+            <ChevronDown class="h-3 w-3 transition-transform {showExpandOptions ? 'rotate-180' : ''}" />
           </Button>
         </div>
 
@@ -360,9 +348,7 @@
           />
           <div class="flex justify-end gap-2">
             <Button variant="secondary" size="sm" onclick={onCancelEdit}>Cancel</Button>
-            <Button size="sm" onclick={onSaveEdit} disabled={!openingDraft?.trim()}>
-              Save Changes
-            </Button>
+            <Button size="sm" onclick={onSaveEdit} disabled={!openingDraft?.trim()}>Save Changes</Button>
           </div>
         {:else}
           <ScrollArea.Root class="h-64">

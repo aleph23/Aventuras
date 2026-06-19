@@ -44,11 +44,7 @@
     }
   }
 
-  function updateEditRuntimeVar(
-    defId: string,
-    variableName: string,
-    value: string | number | null,
-  ) {
+  function updateEditRuntimeVar(defId: string, variableName: string, value: string | number | null) {
     editRuntimeVars = {
       ...editRuntimeVars,
       [defId]: { variableName, v: value },
@@ -151,9 +147,7 @@
         />
       </div>
       <div class="mt-3 flex justify-end gap-2">
-        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>
-          Cancel
-        </Button>
+        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>Cancel</Button>
         <Button size="sm" class="h-7" onclick={addLocation} disabled={!newName.trim()}>Add</Button>
       </div>
     </div>
@@ -175,29 +169,16 @@
         <!-- EDIT MODE (Current) -->
         <div class="space-y-3">
           <div class="mb-2 flex items-center justify-between">
-            <h4 class="text-accent-400 text-xs font-semibold tracking-wider uppercase">
-              Editing Current Location
-            </h4>
-            <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-              ><X class="h-4 w-4" /></Button
-            >
+            <h4 class="text-accent-400 text-xs font-semibold tracking-wider uppercase">Editing Current Location</h4>
+            <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
           </div>
 
           <div class="space-y-1">
-            <Input
-              type="text"
-              bind:value={editName}
-              placeholder="Location name"
-              class="h-8 text-sm"
-            />
+            <Input type="text" bind:value={editName} placeholder="Location name" class="h-8 text-sm" />
           </div>
 
           <div class="space-y-1">
-            <Textarea
-              bind:value={editDescription}
-              placeholder="Description"
-              class="min-h-[60px] resize-none text-xs"
-            />
+            <Textarea bind:value={editDescription} placeholder="Description" class="min-h-[60px] resize-none text-xs" />
           </div>
 
           <!-- Runtime Variables (Edit - Current) -->
@@ -214,9 +195,7 @@
           {/if}
 
           <div class="border-accent-500/30 flex justify-end gap-2 border-t pt-2">
-            <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-              Cancel
-            </Button>
+            <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
             <Button
               size="sm"
               class="h-7 px-4 text-xs"
@@ -243,9 +222,7 @@
             <span class="text-foreground text-sm leading-tight font-medium">
               {currentLocation.translatedName ?? currentLocation.name}
             </span>
-            <span class="text-accent-500 w-fit text-[10px] font-bold tracking-wider uppercase">
-              Current Location
-            </span>
+            <span class="text-accent-500 w-fit text-[10px] font-bold tracking-wider uppercase"> Current Location </span>
           </div>
         </div>
 
@@ -290,10 +267,7 @@
                 title={isCollapsed ? 'Show details' : 'Hide details'}
               >
                 <ChevronDown
-                  class={cn(
-                    'h-4 w-4 transition-transform duration-200',
-                    !isCollapsed ? 'rotate-180' : '',
-                  )}
+                  class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                 />
               </Button>
             {/if}
@@ -324,11 +298,7 @@
         <MapPin class="text-muted-foreground h-6 w-6" />
       </div>
       <p class="text-muted-foreground text-sm">No locations yet</p>
-      <Button
-        variant="link"
-        class="text-primary mt-1 h-auto p-0 text-xs"
-        onclick={() => (showAddForm = true)}
-      >
+      <Button variant="link" class="text-primary mt-1 h-auto p-0 text-xs" onclick={() => (showAddForm = true)}>
         <Plus class="mr-1.5 h-3.5 w-3.5" />
         Add your first location
       </Button>
@@ -354,19 +324,12 @@
                 <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Editing {location.name}
                 </h4>
-                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-                  ><X class="h-4 w-4" /></Button
-                >
+                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
               </div>
 
               <div class="space-y-1">
                 <Label class="text-xs">Name</Label>
-                <Input
-                  type="text"
-                  bind:value={editName}
-                  placeholder="Location name"
-                  class="h-8 text-sm"
-                />
+                <Input type="text" bind:value={editName} placeholder="Location name" class="h-8 text-sm" />
               </div>
 
               <div class="space-y-1">
@@ -392,9 +355,7 @@
               {/if}
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
                 <Button
                   size="sm"
                   class="h-7 px-4 text-xs"
@@ -484,10 +445,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}

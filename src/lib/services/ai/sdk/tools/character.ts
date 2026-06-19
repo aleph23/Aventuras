@@ -41,10 +41,7 @@ export function createCharacterTools(context: CharacterToolContext) {
           .string()
           .optional()
           .describe('Filter characters whose name contains this text (case-insensitive)'),
-        tags: z
-          .array(z.string())
-          .optional()
-          .describe('Filter characters that have all of these tags'),
+        tags: z.array(z.string()).optional().describe('Filter characters that have all of these tags'),
         favoritesOnly: z.boolean().optional().describe('Only return favorited characters'),
       }),
       execute: async ({
@@ -89,8 +86,7 @@ export function createCharacterTools(context: CharacterToolContext) {
      * Read full details of a specific character by ID.
      */
     read_character: tool({
-      description:
-        'Read the full details of a vault character by ID. Use list_characters first to find character IDs.',
+      description: 'Read the full details of a vault character by ID. Use list_characters first to find character IDs.',
       inputSchema: z.object({
         characterId: z.string().describe('The ID of the character to read'),
       }),
@@ -122,8 +118,7 @@ export function createCharacterTools(context: CharacterToolContext) {
      * Returns a pending change for approval workflow.
      */
     create_character: tool({
-      description:
-        'Propose a new vault character to be created. The change will be pending until approved.',
+      description: 'Propose a new vault character to be created. The change will be pending until approved.',
       inputSchema: z.object({
         name: z.string().describe('Character name'),
         description: z.string().nullable().describe('Brief character description'),
@@ -190,10 +185,7 @@ export function createCharacterTools(context: CharacterToolContext) {
           .optional()
           .describe('Complete replacement of all traits. Prefer addTraits/removeTraits instead'),
         addTraits: z.array(z.string()).optional().describe('Traits to add to the existing list'),
-        removeTraits: z
-          .array(z.string())
-          .optional()
-          .describe('Traits to remove from the existing list'),
+        removeTraits: z.array(z.string()).optional().describe('Traits to remove from the existing list'),
         visualDescriptors: visualDescriptorsSchema
           .optional()
           .describe('New visual descriptors (FULLY replaces existing)'),
@@ -202,10 +194,7 @@ export function createCharacterTools(context: CharacterToolContext) {
           .optional()
           .describe('Complete replacement of all tags. Prefer addTags/removeTags instead'),
         addTags: z.array(z.string()).optional().describe('Tags to add to the existing list'),
-        removeTags: z
-          .array(z.string())
-          .optional()
-          .describe('Tags to remove from the existing list'),
+        removeTags: z.array(z.string()).optional().describe('Tags to remove from the existing list'),
         favorite: z.boolean().optional().describe('New favorite status'),
       }),
       execute: async ({
@@ -275,9 +264,7 @@ export function createCharacterTools(context: CharacterToolContext) {
         // Strip undefined, null, and empty-string values to prevent
         // accidental overwrites (e.g. the AI sending description: null)
         const cleanUpdates = Object.fromEntries(
-          Object.entries(scalarUpdates).filter(
-            ([_, v]) => v !== undefined && v !== null && v !== '',
-          ),
+          Object.entries(scalarUpdates).filter(([_, v]) => v !== undefined && v !== null && v !== ''),
         ) as Partial<z.infer<typeof vaultCharacterInputSchema>>
 
         const changeId = generateId()
@@ -307,8 +294,7 @@ export function createCharacterTools(context: CharacterToolContext) {
      * Returns a pending change for approval workflow.
      */
     delete_character: tool({
-      description:
-        'Propose to delete a vault character by ID. The change will be pending until approved.',
+      description: 'Propose to delete a vault character by ID. The change will be pending until approved.',
       inputSchema: z.object({
         characterId: z.string().describe('ID of the character to delete'),
         reason: z.string().optional().describe('Reason for deletion'),

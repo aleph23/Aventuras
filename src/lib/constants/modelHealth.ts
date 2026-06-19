@@ -29,8 +29,6 @@ export const PING_ELIGIBLE_PROVIDERS = ['openrouter', 'nvidia-nim'] as const
 
 export type PingEligibleProvider = (typeof PING_ELIGIBLE_PROVIDERS)[number]
 
-export function isPingEligibleProvider(
-  providerType: string | undefined | null,
-): providerType is PingEligibleProvider {
+export function isPingEligibleProvider(providerType: string | undefined | null): providerType is PingEligibleProvider {
   return !!providerType && (PING_ELIGIBLE_PROVIDERS as readonly string[]).includes(providerType)
 }

@@ -4,21 +4,12 @@
  * Uses interchangeable profiles - this phase does NOT change that architecture.
  */
 
-import type {
-  GenerationEvent,
-  PhaseStartEvent,
-  PhaseCompleteEvent,
-  AbortedEvent,
-  ErrorEvent,
-} from '../types'
+import type { GenerationEvent, PhaseStartEvent, PhaseCompleteEvent, AbortedEvent, ErrorEvent } from '../types'
 import type { StoryEntry } from '$lib/types'
 
 /** Dependencies for image phase - injected to avoid tight coupling */
 export interface BackgroundImageDependencies {
-  analyzeBackgroundChangeAndGenerateImage: (
-    storyId: string,
-    visibleEntries: StoryEntry[],
-  ) => Promise<void>
+  analyzeBackgroundChangeAndGenerateImage: (storyId: string, visibleEntries: StoryEntry[]) => Promise<void>
   isImageGenerationEnabled: (
     storySettings?: any,
     type?: 'standard' | 'background' | 'portrait' | 'reference',
@@ -50,9 +41,7 @@ export class BackgroundImagePhase {
   constructor(private deps: BackgroundImageDependencies) {}
 
   /** Execute the image phase - yields events and returns result */
-  async *execute(
-    input: BackgroundImageInput,
-  ): AsyncGenerator<GenerationEvent, BackgroundImageResult> {
+  async *execute(input: BackgroundImageInput): AsyncGenerator<GenerationEvent, BackgroundImageResult> {
     console.log('BackgroundImagePhase.execute')
     yield { type: 'phase_start', phase: 'image' } satisfies PhaseStartEvent
 

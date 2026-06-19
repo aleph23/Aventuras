@@ -4,17 +4,11 @@
  * Completes when all generators are finished.
  * Returns a map of the final values returned by each generator.
  */
-export async function* mergeGenerators<
-  YieldType,
-  ReturnMap extends Record<string, any>,
->(generators: { [K in keyof ReturnMap]: AsyncGenerator<YieldType, ReturnMap[K]> }): AsyncGenerator<
-  YieldType,
-  ReturnMap
-> {
+export async function* mergeGenerators<YieldType, ReturnMap extends Record<string, any>>(generators: {
+  [K in keyof ReturnMap]: AsyncGenerator<YieldType, ReturnMap[K]>
+}): AsyncGenerator<YieldType, ReturnMap> {
   const results = {} as ReturnMap
-  const activeGenerators = new Map<keyof ReturnMap, AsyncGenerator<YieldType, any>>(
-    Object.entries(generators) as any,
-  )
+  const activeGenerators = new Map<keyof ReturnMap, AsyncGenerator<YieldType, any>>(Object.entries(generators) as any)
 
   const pendingPromises = new Map<
     keyof ReturnMap,

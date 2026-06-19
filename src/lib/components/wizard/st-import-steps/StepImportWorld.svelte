@@ -1,14 +1,5 @@
 <script lang="ts">
-  import {
-    MapPin,
-    Sparkles,
-    Loader2,
-    AlertCircle,
-    Archive,
-    BookOpen,
-    X,
-    ChevronRight,
-  } from 'lucide-svelte'
+  import { MapPin, Sparkles, Loader2, AlertCircle, Archive, BookOpen, X, ChevronRight } from 'lucide-svelte'
   import * as Card from '$lib/components/ui/card'
   import * as Alert from '$lib/components/ui/alert'
   import * as Collapsible from '$lib/components/ui/collapsible'
@@ -54,9 +45,7 @@
   let showVaultBrowser = $state(false)
 
   const importedEntries = $derived(importedLorebooks.flatMap((lb) => lb.entries))
-  const importedVaultIds = $derived(
-    importedLorebooks.map((lb) => lb.vaultId).filter((id): id is string => !!id),
-  )
+  const importedVaultIds = $derived(importedLorebooks.map((lb) => lb.vaultId).filter((id): id is string => !!id))
 </script>
 
 <div class="space-y-5">
@@ -76,9 +65,7 @@
       rows={4}
     />
     <div class="flex gap-2">
-      <Button variant="secondary" size="sm" onclick={onUseAsIs} disabled={!settingSeed.trim()}>
-        Use as-is
-      </Button>
+      <Button variant="secondary" size="sm" onclick={onUseAsIs} disabled={!settingSeed.trim()}>Use as-is</Button>
       <Button
         variant="default"
         size="sm"
@@ -158,17 +145,12 @@
       <ScrollArea class="max-h-[200px]">
         <div class="space-y-2 pr-2">
           {#each importedLorebooks as lorebook (lorebook.id)}
-            <Collapsible.Root
-              open={lorebook.expanded}
-              onOpenChange={() => onToggleLorebookExpanded(lorebook.id)}
-            >
+            <Collapsible.Root open={lorebook.expanded} onOpenChange={() => onToggleLorebookExpanded(lorebook.id)}>
               <div class="border-border rounded-lg border">
                 <Collapsible.Trigger class="flex w-full items-center justify-between p-3">
                   <div class="flex items-center gap-2">
                     <ChevronRight
-                      class="text-muted-foreground h-4 w-4 transition-transform {lorebook.expanded
-                        ? 'rotate-90'
-                        : ''}"
+                      class="text-muted-foreground h-4 w-4 transition-transform {lorebook.expanded ? 'rotate-90' : ''}"
                     />
                     <span class="text-sm font-medium">{lorebook.filename}</span>
                     <Badge variant="outline" class="text-xs">
@@ -191,10 +173,7 @@
                     <div class="flex flex-wrap gap-2">
                       {#each Object.entries(getTypeCounts(lorebook.entries)) as [type, count] (type)}
                         {#if count > 0}
-                          <Badge
-                            variant="secondary"
-                            class="text-xs {getTypeColor(type as EntryType)}"
-                          >
+                          <Badge variant="secondary" class="text-xs {getTypeColor(type as EntryType)}">
                             {type}: {count}
                           </Badge>
                         {/if}

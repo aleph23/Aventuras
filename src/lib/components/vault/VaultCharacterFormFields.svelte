@@ -20,9 +20,7 @@
   let { data, onUpdate, changedFields }: Props = $props()
 
   const changed = (field: string) =>
-    changedFields?.has(field)
-      ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg'
-      : ''
+    changedFields?.has(field) ? 'border-l-2 border-l-blue-400/50 bg-blue-500/5 pl-3 -ml-3 rounded-lg' : ''
 
   // Local state for complex string-to-object conversions
   let visualDescriptorsStr = $state(untrack(() => descriptorsToString(data.visualDescriptors)))
@@ -33,8 +31,7 @@
 
   // True when the user has typed something that doesn't parse to any descriptor category
   let visualDescriptorsInvalid = $derived(
-    visualDescriptorsStr.trim().length > 0 &&
-      Object.keys(stringToDescriptors(visualDescriptorsStr)).length === 0,
+    visualDescriptorsStr.trim().length > 0 && Object.keys(stringToDescriptors(visualDescriptorsStr)).length === 0,
   )
 
   // Sync internal editing state with incoming data if it changes externally,
@@ -108,9 +105,7 @@
 
 <div class="space-y-4 py-2">
   {#if error}
-    <div
-      class="bg-destructive/10 border-destructive/20 text-destructive rounded-md border p-3 text-sm"
-    >
+    <div class="bg-destructive/10 border-destructive/20 text-destructive rounded-md border p-3 text-sm">
       {error}
     </div>
   {/if}
@@ -118,13 +113,7 @@
   <!-- Name -->
   <div class="space-y-2 {changed('name')}">
     <Label for="name">Name *</Label>
-    <Input
-      id="name"
-      type="text"
-      bind:value={data.name}
-      oninput={handleInput}
-      placeholder="Character name"
-    />
+    <Input id="name" type="text" bind:value={data.name} oninput={handleInput} placeholder="Character name" />
   </div>
 
   <!-- Description -->
@@ -165,8 +154,8 @@
     />
     {#if visualDescriptorsInvalid}
       <p class="text-[0.8rem] text-amber-500">
-        Use "Category: value" format, e.g. <span class="font-medium">Face: oval, Hair: dark</span>.
-        Categories: Face, Hair, Eyes, Build, Clothing, Accessories, Distinguishing features.
+        Use "Category: value" format, e.g. <span class="font-medium">Face: oval, Hair: dark</span>. Categories: Face,
+        Hair, Eyes, Build, Clothing, Accessories, Distinguishing features.
       </p>
     {:else}
       <p class="text-muted-foreground text-[0.8rem]">Used for portrait generation</p>
@@ -193,19 +182,13 @@
           </button>
         </div>
       {:else}
-        <div
-          class="bg-muted ring-border flex h-20 w-20 items-center justify-center rounded-md ring-1"
-        >
+        <div class="bg-muted ring-border flex h-20 w-20 items-center justify-center rounded-md ring-1">
           <User class="text-muted-foreground h-8 w-8" />
         </div>
       {/if}
 
       <div class="flex-1">
-        <Button
-          variant="outline"
-          class="relative w-full cursor-pointer"
-          disabled={uploadingPortrait}
-        >
+        <Button variant="outline" class="relative w-full cursor-pointer" disabled={uploadingPortrait}>
           {#if uploadingPortrait}
             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           {:else}

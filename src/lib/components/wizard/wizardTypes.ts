@@ -78,9 +78,7 @@ export function getTypeColor(type: EntryType): string {
 /**
  * Get type counts from entries array
  */
-export function getTypeCounts(
-  entries: LorebookImportExport.ImportedEntry[],
-): Record<string, number> {
+export function getTypeCounts(entries: LorebookImportExport.ImportedEntry[]): Record<string, number> {
   return {
     character: entries.filter((e) => e.type === 'character').length,
     location: entries.filter((e) => e.type === 'location').length,

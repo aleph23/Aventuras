@@ -98,12 +98,8 @@ export function createNanoGPTProvider(config: ImageProviderConfig): ImageProvide
         if (entries.length === 0) return getFallbackModels()
 
         return entries.map((m) => {
-          const supportsSizes = m.resolutions?.map((r) => r.value.replace('*', 'x')) || [
-            '512x512',
-            '1024x1024',
-          ]
-          const supportsImg2Img =
-            m.tags?.some((t) => IMG2IMG_TAGS.has(t)) || m.supportsMultipleImg2Img || false
+          const supportsSizes = m.resolutions?.map((r) => r.value.replace('*', 'x')) || ['512x512', '1024x1024']
+          const supportsImg2Img = m.tags?.some((t) => IMG2IMG_TAGS.has(t)) || m.supportsMultipleImg2Img || false
 
           let costPerImage: number | undefined
           if (m.cost && typeof m.cost === 'object') {

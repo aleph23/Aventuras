@@ -44,9 +44,7 @@
     onclick={handleClick}
   >
     <Icon class="mt-0.5 h-5 w-5 shrink-0 text-white sm:h-6 sm:w-6" />
-    <span class="flex-1 text-sm leading-snug font-medium text-white sm:text-base"
-      >{ui.toastMessage}</span
-    >
+    <span class="flex-1 text-sm leading-snug font-medium text-white sm:text-base">{ui.toastMessage}</span>
     <button
       class="ml-2 hidden shrink-0 text-white/70 transition-colors hover:text-white sm:flex"
       onclick={(e) => {

@@ -26,20 +26,11 @@ export function readFromPng(data: ArrayBuffer | Uint8Array): string | null {
 
   while (offset < bytes.length) {
     if (offset + 4 > bytes.length) break
-    const length =
-      (bytes[offset] << 24) |
-      (bytes[offset + 1] << 16) |
-      (bytes[offset + 2] << 8) |
-      bytes[offset + 3]
+    const length = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]
     offset += 4
 
     if (offset + 4 > bytes.length) break
-    const type = String.fromCharCode(
-      bytes[offset],
-      bytes[offset + 1],
-      bytes[offset + 2],
-      bytes[offset + 3],
-    )
+    const type = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
     offset += 4
 
     if (type === 'tEXt') {

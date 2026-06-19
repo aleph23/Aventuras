@@ -6,11 +6,7 @@
  * - TTS: Text-to-speech service
  */
 
-export {
-  TranslationService,
-  type TranslationResult,
-  type UITranslationItem,
-} from './TranslationService'
+export { TranslationService, type TranslationResult, type UITranslationItem } from './TranslationService'
 
 export {
   AITTSService,

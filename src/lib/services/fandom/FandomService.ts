@@ -167,9 +167,7 @@ export class FandomService {
           line: sec.line,
           level: sec.level,
         })),
-        categories: data.parse.categories.map((cat) =>
-          'category' in cat ? cat.category : cat['*'],
-        ),
+        categories: data.parse.categories.map((cat) => ('category' in cat ? cat.category : cat['*'])),
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
@@ -181,11 +179,7 @@ export class FandomService {
    * Fetch a specific section of an article by section index.
    * Use section=0 for the lead/intro section (content before first heading).
    */
-  async getSection(
-    wiki: string,
-    title: string,
-    sectionIndex: string,
-  ): Promise<FandomSectionContent> {
+  async getSection(wiki: string, title: string, sectionIndex: string): Promise<FandomSectionContent> {
     const apiUrl = this.getApiUrl(wiki)
     const params = new URLSearchParams({
       action: 'parse',
@@ -233,9 +227,7 @@ export class FandomService {
           `No text content returned for section ${sectionIndex}. The section may be empty or the wiki may restrict API access.`,
         )
       } else {
-        throw new Error(
-          `Unexpected text format in API response for section ${sectionIndex}: ${typeof parseText}`,
-        )
+        throw new Error(`Unexpected text format in API response for section ${sectionIndex}: ${typeof parseText}`)
       }
 
       const plainText = this.htmlToPlainText(rawHtml)
@@ -256,9 +248,7 @@ export class FandomService {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      throw new Error(
-        `Failed to fetch section ${sectionIndex} of "${title}" from ${wiki} wiki: ${message}`,
-      )
+      throw new Error(`Failed to fetch section ${sectionIndex} of "${title}" from ${wiki} wiki: ${message}`)
     }
   }
 
@@ -284,10 +274,7 @@ export class FandomService {
       /<div[^>]*class="[^"]*(?:navbox|infobox|toc|mw-references|reference|reflist|noprint|catlinks|messagebox)[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
       '',
     )
-    text = text.replace(
-      /<table[^>]*class="[^"]*(?:navbox|infobox|wikitable)[^"]*"[^>]*>[\s\S]*?<\/table>/gi,
-      '',
-    )
+    text = text.replace(/<table[^>]*class="[^"]*(?:navbox|infobox|wikitable)[^"]*"[^>]*>[\s\S]*?<\/table>/gi, '')
     text = text.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
 
     // Remove figure elements (usually contain images)
@@ -386,9 +373,7 @@ export class FandomService {
 
     // Handle numeric entities
     result = result.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
-    result = result.replace(/&#x([0-9a-f]+);/gi, (_, code) =>
-      String.fromCharCode(parseInt(code, 16)),
-    )
+    result = result.replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
 
     return result
   }

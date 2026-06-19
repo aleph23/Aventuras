@@ -86,9 +86,7 @@
       <!-- Empty state -->
       <div class="flex flex-col items-center justify-center py-12 text-center">
         <Variable class="text-muted-foreground mb-3 h-10 w-10 opacity-50" />
-        <p class="text-muted-foreground text-sm font-medium">
-          No custom variables defined for this pack.
-        </p>
+        <p class="text-muted-foreground text-sm font-medium">No custom variables defined for this pack.</p>
         <p class="text-muted-foreground mt-1 max-w-sm text-xs">
           Custom variables let you add configurable values to your templates. Use <code
             class="bg-muted rounded px-1 py-0.5 font-mono">{`{{ variable_name }}`}</code

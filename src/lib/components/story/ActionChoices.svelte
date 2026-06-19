@@ -32,10 +32,7 @@
     if (ui.actionChoices.length === 0) return
 
     const target = (event.target ?? document.activeElement) as HTMLElement | null
-    if (
-      target &&
-      (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable)
-    ) {
+    if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable)) {
       return
     }
 
@@ -62,9 +59,7 @@
   >
     <div class="text-muted-foreground mb-2 flex items-center gap-2 text-xs tracking-wide uppercase">
       <span>What do you do?</span>
-      <span class="text-muted-foreground/60 hidden sm:inline"
-        >(Press 1-{ui.actionChoices.length} to quick select)</span
-      >
+      <span class="text-muted-foreground/60 hidden sm:inline">(Press 1-{ui.actionChoices.length} to quick select)</span>
     </div>
 
     {#each ui.actionChoices as choice, index (index)}
@@ -86,9 +81,7 @@
           {index + 1}
         </span>
         <Icon class="text-muted-foreground group-hover:text-foreground h-4 w-4 shrink-0" />
-        <span
-          class="text-foreground text-left text-sm wrap-break-word whitespace-normal sm:text-base"
-        >
+        <span class="text-foreground text-left text-sm wrap-break-word whitespace-normal sm:text-base">
           {choice.text}
         </span>
       </Button>

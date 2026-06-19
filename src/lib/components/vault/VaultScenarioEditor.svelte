@@ -132,10 +132,7 @@
       } else {
         closeCooldownActive = true
         isOpen = true
-        ui.showToast(
-          'Unsaved Changes — Press Escape or click outside again to discard changes',
-          'warning',
-        )
+        ui.showToast('Unsaved Changes — Press Escape or click outside again to discard changes', 'warning')
         closeCooldownTimer = setTimeout(() => {
           closeCooldownActive = false
         }, CLOSE_COOLDOWN_MS)
@@ -154,9 +151,7 @@
 </script>
 
 <ResponsiveModal.Root bind:open={isOpen} onOpenChange={handleModalOpenChange}>
-  <ResponsiveModal.Content
-    class="flex h-[95vh] flex-col overflow-hidden p-0 md:h-[85vh] md:max-w-4xl"
-  >
+  <ResponsiveModal.Content class="flex h-[95vh] flex-col overflow-hidden p-0 md:h-[85vh] md:max-w-4xl">
     <ResponsiveModal.Header class="bg-muted/40 border-b px-6 py-4">
       <div class="flex items-center gap-3">
         <div class="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg">

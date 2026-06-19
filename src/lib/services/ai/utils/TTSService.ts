@@ -279,13 +279,7 @@ export abstract class TTSProvider {
             }
           : undefined
 
-        await this.playSingleBlob(
-          ready[playedIndex],
-          chunkProgress,
-          playbackRate,
-          volume,
-          volumeOverride,
-        )
+        await this.playSingleBlob(ready[playedIndex], chunkProgress, playbackRate, volume, volumeOverride)
         playedIndex++
       } else if (generationDone) {
         if (generationError) throw generationError
@@ -628,11 +622,7 @@ export class MicrosoftSpeechProvider extends TTSProvider {
           window.speechSynthesis.speak(utterance)
         } catch (err) {
           hasErrored = true
-          reject(
-            new Error(
-              `Failed to start speech synthesis: ${err instanceof Error ? err.message : 'Unknown error'}`,
-            ),
-          )
+          reject(new Error(`Failed to start speech synthesis: ${err instanceof Error ? err.message : 'Unknown error'}`))
         }
       })
     }
@@ -859,11 +849,7 @@ export class AITTSService {
   /**
    * Generate and play TTS audio
    */
-  async generateAndPlay(
-    text: string,
-    voice?: string,
-    onProgress?: (progress: number) => void,
-  ): Promise<void> {
+  async generateAndPlay(text: string, voice?: string, onProgress?: (progress: number) => void): Promise<void> {
     if (!this.provider || !this.settings) {
       throw new Error('TTS service not ready')
     }
@@ -877,14 +863,7 @@ export class AITTSService {
 
     try {
       this.isPlaying = true
-      await this.provider.streamAndPlay(
-        text,
-        voiceToUse,
-        onProgress,
-        playbackRate,
-        volume,
-        volumeOverride,
-      )
+      await this.provider.streamAndPlay(text, voiceToUse, onProgress, playbackRate, volume, volumeOverride)
     } finally {
       this.isPlaying = false
     }

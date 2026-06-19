@@ -1,15 +1,6 @@
 <script lang="ts">
   import type { VaultPendingChange } from '$lib/services/ai/sdk/schemas/vault'
-  import {
-    GitMerge,
-    Plus,
-    Pencil,
-    Trash2,
-    ChevronDown,
-    ChevronUp,
-    Check,
-    CheckCheck,
-  } from 'lucide-svelte'
+  import { GitMerge, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Check, CheckCheck } from 'lucide-svelte'
   import { Button } from '$lib/components/ui/button'
   import { cn } from '$lib/utils/cn'
   import { slide } from 'svelte/transition'
@@ -112,9 +103,7 @@
           {/if}
         </div>
         <span class="text-surface-200 text-xs font-semibold">Pending</span>
-        <span
-          class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-400"
-        >
+        <span class="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
           {operations.length}
         </span>
       </div>
@@ -136,10 +125,7 @@
 
     <!-- Operation Cards -->
     {#if !collapsed}
-      <div
-        class="max-h-[40vh] space-y-0.5 overflow-y-auto px-1.5 py-1.5"
-        transition:slide={{ duration: 150 }}
-      >
+      <div class="max-h-[40vh] space-y-0.5 overflow-y-auto px-1.5 py-1.5" transition:slide={{ duration: 150 }}>
         {#each operations as op (op.id)}
           {@const config = typeConfig[op.type]}
           {@const Icon = config.icon}
@@ -154,10 +140,7 @@
             )}
           >
             <!-- Icon + Content -->
-            <button
-              class="flex min-w-0 flex-1 items-center gap-2 text-left"
-              onclick={() => onSelectOperation(op)}
-            >
+            <button class="flex min-w-0 flex-1 items-center gap-2 text-left" onclick={() => onSelectOperation(op)}>
               <div class="flex-shrink-0">
                 <Icon class="h-3.5 w-3.5 opacity-60" />
               </div>

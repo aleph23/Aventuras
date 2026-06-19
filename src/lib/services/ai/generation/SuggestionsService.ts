@@ -84,9 +84,7 @@ export class SuggestionsService extends BaseAIService {
     // Format active threads
     const activeThreadsStr =
       activeThreads.length > 0
-        ? activeThreads
-            .map((t) => `• ${t.title}${t.description ? `: ${t.description}` : ''}`)
-            .join('\n')
+        ? activeThreads.map((t) => `• ${t.title}${t.description ? `: ${t.description}` : ''}`).join('\n')
         : '(none)'
 
     // Format lorebook entries for context

@@ -50,19 +50,14 @@
           <Code2 class="text-muted-foreground h-4 w-4" />
           <Label>Manual Request Mode</Label>
         </div>
-        <p class="text-muted-foreground text-xs">
-          Edit full request body parameters for advanced models.
-        </p>
+        <p class="text-muted-foreground text-xs">Edit full request body parameters for advanced models.</p>
         {#if settings.advancedRequestSettings.manualMode}
           <p class="pt-1 text-xs font-medium text-amber-500">
             Manual mode active. Temperature and max token controls are locked.
           </p>
         {/if}
       </div>
-      <Switch
-        checked={settings.advancedRequestSettings.manualMode}
-        onCheckedChange={handleManualModeToggle}
-      />
+      <Switch checked={settings.advancedRequestSettings.manualMode} onCheckedChange={handleManualModeToggle} />
     </div>
 
     <!-- Debug Mode -->
@@ -74,9 +69,7 @@
         </div>
         <p class="text-muted-foreground text-xs">Log API requests and responses for debugging.</p>
         {#if settings.uiSettings.debugMode}
-          <p class="pt-1 text-xs font-medium text-amber-500">
-            Logs are session-only and not persisted.
-          </p>
+          <p class="pt-1 text-xs font-medium text-amber-500">Logs are session-only and not persisted.</p>
         {/if}
       </div>
       <Switch checked={settings.uiSettings.debugMode} onCheckedChange={handleDebugModeToggle} />
@@ -148,9 +141,7 @@
                   settings.saveServiceSpecificSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Reliable</span>
                 <span>Fast</span>
               </div>
@@ -175,9 +166,7 @@
                   settings.saveServiceSpecificSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Sequential</span>
                 <span>Parallel</span>
               </div>
@@ -248,9 +237,7 @@
                   settings.saveSystemServicesSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Conservative</span>
                 <span>Extensive</span>
               </div>
@@ -323,9 +310,7 @@
                   settings.saveSystemServicesSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Unlimited</span>
                 <span>500 Words</span>
               </div>
@@ -381,9 +366,7 @@
             <div class="flex flex-row items-center justify-between">
               <div class="space-y-0.5">
                 <Label class="text-sm">Enable LLM Selection</Label>
-                <p class="text-muted-foreground text-xs">
-                  Use LLM to intelligently select lorebook entries
-                </p>
+                <p class="text-muted-foreground text-xs">Use LLM to intelligently select lorebook entries</p>
               </div>
               <Switch
                 checked={settings.systemServicesSettings.entryRetrieval?.enableLLMSelection ?? true}
@@ -415,9 +398,7 @@
                   settings.saveSystemServicesSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Unlimited</span>
                 <span>20 Entries</span>
               </div>
@@ -444,9 +425,7 @@
                   settings.saveSystemServicesSettings()
                 }}
               />
-              <div
-                class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase"
-              >
+              <div class="text-muted-foreground flex justify-between text-[10px] font-medium tracking-wider uppercase">
                 <span>Unlimited</span>
                 <span>1000 Words</span>
               </div>
@@ -468,9 +447,7 @@
             </div>
             <div class="flex-1">
               <Label class="leading-none font-medium">Memory Retrieval</Label>
-              <p class="text-muted-foreground mt-1 text-xs">
-                How past chapters are retrieved for context
-              </p>
+              <p class="text-muted-foreground mt-1 text-xs">How past chapters are retrieved for context</p>
             </div>
           </Collapsible.Trigger>
           <div class="flex shrink-0 items-center gap-1">
@@ -507,9 +484,7 @@
             <div class="flex flex-row items-center justify-between">
               <div class="space-y-0.5">
                 <Label class="text-sm">Enable Memory Retrieval</Label>
-                <p class="text-muted-foreground text-xs">
-                  Retrieve context from past chapters during generation
-                </p>
+                <p class="text-muted-foreground text-xs">Retrieve context from past chapters during generation</p>
               </div>
               <Switch
                 checked={settings.systemServicesSettings.timelineFill?.enabled ?? true}
@@ -579,9 +554,7 @@
                       settings.saveSystemServicesSettings()
                     }}
                   />
-                  <p class="text-muted-foreground text-xs">
-                    Number of questions generated to query chapter history
-                  </p>
+                  <p class="text-muted-foreground text-xs">Number of questions generated to query chapter history</p>
                 </div>
               {/if}
 
@@ -605,9 +578,7 @@
                       settings.saveSystemServicesSettings()
                     }}
                   />
-                  <p class="text-muted-foreground text-xs">
-                    Maximum tool-calling rounds for the retrieval agent
-                  </p>
+                  <p class="text-muted-foreground text-xs">Maximum tool-calling rounds for the retrieval agent</p>
                 </div>
               {/if}
             {/if}
@@ -628,9 +599,7 @@
             </div>
             <div class="flex-1">
               <Label class="leading-none font-medium">Context Window</Label>
-              <p class="text-muted-foreground mt-1 text-xs">
-                Recent entries included in AI operations
-              </p>
+              <p class="text-muted-foreground mt-1 text-xs">Recent entries included in AI operations</p>
             </div>
           </Collapsible.Trigger>
           <div class="flex shrink-0 items-center gap-1">
@@ -669,8 +638,7 @@
                 </span>
               </div>
               <Slider
-                value={settings.serviceSpecificSettings.contextWindow?.recentEntriesForRetrieval ??
-                  5}
+                value={settings.serviceSpecificSettings.contextWindow?.recentEntriesForRetrieval ?? 5}
                 min={2}
                 max={15}
                 step={1}
@@ -680,9 +648,7 @@
                   settings.saveServiceSpecificSettings()
                 }}
               />
-              <p class="text-muted-foreground text-xs">
-                Entries for retrieval and classification operations
-              </p>
+              <p class="text-muted-foreground text-xs">Entries for retrieval and classification operations</p>
             </div>
 
             <!-- Tiered Context -->
@@ -860,9 +826,7 @@
                   settings.saveServiceSpecificSettings()
                 }}
               />
-              <p class="text-muted-foreground text-xs">
-                Entry count that triggers LLM-based selection
-              </p>
+              <p class="text-muted-foreground text-xs">Entry count that triggers LLM-based selection</p>
             </div>
           </div>
         </Collapsible.Content>

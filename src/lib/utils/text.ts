@@ -91,10 +91,7 @@ function findSentenceEnd(text: string, from: number, limit: number = text.length
 /**
  * Extracts the sentence at a specific character index within a text.
  */
-export function extractSentenceAt(
-  text: string,
-  index: number,
-): { text: string; start: number; end: number } {
+export function extractSentenceAt(text: string, index: number): { text: string; start: number; end: number } {
   if (!text || index < 0 || index >= text.length) return { text: '', start: 0, end: 0 }
   const start = findSentenceStart(text, index)
   const end = findSentenceEnd(text, index)

@@ -2,22 +2,13 @@ import { story } from '$lib/stores/story.svelte'
 import { ui } from '$lib/stores/ui.svelte'
 import { settings } from '$lib/stores/settings.svelte'
 import { scenarioService, type WizardData } from '$lib/services/ai/wizard/ScenarioService'
-import {
-  parseSTChat,
-  type STChatParseResult,
-  type STChatMessage,
-} from '$lib/services/stChatImporter'
+import { parseSTChat, type STChatParseResult, type STChatMessage } from '$lib/services/stChatImporter'
 import { CharacterCardImport } from '$lib/services/characterCardImport'
 import { LorebookImportExport } from '$lib/services/lorebookImportExport'
 import { replaceUserPlaceholders } from '$lib/components/wizard/wizardTypes'
 import type { ImportedLorebookItem } from '$lib/components/wizard/wizardTypes'
 import type { StoryMode, POV, VaultCharacter, VaultLorebook, VaultLorebookEntry } from '$lib/types'
-import type {
-  ExpandedSetting,
-  GeneratedCharacter,
-  GeneratedOpening,
-  GeneratedProtagonist,
-} from '$lib/services/ai/sdk'
+import type { ExpandedSetting, GeneratedCharacter, GeneratedOpening, GeneratedProtagonist } from '$lib/services/ai/sdk'
 import type { Genre, Tense } from '$lib/services/ai/wizard/ScenarioService'
 import { scenarioVault } from '$lib/stores/scenarioVault.svelte'
 import { database } from '$lib/services/database'
@@ -313,10 +304,7 @@ export class STImportWizardStore {
 
       // Extract embedded lorebook
       if (parsed.characterBook) {
-        this.embeddedLorebookData = LorebookImportExport.extractEmbeddedLorebook(
-          parsed.characterBook,
-          parsed.name,
-        )
+        this.embeddedLorebookData = LorebookImportExport.extractEmbeddedLorebook(parsed.characterBook, parsed.name)
       }
 
       // Auto-populate title from card name
@@ -376,9 +364,7 @@ export class STImportWizardStore {
         const cardChar: GeneratedCharacter = {
           name: charName,
           description:
-            sanitized?.description ||
-            this.cardParsedData?.description ||
-            'A character from the imported card.',
+            sanitized?.description || this.cardParsedData?.description || 'A character from the imported card.',
           role: 'primary',
           relationship: '',
           traits: sanitized?.traits?.slice(0, 8) || [],
@@ -386,15 +372,10 @@ export class STImportWizardStore {
         this.cardCharacterName = cardChar.name
         // Attach card portrait to the primary character
         if (this.cardPortrait) {
-          this.characterPortraits = new SvelteMap(this.characterPortraits).set(
-            cardChar.name,
-            this.cardPortrait,
-          )
+          this.characterPortraits = new SvelteMap(this.characterPortraits).set(cardChar.name, this.cardPortrait)
         }
         // Filter out NPCs that duplicate the primary card character
-        const dedupedNpcs = result.npcs.filter(
-          (npc) => npc.name.toLowerCase() !== cardChar.name.toLowerCase(),
-        )
+        const dedupedNpcs = result.npcs.filter((npc) => npc.name.toLowerCase() !== cardChar.name.toLowerCase())
         this.supportingCharacters = [cardChar, ...dedupedNpcs]
       }
 
@@ -403,8 +384,7 @@ export class STImportWizardStore {
         this.addEmbeddedLorebook()
       }
     } catch (err) {
-      this.cardProcessError =
-        err instanceof Error ? err.message : 'Failed to process character card'
+      this.cardProcessError = err instanceof Error ? err.message : 'Failed to process character card'
     } finally {
       this.isProcessingCard = false
     }
@@ -413,9 +393,7 @@ export class STImportWizardStore {
   private addEmbeddedLorebook() {
     if (!this.embeddedLorebookData) return
 
-    const alreadyAdded = this.importedLorebooks.some(
-      (lb) => lb.filename === this.embeddedLorebookData!.name,
-    )
+    const alreadyAdded = this.importedLorebooks.some((lb) => lb.filename === this.embeddedLorebookData!.name)
     if (alreadyAdded) return
 
     this.importedLorebooks = [
@@ -443,10 +421,8 @@ export class STImportWizardStore {
     this.protagonistPortrait = character.portrait || null
     this.manualCharacterName = character.name
     this.manualCharacterDescription = character.description || ''
-    this.manualCharacterBackground =
-      (character.metadata as Record<string, string>)?.background || ''
-    this.manualCharacterMotivation =
-      (character.metadata as Record<string, string>)?.motivation || ''
+    this.manualCharacterBackground = (character.metadata as Record<string, string>)?.background || ''
+    this.manualCharacterMotivation = (character.metadata as Record<string, string>)?.motivation || ''
     this.manualCharacterTraits = (character.traits || []).join(', ')
     this.showManualInput = false
     this.showVaultPicker = false
@@ -583,9 +559,7 @@ export class STImportWizardStore {
   }
 
   toggleLorebookExpanded(id: string) {
-    this.importedLorebooks = this.importedLorebooks.map((lb) =>
-      lb.id === id ? { ...lb, expanded: !lb.expanded } : lb,
-    )
+    this.importedLorebooks = this.importedLorebooks.map((lb) => (lb.id === id ? { ...lb, expanded: !lb.expanded } : lb))
   }
 
   // === Step 6: Create Story ===
@@ -650,9 +624,7 @@ export class STImportWizardStore {
         name: replaceUserPlaceholders(char.name, protagonistName),
         description: replaceUserPlaceholders(char.description, protagonistName),
         role: char.role ? replaceUserPlaceholders(char.role, protagonistName) : '',
-        relationship: char.relationship
-          ? replaceUserPlaceholders(char.relationship, protagonistName)
-          : '',
+        relationship: char.relationship ? replaceUserPlaceholders(char.relationship, protagonistName) : '',
         traits: char.traits.map((t) => replaceUserPlaceholders(t, protagonistName)),
       }))
 

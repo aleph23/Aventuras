@@ -19,13 +19,7 @@ import { jsonrepair } from 'jsonrepair'
 import type { z } from 'zod'
 
 import { settings } from '$lib/stores/settings.svelte'
-import type {
-  ProviderType,
-  GenerationPreset,
-  ReasoningEffort,
-  APIProfile,
-  TextModel,
-} from '$lib/types'
+import type { ProviderType, GenerationPreset, ReasoningEffort, APIProfile, TextModel } from '$lib/types'
 import { createLogger } from '$lib/log'
 import { createModelFromProfile } from './providers'
 import { PROVIDERS, getReasoningExtraction, GOOGLE_SAFETY_SETTINGS } from './providers/config'
@@ -173,11 +167,7 @@ export function buildProviderOptions(
           } satisfies GoogleGenerativeAIProviderOptions
         } else if (reasoningEffort) {
           const isGemma = preset.model.toLowerCase().includes('gemma')
-          const thinkingLevel = isGemma
-            ? reasoningEffort === 'high'
-              ? 'high'
-              : 'minimal'
-            : reasoningEffort
+          const thinkingLevel = isGemma ? (reasoningEffort === 'high' ? 'high' : 'minimal') : reasoningEffort
           options = {
             ...options,
             thinkingConfig: {
@@ -300,20 +290,14 @@ function resolveConfig(presetId: string, serviceId: string, debugId?: string): R
   })
 
   const useThinkTag =
-    profile.providerType === 'openai-compatible' ||
-    getReasoningExtraction(profile.providerType) === 'think-tag'
+    profile.providerType === 'openai-compatible' || getReasoningExtraction(profile.providerType) === 'think-tag'
 
   return {
     preset,
     profile,
     providerType: profile.providerType,
     model,
-    providerOptions: buildProviderOptions(
-      preset,
-      profile.providerType,
-      supportsStructuredOutput,
-      fetchedModel,
-    ),
+    providerOptions: buildProviderOptions(preset, profile.providerType, supportsStructuredOutput, fetchedModel),
     supportsStructuredOutput,
     useThinkTag,
   }
@@ -323,9 +307,7 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
   const profile = settings.getMainNarrativeProfile()
 
   if (!profile) {
-    throw new Error(
-      'Main narrative profile not configured. Please set up an API profile in Settings.',
-    )
+    throw new Error('Main narrative profile not configured. Please set up an API profile in Settings.')
   }
 
   const baseModelId = settings.apiSettings.defaultModel
@@ -353,8 +335,7 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
   }
 
   const useThinkTag =
-    profile.providerType === 'openai-compatible' ||
-    getReasoningExtraction(profile.providerType) === 'think-tag'
+    profile.providerType === 'openai-compatible' || getReasoningExtraction(profile.providerType) === 'think-tag'
 
   return {
     profile,
@@ -362,12 +343,7 @@ function resolveNarrativeConfig(debugId?: string): NarrativeConfig {
     model,
     temperature: settings.apiSettings.temperature,
     maxTokens: settings.apiSettings.maxTokens,
-    providerOptions: buildProviderOptions(
-      narrativePreset,
-      profile.providerType,
-      false,
-      fetchedModel,
-    ),
+    providerOptions: buildProviderOptions(narrativePreset, profile.providerType, false, fetchedModel),
     useThinkTag,
   }
 }
@@ -449,8 +425,7 @@ export async function generateStructured<T extends z.ZodType>(
 ): Promise<z.infer<T>> {
   const { presetId, schema, system, prompt, signal } = options
   const config = resolveConfig(presetId, serviceId)
-  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } =
-    config
+  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } = config
 
   log('generateStructured', {
     presetId,
@@ -481,15 +456,9 @@ export async function generateStructured<T extends z.ZodType>(
   return result.output as z.infer<T>
 }
 
-export async function generatePlainText(
-  options: BaseGenerateOptions,
-  serviceId: string,
-): Promise<string> {
+export async function generatePlainText(options: BaseGenerateOptions, serviceId: string): Promise<string> {
   const { presetId, system, prompt, signal } = options
-  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(
-    presetId,
-    serviceId,
-  )
+  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(presetId, serviceId)
 
   log('generatePlainText', { presetId, model: preset.model, providerType })
 
@@ -512,11 +481,7 @@ export async function generatePlainText(
 export function streamPlainText(options: BaseGenerateOptions, serviceId: string) {
   const debugId = crypto.randomUUID()
   const { presetId, system, prompt, signal } = options
-  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(
-    presetId,
-    serviceId,
-    debugId,
-  )
+  const { preset, providerType, model, providerOptions, useThinkTag } = resolveConfig(presetId, serviceId, debugId)
 
   log('streamPlainText', { presetId, model: preset.model, providerType })
   const startTime = Date.now()
@@ -548,15 +513,11 @@ export function streamPlainText(options: BaseGenerateOptions, serviceId: string)
   })
 }
 
-export function streamStructured<T extends z.ZodType>(
-  options: GenerateObjectOptions<T>,
-  serviceId: string,
-) {
+export function streamStructured<T extends z.ZodType>(options: GenerateObjectOptions<T>, serviceId: string) {
   const { presetId, schema, system, prompt, signal } = options
   const debugId = crypto.randomUUID()
   const config = resolveConfig(presetId, serviceId, debugId)
-  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } =
-    config
+  const { preset, providerType, model, providerOptions, supportsStructuredOutput, useThinkTag } = config
 
   log('streamStructured', { presetId, model: preset.model, providerType, supportsStructuredOutput })
   const startTime = Date.now()
@@ -607,8 +568,7 @@ interface NarrativeGenerateOptions {
 export function streamNarrative(options: NarrativeGenerateOptions) {
   const { system, prompt, signal } = options
   const debugId = crypto.randomUUID()
-  const { providerType, model, temperature, maxTokens, providerOptions, useThinkTag } =
-    resolveNarrativeConfig(debugId)
+  const { providerType, model, temperature, maxTokens, providerOptions, useThinkTag } = resolveNarrativeConfig(debugId)
 
   log('streamNarrative', { model: settings.apiSettings.defaultModel, providerType })
   const startTime = Date.now()

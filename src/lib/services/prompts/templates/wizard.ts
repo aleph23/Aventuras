@@ -521,8 +521,7 @@ const vaultCharacterImportPromptTemplate: PromptTemplate = {
   id: 'vault-character-import',
   name: 'Vault Character Import',
   category: 'service',
-  description:
-    'Cleans SillyTavern character cards and extracts structured character data for the vault',
+  description: 'Cleans SillyTavern character cards and extracts structured character data for the vault',
   content: `You are extracting and cleaning character data from a SillyTavern character card for storage in a character vault.
 
 ## Your Task

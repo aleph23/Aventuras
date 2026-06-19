@@ -38,9 +38,7 @@
       editDescription = variable.description ?? ''
       editType = variable.variableType
       editDefault = variable.defaultValue ?? ''
-      editEnumOptions = variable.enumOptions
-        ? structuredClone($state.snapshot(variable.enumOptions))
-        : []
+      editEnumOptions = variable.enumOptions ? structuredClone($state.snapshot(variable.enumOptions)) : []
       expanded = initialExpanded
       showDeleteConfirm = false
     }
@@ -99,9 +97,7 @@
     editDescription = variable.description ?? ''
     editType = variable.variableType
     editDefault = variable.defaultValue ?? ''
-    editEnumOptions = variable.enumOptions
-      ? structuredClone($state.snapshot(variable.enumOptions))
-      : []
+    editEnumOptions = variable.enumOptions ? structuredClone($state.snapshot(variable.enumOptions)) : []
     showDeleteConfirm = false
     expanded = false
   }
@@ -142,9 +138,7 @@
   }
 
   function updateEnumOption(index: number, field: 'label' | 'value', val: string) {
-    editEnumOptions = editEnumOptions.map((opt, i) =>
-      i === index ? { ...opt, [field]: val } : opt,
-    )
+    editEnumOptions = editEnumOptions.map((opt, i) => (i === index ? { ...opt, [field]: val } : opt))
   }
 
   function truncate(str: string, len: number): string {
@@ -235,10 +229,7 @@
         {:else if editType === 'number'}
           <Input type="number" bind:value={editDefault} placeholder="0" />
         {:else if editType === 'boolean'}
-          <Switch
-            checked={editDefault === 'true'}
-            onCheckedChange={(v) => (editDefault = v ? 'true' : 'false')}
-          />
+          <Switch checked={editDefault === 'true'} onCheckedChange={(v) => (editDefault = v ? 'true' : 'false')} />
         {:else if editType === 'enum'}
           {#if editEnumOptions.length > 0}
             <Select.Root type="single" value={editDefault} onValueChange={(v) => (editDefault = v)}>
@@ -325,20 +316,10 @@
         {#if showDeleteConfirm}
           <div class="flex items-center gap-2">
             <span class="text-destructive text-xs">Delete this variable?</span>
-            <Button
-              variant="destructive"
-              size="sm"
-              class="h-7 text-xs"
-              onclick={() => onDelete(variable.id)}
-            >
+            <Button variant="destructive" size="sm" class="h-7 text-xs" onclick={() => onDelete(variable.id)}>
               Confirm
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-7 text-xs"
-              onclick={() => (showDeleteConfirm = false)}
-            >
+            <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={() => (showDeleteConfirm = false)}>
               Cancel
             </Button>
           </div>
@@ -355,12 +336,8 @@
         {/if}
 
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" class="h-7 text-xs" onclick={handleCancel}>
-            Cancel
-          </Button>
-          <Button size="sm" class="h-7 text-xs" disabled={!canSave} onclick={handleSave}>
-            Save
-          </Button>
+          <Button variant="outline" size="sm" class="h-7 text-xs" onclick={handleCancel}>Cancel</Button>
+          <Button size="sm" class="h-7 text-xs" disabled={!canSave} onclick={handleSave}>Save</Button>
         </div>
       </div>
     </div>

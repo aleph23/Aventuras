@@ -12,10 +12,7 @@
  */
 
 import type { Character, EmbeddedImage } from '$lib/types'
-import {
-  generateImage as registryGenerateImage,
-  supportsImageGeneration,
-} from './providers/registry'
+import { generateImage as registryGenerateImage, supportsImageGeneration } from './providers/registry'
 import { database } from '$lib/services/database'
 import { settings } from '$lib/stores/settings.svelte'
 import { emitImageQueued, emitImageReady, emitImageAnalysisFailed } from '$lib/services/events'
@@ -119,9 +116,7 @@ export class InlineImageGenerationService {
       const charactersWithoutPortraits: string[] = []
 
       for (const charName of tag.characters.slice(0, 3)) {
-        const character = context.presentCharacters.find(
-          (c) => c.name.toLowerCase() === charName.toLowerCase(),
-        )
+        const character = context.presentCharacters.find((c) => c.name.toLowerCase() === charName.toLowerCase())
 
         const portraitUrl = normalizeImageDataUrl(character?.portrait)
         if (portraitUrl) {

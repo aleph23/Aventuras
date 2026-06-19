@@ -43,10 +43,7 @@
   }
 
   // Get the merged entry with updates applied
-  function getMergedView(
-    previous: VaultLorebookEntry,
-    updates: Partial<VaultLorebookEntry>,
-  ): VaultLorebookEntry {
+  function getMergedView(previous: VaultLorebookEntry, updates: Partial<VaultLorebookEntry>): VaultLorebookEntry {
     return { ...previous, ...updates }
   }
 
@@ -63,8 +60,7 @@
       : undefined,
   )
   const previousEntry = $derived(
-    change.entityType === 'lorebook-entry' &&
-      (change.action === 'update' || change.action === 'delete')
+    change.entityType === 'lorebook-entry' && (change.action === 'update' || change.action === 'delete')
       ? (change.previous as VaultLorebookEntry | undefined)
       : undefined,
   )
@@ -80,10 +76,7 @@
   )
 </script>
 
-<div
-  class="border-surface-600 bg-surface-800 overflow-hidden rounded-lg border"
-  in:fade={{ duration: 150 }}
->
+<div class="border-surface-600 bg-surface-800 overflow-hidden rounded-lg border" in:fade={{ duration: 150 }}>
   <!-- Header -->
   <div
     class="bg-surface-700 border-surface-600 flex flex-col justify-between gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:px-4"
@@ -128,9 +121,7 @@
       <!-- Create: Show new entry -->
       <div class="rounded-md border border-green-500/30 bg-green-500/10 p-3">
         <div class="mb-2 text-xs font-medium text-green-400">New Entry</div>
-        <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatEntry(
-            entryData,
-          )}</pre>
+        <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatEntry(entryData)}</pre>
       </div>
     {:else if change.action === 'update'}
       <!-- Update: Stacked on mobile, side-by-side on desktop -->
@@ -138,9 +129,7 @@
         <!-- Old (Previous) -->
         <div class="rounded-md border border-red-500/30 bg-red-500/10 p-3">
           <div class="mb-2 text-xs font-medium text-red-400">Before</div>
-          <pre class="text-surface-300 font-mono text-sm whitespace-pre-wrap">{formatEntry(
-              previousEntry,
-            )}</pre>
+          <pre class="text-surface-300 font-mono text-sm whitespace-pre-wrap">{formatEntry(previousEntry)}</pre>
         </div>
 
         <!-- New (With updates applied) -->
@@ -157,16 +146,13 @@
       <!-- Changes summary -->
       <div class="mt-3 rounded-md border border-blue-500/30 bg-blue-500/10 p-3">
         <div class="mb-2 text-xs font-medium text-blue-400">Changes</div>
-        <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatUpdates(
-            updateData,
-          )}</pre>
+        <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatUpdates(updateData)}</pre>
       </div>
     {:else if change.action === 'delete'}
       <!-- Delete: Show entry being removed -->
       <div class="rounded-md border border-red-500/30 bg-red-500/10 p-3">
         <div class="mb-2 text-xs font-medium text-red-400">Entry to Delete</div>
-        <pre
-          class="text-surface-300 font-mono text-sm whitespace-pre-wrap line-through opacity-70">{formatEntry(
+        <pre class="text-surface-300 font-mono text-sm whitespace-pre-wrap line-through opacity-70">{formatEntry(
             previousEntry,
           )}</pre>
       </div>
@@ -182,9 +168,7 @@
             {#each previousEntries ?? [] as entry, i (i)}
               <div class="bg-surface-700 rounded p-2">
                 <div class="text-surface-400 mb-1 text-xs">Entry {i + 1}: {entry.name}</div>
-                <pre class="text-surface-300 font-mono text-sm whitespace-pre-wrap">{formatEntry(
-                    entry,
-                  )}</pre>
+                <pre class="text-surface-300 font-mono text-sm whitespace-pre-wrap">{formatEntry(entry)}</pre>
               </div>
             {/each}
           </div>
@@ -198,9 +182,7 @@
         <!-- Merged result -->
         <div class="rounded-md border border-green-500/30 bg-green-500/10 p-3">
           <div class="mb-2 text-xs font-medium text-green-400">Merged Entry</div>
-          <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatEntry(
-              mergeData,
-            )}</pre>
+          <pre class="text-surface-200 font-mono text-sm whitespace-pre-wrap">{formatEntry(mergeData)}</pre>
         </div>
       </div>
     {/if}

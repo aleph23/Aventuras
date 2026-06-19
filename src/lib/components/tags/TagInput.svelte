@@ -100,11 +100,7 @@
     onkeydown={() => {}}
   >
     {#each value as tagName, i (i)}
-      <TagBadge
-        name={tagName}
-        color={tagStore.getColor(tagName, type)}
-        onRemove={() => removeTag(tagName)}
-      />
+      <TagBadge name={tagName} color={tagStore.getColor(tagName, type)} onRemove={() => removeTag(tagName)} />
     {/each}
 
     <input

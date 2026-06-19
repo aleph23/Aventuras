@@ -111,9 +111,7 @@
         </span>
         {#if chapter.title}
           <span class="text-muted-foreground hidden text-sm sm:inline">—</span>
-          <span class="text-primary max-w-[150px] truncate text-sm sm:max-w-none"
-            >{chapter.title}</span
-          >
+          <span class="text-primary max-w-[150px] truncate text-sm sm:max-w-none">{chapter.title}</span>
         {/if}
       </div>
     </div>
@@ -121,13 +119,7 @@
     <!-- Action Buttons -->
     {#if !isEditing}
       <div class="flex shrink-0 items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-7 w-7"
-          onclick={startEdit}
-          title="Edit summary"
-        >
+        <Button variant="ghost" size="icon" class="h-7 w-7" onclick={startEdit} title="Edit summary">
           <Edit2 class="h-3.5 w-3.5" />
         </Button>
         <Button
@@ -139,10 +131,7 @@
           disabled={ui.memoryLoading}
         >
           <RefreshCw
-            class={cn(
-              'h-3.5 w-3.5',
-              ui.memoryLoading && ui.resummarizeChapterId === chapter.id && 'animate-spin',
-            )}
+            class={cn('h-3.5 w-3.5', ui.memoryLoading && ui.resummarizeChapterId === chapter.id && 'animate-spin')}
           />
         </Button>
         <Button

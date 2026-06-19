@@ -68,9 +68,7 @@ function parseSillyTavern(jsonString: string): LorebookImportResult {
           result.warnings.push(`Entry UID ${entry.uid} has no name, using "${name}"`)
         }
 
-        const keywords = [...(entry.key || []), ...(entry.keysecondary || [])].filter(
-          (k) => k && k.trim(),
-        )
+        const keywords = [...(entry.key || []), ...(entry.keysecondary || [])].filter((k) => k && k.trim())
 
         const importedEntry: ImportedEntry = {
           name,

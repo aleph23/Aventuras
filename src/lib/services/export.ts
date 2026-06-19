@@ -70,9 +70,7 @@ class ExportService {
    */
   private logVersionCompatibilityWarnings(importVersion: string): void {
     if (this.compareVersions(importVersion, '1.1.0') < 0) {
-      console.warn(
-        `[Import] File from v${importVersion} predates lorebook entries (v1.1.0). Lorebook will be empty.`,
-      )
+      console.warn(`[Import] File from v${importVersion} predates lorebook entries (v1.1.0). Lorebook will be empty.`)
     }
     if (this.compareVersions(importVersion, '1.2.0') < 0) {
       console.warn(
@@ -312,8 +310,7 @@ class ExportService {
       } catch {
         return {
           success: false,
-          error:
-            'Invalid file: Not a valid JSON file. Please select an Aventura story file (.avt or .json).',
+          error: 'Invalid file: Not a valid JSON file. Please select an Aventura story file (.avt or .json).',
         }
       }
 
@@ -349,13 +346,7 @@ class ExportService {
 
       // Pre-map world-state entity IDs so that COW overridesId references can be
       // resolved during import (override rows reference the original entity's old ID).
-      for (const collection of [
-        data.characters,
-        data.locations,
-        data.items,
-        data.storyBeats,
-        data.lorebookEntries,
-      ]) {
+      for (const collection of [data.characters, data.locations, data.items, data.storyBeats, data.lorebookEntries]) {
         for (const entity of collection ?? []) {
           oldToNewId.set(entity.id, crypto.randomUUID())
         }
@@ -394,11 +385,9 @@ class ExportService {
 
       const mapBranchId = (branchId: string | null | undefined) =>
         branchId ? (branchIdMap.get(branchId) ?? null) : null
-      const mapEntryId = (entryId: string | null | undefined) =>
-        entryId ? (oldToNewId.get(entryId) ?? entryId) : null
+      const mapEntryId = (entryId: string | null | undefined) => (entryId ? (oldToNewId.get(entryId) ?? entryId) : null)
       // For COW overridesId: resolve to new UUID or null (never keep the old ID)
-      const mapOverridesId = (id: string | null | undefined) =>
-        id ? (oldToNewId.get(id) ?? null) : null
+      const mapOverridesId = (id: string | null | undefined) => (id ? (oldToNewId.get(id) ?? null) : null)
 
       // Import branches (insert parents before children)
       const branchCheckpointMap = new Map<string, string | null>()
@@ -416,9 +405,7 @@ class ExportService {
             createdAt: branch.createdAt,
             snapshotComplete: branch.snapshotComplete ?? false,
           })
-          const mappedCheckpointId = branch.checkpointId
-            ? (checkpointIdMap.get(branch.checkpointId) ?? null)
-            : null
+          const mappedCheckpointId = branch.checkpointId ? (checkpointIdMap.get(branch.checkpointId) ?? null) : null
           branchCheckpointMap.set(newBranchId, mappedCheckpointId)
         }
 
@@ -436,9 +423,7 @@ class ExportService {
               continue
             }
 
-            const mappedParentId = branch.parentBranchId
-              ? (branchIdMap.get(branch.parentBranchId) ?? null)
-              : null
+            const mappedParentId = branch.parentBranchId ? (branchIdMap.get(branch.parentBranchId) ?? null) : null
             if (mappedParentId && !inserted.has(mappedParentId)) {
               continue
             }
@@ -537,9 +522,7 @@ class ExportService {
           const newItemId = oldToNewId.get(item.id) ?? crypto.randomUUID()
 
           const mappedLocation =
-            item.location === 'inventory'
-              ? 'inventory'
-              : (oldToNewId.get(item.location) ?? item.location)
+            item.location === 'inventory' ? 'inventory' : (oldToNewId.get(item.location) ?? item.location)
 
           await database.addItem({
             id: newItemId,
@@ -607,9 +590,7 @@ class ExportService {
             firstMentioned: entry.firstMentioned
               ? (oldToNewId.get(entry.firstMentioned) ?? entry.firstMentioned)
               : null,
-            lastMentioned: entry.lastMentioned
-              ? (oldToNewId.get(entry.lastMentioned) ?? entry.lastMentioned)
-              : null,
+            lastMentioned: entry.lastMentioned ? (oldToNewId.get(entry.lastMentioned) ?? entry.lastMentioned) : null,
             mentionCount: entry.mentionCount || 0,
             createdBy: entry.createdBy || 'import',
             createdAt: entry.createdAt || Date.now(),
@@ -650,10 +631,7 @@ class ExportService {
           id: remapEntityId(item.id),
           storyId: newStoryId,
           branchId: mapBranchId(item.branchId ?? null),
-          location:
-            item.location === 'inventory'
-              ? 'inventory'
-              : (oldToNewId.get(item.location) ?? item.location),
+          location: item.location === 'inventory' ? 'inventory' : (oldToNewId.get(item.location) ?? item.location),
         })
         const remapStoryBeat = (beat: StoryBeat): StoryBeat => ({
           ...beat,
@@ -674,12 +652,8 @@ class ExportService {
           id: remapEntityId(entry.id),
           storyId: newStoryId,
           branchId: mapBranchId(entry.branchId ?? null),
-          firstMentioned: entry.firstMentioned
-            ? (oldToNewId.get(entry.firstMentioned) ?? entry.firstMentioned)
-            : null,
-          lastMentioned: entry.lastMentioned
-            ? (oldToNewId.get(entry.lastMentioned) ?? entry.lastMentioned)
-            : null,
+          firstMentioned: entry.firstMentioned ? (oldToNewId.get(entry.firstMentioned) ?? entry.firstMentioned) : null,
+          lastMentioned: entry.lastMentioned ? (oldToNewId.get(entry.lastMentioned) ?? entry.lastMentioned) : null,
         })
 
         for (const checkpoint of data.checkpoints) {
@@ -762,9 +736,7 @@ class ExportService {
           // Map the entry ID to the new entry ID
           const newEntryId = oldToNewId.get(image.entryId)
           if (!newEntryId) {
-            console.warn(
-              `[Import] Skipping embedded image ${image.id}: entry ${image.entryId} not found`,
-            )
+            console.warn(`[Import] Skipping embedded image ${image.id}: entry ${image.entryId} not found`)
             continue
           }
 

@@ -74,9 +74,7 @@ export function hasDescriptors(descriptors: VisualDescriptors | null | undefined
 /**
  * Format descriptors for display in prompts/context.
  */
-export function formatDescriptorsForPrompt(
-  descriptors: VisualDescriptors | null | undefined,
-): string {
+export function formatDescriptorsForPrompt(descriptors: VisualDescriptors | null | undefined): string {
   if (!descriptors) return ''
 
   const parts: string[] = []

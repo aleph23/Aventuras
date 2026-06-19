@@ -23,12 +23,7 @@ export interface StyleReviewCheckInput {
 }
 
 export interface StyleReviewDependencies {
-  analyzeStyle: (
-    entries: StoryEntry[],
-    mode: StoryMode,
-    pov: POV,
-    tense: Tense,
-  ) => Promise<StyleReviewResult>
+  analyzeStyle: (entries: StoryEntry[], mode: StoryMode, pov: POV, tense: Tense) => Promise<StyleReviewResult>
 }
 
 export interface StyleReviewUICallbacks {
@@ -56,18 +51,8 @@ export class StyleReviewScheduler {
     input: StyleReviewCheckInput,
     uiCallbacks?: StyleReviewUICallbacks,
   ): Promise<StyleReviewCheckResult> {
-    const {
-      storyId,
-      entries,
-      mode,
-      pov,
-      tense,
-      enabled,
-      triggerInterval,
-      currentCounter,
-      shouldIncrement,
-      source,
-    } = input
+    const { storyId, entries, mode, pov, tense, enabled, triggerInterval, currentCounter, shouldIncrement, source } =
+      input
 
     if (!enabled || !storyId) return { triggered: false }
 

@@ -15,10 +15,7 @@
  */
 
 import { extractPicTags, type ParsedPicTag } from '$lib/utils/inlineImageParser'
-import {
-  generateImage as registryGenerateImage,
-  supportsImageGeneration,
-} from './providers/registry'
+import { generateImage as registryGenerateImage, supportsImageGeneration } from './providers/registry'
 import { database } from '$lib/services/database'
 import { settings } from '$lib/stores/settings.svelte'
 import { emitImageQueued, emitImageReady } from '$lib/services/events'

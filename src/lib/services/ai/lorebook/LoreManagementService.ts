@@ -10,10 +10,7 @@ import { BaseAIService } from '../BaseAIService'
 import { createLogger } from '$lib/log'
 import { createAgentFromPreset, extractTerminalToolResult, stopOnTerminalTool } from '../sdk/agents'
 import { createLoreManagementTools } from '../sdk/tools'
-import type {
-  FinishLoreManagementSchema,
-  LorebookEntryPendingChangeSchema,
-} from '../sdk/schemas/lorebook'
+import type { FinishLoreManagementSchema, LorebookEntryPendingChangeSchema } from '../sdk/schemas/lorebook'
 import { ContextBuilder } from '$lib/services/context'
 import type { LoreManagementToolContext } from '../sdk/tools/lorebook'
 
@@ -102,10 +99,7 @@ export class LoreManagementService extends BaseAIService {
    * @param signal - Optional abort signal for cancellation
    * @returns Result with updated and created entries
    */
-  async runSession(
-    context: LoreManagementContext,
-    signal?: AbortSignal,
-  ): Promise<LoreManagementResult> {
+  async runSession(context: LoreManagementContext, signal?: AbortSignal): Promise<LoreManagementResult> {
     log('Starting lore management session', {
       storyId: context.storyId,
       entryCount: context.existingEntries.length,
@@ -121,9 +115,7 @@ export class LoreManagementService extends BaseAIService {
     // Convert entries to vault format for tools
     // Deep clone to avoid Svelte proxy issues with AI SDK structured cloning
     const vaultEntries = JSON.parse(JSON.stringify(context.existingEntries.map(entryToVaultEntry)))
-    const plainChapters = context.chapters
-      ? JSON.parse(JSON.stringify(context.chapters))
-      : undefined
+    const plainChapters = context.chapters ? JSON.parse(JSON.stringify(context.chapters)) : undefined
 
     // Create tool context with chapter querying
     const toolContext: LoreManagementToolContext = {
@@ -145,10 +137,7 @@ export class LoreManagementService extends BaseAIService {
     // Build entry summaries for user prompt (use 0-based indices to match tool expectations)
     const entrySummary =
       context.existingEntries
-        .map(
-          (e, i) =>
-            `[${i}] [${e.type}] ${e.name}: ${e.description?.slice(0, 100) || 'No description'}`,
-        )
+        .map((e, i) => `[${i}] [${e.type}] ${e.name}: ${e.description?.slice(0, 100) || 'No description'}`)
         .join('\n') || 'No entries yet.'
 
     // Build recent story section
@@ -164,10 +153,7 @@ ${context.narrativeResponse}
     const chapterSummary =
       context.chapters && context.chapters.length > 0
         ? context.chapters
-            .map(
-              (ch) =>
-                `Chapter ${ch.number}${ch.title ? `: ${ch.title}` : ''} - ${ch.summary.slice(0, 200)}...`,
-            )
+            .map((ch) => `Chapter ${ch.number}${ch.title ? `: ${ch.title}` : ''} - ${ch.summary.slice(0, 200)}...`)
             .join('\n')
         : 'No chapters available. Use list_chapters and query_chapter tools to explore story history.'
 
@@ -193,9 +179,10 @@ ${context.narrativeResponse}
 
     // Extract the terminal result
 
-    const terminalResult = extractTerminalToolResult<
-      FinishLoreManagementSchema & { completed: boolean }
-    >(result.steps as any, 'finish_lore_management')
+    const terminalResult = extractTerminalToolResult<FinishLoreManagementSchema & { completed: boolean }>(
+      result.steps as any,
+      'finish_lore_management',
+    )
 
     log('Lore management session completed', {
       steps: result.steps.length,

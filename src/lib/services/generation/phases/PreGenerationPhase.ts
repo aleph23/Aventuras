@@ -7,12 +7,7 @@
  * - Yield phase events
  */
 
-import type {
-  GenerationContext,
-  GenerationEvent,
-  PhaseStartEvent,
-  PhaseCompleteEvent,
-} from '../types'
+import type { GenerationContext, GenerationEvent, PhaseStartEvent, PhaseCompleteEvent } from '../types'
 import type {
   StoryEntry,
   Character,

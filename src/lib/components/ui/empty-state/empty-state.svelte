@@ -31,11 +31,7 @@
     </div>
   {/if}
   <h2 class="{size === 'sm' ? 'text-sm' : 'text-xl'} text-foreground font-semibold">{title}</h2>
-  <p
-    class="text-muted-foreground max-w-sm {size === 'sm'
-      ? 'mb-2 text-xs'
-      : 'mb-4 text-sm'} leading-snug"
-  >
+  <p class="text-muted-foreground max-w-sm {size === 'sm' ? 'mb-2 text-xs' : 'mb-4 text-sm'} leading-snug">
     {description}
   </p>
   {#if children}

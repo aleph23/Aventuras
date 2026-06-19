@@ -110,9 +110,7 @@ export function createA1111Provider(config: ImageProviderConfig): ImageProvider 
       ])
 
       const toNames = (data: unknown): string[] =>
-        Array.isArray(data)
-          ? (data as { name?: string }[]).map((s) => s.name ?? '').filter(Boolean)
-          : []
+        Array.isArray(data) ? (data as { name?: string }[]).map((s) => s.name ?? '').filter(Boolean) : []
 
       const samplers: string[] =
         samplersRes.status === 'fulfilled'

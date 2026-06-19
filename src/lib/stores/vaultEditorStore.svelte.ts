@@ -65,8 +65,7 @@ class VaultEditorStore {
     if (change.action !== 'update') return null
     if (!('previous' in change) || !change.previous) return null
 
-    const entityId =
-      change.entityType === 'scenario' || change.entityType === 'character' ? change.entityId : null
+    const entityId = change.entityType === 'scenario' || change.entityType === 'character' ? change.entityId : null
     if (!entityId) return null
 
     const pending = this._pendingChangesWithEditOverlay(change.entityType, entityId)
@@ -183,9 +182,7 @@ class VaultEditorStore {
     return this.pendingChanges
       .filter(
         (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry' }> =>
-          c.entityType === 'lorebook-entry' &&
-          c.lorebookId === lorebookId &&
-          c.status === 'pending',
+          c.entityType === 'lorebook-entry' && c.lorebookId === lorebookId && c.status === 'pending',
       )
       .map((c) => (this._editedChanges.get(c.id) as typeof c) ?? c)
   }
@@ -210,24 +207,15 @@ class VaultEditorStore {
           (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry' }> =>
             c.entityType === 'lorebook-entry' &&
             c.status === 'pending' &&
-            (c as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>).lorebookId ===
-              change.lorebookId,
+            (c as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>).lorebookId === change.lorebookId,
         )
         .map(
-          (c) =>
-            (this._editedChanges.get(c.id) ?? c) as Extract<
-              VaultPendingChange,
-              { entityType: 'lorebook-entry' }
-            >,
+          (c) => (this._editedChanges.get(c.id) ?? c) as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>,
         )
 
       const deletesAndMerges = entryChanges.filter(
-        (
-          c,
-        ): c is Extract<
-          VaultPendingChange,
-          { entityType: 'lorebook-entry'; action: 'delete' | 'merge' }
-        > => c.action === 'delete' || c.action === 'merge',
+        (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry'; action: 'delete' | 'merge' }> =>
+          c.action === 'delete' || c.action === 'merge',
       )
       const creates = entryChanges.filter(
         (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry'; action: 'create' }> =>
@@ -471,16 +459,12 @@ class VaultEditorStore {
 
     // Separate by type and action
     const lorebookEntryChanges = pending.filter(
-      (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry' }> =>
-        c.entityType === 'lorebook-entry',
+      (c): c is Extract<VaultPendingChange, { entityType: 'lorebook-entry' }> => c.entityType === 'lorebook-entry',
     )
     const otherChanges = pending.filter((c) => c.entityType !== 'lorebook-entry')
 
     // For lorebook-entry changes: group by lorebook, then process deletes/merges in descending order
-    const byLorebook = new SvelteMap<
-      string,
-      Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>[]
-    >()
+    const byLorebook = new SvelteMap<string, Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>[]>()
     for (const change of lorebookEntryChanges) {
       const group = byLorebook.get(change.lorebookId) ?? []
       group.push(change)
@@ -490,9 +474,7 @@ class VaultEditorStore {
     // Process each lorebook's changes: deletes/merges descending, then creates/updates ascending
     for (const [_lorebookId, changes] of byLorebook) {
       const deletesAndMerges = changes.filter((c) => c.action === 'delete' || c.action === 'merge')
-      const createsAndUpdates = changes.filter(
-        (c) => c.action === 'create' || c.action === 'update',
-      )
+      const createsAndUpdates = changes.filter((c) => c.action === 'create' || c.action === 'update')
 
       // Sort deletes/merges by descending entryIndex (or highest entryIndex for merges)
       deletesAndMerges.sort((a, b) => {
@@ -649,8 +631,7 @@ class VaultEditorStore {
     // If the editor is showing a completely different entity, skip the
     // transition — we don't want to yank the user away from their work.
     if (this.editorOpen && this.activeChange) {
-      const activeEntityId =
-        'entityId' in this.activeChange ? (this.activeChange.entityId as string) : null
+      const activeEntityId = 'entityId' in this.activeChange ? (this.activeChange.entityId as string) : null
       const activeEntityType = this.activeChange.entityType
 
       if (activeEntityId === entityId && activeEntityType === change.entityType) {
@@ -675,18 +656,13 @@ class VaultEditorStore {
     if (approvedChange.entityType !== 'lorebook-entry') return
     if (approvedChange.action !== 'delete' && approvedChange.action !== 'merge') return
 
-    const lorebookId =
-      approvedChange.entityType === 'lorebook-entry' ? approvedChange.lorebookId : null
+    const lorebookId = approvedChange.entityType === 'lorebook-entry' ? approvedChange.lorebookId : null
     if (!lorebookId) return
 
     // Update pendingChanges in-place (entries are $state proxy objects)
     for (let i = 0; i < this.pendingChanges.length; i++) {
       const c = this.pendingChanges[i]
-      if (
-        c.entityType !== 'lorebook-entry' ||
-        c.status !== 'pending' ||
-        c.id === approvedChange.id
-      ) {
+      if (c.entityType !== 'lorebook-entry' || c.status !== 'pending' || c.id === approvedChange.id) {
         continue
       }
       const entryChange = c as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>
@@ -708,8 +684,7 @@ class VaultEditorStore {
         !edited ||
         edited.entityType !== 'lorebook-entry' ||
         edited.id === approvedChange.id ||
-        (edited as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>).lorebookId !==
-          lorebookId
+        (edited as Extract<VaultPendingChange, { entityType: 'lorebook-entry' }>).lorebookId !== lorebookId
       ) {
         continue
       }
@@ -746,12 +721,8 @@ class VaultEditorStore {
         const newIndices = pending.entryIndices.map((idx) => (idx > deletedIndex ? idx - 1 : idx))
         // Check if array changed
         if (newIndices.some((idx, i) => idx !== pending.entryIndices[i])) {
-          ;(
-            pending as Extract<
-              VaultPendingChange,
-              { entityType: 'lorebook-entry'; action: 'merge' }
-            >
-          ).entryIndices = newIndices
+          ;(pending as Extract<VaultPendingChange, { entityType: 'lorebook-entry'; action: 'merge' }>).entryIndices =
+            newIndices
           // Return 0 to signal a change happened (the caller will use the mutated entryIndices)
           return 0
         }
@@ -769,12 +740,8 @@ class VaultEditorStore {
         } else if (pending.action === 'merge') {
           // Shift indices in the merge's entryIndices array
           const newIndices = pending.entryIndices.map((idx) => (idx > removedIdx ? idx - 1 : idx))
-          ;(
-            pending as Extract<
-              VaultPendingChange,
-              { entityType: 'lorebook-entry'; action: 'merge' }
-            >
-          ).entryIndices = newIndices
+          ;(pending as Extract<VaultPendingChange, { entityType: 'lorebook-entry'; action: 'merge' }>).entryIndices =
+            newIndices
           mergeChanged = true
         }
       }

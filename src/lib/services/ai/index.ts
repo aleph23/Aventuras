@@ -179,11 +179,7 @@ class AIService {
   /**
    * Generate a complete narrative response (non-streaming).
    */
-  async generateNarrative(
-    entries: StoryEntry[],
-    worldState: WorldState,
-    story?: Story | null,
-  ): Promise<string> {
+  async generateNarrative(entries: StoryEntry[], worldState: WorldState, story?: Story | null): Promise<string> {
     return this.narrativeService.generate(entries, worldState, story)
   }
 
@@ -344,9 +340,7 @@ class AIService {
     const lastUserAction = entries.filter((e) => e.type === 'user_action').pop()
 
     // Get present characters (NPCs, excluding the protagonist)
-    const presentCharacters = worldState.characters?.filter(
-      (c) => c.relationship !== 'self' && c.status === 'active',
-    )
+    const presentCharacters = worldState.characters?.filter((c) => c.relationship !== 'self' && c.status === 'active')
 
     // Get inventory items (those that are equipped)
     const inventory = worldState.items?.filter((i) => i.equipped)
@@ -365,9 +359,7 @@ class AIService {
       currentLocation: worldState.currentLocation,
       presentCharacters,
       inventory,
-      activeQuests: worldState.storyBeats?.filter(
-        (b) => b.status === 'pending' || b.status === 'active',
-      ),
+      activeQuests: worldState.storyBeats?.filter((b) => b.status === 'pending' || b.status === 'active'),
       lorebookEntries,
     }
 
@@ -401,14 +393,7 @@ class AIService {
     tense?: Tense,
   ): Promise<ChapterAnalysis> {
     const memoryService = serviceFactory.createMemoryService()
-    return memoryService.analyzeForChapter(
-      entries,
-      lastChapterEndIndex,
-      tokensOutsideBuffer,
-      mode,
-      pov,
-      tense,
-    )
+    return memoryService.analyzeForChapter(entries, lastChapterEndIndex, tokensOutsideBuffer, mode, pov, tense)
   }
 
   /**
@@ -492,12 +477,7 @@ class AIService {
     })
 
     const contextBuilder = new EntryInjector(config, 'entryRetrieval')
-    const result = await contextBuilder.buildContext(
-      worldState,
-      userInput,
-      recentEntries,
-      retrievedChapterContext,
-    )
+    const result = await contextBuilder.buildContext(worldState, userInput, recentEntries, retrievedChapterContext)
 
     log('buildTieredContext complete', {
       tier1: result.tier1.length,
@@ -576,10 +556,8 @@ class AIService {
     const recentNarration = recentMessages.filter((m) => m.type === 'narration')
     const recentActions = recentMessages.filter((m) => m.type === 'user_action')
 
-    const narrativeResponse =
-      recentNarration.length > 0 ? recentNarration[recentNarration.length - 1].content : ''
-    const userAction =
-      recentActions.length > 0 ? recentActions[recentActions.length - 1].content : ''
+    const narrativeResponse = recentNarration.length > 0 ? recentNarration[recentNarration.length - 1].content : ''
+    const userAction = recentActions.length > 0 ? recentActions[recentActions.length - 1].content : ''
 
     // Build chapters info for lore management
     // Deep clone to avoid Svelte proxy issues with AI SDK structured cloning
@@ -648,11 +626,7 @@ class AIService {
     chapters: Chapter[],
     entries: Entry[],
     onQueryChapter?: (chapterNumber: number, question: string) => Promise<string>,
-    onQueryChapters?: (
-      startChapter: number,
-      endChapter: number,
-      question: string,
-    ) => Promise<string>,
+    onQueryChapters?: (startChapter: number, endChapter: number, question: string) => Promise<string>,
     signal?: AbortSignal,
     _mode: StoryMode = 'adventure',
     _pov?: POV,
@@ -745,12 +719,7 @@ class AIService {
     })
 
     const chapterQueryService = serviceFactory.createChapterQueryService()
-    const answer = await chapterQueryService.answerQuestion(
-      question,
-      chapters,
-      [chapterNumber],
-      getChapterEntries,
-    )
+    const answer = await chapterQueryService.answerQuestion(question, chapters, [chapterNumber], getChapterEntries)
     return answer.answer
   }
 
@@ -778,12 +747,7 @@ class AIService {
     }
 
     const chapterQueryService = serviceFactory.createChapterQueryService()
-    const answer = await chapterQueryService.answerQuestion(
-      question,
-      chapters,
-      chapterNumbers,
-      getChapterEntries,
-    )
+    const answer = await chapterQueryService.answerQuestion(question, chapters, chapterNumbers, getChapterEntries)
     return answer.answer
   }
 
@@ -1007,9 +971,7 @@ class AIService {
       const portraitUrls: string[] = []
 
       for (const charName of scene.characters.slice(0, 3)) {
-        const character = presentCharacters.find(
-          (c) => c.name.toLowerCase() === charName.toLowerCase(),
-        )
+        const character = presentCharacters.find((c) => c.name.toLowerCase() === charName.toLowerCase())
         const portraitUrl = normalizeImageDataUrl(character?.portrait)
         if (portraitUrl) {
           portraitUrls.push(portraitUrl)
@@ -1147,9 +1109,7 @@ class AIService {
       // If this was a portrait generation, save to character
       if (scene.generatePortrait && scene.characters.length > 0) {
         const charName = scene.characters[0]
-        const character = presentCharacters.find(
-          (c) => c.name.toLowerCase() === charName.toLowerCase(),
-        )
+        const character = presentCharacters.find((c) => c.name.toLowerCase() === charName.toLowerCase())
         if (character) {
           await database.updateCharacter(character.id, {
             portrait: result.base64,
@@ -1249,10 +1209,7 @@ class AIService {
   /**
    * Batch translate UI elements.
    */
-  async translateUIElements(
-    items: UITranslationItem[],
-    targetLanguage: string,
-  ): Promise<UITranslationItem[]> {
+  async translateUIElements(items: UITranslationItem[], targetLanguage: string): Promise<UITranslationItem[]> {
     const service = serviceFactory.createTranslationService('ui')
     return service.translateUIElements(items, targetLanguage)
   }
@@ -1282,10 +1239,7 @@ class AIService {
   /**
    * Translate wizard content.
    */
-  async translateWizardContent(
-    content: string,
-    targetLanguage: string,
-  ): Promise<TranslationResult> {
+  async translateWizardContent(content: string, targetLanguage: string): Promise<TranslationResult> {
     const service = serviceFactory.createTranslationService('wizard')
     return service.translateWizardContent(content, targetLanguage)
   }
@@ -1293,10 +1247,7 @@ class AIService {
   /**
    * Batch translate wizard content.
    */
-  async translateWizardBatch(
-    fields: Record<string, string>,
-    targetLanguage: string,
-  ): Promise<Record<string, string>> {
+  async translateWizardBatch(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>> {
     const service = serviceFactory.createTranslationService('wizard')
     return service.translateWizardBatch(fields, targetLanguage)
   }

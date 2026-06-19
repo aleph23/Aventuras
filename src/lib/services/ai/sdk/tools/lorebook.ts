@@ -47,9 +47,7 @@ function createLorebookEntryTools(context: LorebookEntryToolContext) {
 
   function resolveTargetEntries(
     lorebookId: string | undefined,
-  ):
-    | { ok: true; targetEntries: VaultLorebookEntry[]; targetId: string | undefined }
-    | { ok: false; error: string } {
+  ): { ok: true; targetEntries: VaultLorebookEntry[]; targetId: string | undefined } | { ok: false; error: string } {
     if (lorebookId && !getLorebookEntries) {
       return { ok: false, error: 'Global lorebook access not available in this context' }
     }
@@ -77,13 +75,7 @@ function createLorebookEntryTools(context: LorebookEntryToolContext) {
           .optional()
           .describe('Filter entries by type (character, location, item, faction, concept, event)'),
       }),
-      execute: async ({
-        lorebookId,
-        type,
-      }: {
-        lorebookId?: string
-        type?: z.infer<typeof entryTypeSchema>
-      }) => {
+      execute: async ({ lorebookId, type }: { lorebookId?: string; type?: z.infer<typeof entryTypeSchema> }) => {
         const resolved = resolveTargetEntries(lorebookId)
         if (!resolved.ok) {
           return { entries: [], total: 0, error: resolved.error }
@@ -160,20 +152,9 @@ function createLorebookEntryTools(context: LorebookEntryToolContext) {
         type: entryTypeSchema.describe('Type of entry'),
         description: z.string().describe('Full description of the entry'),
         keywords: z.array(z.string()).describe('Keywords that will trigger this entry'),
-        aliases: z
-          .array(z.string())
-          .optional()
-          .default([])
-          .describe('Alternative names for this entry'),
-        injectionMode: injectionModeSchema
-          .optional()
-          .default('keyword')
-          .describe('When to inject (default: keyword)'),
-        priority: z
-          .number()
-          .optional()
-          .default(50)
-          .describe('Injection priority 0-100 (default: 50)'),
+        aliases: z.array(z.string()).optional().default([]).describe('Alternative names for this entry'),
+        injectionMode: injectionModeSchema.optional().default('keyword').describe('When to inject (default: keyword)'),
+        priority: z.number().optional().default(50).describe('Injection priority 0-100 (default: 50)'),
       }),
       execute: async ({
         lorebookId,
@@ -321,15 +302,7 @@ function createLorebookEntryTools(context: LorebookEntryToolContext) {
         index: z.number().describe('Index of the entry to delete'),
         reason: z.string().optional().describe('Reason for deletion'),
       }),
-      execute: async ({
-        lorebookId,
-        index,
-        reason,
-      }: {
-        lorebookId?: string
-        index: number
-        reason?: string
-      }) => {
+      execute: async ({ lorebookId, index, reason }: { lorebookId?: string; index: number; reason?: string }) => {
         const resolved = resolveTargetEntries(lorebookId)
         if (!resolved.ok) {
           return { success: false, error: resolved.error }

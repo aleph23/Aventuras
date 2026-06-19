@@ -75,13 +75,9 @@
   )
 
   // Resolve the actual profile object (may be undefined if the resolved id doesn't exist)
-  let resolvedProfile = $derived(
-    effectiveProfileId ? settings.getProfile(effectiveProfileId) : undefined,
-  )
+  let resolvedProfile = $derived(effectiveProfileId ? settings.getProfile(effectiveProfileId) : undefined)
   let healthEligible = $derived(isPingEligible(resolvedProfile))
-  let baseUrl = $derived(
-    healthEligible && resolvedProfile ? getEffectiveBaseUrl(resolvedProfile) : null,
-  )
+  let baseUrl = $derived(healthEligible && resolvedProfile ? getEffectiveBaseUrl(resolvedProfile) : null)
 
   $effect(() => {
     if (!resolvedProfile || !baseUrl) return
@@ -135,13 +131,7 @@
           </Select.Content>
         </Select.Root>
         {#if onManageProfiles}
-          <Button
-            variant="outline"
-            size="icon"
-            onclick={onManageProfiles}
-            title="Manage API Profiles"
-            class="shrink-0"
-          >
+          <Button variant="outline" size="icon" onclick={onManageProfiles} title="Manage API Profiles" class="shrink-0">
             <Server class="h-4 w-4" />
           </Button>
         {/if}
@@ -156,9 +146,7 @@
         {#if isModelMissing}
           <span class="hidden text-[0.7rem] text-yellow-500 md:inline">Not in profile list</span>
         {:else if availableModels.length === 0}
-          <span class="text-muted-foreground hidden text-[0.7rem] md:inline"
-            >No models available</span
-          >
+          <span class="text-muted-foreground hidden text-[0.7rem] md:inline">No models available</span>
         {/if}
         {#if onRefreshModels}
           <Button
@@ -218,13 +206,9 @@
       {/snippet}
     </Autocomplete>
     {#if isModelMissing}
-      <p class="mt-1 text-[0.8rem] text-yellow-500 md:hidden">
-        Model not found in this profile's model list.
-      </p>
+      <p class="mt-1 text-[0.8rem] text-yellow-500 md:hidden">Model not found in this profile's model list.</p>
     {:else if availableModels.length === 0}
-      <p class="text-muted-foreground mt-1 text-[0.8rem] md:hidden">
-        No models available. Add models to the profile.
-      </p>
+      <p class="text-muted-foreground mt-1 text-[0.8rem] md:hidden">No models available. Add models to the profile.</p>
     {/if}
   </div>
 </div>

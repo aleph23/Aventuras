@@ -62,10 +62,8 @@
 
   /* Enhanced CRT Effects */
   --crt-scanline: rgba(57, 255, 20, 0.04);
-  --crt-glow:
-    0 0 8px rgba(57, 255, 20, 0.4), 0 0 16px rgba(57, 255, 20, 0.2), 0 0 32px rgba(57, 255, 20, 0.1);
-  --crt-text-glow:
-    0 0 2px rgba(57, 255, 20, 0.8), 0 0 4px rgba(57, 255, 20, 0.4), 0 0 8px rgba(57, 255, 20, 0.2);
+  --crt-glow: 0 0 8px rgba(57, 255, 20, 0.4), 0 0 16px rgba(57, 255, 20, 0.2), 0 0 32px rgba(57, 255, 20, 0.1);
+  --crt-text-glow: 0 0 2px rgba(57, 255, 20, 0.8), 0 0 4px rgba(57, 255, 20, 0.4), 0 0 8px rgba(57, 255, 20, 0.2);
   --crt-amber-glow: 0 0 4px rgba(255, 176, 0, 0.6), 0 0 8px rgba(255, 176, 0, 0.3);
   --crt-cyan-glow: 0 0 4px rgba(0, 229, 255, 0.6), 0 0 8px rgba(0, 229, 255, 0.3);
 
@@ -110,20 +108,8 @@
   pointer-events: none;
   z-index: 9999;
   background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0px,
-      transparent 1px,
-      rgba(0, 0, 0, 0.15) 1px,
-      rgba(0, 0, 0, 0.15) 2px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      var(--crt-scanline) 0px,
-      var(--crt-scanline) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    repeating-linear-gradient(0deg, transparent 0px, transparent 1px, rgba(0, 0, 0, 0.15) 1px, rgba(0, 0, 0, 0.15) 2px),
+    repeating-linear-gradient(0deg, var(--crt-scanline) 0px, var(--crt-scanline) 1px, transparent 1px, transparent 3px);
   animation: scanlines 0.08s linear infinite;
 }
 
@@ -148,9 +134,7 @@
 
 /* Phosphor afterglow effect on the whole page */
 [data-theme='retro-console'] body {
-  background:
-    radial-gradient(ellipse at center, rgba(57, 255, 20, 0.03) 0%, transparent 70%),
-    var(--bg-primary);
+  background: radial-gradient(ellipse at center, rgba(57, 255, 20, 0.03) 0%, transparent 70%), var(--bg-primary);
 }
 
 @keyframes scanlines {
@@ -224,11 +208,7 @@
 }
 
 [data-theme='retro-console'] .btn-primary:hover {
-  background: linear-gradient(
-    180deg,
-    var(--color-retro-cyan) 20%,
-    var(--color-retro-cyan-dim) 100%
-  );
+  background: linear-gradient(180deg, var(--color-retro-cyan) 20%, var(--color-retro-cyan-dim) 100%);
   box-shadow:
     0 0 12px rgba(0, 229, 255, 0.7),
     0 0 24px rgba(0, 229, 255, 0.4),
@@ -309,21 +289,13 @@
 }
 
 [data-theme='retro-console'] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    var(--color-retro-green-muted) 0%,
-    var(--color-retro-green-dark) 100%
-  );
+  background: linear-gradient(180deg, var(--color-retro-green-muted) 0%, var(--color-retro-green-dark) 100%);
   border: 1px solid var(--color-retro-green-dim);
   border-radius: 0;
 }
 
 [data-theme='retro-console'] ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    var(--color-retro-green-dim) 0%,
-    var(--color-retro-green-muted) 100%
-  );
+  background: linear-gradient(180deg, var(--color-retro-green-dim) 0%, var(--color-retro-green-muted) 100%);
 }
 
 /* Digital noise texture (subtle static effect) */

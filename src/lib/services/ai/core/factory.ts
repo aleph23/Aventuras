@@ -16,10 +16,7 @@ import { EntryInjector, type ContextConfig } from '../generation/EntryInjector'
 import { LoreManagementService } from '../lorebook/LoreManagementService'
 import { AgenticRetrievalService } from '../retrieval/AgenticRetrievalService'
 import { TimelineFillService } from '../retrieval/TimelineFillService'
-import {
-  EntryRetrievalService,
-  getEntryRetrievalConfigFromSettings,
-} from '../retrieval/EntryRetrievalService'
+import { EntryRetrievalService, getEntryRetrievalConfigFromSettings } from '../retrieval/EntryRetrievalService'
 import { TranslationService } from '../utils/TranslationService'
 import { ImageAnalysisService } from '../image/ImageAnalysisService'
 import { BackgroundImageService } from '../image/BackgroundImageService'
@@ -43,10 +40,7 @@ export class ServiceFactory {
    * Create a classifier service instance.
    */
   createClassifierService(): ClassifierService {
-    return new ClassifierService(
-      'classifier',
-      settings.systemServicesSettings.classifier.chatHistoryTruncation ?? 100,
-    )
+    return new ClassifierService('classifier', settings.systemServicesSettings.classifier.chatHistoryTruncation ?? 100)
   }
 
   /**

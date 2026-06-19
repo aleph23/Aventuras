@@ -111,20 +111,14 @@
           <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <span
-                class="rounded bg-yellow-900/40 px-1.5 py-0.5 text-[10px] font-medium text-yellow-400 sm:text-xs"
-              >
+              <span class="rounded bg-yellow-900/40 px-1.5 py-0.5 text-[10px] font-medium text-yellow-400 sm:text-xs">
                 {issue.kind}
               </span>
-              <span
-                class="max-w-[150px] truncate text-[10px] text-yellow-300/80 sm:max-w-none sm:text-xs"
-              >
+              <span class="max-w-[150px] truncate text-[10px] text-yellow-300/80 sm:max-w-none sm:text-xs">
                 "{issue.problemText}"
               </span>
             </div>
-            <p
-              class="mt-0.5 line-clamp-2 text-[10px] text-yellow-200/70 sm:line-clamp-1 sm:text-xs"
-            >
+            <p class="mt-0.5 line-clamp-2 text-[10px] text-yellow-200/70 sm:line-clamp-1 sm:text-xs">
               {issue.message}
             </p>
           </div>
@@ -142,10 +136,7 @@
 
         <!-- Expanded content with suggestions -->
         {#if expandedIssue === index}
-          <div
-            class="border-t border-yellow-700/30 px-2 pt-1.5 pb-2"
-            transition:slide={{ duration: 150 }}
-          >
+          <div class="border-t border-yellow-700/30 px-2 pt-1.5 pb-2" transition:slide={{ duration: 150 }}>
             {#if issue.suggestions.length > 0}
               <div class="flex flex-wrap gap-1.5 sm:gap-2">
                 {#each issue.suggestions.slice(0, 5) as suggestion, suggestionIndex (suggestionIndex)}
@@ -154,9 +145,7 @@
                     onclick={() => handleApplySuggestion(issue, suggestionIndex)}
                   >
                     <Check class="h-3 w-3 shrink-0" />
-                    <span class="max-w-[120px] truncate sm:max-w-none"
-                      >{suggestion || '(remove)'}</span
-                    >
+                    <span class="max-w-[120px] truncate sm:max-w-none">{suggestion || '(remove)'}</span>
                   </button>
                 {/each}
                 {#if issue.kind.toLowerCase().includes('spell')}

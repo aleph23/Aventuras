@@ -9,10 +9,7 @@ export class CharacterTavernProvider implements DiscoveryProvider {
   icon = 'https://character-tavern.com/favicon.png'
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }
@@ -46,9 +43,7 @@ export class CharacterTavernProvider implements DiscoveryProvider {
 
     // Filter NSFW if needed (since API might not support it)
     const filteredHits =
-      options.nsfw === false
-        ? hits.filter((h: any) => !h.isNSFW && !(h.tags || []).includes('NSFW'))
-        : hits
+      options.nsfw === false ? hits.filter((h: any) => !h.isNSFW && !(h.tags || []).includes('NSFW')) : hits
 
     const cards = filteredHits.map((hit: any) => this.transformCard(hit))
 

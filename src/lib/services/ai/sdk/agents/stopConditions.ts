@@ -94,9 +94,7 @@ export function stopOnAny<TTools extends ToolSet = ToolSet>(
  *
  * @param maxSteps - Maximum steps before forced stop (default: 50)
  */
-export function stopWhenDone<TTools extends ToolSet = ToolSet>(
-  maxSteps: number = 50,
-): StopCondition<TTools> {
+export function stopWhenDone<TTools extends ToolSet = ToolSet>(maxSteps: number = 50): StopCondition<TTools> {
   return ({ steps }) => {
     // Check step limit first (safety)
     if (steps.length >= maxSteps) {
@@ -137,8 +135,7 @@ export function stopOnCostExceeded<TTools extends ToolSet = ToolSet>(
       { inputTokens: 0, outputTokens: 0 },
     )
 
-    const costEstimate =
-      (totalUsage.inputTokens * inputCostPer1k + totalUsage.outputTokens * outputCostPer1k) / 1000
+    const costEstimate = (totalUsage.inputTokens * inputCostPer1k + totalUsage.outputTokens * outputCostPer1k) / 1000
 
     return costEstimate > maxCostUsd
   }

@@ -35,9 +35,7 @@
 
   // Progress percentage for UI
   const progressPercent = $derived(
-    importProgress && importProgress.total > 0
-      ? Math.round((importProgress.current / importProgress.total) * 100)
-      : 0,
+    importProgress && importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0,
   )
 
   function handleDrop(e: DragEvent) {
@@ -64,10 +62,7 @@
     const result = LorebookImportExport.parse(text)
 
     if (!result.success) {
-      ui.showToast(
-        result.errors.length > 0 ? result.errors.join(', ') : 'Invalid lorebook file format',
-        'error',
-      )
+      ui.showToast(result.errors.length > 0 ? result.errors.join(', ') : 'Invalid lorebook file format', 'error')
       return
     }
 
@@ -153,9 +148,7 @@
         <Upload class="text-primary h-5 w-5" />
         <ResponsiveModal.Title>Import Lorebook</ResponsiveModal.Title>
       </div>
-      <ResponsiveModal.Description>
-        Import entries from a JSON or Aventuras file.
-      </ResponsiveModal.Description>
+      <ResponsiveModal.Description>Import entries from a JSON or Aventuras file.</ResponsiveModal.Description>
     </ResponsiveModal.Header>
 
     <div class="flex-1 space-y-4 overflow-y-auto px-6 py-6">
@@ -164,9 +157,7 @@
         <div
           class={cn(
             'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors',
-            dragOver
-              ? 'border-primary bg-primary/10'
-              : 'border-muted hover:border-muted-foreground/50',
+            dragOver ? 'border-primary bg-primary/10' : 'border-muted hover:border-muted-foreground/50',
           )}
           ondrop={handleDrop}
           ondragover={handleDragOver}
@@ -213,9 +204,7 @@
             >
               AI-powered classification
             </Label>
-            <p class="text-muted-foreground text-xs">
-              Use AI to better categorize entry types based on their content
-            </p>
+            <p class="text-muted-foreground text-xs">Use AI to better categorize entry types based on their content</p>
           </div>
         </div>
 

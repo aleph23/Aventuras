@@ -9,10 +9,7 @@ export class PygmalionProvider implements DiscoveryProvider {
   icon = GENERIC_ICON
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }

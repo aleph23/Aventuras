@@ -46,8 +46,7 @@
     <ResponsiveModal.Header class="border-b px-4 py-4">
       <ResponsiveModal.Title>Create Chapter</ResponsiveModal.Title>
       <ResponsiveModal.Description>
-        Select where to end this chapter. All entries up to and including the selected entry will be
-        summarized.
+        Select where to end this chapter. All entries up to and including the selected entry will be summarized.
       </ResponsiveModal.Description>
     </ResponsiveModal.Header>
 

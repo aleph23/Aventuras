@@ -94,22 +94,18 @@ export class ActionChoicesService extends BaseAIService {
     }
 
     // Protagonist description
-    const protagonistDescription = context.protagonistDescription
-      ? ` (${context.protagonistDescription})`
-      : ''
+    const protagonistDescription = context.protagonistDescription ? ` (${context.protagonistDescription})` : ''
 
     // Style guidance based on recent user actions
     const userActions = context.recentEntries.filter((e) => e.type === 'user_action').slice(-3)
     let styleGuidance = ''
     if (userActions.length > 0) {
-      const avgLength =
-        userActions.reduce((sum, e) => sum + e.content.length, 0) / userActions.length
+      const avgLength = userActions.reduce((sum, e) => sum + e.content.length, 0) / userActions.length
       if (avgLength < 30) {
         styleGuidance =
           "\n## Style: Match the player's TERSE style - keep choices short and punchy (under 10 words each).\n"
       } else if (avgLength > 100) {
-        styleGuidance =
-          "\n## Style: Match the player's DETAILED style - include specific details in each choice.\n"
+        styleGuidance = "\n## Style: Match the player's DETAILED style - include specific details in each choice.\n"
       }
     }
 
@@ -157,12 +153,7 @@ export class ActionChoicesService extends BaseAIService {
     const { system, user: prompt } = await ctx.render('action-choices')
 
     try {
-      const result = await this.generate(
-        actionChoicesResultSchema,
-        system,
-        prompt,
-        'action-choices',
-      )
+      const result = await this.generate(actionChoicesResultSchema, system, prompt, 'action-choices')
 
       log('Action choices generated:', result.choices.length)
       return result.choices.slice(0, 4)

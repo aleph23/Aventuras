@@ -50,9 +50,7 @@ class RollbackService {
     }
 
     // Get entries to rollback, sorted position DESC (newest first)
-    const entriesToRollback = entries
-      .filter((e) => e.position >= fromPosition)
-      .sort((a, b) => b.position - a.position)
+    const entriesToRollback = entries.filter((e) => e.position >= fromPosition).sort((a, b) => b.position - a.position)
 
     if (entriesToRollback.length === 0) {
       log('No entries to rollback from position', fromPosition)
@@ -147,10 +145,7 @@ class RollbackService {
   /**
    * Delete entities that were created by a classification.
    */
-  private async deleteCreatedEntities(
-    delta: WorldStateDelta,
-    summary: RollbackSummary,
-  ): Promise<void> {
+  private async deleteCreatedEntities(delta: WorldStateDelta, summary: RollbackSummary): Promise<void> {
     const { createdEntities } = delta
 
     for (const id of createdEntities.characterIds) {
@@ -193,10 +188,7 @@ class RollbackService {
   /**
    * Restore entities that were updated to their before-state values.
    */
-  private async restoreUpdatedEntities(
-    delta: WorldStateDelta,
-    summary: RollbackSummary,
-  ): Promise<void> {
+  private async restoreUpdatedEntities(delta: WorldStateDelta, summary: RollbackSummary): Promise<void> {
     const { previousState } = delta
 
     for (const charBefore of previousState.characters) {

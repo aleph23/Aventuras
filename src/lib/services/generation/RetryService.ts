@@ -109,10 +109,7 @@ export class RetryService {
    * Restore state from a backup (for stop generation).
    * Determines restore path based on backup.hasFullState.
    */
-  async restoreFromBackup(
-    backup: RetryBackupData,
-    callbacks: RetryStoreCallbacks,
-  ): Promise<RestoreResult> {
+  async restoreFromBackup(backup: RetryBackupData, callbacks: RetryStoreCallbacks): Promise<RestoreResult> {
     log('restoreFromBackup called', {
       hasFullState: backup.hasFullState,
       hasEntityIds: backup.hasEntityIds,
@@ -146,10 +143,7 @@ export class RetryService {
   /**
    * Restore from full in-memory state backup.
    */
-  private async restoreFullState(
-    backup: RetryBackupData,
-    callbacks: RetryStoreCallbacks,
-  ): Promise<void> {
+  private async restoreFullState(backup: RetryBackupData, callbacks: RetryStoreCallbacks): Promise<void> {
     log('Restoring full state from backup')
 
     // Restore activation data first
@@ -174,10 +168,7 @@ export class RetryService {
    * Restore from persistent backup (ID-based cleanup).
    * Used when we only have entity IDs, not full snapshots.
    */
-  private async restorePersistentState(
-    backup: RetryBackupData,
-    callbacks: RetryStoreCallbacks,
-  ): Promise<void> {
+  private async restorePersistentState(backup: RetryBackupData, callbacks: RetryStoreCallbacks): Promise<void> {
     log('Restoring persistent state (ID-based)', {
       entryCountBeforeAction: backup.entryCountBeforeAction,
       hasEntityIds: backup.hasEntityIds,

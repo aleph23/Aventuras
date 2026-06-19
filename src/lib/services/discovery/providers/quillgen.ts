@@ -14,10 +14,7 @@ export class QuillGenProvider implements DiscoveryProvider {
   icon = 'https://quillgen.app/logo-dark.png'
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }

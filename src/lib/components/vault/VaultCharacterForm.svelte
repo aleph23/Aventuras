@@ -144,10 +144,7 @@
       } else {
         closeCooldownActive = true
         isOpen = true
-        ui.showToast(
-          'Unsaved Changes — Press Escape or click outside again to discard changes',
-          'warning',
-        )
+        ui.showToast('Unsaved Changes — Press Escape or click outside again to discard changes', 'warning')
         closeCooldownTimer = setTimeout(() => {
           closeCooldownActive = false
         }, CLOSE_COOLDOWN_MS)

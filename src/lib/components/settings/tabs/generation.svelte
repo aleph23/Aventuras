@@ -2,13 +2,7 @@
   import MainNarrative from '../MainNarrative.svelte'
   import AgentProfiles from '../AgentProfiles.svelte'
   import { settings } from '$lib/stores/settings.svelte'
-  import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-  } from '$lib/components/ui/card'
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import { Slider } from '$lib/components/ui/slider'
@@ -77,11 +71,7 @@
               value={Math.round(settings.apiSettings.llmTimeoutMs / 1000)}
               oninput={(e) => {
                 const seconds = parseInt(e.currentTarget.value, 10)
-                if (
-                  !isNaN(seconds) &&
-                  seconds >= LLM_TIMEOUT_MIN_SECONDS &&
-                  seconds <= LLM_TIMEOUT_MAX_SECONDS
-                ) {
+                if (!isNaN(seconds) && seconds >= LLM_TIMEOUT_MIN_SECONDS && seconds <= LLM_TIMEOUT_MAX_SECONDS) {
                   settings.setLlmTimeout(seconds * 1000)
                 }
               }}

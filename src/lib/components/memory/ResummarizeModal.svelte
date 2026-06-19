@@ -19,9 +19,7 @@
 
   // Get previous chapters (for context display)
   const previousChapters = $derived(
-    chapter
-      ? story.chapters.filter((c) => c.number < chapter.number).sort((a, b) => a.number - b.number)
-      : [],
+    chapter ? story.chapters.filter((c) => c.number < chapter.number).sort((a, b) => a.number - b.number) : [],
   )
 </script>
 
@@ -32,9 +30,7 @@
         <RefreshCw class="text-primary h-5 w-5" />
         <ResponsiveModal.Title>Resummarize Chapter</ResponsiveModal.Title>
       </div>
-      <ResponsiveModal.Description>
-        Update the summary for this chapter.
-      </ResponsiveModal.Description>
+      <ResponsiveModal.Description>Update the summary for this chapter.</ResponsiveModal.Description>
     </ResponsiveModal.Header>
 
     <ScrollArea class="flex-1 p-4">
@@ -52,9 +48,8 @@
           {#if previousChapters.length > 0}
             <div class="space-y-2">
               <p class="text-muted-foreground text-sm">
-                The following {previousChapters.length} chapter{previousChapters.length === 1
-                  ? ''
-                  : 's'} will be used as context:
+                The following {previousChapters.length} chapter{previousChapters.length === 1 ? '' : 's'} will be used as
+                context:
               </p>
               <div class="max-h-32 space-y-1 overflow-y-auto pr-1">
                 {#each previousChapters as prevChapter (prevChapter.id)}
@@ -71,15 +66,14 @@
             <Alert>
               <AlertTriangle class="h-4 w-4" />
               <AlertTitle>No Context</AlertTitle>
-              <AlertDescription>
-                This is the first chapter, so no previous context will be used.
-              </AlertDescription>
+              <AlertDescription>This is the first chapter, so no previous context will be used.</AlertDescription>
             </Alert>
           {/if}
 
           <p class="text-muted-foreground text-sm">
-            The current summary will be replaced with a newly generated one. The chapter's old
-            summary will <strong>not</strong> be included in the prompt.
+            The current summary will be replaced with a newly generated one. The chapter's old summary will <strong
+              >not</strong
+            > be included in the prompt.
           </p>
         {:else}
           <div class="text-muted-foreground py-4 text-center">Chapter not found.</div>

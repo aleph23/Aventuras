@@ -155,11 +155,7 @@ class GrammarService {
     }
   }
 
-  async applySuggestion(
-    text: string,
-    issue: GrammarIssue,
-    suggestionIndex: number,
-  ): Promise<string> {
+  async applySuggestion(text: string, issue: GrammarIssue, suggestionIndex: number): Promise<string> {
     if (!this.linter) return text
 
     try {

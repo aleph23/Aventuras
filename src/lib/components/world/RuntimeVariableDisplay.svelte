@@ -1,9 +1,5 @@
 <script lang="ts">
-  import type {
-    RuntimeVariable,
-    RuntimeVarsMap,
-    RuntimeVariableValue,
-  } from '$lib/services/packs/types'
+  import type { RuntimeVariable, RuntimeVarsMap, RuntimeVariableValue } from '$lib/services/packs/types'
   import RuntimeVariableEditor from './RuntimeVariableEditor.svelte'
   import {
     Icon as LucideIcon,
@@ -120,11 +116,7 @@
   const sorted = $derived([...definitions].sort((a, b) => a.sortOrder - b.sortOrder))
 
   const filtered = $derived(
-    pinnedOnly === undefined
-      ? sorted
-      : pinnedOnly
-        ? sorted.filter((d) => d.pinned)
-        : sorted.filter((d) => !d.pinned),
+    pinnedOnly === undefined ? sorted : pinnedOnly ? sorted.filter((d) => d.pinned) : sorted.filter((d) => !d.pinned),
   )
 
   function getValue(def: RuntimeVariable): RuntimeVariableValue | undefined {
@@ -165,11 +157,7 @@
       <!-- Edit mode: vertical list of inline editors -->
       {#each filtered as def (def.id)}
         {@const rawVal = getRawValue(def)}
-        <RuntimeVariableEditor
-          definition={def}
-          currentValue={rawVal}
-          onChange={(v) => onValueChange(def.id, v)}
-        />
+        <RuntimeVariableEditor definition={def} currentValue={rawVal} onChange={(v) => onValueChange(def.id, v)} />
       {/each}
     {:else}
       <!-- Display mode: vertical stat rows -->
@@ -180,18 +168,13 @@
 
         <div
           class="rounded-md px-2 py-1"
-          style="background-color: color-mix(in srgb, {def.color} {isSet
-            ? '10%'
-            : '5%'}, transparent)"
+          style="background-color: color-mix(in srgb, {def.color} {isSet ? '10%' : '5%'}, transparent)"
         >
           <!-- Label row: icon/name on left, value on right -->
           <div class="flex items-center gap-1.5">
             {#if Icon}
               <span title={def.displayName}>
-                <Icon
-                  class="h-3.5 w-3.5 shrink-0 {isSet ? '' : 'opacity-40'}"
-                  style="color: {def.color}"
-                />
+                <Icon class="h-3.5 w-3.5 shrink-0 {isSet ? '' : 'opacity-40'}" style="color: {def.color}" />
               </span>
             {:else}
               <span
@@ -232,10 +215,7 @@
               {#if isSet && typeof rawVal === 'number'}
                 <div
                   class="h-full rounded-full"
-                  style="width: {getProgressPercent(
-                    def,
-                    rawVal,
-                  )}%; background-color: {def.color}; opacity: 0.7"
+                  style="width: {getProgressPercent(def, rawVal)}%; background-color: {def.color}; opacity: 0.7"
                 ></div>
               {/if}
             </div>

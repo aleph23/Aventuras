@@ -14,10 +14,7 @@
 
   let { content, customVariables, hideHeader = false, testValues }: Props = $props()
 
-  function buildSampleContext(
-    vars: CustomVariable[],
-    overrides?: Record<string, string>,
-  ): TemplateContext {
+  function buildSampleContext(vars: CustomVariable[], overrides?: Record<string, string>): TemplateContext {
     const context: TemplateContext = {}
 
     // All variables get bracket-name fallback; actual values come from testValues overrides
@@ -95,9 +92,7 @@
       <pre
         class="font-mono text-sm leading-relaxed break-words whitespace-pre-wrap text-[hsl(var(--foreground)/0.9)]">{previewOutput}</pre>
     {:else}
-      <p class="text-muted-foreground text-sm italic">
-        Start typing in the editor to see a preview...
-      </p>
+      <p class="text-muted-foreground text-sm italic">Start typing in the editor to see a preview...</p>
     {/if}
   </div>
 </div>

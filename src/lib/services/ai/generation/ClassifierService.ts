@@ -11,25 +11,13 @@ import { generateStructured } from '../sdk/generate'
  * Prompt generation flows through ContextBuilder + Liquid templates.
  */
 
-import type {
-  Story,
-  StoryEntry,
-  Character,
-  Location,
-  Item,
-  StoryBeat,
-  TimeTracker,
-} from '$lib/types'
+import type { Story, StoryEntry, Character, Location, Item, StoryBeat, TimeTracker } from '$lib/types'
 import { BaseAIService } from '../BaseAIService'
 import { ContextBuilder } from '$lib/services/context'
 import { database } from '$lib/services/database'
 import { createLogger } from '$lib/log'
 import { stripPicTags } from '$lib/utils/inlineImageParser'
-import {
-  classificationResultSchema,
-  clampNumber,
-  type ClassificationResult,
-} from '../sdk/schemas/classifier'
+import { classificationResultSchema, clampNumber, type ClassificationResult } from '../sdk/schemas/classifier'
 import { buildExtendedClassificationSchema } from '../sdk/schemas/runtime-variables'
 import type { RuntimeVariable, RuntimeEntityType } from '$lib/services/packs/types'
 
@@ -91,9 +79,7 @@ export class ClassifierService extends BaseAIService {
 
     // Build the schema: extended with inline vars if runtime variables exist, else base
     const schema =
-      runtimeVars.length > 0
-        ? buildExtendedClassificationSchema(runtimeVarsByType)
-        : classificationResultSchema
+      runtimeVars.length > 0 ? buildExtendedClassificationSchema(runtimeVarsByType) : classificationResultSchema
 
     // Format existing entities for the prompt
     const existingCharacters = this.formatExistingCharacters(context.existingCharacters)
@@ -102,9 +88,7 @@ export class ClassifierService extends BaseAIService {
     const existingBeats = this.formatExistingBeats(context.existingStoryBeats)
 
     // Build chat history block if entries provided
-    const chatHistoryBlock = visibleEntries
-      ? this.buildChatHistoryBlock(visibleEntries, currentStoryTime)
-      : ''
+    const chatHistoryBlock = visibleEntries ? this.buildChatHistoryBlock(visibleEntries, currentStoryTime) : ''
 
     // Build time info
     const currentTimeInfo = currentStoryTime
@@ -112,8 +96,7 @@ export class ClassifierService extends BaseAIService {
       : ''
 
     // Build custom variable instructions for the prompt
-    const customVariableInstructions =
-      runtimeVars.length > 0 ? this.buildCustomVarInstructions(runtimeVarsByType) : ''
+    const customVariableInstructions = runtimeVars.length > 0 ? this.buildCustomVarInstructions(runtimeVarsByType) : ''
 
     // Create ContextBuilder from story -- auto-populates mode, pov, tense, genre, etc.
     const ctx = await ContextBuilder.forStory(context.storyId)
@@ -255,9 +238,7 @@ export class ClassifierService extends BaseAIService {
         }
 
         // Required vs optional
-        parts.push(
-          v.defaultValue !== undefined && v.defaultValue !== null ? 'optional' : 'required',
-        )
+        parts.push(v.defaultValue !== undefined && v.defaultValue !== null ? 'optional' : 'required')
 
         // Default value
         if (v.defaultValue !== undefined && v.defaultValue !== null) {
@@ -283,10 +264,7 @@ export class ClassifierService extends BaseAIService {
    * Post-process: clamp number-type runtime variable values to min/max constraints.
    * Walks through all entity updates/new entities and clamps inline number values.
    */
-  private clampRuntimeVarNumbers(
-    result: ClassificationResult,
-    varsByType: Record<string, RuntimeVariable[]>,
-  ): void {
+  private clampRuntimeVarNumbers(result: ClassificationResult, varsByType: Record<string, RuntimeVariable[]>): void {
     const numberDefs = new Map<string, RuntimeVariable>()
     for (const vars of Object.values(varsByType)) {
       for (const v of vars) {

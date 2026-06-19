@@ -357,10 +357,7 @@ export class InteractiveVaultService extends BaseAIService {
       generateId,
     }
 
-    const lorebookTools = createInteractiveVaultLorebookTools(
-      vaultLorebookContext,
-      lorebookEntryContext,
-    )
+    const lorebookTools = createInteractiveVaultLorebookTools(vaultLorebookContext, lorebookEntryContext)
 
     // Vault linking tools
     const vaultLinkingTools = createVaultLinkingTools({
@@ -508,9 +505,7 @@ export class InteractiveVaultService extends BaseAIService {
             break
 
           case 'tool-result': {
-            const toolInfo = currentToolCalls.find(
-              (tc) => tc.id === event.toolCallId && !tc.claimed,
-            )
+            const toolInfo = currentToolCalls.find((tc) => tc.id === event.toolCallId && !tc.claimed)
             if (toolInfo) toolInfo.claimed = true
             const toolResult = 'result' in event ? event.result : event.output
             if (toolInfo) {
@@ -523,11 +518,7 @@ export class InteractiveVaultService extends BaseAIService {
 
               // Check if this tool call created a pending change
               const latestChange = pendingChanges[pendingChanges.length - 1]
-              if (
-                latestChange &&
-                latestChange.toolCallId.startsWith('iv-') &&
-                !linkedChangeIds.has(latestChange.id)
-              ) {
+              if (latestChange && latestChange.toolCallId.startsWith('iv-') && !linkedChangeIds.has(latestChange.id)) {
                 toolCallDisplay.pendingChange = latestChange
                 linkedChangeIds.add(latestChange.id)
               }
@@ -607,10 +598,7 @@ export class InteractiveVaultService extends BaseAIService {
     // Sync the known version so the AI doesn't get a redundant "entries changed"
     // notification about work it just did.
     if (change.entityType === 'lorebook-entry' && 'lorebookId' in change && change.lorebookId) {
-      this._knownEntryVersions.set(
-        change.lorebookId,
-        lorebookVault.getEntryVersion(change.lorebookId),
-      )
+      this._knownEntryVersions.set(change.lorebookId, lorebookVault.getEntryVersion(change.lorebookId))
     }
   }
 
@@ -655,9 +643,7 @@ export class InteractiveVaultService extends BaseAIService {
   /**
    * Apply a lorebook change to the lorebook vault store.
    */
-  private async applyLorebookChange(
-    change: Extract<VaultPendingChange, { entityType: 'lorebook' }>,
-  ): Promise<void> {
+  private async applyLorebookChange(change: Extract<VaultPendingChange, { entityType: 'lorebook' }>): Promise<void> {
     switch (change.action) {
       case 'create':
         await lorebookVault.add({
@@ -685,9 +671,7 @@ export class InteractiveVaultService extends BaseAIService {
   /**
    * Apply a character change to the character vault store.
    */
-  private async applyCharacterChange(
-    change: Extract<VaultPendingChange, { entityType: 'character' }>,
-  ): Promise<void> {
+  private async applyCharacterChange(change: Extract<VaultPendingChange, { entityType: 'character' }>): Promise<void> {
     switch (change.action) {
       case 'create':
         await characterVault.add({
@@ -787,8 +771,7 @@ export class InteractiveVaultService extends BaseAIService {
     log('Applied lorebook entry change', {
       action: change.action,
       lorebookId: change.lorebookId,
-      entryIndex:
-        change.action === 'update' || change.action === 'delete' ? change.entryIndex : undefined,
+      entryIndex: change.action === 'update' || change.action === 'delete' ? change.entryIndex : undefined,
       newEntriesCount: entries.length,
     })
   }
@@ -796,9 +779,7 @@ export class InteractiveVaultService extends BaseAIService {
   /**
    * Apply a scenario change to the scenario vault store.
    */
-  private async applyScenarioChange(
-    change: Extract<VaultPendingChange, { entityType: 'scenario' }>,
-  ): Promise<void> {
+  private async applyScenarioChange(change: Extract<VaultPendingChange, { entityType: 'scenario' }>): Promise<void> {
     switch (change.action) {
       case 'create':
         await scenarioVault.add({
@@ -852,10 +833,7 @@ export class InteractiveVaultService extends BaseAIService {
    * @param chatMessages - UI-level ChatMessage[] (with diff cards, images, reasoning)
    * @param pendingChanges - Full VaultPendingChange[] list (includes approved/rejected for history)
    */
-  async saveConversation(
-    chatMessages: ChatMessage[],
-    pendingChanges: VaultPendingChange[],
-  ): Promise<string> {
+  async saveConversation(chatMessages: ChatMessage[], pendingChanges: VaultPendingChange[]): Promise<string> {
     const messagesJson = JSON.stringify(this.conversationHistory)
     const chatMessagesJson = JSON.stringify(chatMessages)
     const pendingChangesJson = JSON.stringify(pendingChanges)
@@ -929,9 +907,7 @@ export class InteractiveVaultService extends BaseAIService {
 
       // Restore known entry versions for change detection across sessions
       this._knownEntryVersions = new Map(
-        conversation.entryVersions
-          ? (JSON.parse(conversation.entryVersions) as [string, number][])
-          : [],
+        conversation.entryVersions ? (JSON.parse(conversation.entryVersions) as [string, number][]) : [],
       )
 
       log('Loaded conversation', {

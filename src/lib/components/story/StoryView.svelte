@@ -13,9 +13,7 @@
   import EmptyState from '$lib/components/ui/empty-state/empty-state.svelte'
 
   const storyMaxWidthStyle = $derived.by(() => {
-    const maxWidth =
-      STORY_WIDTH_OPTIONS.find((o) => o.key === settings.uiSettings.storyMaxWidth)?.maxWidth ??
-      '48rem'
+    const maxWidth = STORY_WIDTH_OPTIONS.find((o) => o.key === settings.uiSettings.storyMaxWidth)?.maxWidth ?? '48rem'
     return `max-width: ${maxWidth}`
   })
 
@@ -109,12 +107,8 @@
     storyContainer.scrollTop = prevScrollTop + (storyContainer.scrollHeight - prevScrollHeight)
 
     // Phase 2: trim from bottom only if those entries are safely below the viewport
-    const distFromBottom =
-      storyContainer.scrollHeight - storyContainer.scrollTop - storyContainer.clientHeight
-    if (
-      distFromBottom > storyContainer.clientHeight &&
-      windowEnd - windowStart > MAX_VISIBLE_ENTRIES
-    ) {
+    const distFromBottom = storyContainer.scrollHeight - storyContainer.scrollTop - storyContainer.clientHeight
+    if (distFromBottom > storyContainer.clientHeight && windowEnd - windowStart > MAX_VISIBLE_ENTRIES) {
       const trimCount = Math.min(windowEnd - windowStart - MAX_VISIBLE_ENTRIES, LOAD_MORE_BATCH)
       windowEnd -= trimCount
       await tick()
@@ -134,10 +128,7 @@
     if (!storyContainer) return
 
     // Phase 2: trim from top only if those entries are safely above the viewport
-    if (
-      storyContainer.scrollTop > storyContainer.clientHeight &&
-      windowEnd - windowStart > MAX_VISIBLE_ENTRIES
-    ) {
+    if (storyContainer.scrollTop > storyContainer.clientHeight && windowEnd - windowStart > MAX_VISIBLE_ENTRIES) {
       const prevScrollHeight = storyContainer.scrollHeight
       const prevScrollTop = storyContainer.scrollTop
       const trimCount = Math.min(windowEnd - windowStart - MAX_VISIBLE_ENTRIES, LOAD_MORE_BATCH)
@@ -193,10 +184,7 @@
       return storyContainer.scrollTop < SCROLL_THRESHOLD
     }
 
-    return (
-      storyContainer.scrollHeight - storyContainer.scrollTop - storyContainer.clientHeight <
-      SCROLL_THRESHOLD
-    )
+    return storyContainer.scrollHeight - storyContainer.scrollTop - storyContainer.clientHeight < SCROLL_THRESHOLD
   }
   // Handle scroll events — update scroll break state, button visibility, and lazy-load triggers
   function handleScroll() {
@@ -241,8 +229,7 @@
     const lastEntry = story.entries[story.entries.length - 1]
     // Key entries (user action, narration, retry) must never be hidden behind
     // the "N later entries hidden" collapse indicator.
-    const isKeyEntry =
-      wasAdded && lastEntry && ['user_action', 'retry', 'narration'].includes(lastEntry.type)
+    const isKeyEntry = wasAdded && lastEntry && ['user_action', 'retry', 'narration'].includes(lastEntry.type)
 
     if (wasAdded) {
       if (!ui.userScrolledUp) {
@@ -274,8 +261,7 @@
     const shouldScroll =
       settings.uiSettings.autoScroll &&
       (ui.isStreaming || wasAdded) &&
-      (!ui.userScrolledUp ||
-        (wasAdded && lastEntry && ['user_action', 'retry'].includes(lastEntry.type)))
+      (!ui.userScrolledUp || (wasAdded && lastEntry && ['user_action', 'retry'].includes(lastEntry.type)))
 
     if (!shouldScroll) return
 
@@ -307,9 +293,8 @@
     {#key story.currentBgImage}
       <div
         class="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
-        style="background-image: {bgImageUrl}; filter: blur({settings.systemServicesSettings
-          .imageGeneration.backgroundBlur}px); transform: scale({settings.systemServicesSettings
-          .imageGeneration.backgroundBlur > 0
+        style="background-image: {bgImageUrl}; filter: blur({settings.systemServicesSettings.imageGeneration
+          .backgroundBlur}px); transform: scale({settings.systemServicesSettings.imageGeneration.backgroundBlur > 0
           ? 1.05
           : 1});"
         in:fade={{ duration: 800 }}
@@ -327,11 +312,7 @@
     class="relative z-10 flex-1 overflow-y-auto px-3 pt-3 pb-1 sm:px-6 sm:pt-4 sm:pb-2"
     onscroll={handleScroll}
   >
-    <div
-      class="mx-auto space-y-2.5 sm:space-y-3"
-      style={storyMaxWidthStyle}
-      bind:clientHeight={innerHeight}
-    >
+    <div class="mx-auto space-y-2.5 sm:space-y-3" style={storyMaxWidthStyle} bind:clientHeight={innerHeight}>
       {#if story.entries.length === 0 && !ui.isStreaming}
         <EmptyState
           icon={BookOpen}
@@ -351,9 +332,7 @@
                 Show {Math.min(LOAD_MORE_BATCH, displayedEntries.hiddenAtTop)} more
               </Button>
               {#if !settings.uiSettings.showScrollToTop}
-                <Button variant="secondary" size="sm" class="h-7 text-xs" onclick={scrollToTop}>
-                  Go to top
-                </Button>
+                <Button variant="secondary" size="sm" class="h-7 text-xs" onclick={scrollToTop}>Go to top</Button>
               {/if}
             </div>
           </div>
@@ -370,9 +349,7 @@
 
         <!-- Show post-generation status (e.g. Updating world...) -->
         {#if ui.isGenerating && !ui.isStreaming && ui.generationStatus}
-          <div
-            class="text-muted-foreground animate-fade-in flex items-center justify-center gap-2 py-2"
-          >
+          <div class="text-muted-foreground animate-fade-in flex items-center justify-center gap-2 py-2">
             <Loader2 class="h-4 w-4 animate-spin" />
             <span class="text-sm">{ui.generationStatus}</span>
           </div>
@@ -394,9 +371,7 @@
                 Show {Math.min(LOAD_MORE_BATCH, displayedEntries.hiddenAtBottom)} more
               </Button>
               {#if !settings.uiSettings.showScrollToBottom}
-                <Button variant="secondary" size="sm" class="h-7 text-xs" onclick={scrollToBottom}>
-                  Go to bottom
-                </Button>
+                <Button variant="secondary" size="sm" class="h-7 text-xs" onclick={scrollToBottom}>Go to bottom</Button>
               {/if}
             </div>
           </div>

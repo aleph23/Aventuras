@@ -110,9 +110,7 @@
 
   const isActive = $derived(!!savedCustomPrompt)
   const isDirty = $derived(customPromptDraft !== (savedCustomPrompt ?? ''))
-  const canSave = $derived(
-    isDirty && (customPromptDraft.trim() === '' || (validationResult?.success ?? false)),
-  )
+  const canSave = $derived(isDirty && (customPromptDraft.trim() === '' || (validationResult?.success ?? false)))
 
   // ── Functions ─────────────────────────────────────────────────────────────────
 
@@ -179,8 +177,7 @@
     onToneChange={(v) => story.updateStorySettings({ tone: v })}
     onVisualProseModeChange={(v) => story.updateStorySettings({ visualProseMode: v })}
     onImageGenerationModeChange={(v) => story.updateStorySettings({ imageGenerationMode: v })}
-    onBackgroundImagesEnabledChange={(v) =>
-      story.updateStorySettings({ backgroundImagesEnabled: v })}
+    onBackgroundImagesEnabledChange={(v) => story.updateStorySettings({ backgroundImagesEnabled: v })}
     onReferenceModeChange={(v) => story.updateStorySettings({ referenceMode: v })}
     disabledFields={{ pov: true, tense: true, visualProseMode: true }}
     disabledReason="Cannot be changed mid-story. Set during story creation."
@@ -192,24 +189,15 @@
       <div class="flex items-center gap-2">
         <Label class="text-sm font-medium">Custom System Prompt</Label>
         {#if isActive}
-          <span
-            class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
-          >
+          <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
             Active
           </span>
         {/if}
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" size="sm" onclick={loadCurrentTemplate}>
-          Load default template
-        </Button>
+        <Button variant="outline" size="sm" onclick={loadCurrentTemplate}>Load default template</Button>
         {#if isActive || customPromptDraft}
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-destructive hover:text-destructive"
-            onclick={clearOverride}
-          >
+          <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" onclick={clearOverride}>
             Clear override
           </Button>
         {/if}
@@ -217,8 +205,8 @@
     </div>
 
     <p class="text-muted-foreground mb-3 text-xs">
-      Replaces the default pack template for this story only. Supports Liquid template variables.
-      Changes take effect on the next generation — no restart needed.
+      Replaces the default pack template for this story only. Supports Liquid template variables. Changes take effect on
+      the next generation — no restart needed.
     </p>
 
     <Textarea
@@ -274,9 +262,7 @@
         <div class="border-border mt-2 rounded-md border p-3 text-xs">
           {#each VARIABLE_REFERENCE as group (group.group)}
             <div class="mb-3 last:mb-0">
-              <p
-                class="text-muted-foreground mb-1 text-[0.65rem] font-semibold tracking-wide uppercase"
-              >
+              <p class="text-muted-foreground mb-1 text-[0.65rem] font-semibold tracking-wide uppercase">
                 {group.group}
               </p>
               <div class="space-y-1">
@@ -298,17 +284,16 @@
       <p class="font-medium">Tips</p>
       <ul class="text-muted-foreground list-disc space-y-1 pl-4">
         <li>
-          This override applies to this story only. The default pack template is untouched and used
-          by all other stories.
+          This override applies to this story only. The default pack template is untouched and used by all other
+          stories.
         </li>
         <li>
-          Custom pack variables (defined in Vault → Prompts) are also available here. They will
-          appear in the unknown variable warning below, but that's expected — they're resolved at
-          generation time and will work correctly.
+          Custom pack variables (defined in Vault → Prompts) are also available here. They will appear in the unknown
+          variable warning below, but that's expected — they're resolved at generation time and will work correctly.
         </li>
         <li>
-          For more advanced use cases — multiple template variants or sharing prompts across stories
-          — consider creating a <strong>custom prompt pack</strong> in the Vault instead.
+          For more advanced use cases — multiple template variants or sharing prompts across stories — consider creating
+          a <strong>custom prompt pack</strong> in the Vault instead.
         </li>
       </ul>
     </div>

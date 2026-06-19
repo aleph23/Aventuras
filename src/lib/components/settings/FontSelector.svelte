@@ -58,10 +58,7 @@
 
   // Initialize custom font fields if the saved font isn't in the detected/popular lists
   $effect(() => {
-    if (
-      settings.uiSettings.fontSource === 'google' &&
-      !popularGoogleFonts.includes(settings.uiSettings.fontFamily)
-    ) {
+    if (settings.uiSettings.fontSource === 'google' && !popularGoogleFonts.includes(settings.uiSettings.fontFamily)) {
       customGoogleFont = settings.uiSettings.fontFamily
     }
     if (
@@ -82,8 +79,7 @@
       await settings.setFontFamily('default', 'default')
     } else if (source === 'system') {
       // Default to first available serif font, or first available font
-      const firstFont =
-        availableFonts.serif[0] || availableFonts.sansSerif[0] || availableFonts.monospace[0]
+      const firstFont = availableFonts.serif[0] || availableFonts.sansSerif[0] || availableFonts.monospace[0]
       if (firstFont) {
         selectedFont = firstFont
         await settings.setFontFamily(firstFont, 'system')
@@ -146,11 +142,7 @@
   <div>
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label class="text-surface-300 mb-2 block text-sm font-medium"> Font Source </label>
-    <select
-      class="input"
-      value={fontSource}
-      onchange={(e) => handleSourceChange(e.currentTarget.value as FontSource)}
-    >
+    <select class="input" value={fontSource} onchange={(e) => handleSourceChange(e.currentTarget.value as FontSource)}>
       <option value="default">Theme Default</option>
       <option value="system">System Font</option>
       <option value="google">Google Font</option>
@@ -178,11 +170,7 @@
       {:else if getAllSystemFonts().length === 0}
         <p class="text-surface-400 py-2 text-sm">No system fonts detected</p>
       {:else}
-        <select
-          class="input"
-          value={selectedFont}
-          onchange={(e) => handleFontChange(e.currentTarget.value)}
-        >
+        <select class="input" value={selectedFont} onchange={(e) => handleFontChange(e.currentTarget.value)}>
           {#if availableFonts.serif.length > 0}
             <optgroup label="Serif">
               {#each availableFonts.serif as font (font)}
@@ -212,9 +200,7 @@
 
       <div class="mt-3">
         <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="text-surface-300 mb-2 block text-sm font-medium">
-          Or enter font name manually
-        </label>
+        <label class="text-surface-300 mb-2 block text-sm font-medium"> Or enter font name manually </label>
         <div class="flex gap-2">
           <input
             type="text"
@@ -223,17 +209,11 @@
             bind:value={customSystemFont}
             onkeydown={(e) => e.key === 'Enter' && handleCustomSystemFont()}
           />
-          <button
-            class="btn btn-secondary"
-            onclick={handleCustomSystemFont}
-            disabled={!customSystemFont.trim()}
-          >
+          <button class="btn btn-secondary" onclick={handleCustomSystemFont} disabled={!customSystemFont.trim()}>
             Apply
           </button>
         </div>
-        <p class="text-surface-400 mt-1 text-xs">
-          Enter the exact name of a font installed on your system
-        </p>
+        <p class="text-surface-400 mt-1 text-xs">Enter the exact name of a font installed on your system</p>
       </div>
     </div>
   {:else if fontSource === 'google'}
@@ -255,9 +235,7 @@
 
     <div>
       <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label class="text-surface-300 mb-2 block text-sm font-medium">
-        Or enter custom Google Font
-      </label>
+      <label class="text-surface-300 mb-2 block text-sm font-medium"> Or enter custom Google Font </label>
       <div class="flex gap-2">
         <input
           type="text"
@@ -302,8 +280,8 @@
         class="text-lg leading-relaxed"
         style="font-family: '{selectedFont}', Georgia, serif; color: var(--text-secondary);"
       >
-        The quick brown fox jumps over the lazy dog. In a world of magic and mystery, every story
-        begins with a single word.
+        The quick brown fox jumps over the lazy dog. In a world of magic and mystery, every story begins with a single
+        word.
       </p>
     </div>
   {/if}

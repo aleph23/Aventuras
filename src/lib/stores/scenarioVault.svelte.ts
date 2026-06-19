@@ -55,9 +55,7 @@ class ScenarioVaultStore {
 
   async update(id: string, updates: Partial<VaultScenario>): Promise<void> {
     await database.updateVaultScenario(id, updates)
-    this.scenarios = this.scenarios.map((s) =>
-      s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s,
-    )
+    this.scenarios = this.scenarios.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s))
     log('Updated vault scenario:', id)
   }
 
@@ -126,8 +124,7 @@ class ScenarioVaultStore {
 
     return this.add({
       name: result.storyTitle || filename.replace(/\.[^/.]+$/, ''),
-      description:
-        result.settingSeed.slice(0, 200) + (result.settingSeed.length > 200 ? '...' : ''),
+      description: result.settingSeed.slice(0, 200) + (result.settingSeed.length > 200 ? '...' : ''),
       settingSeed: result.settingSeed,
       npcs,
       primaryCharacterName: result.primaryCharacterName,
@@ -220,11 +217,7 @@ class ScenarioVaultStore {
     })
   }
 
-  private async _processDiscoveryImport(
-    tempId: string,
-    card: DiscoveryCard,
-    genre: Genre,
-  ): Promise<void> {
+  private async _processDiscoveryImport(tempId: string, card: DiscoveryCard, genre: Genre): Promise<void> {
     const blob = await discoveryService.downloadCard(card)
     const file = new File([blob], `${card.name}.${blob.type.includes('json') ? 'json' : 'png'}`, {
       type: blob.type,
@@ -299,8 +292,7 @@ class ScenarioVaultStore {
     let finalData: VaultScenario = {
       id: tempId,
       name: result.storyTitle || file.name.replace(/\.[^/.]+$/, ''),
-      description:
-        result.settingSeed.slice(0, 200) + (result.settingSeed.length > 200 ? '...' : ''),
+      description: result.settingSeed.slice(0, 200) + (result.settingSeed.length > 200 ? '...' : ''),
       settingSeed: result.settingSeed,
       npcs,
       primaryCharacterName: result.primaryCharacterName,
@@ -323,10 +315,7 @@ class ScenarioVaultStore {
     // Extract embedded lorebook if present
     const parsed = CharacterCardImport.parseJson(jsonString)
     if (parsed?.characterBook) {
-      const extracted = LorebookImportExport.extractEmbeddedLorebook(
-        parsed.characterBook,
-        parsed.name,
-      )
+      const extracted = LorebookImportExport.extractEmbeddedLorebook(parsed.characterBook, parsed.name)
       if (extracted) {
         try {
           if (!lorebookVault.isLoaded) await lorebookVault.load()

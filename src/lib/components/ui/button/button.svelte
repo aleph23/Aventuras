@@ -109,11 +109,7 @@
 {/snippet}
 
 {#snippet Element(targetVariant: ButtonVariant, extraClass: string, isMobile: boolean)}
-  {@const finalClass = cn(
-    buttonVariants({ variant: targetVariant, size }),
-    extraClass,
-    effectiveClass,
-  )}
+  {@const finalClass = cn(buttonVariants({ variant: targetVariant, size }), extraClass, effectiveClass)}
   {@const finalTitle = title ?? label}
 
   {#if href}
@@ -140,8 +136,7 @@
     <a bind:this={ref} class={finalClass} {href} title={finalTitle} {...restProps}>
       {#if Icon}<Icon class={responsiveIconClass} />{/if}
       {#if mobileLabel}<span data-button-label class="inline sm:hidden">{mobileLabel}</span>{/if}
-      {#if label}<span data-button-label class="hidden -translate-y-px sm:inline">{label}</span
-        >{/if}
+      {#if label}<span data-button-label class="hidden -translate-y-px sm:inline">{label}</span>{/if}
       {#if children && !label}<span class="hidden sm:inline">{@render children()}</span>{/if}
       {#if EndIcon}<EndIcon class="hidden h-3 w-3 opacity-50 sm:inline" />{/if}
     </a>
@@ -149,8 +144,7 @@
     <button bind:this={ref} class={finalClass} {type} title={finalTitle} {...restProps}>
       {#if Icon}<Icon class={responsiveIconClass} />{/if}
       {#if mobileLabel}<span data-button-label class="inline sm:hidden">{mobileLabel}</span>{/if}
-      {#if label}<span data-button-label class="hidden -translate-y-px sm:inline">{label}</span
-        >{/if}
+      {#if label}<span data-button-label class="hidden -translate-y-px sm:inline">{label}</span>{/if}
       {#if children && !label}<span class="hidden sm:inline">{@render children()}</span>{/if}
       {#if EndIcon}<EndIcon class="hidden h-3 w-3 opacity-50 sm:inline" />{/if}
     </button>
@@ -158,21 +152,11 @@
 {:else}
   <!-- Standard Button (Non-Responsive) -->
   {#if href}
-    <a
-      bind:this={ref}
-      class={cn(buttonVariants({ variant, size }), className)}
-      {href}
-      {...restProps}
-    >
+    <a bind:this={ref} class={cn(buttonVariants({ variant, size }), className)} {href} {...restProps}>
       {@render children?.()}
     </a>
   {:else}
-    <button
-      bind:this={ref}
-      class={cn(buttonVariants({ variant, size }), className)}
-      {type}
-      {...restProps}
-    >
+    <button bind:this={ref} class={cn(buttonVariants({ variant, size }), className)} {type} {...restProps}>
       {@render children?.()}
     </button>
   {/if}

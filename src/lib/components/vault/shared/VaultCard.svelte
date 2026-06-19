@@ -62,9 +62,7 @@
   class={cn(
     'group relative flex h-full flex-col overflow-hidden transition-all',
     selectable && !isImporting && 'hover:border-primary/50 cursor-pointer hover:shadow-sm',
-    selectable &&
-      !isImporting &&
-      'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
+    selectable && !isImporting && 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
     selected && 'border-primary ring-primary bg-primary/5 ring-1',
     className,
   )}
@@ -126,9 +124,7 @@
                   class="hover:text-foreground text-muted-foreground h-3.5 w-5 transition-all hover:bg-transparent"
                   iconClass={cn(
                     'h-3.5 w-3.5 transition-colors',
-                    isFavorite
-                      ? 'text-yellow-500 fill-yellow-500'
-                      : 'text-muted-foreground hover:text-yellow-500',
+                    isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground hover:text-yellow-500',
                   )}
                   onclick={(e) => {
                     e.stopPropagation()

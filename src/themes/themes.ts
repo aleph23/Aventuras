@@ -32,15 +32,13 @@ export const THEMES: ThemeMetadata[] = [
   {
     id: 'pastel-dreams',
     label: 'Pastel Dreams',
-    description:
-      'Soft lavender-pink with sky-blue accents, radiating gentle affection and cheerful sweetness',
+    description: 'Soft lavender-pink with sky-blue accents, radiating gentle affection and cheerful sweetness',
     isDark: false,
   },
   {
     id: 'ocean-breeze',
     label: 'Ocean Breeze',
-    description:
-      'Coastal elegance with stormy teal depths and warm coral accents, crisp and tranquil',
+    description: 'Coastal elegance with stormy teal depths and warm coral accents, crisp and tranquil',
     isDark: false,
   },
   {
