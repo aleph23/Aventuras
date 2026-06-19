@@ -2,10 +2,7 @@ import { story } from '$lib/stores/story.svelte'
 import { ui } from '$lib/stores/ui.svelte'
 import { settings } from '$lib/stores/settings.svelte'
 import { aiService } from '$lib/services/ai'
-import {
-  type ExpandedSetting,
-  type GeneratedCharacter,
-} from '$lib/services/ai/sdk/schemas/scenario'
+import { type ExpandedSetting, type GeneratedCharacter } from '$lib/services/ai/sdk/schemas/scenario'
 import { scenarioService, type WizardData } from '$lib/services/ai/wizard/ScenarioService'
 import { TranslationService } from '$lib/services/ai/utils/TranslationService'
 import { QUICK_START_SEEDS } from '$lib/services/templates'
@@ -264,10 +261,7 @@ export class WizardStore {
       settingSeed: this.setting.settingSeed,
       expandedSetting: this.setting.expandedSetting || undefined,
       protagonist: this.character.protagonist || undefined,
-      characters:
-        this.character.supportingCharacters.length > 0
-          ? this.character.supportingCharacters
-          : undefined,
+      characters: this.character.supportingCharacters.length > 0 ? this.character.supportingCharacters : undefined,
       writingStyle: {
         pov: this.narrative.selectedPOV,
         tense: this.narrative.selectedTense,
@@ -289,10 +283,7 @@ export class WizardStore {
       settingSeed: this.setting.settingSeed,
       expandedSetting: this.setting.expandedSetting || undefined,
       protagonist: this.character.protagonist || undefined,
-      characters:
-        this.character.supportingCharacters.length > 0
-          ? this.character.supportingCharacters
-          : undefined,
+      characters: this.character.supportingCharacters.length > 0 ? this.character.supportingCharacters : undefined,
       writingStyle: {
         pov: this.narrative.selectedPOV,
         tense: this.narrative.selectedTense,
@@ -334,8 +325,7 @@ export class WizardStore {
     }
 
     if (!this.narrative.generatedOpening) {
-      this.narrative.openingError =
-        'Please provide an opening scene (write your own or generate with AI)'
+      this.narrative.openingError = 'Please provide an opening scene (write your own or generate with AI)'
       return
     }
 
@@ -347,21 +337,13 @@ export class WizardStore {
     if (this.setting.expandedSetting) {
       processedExpandedSetting = {
         ...this.setting.expandedSetting,
-        description: replaceUserPlaceholders(
-          this.setting.expandedSetting.description,
-          protagonistName,
-        ),
+        description: replaceUserPlaceholders(this.setting.expandedSetting.description, protagonistName),
         keyLocations: this.setting.expandedSetting.keyLocations.map((l) => ({
           ...l,
           description: replaceUserPlaceholders(l.description, protagonistName),
         })),
-        atmosphere: replaceUserPlaceholders(
-          this.setting.expandedSetting.atmosphere,
-          protagonistName,
-        ),
-        themes: this.setting.expandedSetting.themes.map((t) =>
-          replaceUserPlaceholders(t, protagonistName),
-        ),
+        atmosphere: replaceUserPlaceholders(this.setting.expandedSetting.atmosphere, protagonistName),
+        themes: this.setting.expandedSetting.themes.map((t) => replaceUserPlaceholders(t, protagonistName)),
         potentialConflicts: this.setting.expandedSetting.potentialConflicts.map((c) =>
           replaceUserPlaceholders(c, protagonistName),
         ),
@@ -378,9 +360,7 @@ export class WizardStore {
       name: replaceUserPlaceholders(char.name, protagonistName),
       description: replaceUserPlaceholders(char.description, protagonistName),
       role: char.role ? replaceUserPlaceholders(char.role, protagonistName) : '',
-      relationship: char.relationship
-        ? replaceUserPlaceholders(char.relationship, protagonistName)
-        : '',
+      relationship: char.relationship ? replaceUserPlaceholders(char.relationship, protagonistName) : '',
       traits: char.traits.map((t) => replaceUserPlaceholders(t, protagonistName)),
     }))
 
@@ -425,9 +405,7 @@ export class WizardStore {
 
     storyData.characters = storyData.characters.map((char) => ({
       ...char,
-      portrait: char.name
-        ? (this.image.supportingCharacterPortraits[char.name] ?? undefined)
-        : undefined,
+      portrait: char.name ? (this.image.supportingCharacterPortraits[char.name] ?? undefined) : undefined,
       visualDescriptors:
         char.name && this.image.supportingCharacterVisualDescriptors[char.name]
           ? stringToDescriptors(this.image.supportingCharacterVisualDescriptors[char.name])
@@ -520,8 +498,7 @@ export class WizardStore {
           if (processed?.name && translated) {
             // Translate visual descriptors if present for this character
             let charVisualDescriptorsTranslated: string[] | undefined
-            const charVisualDescriptors =
-              this.image.supportingCharacterVisualDescriptors[processed.name]
+            const charVisualDescriptors = this.image.supportingCharacterVisualDescriptors[processed.name]
             if (charVisualDescriptors?.trim()) {
               try {
                 const visualDescriptorsArray = charVisualDescriptors

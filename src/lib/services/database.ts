@@ -175,16 +175,10 @@ class DatabaseService {
    * Execute a raw SQL query for debugging purposes.
    * SELECT queries return rows; other queries return affected row count.
    */
-  async rawQuery(
-    sql: string,
-  ): Promise<{ columns: string[]; rows: Record<string, unknown>[]; rowsAffected?: number }> {
+  async rawQuery(sql: string): Promise<{ columns: string[]; rows: Record<string, unknown>[]; rowsAffected?: number }> {
     const db = await this.getDb()
     const trimmed = sql.trim().toUpperCase()
-    if (
-      trimmed.startsWith('SELECT') ||
-      trimmed.startsWith('PRAGMA') ||
-      trimmed.startsWith('EXPLAIN')
-    ) {
+    if (trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA') || trimmed.startsWith('EXPLAIN')) {
       const rows = await db.select<Record<string, unknown>[]>(sql)
       const columns = rows.length > 0 ? Object.keys(rows[0]) : []
       return { columns, rows }
@@ -201,10 +195,7 @@ class DatabaseService {
   // Settings operations
   async getSetting(key: string): Promise<string | null> {
     const db = await this.getDb()
-    const result = await db.select<{ value: string }[]>(
-      'SELECT value FROM settings WHERE key = ?',
-      [key],
-    )
+    const result = await db.select<{ value: string }[]>('SELECT value FROM settings WHERE key = ?', [key])
     return result.length > 0 ? result[0].value : null
   }
 
@@ -264,16 +255,7 @@ class DatabaseService {
       const values: unknown[] = []
 
       for (const r of chunk) {
-        values.push(
-          r.providerId,
-          r.modelId,
-          r.baseUrl,
-          r.status,
-          r.httpCode,
-          r.latencyMs,
-          r.quotaPercent,
-          r.checkedAt,
-        )
+        values.push(r.providerId, r.modelId, r.baseUrl, r.status, r.httpCode, r.latencyMs, r.quotaPercent, r.checkedAt)
       }
 
       await db.execute(
@@ -294,17 +276,12 @@ class DatabaseService {
 
   async deleteModelHealthForKey(providerId: string, baseUrl: string): Promise<void> {
     const db = await this.getDb()
-    await db.execute('DELETE FROM model_health_cache WHERE provider_id = ? AND base_url = ?', [
-      providerId,
-      baseUrl,
-    ])
+    await db.execute('DELETE FROM model_health_cache WHERE provider_id = ? AND base_url = ?', [providerId, baseUrl])
   }
 
   async getAllSettings(): Promise<Record<string, string>> {
     const db = await this.getDb()
-    const results = await db.select<{ key: string; value: string }[]>(
-      'SELECT key, value FROM settings',
-    )
+    const results = await db.select<{ key: string; value: string }[]>('SELECT key, value FROM settings')
     const settings: Record<string, string> = {}
     for (const row of results) {
       settings[row.key] = row.value
@@ -438,10 +415,7 @@ class DatabaseService {
         traits: s.traits,
       })),
     })
-    await db.execute('UPDATE stories SET retry_state = ? WHERE id = ?', [
-      JSON.stringify(retryState),
-      storyId,
-    ])
+    await db.execute('UPDATE stories SET retry_state = ? WHERE id = ?', [JSON.stringify(retryState), storyId])
   }
 
   /**
@@ -455,10 +429,7 @@ class DatabaseService {
   /**
    * Save style review state for a story.
    */
-  async saveStyleReviewState(
-    storyId: string,
-    styleReviewState: PersistentStyleReviewState,
-  ): Promise<void> {
+  async saveStyleReviewState(storyId: string, styleReviewState: PersistentStyleReviewState): Promise<void> {
     const db = await this.getDb()
     await db.execute('UPDATE stories SET style_review_state = ? WHERE id = ?', [
       JSON.stringify(styleReviewState),
@@ -479,10 +450,7 @@ class DatabaseService {
    */
   async saveTimeTracker(storyId: string, timeTracker: TimeTracker): Promise<void> {
     const db = await this.getDb()
-    await db.execute('UPDATE stories SET time_tracker = ? WHERE id = ?', [
-      JSON.stringify(timeTracker),
-      storyId,
-    ])
+    await db.execute('UPDATE stories SET time_tracker = ? WHERE id = ?', [JSON.stringify(timeTracker), storyId])
   }
 
   /**
@@ -499,10 +467,7 @@ class DatabaseService {
   }
 
   // Story entries operations
-  async getStoryEntries(
-    storyId: string,
-    options?: { limit?: number; offset?: number },
-  ): Promise<StoryEntry[]> {
+  async getStoryEntries(storyId: string, options?: { limit?: number; offset?: number }): Promise<StoryEntry[]> {
     const db = await this.getDb()
     let query = 'SELECT * FROM story_entries WHERE story_id = ? ORDER BY position ASC'
     const params: any[] = [storyId]
@@ -544,8 +509,7 @@ class DatabaseService {
           'SELECT * FROM story_entries WHERE story_id = ? AND branch_id IS NULL AND position <= ? ORDER BY position ASC'
         params = [storyId, maxPosition]
       } else {
-        query =
-          'SELECT * FROM story_entries WHERE story_id = ? AND branch_id IS NULL ORDER BY position ASC'
+        query = 'SELECT * FROM story_entries WHERE story_id = ? AND branch_id IS NULL ORDER BY position ASC'
         params = [storyId]
       }
     } else {
@@ -555,8 +519,7 @@ class DatabaseService {
           'SELECT * FROM story_entries WHERE story_id = ? AND branch_id = ? AND position <= ? ORDER BY position ASC'
         params = [storyId, branchId, maxPosition]
       } else {
-        query =
-          'SELECT * FROM story_entries WHERE story_id = ? AND branch_id = ? ORDER BY position ASC'
+        query = 'SELECT * FROM story_entries WHERE story_id = ? AND branch_id = ? ORDER BY position ASC'
         params = [storyId, branchId]
       }
     }
@@ -737,12 +700,8 @@ class DatabaseService {
    */
   async clearStoryEntries(storyId: string): Promise<void> {
     const db = await this.getDb()
-    await db.execute('DELETE FROM story_entries WHERE story_id = ? AND branch_id IS NULL', [
-      storyId,
-    ])
-    await db.execute('DELETE FROM world_state_snapshots WHERE story_id = ? AND branch_id IS NULL', [
-      storyId,
-    ])
+    await db.execute('DELETE FROM story_entries WHERE story_id = ? AND branch_id IS NULL', [storyId])
+    await db.execute('DELETE FROM world_state_snapshots WHERE story_id = ? AND branch_id IS NULL', [storyId])
   }
 
   /**
@@ -862,9 +821,7 @@ class DatabaseService {
         character.translatedDescription || null,
         character.translatedRelationship || null,
         character.translatedTraits ? JSON.stringify(character.translatedTraits) : null,
-        character.translatedVisualDescriptors
-          ? JSON.stringify(character.translatedVisualDescriptors)
-          : null,
+        character.translatedVisualDescriptors ? JSON.stringify(character.translatedVisualDescriptors) : null,
         character.translationLanguage || null,
       ],
     )
@@ -926,11 +883,7 @@ class DatabaseService {
     }
     if (updates.translatedVisualDescriptors !== undefined) {
       setClauses.push('translated_visual_descriptors = ?')
-      values.push(
-        updates.translatedVisualDescriptors
-          ? JSON.stringify(updates.translatedVisualDescriptors)
-          : null,
-      )
+      values.push(updates.translatedVisualDescriptors ? JSON.stringify(updates.translatedVisualDescriptors) : null)
     }
     if (updates.translationLanguage !== undefined) {
       setClauses.push('translation_language = ?')
@@ -1203,9 +1156,7 @@ class DatabaseService {
   // Story beats operations
   async getStoryBeats(storyId: string): Promise<StoryBeat[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>('SELECT * FROM story_beats WHERE story_id = ?', [
-      storyId,
-    ])
+    const results = await db.select<any[]>('SELECT * FROM story_beats WHERE story_id = ?', [storyId])
     return results.map(this.mapStoryBeat)
   }
 
@@ -1254,10 +1205,7 @@ class DatabaseService {
   // Chapter operations
   async getChapters(storyId: string): Promise<Chapter[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM chapters WHERE story_id = ? ORDER BY number ASC',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM chapters WHERE story_id = ? ORDER BY number ASC', [storyId])
     return results.map(this.mapChapter)
   }
 
@@ -1377,10 +1325,9 @@ class DatabaseService {
   // Checkpoint operations
   async getCheckpoints(storyId: string): Promise<Checkpoint[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM checkpoints WHERE story_id = ? ORDER BY created_at DESC',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM checkpoints WHERE story_id = ? ORDER BY created_at DESC', [
+      storyId,
+    ])
     return results.map(this.mapCheckpoint)
   }
 
@@ -1413,9 +1360,7 @@ class DatabaseService {
         JSON.stringify(checkpoint.storyBeatsSnapshot),
         JSON.stringify(checkpoint.chaptersSnapshot),
         checkpoint.timeTrackerSnapshot ? JSON.stringify(checkpoint.timeTrackerSnapshot) : null,
-        checkpoint.lorebookEntriesSnapshot
-          ? JSON.stringify(checkpoint.lorebookEntriesSnapshot)
-          : null,
+        checkpoint.lorebookEntriesSnapshot ? JSON.stringify(checkpoint.lorebookEntriesSnapshot) : null,
         checkpoint.createdAt,
       ],
     )
@@ -1439,40 +1384,18 @@ class DatabaseService {
     const branchParams = branchId === null ? [] : [branchId]
 
     // Delete current state
-    await db.execute(`DELETE FROM story_entries WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
-    await db.execute(`DELETE FROM characters WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
-    await db.execute(`DELETE FROM locations WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
-    await db.execute(`DELETE FROM items WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
-    await db.execute(`DELETE FROM story_beats WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
-    await db.execute(`DELETE FROM chapters WHERE story_id = ? AND ${branchClause}`, [
-      storyId,
-      ...branchParams,
-    ])
+    await db.execute(`DELETE FROM story_entries WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
+    await db.execute(`DELETE FROM characters WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
+    await db.execute(`DELETE FROM locations WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
+    await db.execute(`DELETE FROM items WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
+    await db.execute(`DELETE FROM story_beats WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
+    await db.execute(`DELETE FROM chapters WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
     // Also delete lorebook entries if we have a snapshot to restore
     if (checkpoint.lorebookEntriesSnapshot !== undefined) {
-      await db.execute(`DELETE FROM entries WHERE story_id = ? AND ${branchClause}`, [
-        storyId,
-        ...branchParams,
-      ])
+      await db.execute(`DELETE FROM entries WHERE story_id = ? AND ${branchClause}`, [storyId, ...branchParams])
     }
 
-    const matchesBranch = (entryBranchId: string | null | undefined) =>
-      (entryBranchId ?? null) === branchId
+    const matchesBranch = (entryBranchId: string | null | undefined) => (entryBranchId ?? null) === branchId
 
     // Restore entries
     for (const entry of checkpoint.entriesSnapshot.filter((e) => matchesBranch(e.branchId))) {
@@ -1480,9 +1403,7 @@ class DatabaseService {
     }
 
     // Restore characters
-    for (const character of checkpoint.charactersSnapshot.filter((c) =>
-      matchesBranch(c.branchId),
-    )) {
+    for (const character of checkpoint.charactersSnapshot.filter((c) => matchesBranch(c.branchId))) {
       await this.addCharacter(character)
     }
 
@@ -1508,9 +1429,7 @@ class DatabaseService {
 
     // Restore lorebook entries (if snapshot exists - for backwards compatibility)
     if (checkpoint.lorebookEntriesSnapshot) {
-      for (const entry of checkpoint.lorebookEntriesSnapshot.filter((e) =>
-        matchesBranch(e.branchId),
-      )) {
+      for (const entry of checkpoint.lorebookEntriesSnapshot.filter((e) => matchesBranch(e.branchId))) {
         await this.addEntry(entry)
       }
     }
@@ -1544,10 +1463,7 @@ class DatabaseService {
     )
   }
 
-  async getWorldStateSnapshots(
-    storyId: string,
-    branchId: string | null,
-  ): Promise<WorldStateSnapshot[]> {
+  async getWorldStateSnapshots(storyId: string, branchId: string | null): Promise<WorldStateSnapshot[]> {
     const db = await this.getDb()
     const results = await db.select<any[]>(
       branchId === null
@@ -1573,11 +1489,7 @@ class DatabaseService {
     return results.length > 0 ? this.mapWorldStateSnapshot(results[0]) : null
   }
 
-  async deleteWorldStateSnapshotsAfter(
-    storyId: string,
-    branchId: string | null,
-    position: number,
-  ): Promise<void> {
+  async deleteWorldStateSnapshotsAfter(storyId: string, branchId: string | null, position: number): Promise<void> {
     const db = await this.getDb()
     if (branchId === null) {
       await db.execute(
@@ -1676,10 +1588,9 @@ class DatabaseService {
 
   async getBranches(storyId: string): Promise<Branch[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM branches WHERE story_id = ? ORDER BY created_at ASC',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM branches WHERE story_id = ? ORDER BY created_at ASC', [
+      storyId,
+    ])
     return results.map(this.mapBranch)
   }
 
@@ -1707,10 +1618,7 @@ class DatabaseService {
     )
   }
 
-  async updateBranch(
-    id: string,
-    updates: Partial<Pick<Branch, 'name' | 'checkpointId'>>,
-  ): Promise<void> {
+  async updateBranch(id: string, updates: Partial<Pick<Branch, 'name' | 'checkpointId'>>): Promise<void> {
     const db = await this.getDb()
     const setClauses: string[] = []
     const values: any[] = []
@@ -1776,10 +1684,9 @@ class DatabaseService {
 
   async getEntries(storyId: string): Promise<Entry[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM entries WHERE story_id = ? ORDER BY created_at ASC',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM entries WHERE story_id = ? ORDER BY created_at ASC', [
+      storyId,
+    ])
     return results.map(this.mapEntry)
   }
 
@@ -1805,10 +1712,7 @@ class DatabaseService {
    * Walks main entities → each ancestor branch → current branch,
    * merging by canonical ID (overridesId ?? id). Later entries override earlier.
    */
-  async getCharactersResolved(
-    storyId: string,
-    branchLineage: { id: string }[],
-  ): Promise<Character[]> {
+  async getCharactersResolved(storyId: string, branchLineage: { id: string }[]): Promise<Character[]> {
     const resolved = new Map<string, Character>()
     const currentBranchId = branchLineage[branchLineage.length - 1]?.id
 
@@ -1844,10 +1748,7 @@ class DatabaseService {
   /**
    * Resolve locations for a COW branch using lineage.
    */
-  async getLocationsResolved(
-    storyId: string,
-    branchLineage: { id: string }[],
-  ): Promise<Location[]> {
+  async getLocationsResolved(storyId: string, branchLineage: { id: string }[]): Promise<Location[]> {
     const resolved = new Map<string, Location>()
     const currentBranchId = branchLineage[branchLineage.length - 1]?.id
 
@@ -1911,10 +1812,7 @@ class DatabaseService {
   /**
    * Resolve story beats for a COW branch using lineage.
    */
-  async getStoryBeatsResolved(
-    storyId: string,
-    branchLineage: { id: string }[],
-  ): Promise<StoryBeat[]> {
+  async getStoryBeatsResolved(storyId: string, branchLineage: { id: string }[]): Promise<StoryBeat[]> {
     const resolved = new Map<string, StoryBeat>()
     const currentBranchId = branchLineage[branchLineage.length - 1]?.id
 
@@ -1946,10 +1844,7 @@ class DatabaseService {
   /**
    * Resolve lorebook entries for a COW branch using lineage.
    */
-  async getLorebookEntriesResolved(
-    storyId: string,
-    branchLineage: { id: string }[],
-  ): Promise<Entry[]> {
+  async getLorebookEntriesResolved(storyId: string, branchLineage: { id: string }[]): Promise<Entry[]> {
     const resolved = new Map<string, Entry>()
     const currentBranchId = branchLineage[branchLineage.length - 1]?.id
 
@@ -2098,9 +1993,7 @@ class DatabaseService {
     totalDeleted += beatResult.rowsAffected
 
     if (totalDeleted > 0) {
-      console.log(
-        `[DatabaseService] Cleaned up ${totalDeleted} no-op COW override(s) for story ${storyId}`,
-      )
+      console.log(`[DatabaseService] Cleaned up ${totalDeleted} no-op COW override(s) for story ${storyId}`)
     }
 
     return totalDeleted
@@ -2147,9 +2040,7 @@ class DatabaseService {
     // SQLite itself. Modern SQLite (3.32+, bundled with sqlx) supports up to
     // 32,766 bind variables — at 21 params/row that's ~1,560 entries, well beyond
     // any realistic lorebook size.
-    const valuePlaceholders = entries
-      .map(() => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .join(',')
+    const valuePlaceholders = entries.map(() => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',')
     const values: unknown[] = []
 
     for (const entry of entries) {
@@ -2317,19 +2208,17 @@ class DatabaseService {
 
   async getEmbeddedImagesForEntry(entryId: string): Promise<EmbeddedImage[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM embedded_images WHERE entry_id = ? ORDER BY created_at ASC',
-      [entryId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE entry_id = ? ORDER BY created_at ASC', [
+      entryId,
+    ])
     return results.map(this.mapEmbeddedImage)
   }
 
   async getEmbeddedImagesForStory(storyId: string): Promise<EmbeddedImage[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM embedded_images WHERE story_id = ? ORDER BY created_at ASC',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE story_id = ? ORDER BY created_at ASC', [
+      storyId,
+    ])
     return results.map(this.mapEmbeddedImage)
   }
 
@@ -2625,9 +2514,7 @@ class DatabaseService {
       translatedDescription: row.translated_description || null,
       translatedRelationship: row.translated_relationship || null,
       translatedTraits: row.translated_traits ? JSON.parse(row.translated_traits) : null,
-      translatedVisualDescriptors: rawTranslatedDescriptors
-        ? migrateVisualDescriptors(rawTranslatedDescriptors)
-        : null,
+      translatedVisualDescriptors: rawTranslatedDescriptors ? migrateVisualDescriptors(rawTranslatedDescriptors) : null,
       translationLanguage: row.translation_language || null,
     }
   }
@@ -2732,9 +2619,7 @@ class DatabaseService {
       // Use null when missing - old checkpoints without time tracking should reset time to null on restore
       timeTrackerSnapshot: row.time_tracker_snapshot ? JSON.parse(row.time_tracker_snapshot) : null,
       // undefined if column doesn't exist (old checkpoints) - preserve current lorebook on restore
-      lorebookEntriesSnapshot: row.lorebook_entries_snapshot
-        ? JSON.parse(row.lorebook_entries_snapshot)
-        : undefined,
+      lorebookEntriesSnapshot: row.lorebook_entries_snapshot ? JSON.parse(row.lorebook_entries_snapshot) : undefined,
       createdAt: row.created_at,
     }
   }
@@ -2750,9 +2635,7 @@ class DatabaseService {
       locationsSnapshot: row.locations_snapshot ? JSON.parse(row.locations_snapshot) : [],
       itemsSnapshot: row.items_snapshot ? JSON.parse(row.items_snapshot) : [],
       storyBeatsSnapshot: row.story_beats_snapshot ? JSON.parse(row.story_beats_snapshot) : [],
-      lorebookEntriesSnapshot: row.lorebook_entries_snapshot
-        ? JSON.parse(row.lorebook_entries_snapshot)
-        : undefined,
+      lorebookEntriesSnapshot: row.lorebook_entries_snapshot ? JSON.parse(row.lorebook_entries_snapshot) : undefined,
       timeTrackerSnapshot: row.time_tracker_snapshot ? JSON.parse(row.time_tracker_snapshot) : null,
       createdAt: row.created_at,
     }
@@ -2770,9 +2653,7 @@ class DatabaseService {
       state: row.state ? JSON.parse(row.state) : { type: row.type },
       adventureState: row.adventure_state ? JSON.parse(row.adventure_state) : null,
       creativeState: row.creative_state ? JSON.parse(row.creative_state) : null,
-      injection: row.injection
-        ? JSON.parse(row.injection)
-        : { mode: 'keyword', keywords: [], priority: 0 },
+      injection: row.injection ? JSON.parse(row.injection) : { mode: 'keyword', keywords: [], priority: 0 },
       firstMentioned: row.first_mentioned,
       lastMentioned: row.last_mentioned,
       mentionCount: row.mention_count ?? 0,
@@ -2790,9 +2671,7 @@ class DatabaseService {
 
   async getVaultCharacters(): Promise<VaultCharacter[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM character_vault ORDER BY favorite DESC, updated_at DESC',
-    )
+    const results = await db.select<any[]>('SELECT * FROM character_vault ORDER BY favorite DESC, updated_at DESC')
     return results.map(this.mapVaultCharacter)
   }
 
@@ -2912,9 +2791,7 @@ class DatabaseService {
 
   async getVaultLorebooks(): Promise<VaultLorebook[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM lorebook_vault ORDER BY favorite DESC, updated_at DESC',
-    )
+    const results = await db.select<any[]>('SELECT * FROM lorebook_vault ORDER BY favorite DESC, updated_at DESC')
     return results.map(this.mapVaultLorebook)
   }
 
@@ -3021,9 +2898,7 @@ class DatabaseService {
 
   async getVaultScenarios(): Promise<VaultScenario[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM scenario_vault ORDER BY favorite DESC, updated_at DESC',
-    )
+    const results = await db.select<any[]>('SELECT * FROM scenario_vault ORDER BY favorite DESC, updated_at DESC')
     return results.map(this.mapVaultScenario)
   }
 
@@ -3143,10 +3018,13 @@ class DatabaseService {
 
   async addVaultTag(tag: VaultTag): Promise<void> {
     const db = await this.getDb()
-    await db.execute(
-      'INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)',
-      [tag.id, tag.name, tag.type, tag.color, tag.createdAt],
-    )
+    await db.execute('INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)', [
+      tag.id,
+      tag.name,
+      tag.type,
+      tag.color,
+      tag.createdAt,
+    ])
   }
 
   async updateVaultTag(id: string, updates: Partial<VaultTag>): Promise<void> {
@@ -3206,11 +3084,7 @@ class DatabaseService {
   }
 
   // Helper to rename a tag across all vault items
-  private async migrateTagInVaultItems(
-    type: VaultType,
-    oldName: string,
-    newName: string,
-  ): Promise<void> {
+  private async migrateTagInVaultItems(type: VaultType, oldName: string, newName: string): Promise<void> {
     const db = await this.getDb()
     let table = ''
 
@@ -3222,10 +3096,9 @@ class DatabaseService {
 
     // We have to read all rows that might contain the tag, update JSON, and write back
     // A simple REPLACE string might be dangerous if tag name is a substring of another tag
-    const rows = await db.select<{ id: string; tags: string }[]>(
-      `SELECT id, tags FROM ${table} WHERE tags LIKE ?`,
-      [`%${oldName}%`],
-    )
+    const rows = await db.select<{ id: string; tags: string }[]>(`SELECT id, tags FROM ${table} WHERE tags LIKE ?`, [
+      `%${oldName}%`,
+    ])
 
     for (const row of rows) {
       try {
@@ -3233,10 +3106,7 @@ class DatabaseService {
         const index = tags.indexOf(oldName)
         if (index !== -1) {
           tags[index] = newName
-          await db.execute(`UPDATE ${table} SET tags = ? WHERE id = ?`, [
-            JSON.stringify(tags),
-            row.id,
-          ])
+          await db.execute(`UPDATE ${table} SET tags = ? WHERE id = ?`, [JSON.stringify(tags), row.id])
         }
       } catch (e) {
         console.error(`[Database] Failed to migrate tag for ${table} row ${row.id}`, e)
@@ -3255,20 +3125,16 @@ class DatabaseService {
 
     if (!table) return
 
-    const rows = await db.select<{ id: string; tags: string }[]>(
-      `SELECT id, tags FROM ${table} WHERE tags LIKE ?`,
-      [`%${tagName}%`],
-    )
+    const rows = await db.select<{ id: string; tags: string }[]>(`SELECT id, tags FROM ${table} WHERE tags LIKE ?`, [
+      `%${tagName}%`,
+    ])
 
     for (const row of rows) {
       try {
         let tags = JSON.parse(row.tags) as string[]
         if (tags.includes(tagName)) {
           tags = tags.filter((t) => t !== tagName)
-          await db.execute(`UPDATE ${table} SET tags = ? WHERE id = ?`, [
-            JSON.stringify(tags),
-            row.id,
-          ])
+          await db.execute(`UPDATE ${table} SET tags = ? WHERE id = ?`, [JSON.stringify(tags), row.id])
         }
       } catch (e) {
         console.error(`[Database] Failed to remove tag for ${table} row ${row.id}`, e)
@@ -3327,10 +3193,13 @@ class DatabaseService {
         const id = crypto.randomUUID()
 
         try {
-          await db.execute(
-            'INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)',
-            [id, tagName, type, color, Date.now()],
-          )
+          await db.execute('INSERT INTO vault_tags (id, name, type, color, created_at) VALUES (?, ?, ?, ?, ?)', [
+            id,
+            tagName,
+            type,
+            color,
+            Date.now(),
+          ])
         } catch {
           // Ignore unique constraint errors
           console.warn(`[Database] Skipped duplicate tag ${tagName} during migration`)
@@ -3367,18 +3236,13 @@ class DatabaseService {
 
   async listVaultConversations(): Promise<VaultConversation[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM vault_assistant_conversations ORDER BY updated_at DESC',
-    )
+    const results = await db.select<any[]>('SELECT * FROM vault_assistant_conversations ORDER BY updated_at DESC')
     return results.map(this.mapVaultConversation)
   }
 
   async loadVaultConversation(id: string): Promise<VaultConversation | null> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM vault_assistant_conversations WHERE id = ?',
-      [id],
-    )
+    const results = await db.select<any[]>('SELECT * FROM vault_assistant_conversations WHERE id = ?', [id])
     return results.length > 0 ? this.mapVaultConversation(results[0]) : null
   }
 
@@ -3418,10 +3282,7 @@ class DatabaseService {
     }
 
     values.push(id)
-    await db.execute(
-      `UPDATE vault_assistant_conversations SET ${setClauses.join(', ')} WHERE id = ?`,
-      values,
-    )
+    await db.execute(`UPDATE vault_assistant_conversations SET ${setClauses.join(', ')} WHERE id = ?`, values)
   }
 
   async deleteVaultConversation(id: string): Promise<void> {
@@ -3446,9 +3307,7 @@ class DatabaseService {
 
   async getAllPacks(): Promise<PresetPack[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM preset_packs ORDER BY is_default DESC, name ASC',
-    )
+    const results = await db.select<any[]>('SELECT * FROM preset_packs ORDER BY is_default DESC, name ASC')
     return results.map(this.mapPack)
   }
 
@@ -3460,9 +3319,7 @@ class DatabaseService {
 
   async getDefaultPack(): Promise<PresetPack | null> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM preset_packs WHERE is_default = 1 LIMIT 1',
-    )
+    const results = await db.select<any[]>('SELECT * FROM preset_packs WHERE is_default = 1 LIMIT 1')
     return results.length > 0 ? this.mapPack(results[0]) : null
   }
 
@@ -3513,19 +3370,13 @@ class DatabaseService {
     const pack = await this.getPack(packId)
     if (!pack || pack.isDefault) return false
     // Cannot delete if stories reference it
-    const results = await db.select<any[]>(
-      'SELECT COUNT(*) as count FROM stories WHERE pack_id = ?',
-      [packId],
-    )
+    const results = await db.select<any[]>('SELECT COUNT(*) as count FROM stories WHERE pack_id = ?', [packId])
     return results[0].count === 0
   }
 
   async getPackUsageCount(packId: string): Promise<number> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT COUNT(*) as count FROM stories WHERE pack_id = ?',
-      [packId],
-    )
+    const results = await db.select<any[]>('SELECT COUNT(*) as count FROM stories WHERE pack_id = ?', [packId])
     return results[0].count
   }
 
@@ -3533,19 +3384,18 @@ class DatabaseService {
 
   async getPackTemplates(packId: string): Promise<PackTemplate[]> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM pack_templates WHERE pack_id = ? ORDER BY template_id',
-      [packId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM pack_templates WHERE pack_id = ? ORDER BY template_id', [
+      packId,
+    ])
     return results.map(this.mapPackTemplate)
   }
 
   async getPackTemplate(packId: string, templateId: string): Promise<PackTemplate | null> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM pack_templates WHERE pack_id = ? AND template_id = ?',
-      [packId, templateId],
-    )
+    const results = await db.select<any[]>('SELECT * FROM pack_templates WHERE pack_id = ? AND template_id = ?', [
+      packId,
+      templateId,
+    ])
     return results.length > 0 ? this.mapPackTemplate(results[0]) : null
   }
 
@@ -3560,24 +3410,13 @@ class DatabaseService {
     await db.execute(
       `INSERT OR REPLACE INTO pack_templates (id, pack_id, template_id, content, content_hash, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        existing?.id ?? crypto.randomUUID(),
-        packId,
-        templateId,
-        content,
-        contentHash,
-        createdAt,
-        now,
-      ],
+      [existing?.id ?? crypto.randomUUID(), packId, templateId, content, contentHash, createdAt, now],
     )
   }
 
   async deletePackTemplate(packId: string, templateId: string): Promise<void> {
     const db = await this.getDb()
-    await db.execute('DELETE FROM pack_templates WHERE pack_id = ? AND template_id = ?', [
-      packId,
-      templateId,
-    ])
+    await db.execute('DELETE FROM pack_templates WHERE pack_id = ? AND template_id = ?', [packId, templateId])
   }
 
   // ===== Pack Variable Operations =====
@@ -3593,10 +3432,10 @@ class DatabaseService {
 
   async getPackVariable(packId: string, variableName: string): Promise<CustomVariable | null> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT * FROM pack_variables WHERE pack_id = ? AND variable_name = ?',
-      [packId, variableName],
-    )
+    const results = await db.select<any[]>('SELECT * FROM pack_variables WHERE pack_id = ? AND variable_name = ?', [
+      packId,
+      variableName,
+    ])
     return results.length > 0 ? this.mapPackVariable(results[0]) : null
   }
 
@@ -3690,10 +3529,7 @@ class DatabaseService {
     return results.map(this.mapRuntimeVariable)
   }
 
-  async getRuntimeVariablesByEntityType(
-    packId: string,
-    entityType: RuntimeEntityType,
-  ): Promise<RuntimeVariable[]> {
+  async getRuntimeVariablesByEntityType(packId: string, entityType: RuntimeEntityType): Promise<RuntimeVariable[]> {
     const db = await this.getDb()
     const results = await db.select<any[]>(
       'SELECT * FROM pack_runtime_variables WHERE pack_id = ? AND entity_type = ? ORDER BY sort_order ASC, variable_name ASC',
@@ -3812,10 +3648,7 @@ class DatabaseService {
     if (setClauses.length === 0) return
 
     values.push(id)
-    await db.execute(
-      `UPDATE pack_runtime_variables SET ${setClauses.join(', ')} WHERE id = ?`,
-      values,
-    )
+    await db.execute(`UPDATE pack_runtime_variables SET ${setClauses.join(', ')} WHERE id = ?`, values)
   }
 
   async deleteRuntimeVariable(id: string): Promise<void> {
@@ -3870,11 +3703,7 @@ class DatabaseService {
     }
   }
 
-  async renameRuntimeVarInEntities(
-    packId: string,
-    defId: string,
-    newVariableName: string,
-  ): Promise<void> {
+  async renameRuntimeVarInEntities(packId: string, defId: string, newVariableName: string): Promise<void> {
     const storyIds = await this.getStoriesUsingPack(packId)
     if (storyIds.length === 0) return
 
@@ -3911,10 +3740,7 @@ class DatabaseService {
    */
   async getStoryCustomVariables(storyId: string): Promise<Record<string, string> | null> {
     const db = await this.getDb()
-    const results = await db.select<any[]>(
-      'SELECT custom_variable_values FROM stories WHERE id = ?',
-      [storyId],
-    )
+    const results = await db.select<any[]>('SELECT custom_variable_values FROM stories WHERE id = ?', [storyId])
     if (results.length === 0 || !results[0].custom_variable_values) return null
     try {
       return JSON.parse(results[0].custom_variable_values)
@@ -3930,10 +3756,7 @@ class DatabaseService {
    */
   async setStoryCustomVariables(storyId: string, values: Record<string, string>): Promise<void> {
     const db = await this.getDb()
-    await db.execute('UPDATE stories SET custom_variable_values = ? WHERE id = ?', [
-      JSON.stringify(values),
-      storyId,
-    ])
+    await db.execute('UPDATE stories SET custom_variable_values = ? WHERE id = ?', [JSON.stringify(values), storyId])
   }
 
   private mapVaultTag(row: any): VaultTag {

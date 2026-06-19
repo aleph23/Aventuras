@@ -6,11 +6,7 @@ import { characterVault } from '$lib/stores/characterVault.svelte'
 import type { StoryMode, POV, VaultCharacter } from '$lib/types'
 import { descriptorsToString, stringToDescriptors } from '$lib/utils/visualDescriptors'
 import { CharacterCardImport } from '$lib/services/characterCardImport'
-import type {
-  ExpandedSetting,
-  GeneratedCharacter,
-  GeneratedProtagonist,
-} from '$lib/services/ai/sdk'
+import type { ExpandedSetting, GeneratedCharacter, GeneratedProtagonist } from '$lib/services/ai/sdk'
 import { SvelteSet } from 'svelte/reactivity'
 
 export class CharacterStore {
@@ -70,9 +66,7 @@ export class CharacterStore {
   // Derived
   protagonistDisplay = $derived(this.protagonistTranslated ?? this.protagonist)
   supportingCharactersDisplay = $derived(
-    this.supportingCharactersTranslated.length > 0
-      ? this.supportingCharactersTranslated
-      : this.supportingCharacters,
+    this.supportingCharactersTranslated.length > 0 ? this.supportingCharactersTranslated : this.supportingCharacters,
   )
 
   // Protagonist Actions
@@ -101,8 +95,7 @@ export class CharacterStore {
       await this.translateProtagonist()
     } catch (error) {
       console.error('Failed to generate protagonist:', error)
-      this.protagonistError =
-        error instanceof Error ? error.message : 'Failed to generate protagonist'
+      this.protagonistError = error instanceof Error ? error.message : 'Failed to generate protagonist'
     } finally {
       this.isGeneratingProtagonist = false
     }
@@ -147,21 +140,13 @@ export class CharacterStore {
     if (this.isExpandingCharacter) return
 
     const sourceName =
-      useCurrentProtagonist && this.protagonist
-        ? this.protagonist.name
-        : this.manualCharacterName.trim()
+      useCurrentProtagonist && this.protagonist ? this.protagonist.name : this.manualCharacterName.trim()
     const sourceDescription =
-      useCurrentProtagonist && this.protagonist
-        ? this.protagonist.description
-        : this.manualCharacterDescription.trim()
+      useCurrentProtagonist && this.protagonist ? this.protagonist.description : this.manualCharacterDescription.trim()
     const sourceBackground =
-      useCurrentProtagonist && this.protagonist
-        ? this.protagonist.background
-        : this.manualCharacterBackground.trim()
+      useCurrentProtagonist && this.protagonist ? this.protagonist.background : this.manualCharacterBackground.trim()
     const sourceMotivation =
-      useCurrentProtagonist && this.protagonist
-        ? this.protagonist.motivation
-        : this.manualCharacterMotivation.trim()
+      useCurrentProtagonist && this.protagonist ? this.protagonist.motivation : this.manualCharacterMotivation.trim()
     const sourceTraits =
       useCurrentProtagonist && this.protagonist
         ? this.protagonist.traits
@@ -203,18 +188,13 @@ export class CharacterStore {
       await this.translateProtagonist()
     } catch (error) {
       console.error('Failed to elaborate character:', error)
-      this.protagonistError =
-        error instanceof Error ? error.message : 'Failed to elaborate character'
+      this.protagonistError = error instanceof Error ? error.message : 'Failed to elaborate character'
     } finally {
       this.isExpandingCharacter = false
     }
   }
 
-  async elaborateCharacterFurther(
-    expandedSetting: ExpandedSetting | null,
-    selectedGenre: Genre,
-    customGenre?: string,
-  ) {
+  async elaborateCharacterFurther(expandedSetting: ExpandedSetting | null, selectedGenre: Genre, customGenre?: string) {
     if (!this.protagonist || this.isRefiningCharacter) return
 
     this.isRefiningCharacter = true
@@ -241,11 +221,7 @@ export class CharacterStore {
   }
 
   // Supporting Character Actions
-  async generateCharacters(
-    expandedSetting: ExpandedSetting,
-    selectedGenre: Genre,
-    customGenre?: string,
-  ) {
+  async generateCharacters(expandedSetting: ExpandedSetting, selectedGenre: Genre, customGenre?: string) {
     if (!expandedSetting || !this.protagonist || this.isGeneratingCharacters) return
 
     this.isGeneratingCharacters = true
@@ -458,10 +434,7 @@ export class CharacterStore {
     this.supportingCharacterRelationship = (metadata.relationshipTemplate as string) || ''
     this.supportingCharacterTraits = vaultCharacter.traits.join(', ')
 
-    visualDescriptorsSetter(
-      vaultCharacter.name,
-      descriptorsToString(vaultCharacter.visualDescriptors),
-    )
+    visualDescriptorsSetter(vaultCharacter.name, descriptorsToString(vaultCharacter.visualDescriptors))
     portraitSetter(vaultCharacter.name, vaultCharacter.portrait)
 
     this.supportingCharacterVaultId = vaultCharacter.id
@@ -485,10 +458,7 @@ export class CharacterStore {
         if (this.protagonist.motivation) fields.motivation = this.protagonist.motivation
         if (this.protagonist.traits?.length) fields.traits = this.protagonist.traits.join(', ')
 
-        const translated = await aiService.translateWizardBatch(
-          fields,
-          translationSettings.targetLanguage,
-        )
+        const translated = await aiService.translateWizardBatch(fields, translationSettings.targetLanguage)
 
         this.protagonistTranslated = {
           ...this.protagonist,
@@ -514,10 +484,7 @@ export class CharacterStore {
 
   async translateSupportingCharacters() {
     const translationSettings = settings.translationSettings
-    if (
-      this.supportingCharacters.length > 0 &&
-      TranslationService.shouldTranslate(translationSettings)
-    ) {
+    if (this.supportingCharacters.length > 0 && TranslationService.shouldTranslate(translationSettings)) {
       try {
         this.supportingCharactersTranslated = await Promise.all(
           this.supportingCharacters.map((char) =>
@@ -607,9 +574,7 @@ export class CharacterStore {
   clearCardImport() {
     if (this.importedCardNpcs.length > 0) {
       const importedNames = new SvelteSet(this.importedCardNpcs.map((n) => n.name))
-      this.supportingCharacters = this.supportingCharacters.filter(
-        (c) => !importedNames.has(c.name),
-      )
+      this.supportingCharacters = this.supportingCharacters.filter((c) => !importedNames.has(c.name))
     }
     this.importedCardNpcs = []
     this.cardImportError = null

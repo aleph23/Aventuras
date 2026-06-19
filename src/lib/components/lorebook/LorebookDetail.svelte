@@ -169,11 +169,7 @@
   <!-- Content -->
   <div class="flex-1 overflow-y-auto p-4">
     {#if ui.lorebookEditMode}
-      <LorebookEntryForm
-        {entry}
-        onSave={handleSave}
-        onCancel={() => ui.setLorebookEditMode(false)}
-      />
+      <LorebookEntryForm {entry} onSave={handleSave} onCancel={() => ui.setLorebookEditMode(false)} />
     {:else}
       <div class="space-y-6">
         <!-- Description -->
@@ -231,9 +227,7 @@
 
         <!-- Lore Management Status -->
         {#if entry.loreManagementBlacklisted}
-          <div
-            class="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3"
-          >
+          <div class="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
             <span class="text-sm text-amber-400">Hidden from AI Lore Management</span>
           </div>
         {/if}

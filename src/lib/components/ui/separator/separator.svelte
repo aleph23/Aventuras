@@ -12,11 +12,7 @@
 
 <SeparatorPrimitive.Root
   bind:ref
-  class={cn(
-    'bg-border shrink-0',
-    orientation === 'horizontal' ? 'h-px w-full' : 'min-h-full w-px',
-    className,
-  )}
+  class={cn('bg-border shrink-0', orientation === 'horizontal' ? 'h-px w-full' : 'min-h-full w-px', className)}
   {orientation}
   {...restProps}
 />

@@ -223,9 +223,7 @@ export type AventuraEvent =
   | BackgroundImageReadyEvent
 
 // Handler function type
-export type EventHandler<T extends AventuraEvent = AventuraEvent> = (
-  event: T,
-) => void | Promise<void>
+export type EventHandler<T extends AventuraEvent = AventuraEvent> = (event: T) => void | Promise<void>
 
 // Unsubscribe function type
 export type Unsubscribe = () => void
@@ -350,11 +348,7 @@ export function emitStateUpdated(changes: StateUpdatedEvent['changes']): void {
   eventBus.emit<StateUpdatedEvent>({ type: 'StateUpdated', changes })
 }
 
-export function emitChapterCreated(
-  chapterId: string,
-  chapterNumber: number,
-  title: string | null,
-): void {
+export function emitChapterCreated(chapterId: string, chapterNumber: number, title: string | null): void {
   eventBus.emit<ChapterCreatedEvent>({ type: 'ChapterCreated', chapterId, chapterNumber, title })
 }
 
@@ -404,11 +398,7 @@ export function emitBackgroundImageReady(): void {
   })
 }
 
-export function emitImageAnalysisComplete(
-  entryId: string,
-  sceneCount: number,
-  portraitCount: number,
-): void {
+export function emitImageAnalysisComplete(entryId: string, sceneCount: number, portraitCount: number): void {
   eventBus.emit<ImageAnalysisCompleteEvent>({
     type: 'ImageAnalysisComplete',
     entryId,

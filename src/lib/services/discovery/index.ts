@@ -72,10 +72,7 @@ class DiscoveryService {
    * Search all providers in parallel and aggregate results
    * Resets pagination state for fresh search
    */
-  async searchAll(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async searchAll(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     const providers = this.getProviders(type)
 
     // Reset pagination state for new search
@@ -131,10 +128,7 @@ class DiscoveryService {
   /**
    * Load more results from all providers that still have results
    */
-  async loadMoreAll(
-    type: 'character' | 'lorebook' | 'scenario',
-    limit: number = 48,
-  ): Promise<SearchResult> {
+  async loadMoreAll(type: 'character' | 'lorebook' | 'scenario', limit: number = 48): Promise<SearchResult> {
     if (!this.lastAllModeOptions || this.lastAllModeOptions.type !== type) {
       return { cards: [], hasMore: false }
     }

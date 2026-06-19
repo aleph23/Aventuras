@@ -172,8 +172,7 @@
 
   function getChangeName(change: VaultPendingChange): string {
     if ('data' in change && change.data && 'name' in change.data) return change.data.name as string
-    if ('previous' in change && change.previous && 'name' in change.previous)
-      return change.previous.name as string
+    if ('previous' in change && change.previous && 'name' in change.previous) return change.previous.name as string
     return 'Unknown'
   }
 
@@ -379,9 +378,7 @@
     try {
       // Check for external lorebook edits before streaming
       const lorebookId =
-        focusedEntity?.entityType === 'lorebook'
-          ? focusedEntity.entityId
-          : vaultEditor.currentLorebookId
+        focusedEntity?.entityType === 'lorebook' ? focusedEntity.entityId : vaultEditor.currentLorebookId
       if (lorebookId) {
         service.injectLorebookChangeNote(lorebookId)
       }
@@ -395,24 +392,15 @@
           return vaultEditor.currentLorebookId ?? undefined
         },
         get activeEntries() {
-          const id =
-            focusedEntity?.entityType === 'lorebook'
-              ? focusedEntity.entityId
-              : vaultEditor.currentLorebookId
+          const id = focusedEntity?.entityType === 'lorebook' ? focusedEntity.entityId : vaultEditor.currentLorebookId
           if (!id) return undefined
           return lorebookVault.getById(id)?.entries
         },
-        activeCharacterId:
-          focusedEntity?.entityType === 'character' ? focusedEntity.entityId : undefined,
-        activeScenarioId:
-          focusedEntity?.entityType === 'scenario' ? focusedEntity.entityId : undefined,
+        activeCharacterId: focusedEntity?.entityType === 'character' ? focusedEntity.entityId : undefined,
+        activeScenarioId: focusedEntity?.entityType === 'scenario' ? focusedEntity.entityId : undefined,
       }
 
-      for await (const event of service.sendMessageStreaming(
-        vaultState,
-        userMessage,
-        abortController.signal,
-      )) {
+      for await (const event of service.sendMessageStreaming(vaultState, userMessage, abortController.signal)) {
         switch (event.type) {
           case 'thinking':
             isThinking = true
@@ -435,9 +423,7 @@
             break
 
           case 'tool_end':
-            activeToolCalls = activeToolCalls.map((tc) =>
-              tc.id === event.toolCall.id ? event.toolCall : tc,
-            )
+            activeToolCalls = activeToolCalls.map((tc) => (tc.id === event.toolCall.id ? event.toolCall : tc))
             // Collect pending changes as they arrive (store handles dedup)
             if (event.toolCall.pendingChange) {
               const incoming = event.toolCall.pendingChange
@@ -481,9 +467,7 @@
               viewedEntity = {
                 entityType: 'character',
                 entityId: event.entityId,
-                entityName:
-                  ('data' in event.change && (event.change.data as { name?: string }).name) ||
-                  event.entityId,
+                entityName: ('data' in event.change && (event.change.data as { name?: string }).name) || event.entityId,
               }
             }
             break
@@ -646,9 +630,7 @@
   <Dialog.Title class="sr-only">Vault Assistant</Dialog.Title>
   <div class="flex flex-col overflow-hidden" style="height: 100%">
     <!-- Top Bar -->
-    <div
-      class="border-surface-700 bg-surface-900 flex items-center justify-between border-b px-4 py-2.5"
-    >
+    <div class="border-surface-700 bg-surface-900 flex items-center justify-between border-b px-4 py-2.5">
       <div class="flex items-center gap-2.5">
         <Button
           variant="ghost"
@@ -677,9 +659,7 @@
           >
             <CheckCheck class="h-3.5 w-3.5" />
             Approve All
-            <span
-              class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300"
-            >
+            <span class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
               {vaultEditor.pendingBreakdown}
             </span>
           </Button>
@@ -698,8 +678,7 @@
           <VaultEntityEditPanel
             bind:this={editPanelRef}
             change={vaultEditor.activeChange}
-            onApprove={(specificChange) =>
-              handleApprove(specificChange ?? vaultEditor.activeChange!)}
+            onApprove={(specificChange) => handleApprove(specificChange ?? vaultEditor.activeChange!)}
             onReject={(change) => handleReject(change)}
             onApproveAllAsync={handleApproveAll}
             onClose={() => vaultEditor.closeEditor()}
@@ -756,9 +735,7 @@
                     handleNewConversation()
                   }}
                 >
-                  <div
-                    class="bg-accent-500/15 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md"
-                  >
+                  <div class="bg-accent-500/15 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md">
                     <Plus class="text-accent-400 h-3.5 w-3.5" />
                   </div>
                   <span class="font-medium">New Conversation</span>
@@ -777,9 +754,7 @@
                           handleSwitchConversation(conv.id)
                         }}
                       >
-                        <div
-                          class="bg-surface-700 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md"
-                        >
+                        <div class="bg-surface-700 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md">
                           <History class="text-surface-400 h-3.5 w-3.5" />
                         </div>
                         <div class="min-w-0 flex-1">
@@ -859,9 +834,7 @@
                       onkeydown={(e) => e.key === 'Enter' && handleEdit(change)}
                     >
                       <!-- Entity icon -->
-                      <div
-                        class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md {eStyle.bg}"
-                      >
+                      <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md {eStyle.bg}">
                         <Icon class="h-3.5 w-3.5 {eStyle.text}" />
                       </div>
                       <!-- Info -->
@@ -957,12 +930,7 @@
           <div class="flex-1 space-y-3 overflow-y-auto px-4 py-3" bind:this={messagesContainer}>
             {#each messages as message (message.id)}
               <div in:fade={{ duration: 150 }}>
-                <div
-                  class={cn(
-                    'flex w-full',
-                    message.role === 'user' ? 'justify-end' : 'justify-start',
-                  )}
-                >
+                <div class={cn('flex w-full', message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div class={cn('max-w-[85%]', message.role === 'user' ? 'order-2' : 'order-1')}>
                     <!-- Message bubble -->
                     <div
@@ -1035,9 +1003,7 @@
                               {:else}
                                 <Wrench class="text-surface-500 h-3 w-3 flex-shrink-0" />
                               {/if}
-                              <span class="text-surface-400 font-medium"
-                                >{formatToolCallName(toolCall.name)}</span
-                              >
+                              <span class="text-surface-400 font-medium">{formatToolCallName(toolCall.name)}</span>
                             </div>
                           {/if}
                           {#if toolCall.imageUrl}
@@ -1087,10 +1053,7 @@
 
                     <!-- Timestamp -->
                     <div
-                      class={cn(
-                        'text-surface-500 mt-1 px-1 text-[10px]',
-                        message.role === 'user' ? 'text-right' : '',
-                      )}
+                      class={cn('text-surface-500 mt-1 px-1 text-[10px]', message.role === 'user' ? 'text-right' : '')}
                     >
                       {new Date(message.timestamp).toLocaleTimeString()}
                     </div>
@@ -1134,15 +1097,11 @@
                                 in:fade
                               >
                                 {#if toolCall.result === '...'}
-                                  <Loader2
-                                    class="text-accent-400 h-3 w-3 flex-shrink-0 animate-spin"
-                                  />
+                                  <Loader2 class="text-accent-400 h-3 w-3 flex-shrink-0 animate-spin" />
                                 {:else}
                                   <Wrench class="text-surface-500 h-3 w-3 flex-shrink-0" />
                                 {/if}
-                                <span class="text-surface-300 font-medium"
-                                  >{formatToolCallName(toolCall.name)}</span
-                                >
+                                <span class="text-surface-300 font-medium">{formatToolCallName(toolCall.name)}</span>
                               </div>
                             {/each}
                           </div>
@@ -1186,12 +1145,7 @@
           {/if}
 
           <!-- Input area -->
-          <VaultAssistantInput
-            bind:this={assistantInputRef}
-            onSend={handleSend}
-            disabled={!service}
-            {isGenerating}
-          />
+          <VaultAssistantInput bind:this={assistantInputRef} onSend={handleSend} disabled={!service} {isGenerating} />
         {:else}
           <!-- Entity tab body (compact only) -->
           {#if vaultEditor.activeChange}
@@ -1200,8 +1154,7 @@
                 bind:this={editPanelRef}
                 change={vaultEditor.activeChange}
                 hideHeader={true}
-                onApprove={(specificChange) =>
-                  handleApprove(specificChange ?? vaultEditor.activeChange!)}
+                onApprove={(specificChange) => handleApprove(specificChange ?? vaultEditor.activeChange!)}
                 onReject={(change) => handleReject(change)}
                 onApproveAllAsync={handleApproveAll}
                 onClose={() => vaultEditor.closeEditor()}
@@ -1245,17 +1198,11 @@
     if (!open) enlargedImageUrl = null
   }}
 >
-  <Dialog.Content
-    class="z-[60] max-h-[90vh] max-w-[90vw] overflow-hidden border-none bg-transparent p-0 shadow-none"
-  >
+  <Dialog.Content class="z-[60] max-h-[90vh] max-w-[90vw] overflow-hidden border-none bg-transparent p-0 shadow-none">
     <Dialog.Title class="sr-only">Generated Image</Dialog.Title>
     <button class="flex items-center justify-center" onclick={() => (enlargedImageUrl = null)}>
       {#if enlargedImageUrl}
-        <img
-          src={enlargedImageUrl}
-          alt="Enlarged view"
-          class="max-h-[85vh] max-w-full rounded-lg object-contain"
-        />
+        <img src={enlargedImageUrl} alt="Enlarged view" class="max-h-[85vh] max-w-full rounded-lg object-contain" />
       {/if}
     </button>
   </Dialog.Content>

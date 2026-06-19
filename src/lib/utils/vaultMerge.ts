@@ -25,11 +25,7 @@ import type { VaultCharacter, VaultScenario } from '$lib/types'
  * For structured objects (lorebook entries), matching by stable key is preferable
  * but not yet implemented.
  */
-export function mergeArrayLists(
-  dataArr: unknown[],
-  prevArr: unknown[],
-  baseArr: unknown[],
-): unknown[] {
+export function mergeArrayLists(dataArr: unknown[], prevArr: unknown[], baseArr: unknown[]): unknown[] {
   // 1. Detect genuine positional replacements (same index, different content)
   // A positional difference is only a genuine replacement if the new value
   // doesn't exist elsewhere in prevArr — otherwise it's a shift caused by
@@ -115,9 +111,7 @@ export function mergeArrayLists(
   }
 
   // 5. Insert unused replacements at their original indices (descending to avoid shift)
-  const unusedDescending = replacementIndices
-    .filter((idx) => !usedReplacements.has(idx))
-    .sort((a, b) => b - a)
+  const unusedDescending = replacementIndices.filter((idx) => !usedReplacements.has(idx)).sort((a, b) => b - a)
   for (const idx of unusedDescending) {
     result.splice(idx, 0, replacements[idx])
   }
@@ -130,11 +124,7 @@ export function mergeArrayLists(
   return result
 }
 
-function findReplacementIndex(
-  removedItem: unknown,
-  prevArr: unknown[],
-  replacementIndices: number[],
-): number | null {
+function findReplacementIndex(removedItem: unknown, prevArr: unknown[], replacementIndices: number[]): number | null {
   const serialized = JSON.stringify(removedItem)
   for (const idx of replacementIndices) {
     if (idx < prevArr.length && JSON.stringify(prevArr[idx]) === serialized) {
@@ -169,11 +159,7 @@ export function mergeIntent(
     if (JSON.stringify(dataVal) === JSON.stringify(prevVal)) continue
 
     if (Array.isArray(dataVal) && Array.isArray(prevVal) && Array.isArray(live[key])) {
-      delta[key] = mergeArrayLists(
-        dataVal as unknown[],
-        prevVal as unknown[],
-        live[key] as unknown[],
-      )
+      delta[key] = mergeArrayLists(dataVal as unknown[], prevVal as unknown[], live[key] as unknown[])
     } else {
       delta[key] = dataVal
     }

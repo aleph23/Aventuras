@@ -10,12 +10,7 @@
 import { fetch as tauriHttpFetch } from '@tauri-apps/plugin-http'
 import { PROVIDERS } from './config'
 import type { APIProfile } from '$lib/types'
-import {
-  HEALTHY_THRESHOLD_MS,
-  PING_TIMEOUT_MS,
-  type HealthStatus,
-  type PingResult,
-} from '$lib/constants/modelHealth'
+import { HEALTHY_THRESHOLD_MS, PING_TIMEOUT_MS, type HealthStatus, type PingResult } from '$lib/constants/modelHealth'
 
 export function getEffectiveBaseUrl(profile: APIProfile): string {
   const fromProfile = profile.baseUrl?.trim()
@@ -65,11 +60,7 @@ export function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.trim().replace(/\/+$/, '')
 }
 
-export async function pingModel(
-  baseUrl: string,
-  apiKey: string,
-  modelId: string,
-): Promise<PingResult> {
+export async function pingModel(baseUrl: string, apiKey: string, modelId: string): Promise<PingResult> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), PING_TIMEOUT_MS)
   const t0 = performance.now()

@@ -154,9 +154,7 @@ export class EntryInjector extends BaseAIService {
     }
 
     // Active characters (excluding protagonist)
-    const activeChars = worldState.characters.filter(
-      (c) => c.status === 'active' && c.relationship !== 'self',
-    )
+    const activeChars = worldState.characters.filter((c) => c.status === 'active' && c.relationship !== 'self')
     for (const char of activeChars.slice(0, this.config.maxEntriesPerTier)) {
       entries.push({
         type: 'character',
@@ -191,9 +189,7 @@ export class EntryInjector extends BaseAIService {
     }
 
     // Active story beats/quests
-    const activeBeats = worldState.storyBeats.filter(
-      (b) => b.status === 'active' || b.status === 'pending',
-    )
+    const activeBeats = worldState.storyBeats.filter((b) => b.status === 'active' || b.status === 'pending')
     for (const beat of activeBeats.slice(0, this.config.maxEntriesPerTier)) {
       entries.push({
         type: 'storyBeat',
@@ -364,10 +360,7 @@ export class EntryInjector extends BaseAIService {
 
     // Format entries for the prompt
     const entrySummaries = candidates
-      .map(
-        (e, i) =>
-          `${i}. [${e.type}] ${e.name}${e.description ? `: ${e.description.slice(0, 100)}` : ''}`,
-      )
+      .map((e, i) => `${i}. [${e.type}] ${e.name}${e.description ? `: ${e.description.slice(0, 100)}` : ''}`)
       .join('\n')
 
     // Build recent content for context
@@ -381,12 +374,7 @@ export class EntryInjector extends BaseAIService {
     const { system, user: prompt } = await ctx.render('tier3-entry-selection')
 
     try {
-      const result = await this.generate(
-        entitySelectionSchema,
-        system,
-        prompt,
-        'tier3-entry-selection',
-      )
+      const result = await this.generate(entitySelectionSchema, system, prompt, 'tier3-entry-selection')
 
       // Map selected IDs back to RelevantEntry objects
       const selectedSet = new Set(result.selectedIds)
@@ -547,9 +535,7 @@ export class EntryInjector extends BaseAIService {
     }
 
     // Mentioned locations (from Tier 2/3, not current)
-    const mentionedLocs = [...tier2, ...tier3].filter(
-      (e) => e.type === 'location' && !e.metadata?.current,
-    )
+    const mentionedLocs = [...tier2, ...tier3].filter((e) => e.type === 'location' && !e.metadata?.current)
     if (mentionedLocs.length > 0) {
       block += '\n\n[RELEVANT LOCATIONS]'
       for (const loc of mentionedLocs) {

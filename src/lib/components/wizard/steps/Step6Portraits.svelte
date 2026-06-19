@@ -72,8 +72,8 @@
   <div class="space-y-1">
     <h3 class="text-lg font-medium">Character Portraits</h3>
     <p class="text-muted-foreground text-sm">
-      Upload or generate visual representations for your cast. Portraits allow characters to appear
-      in story illustrations.
+      Upload or generate visual representations for your cast. Portraits allow characters to appear in story
+      illustrations.
     </p>
   </div>
 
@@ -82,8 +82,7 @@
       <AlertCircle class="h-4 w-4" />
       <Alert.Title class="text-xs font-semibold">Generation Disabled</Alert.Title>
       <Alert.Description class="text-xs">
-        Image generation is not configured. You can manually upload portraits or enable generation
-        in Settings.
+        Image generation is not configured. You can manually upload portraits or enable generation in Settings.
       </Alert.Description>
     </Alert.Root>
   {/if}
@@ -142,9 +141,7 @@
             </div>
 
             <div class="mb-2 space-y-1.5">
-              <Label class="text-muted-foreground text-[10px] tracking-wider uppercase"
-                >Appearance</Label
-              >
+              <Label class="text-muted-foreground text-[10px] tracking-wider uppercase">Appearance</Label>
               <Textarea
                 value={protagonistVisualDescriptors}
                 oninput={(e) => onProtagonistDescriptorsChange(e.currentTarget.value)}
@@ -188,9 +185,7 @@
                   disabled={isGeneratingProtagonistPortrait ||
                     isUploadingProtagonistPortrait ||
                     !protagonistVisualDescriptors.trim()}
-                  title={!protagonistVisualDescriptors.trim()
-                    ? 'Add appearance descriptors to generate'
-                    : ''}
+                  title={!protagonistVisualDescriptors.trim() ? 'Add appearance descriptors to generate' : ''}
                 >
                   {#if isGeneratingProtagonistPortrait}
                     <Loader2 class="h-3 w-3 animate-spin" />
@@ -208,9 +203,7 @@
     </Card.Root>
   {:else}
     <Card.Root class="border-dashed">
-      <Card.Content
-        class="text-muted-foreground flex flex-col items-center justify-center p-6 text-center"
-      >
+      <Card.Content class="text-muted-foreground flex flex-col items-center justify-center p-6 text-center">
         <User class="mb-2 h-8 w-8 opacity-50" />
         <p class="text-sm">No protagonist created. Go back to create one.</p>
       </Card.Content>
@@ -222,9 +215,7 @@
     <div class="space-y-2">
       <div class="flex items-center gap-2 pb-1">
         <Separator class="flex-1" />
-        <h4 class="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-          Supporting Cast
-        </h4>
+        <h4 class="text-muted-foreground text-xs font-medium tracking-wider uppercase">Supporting Cast</h4>
         <Separator class="flex-1" />
       </div>
 
@@ -279,8 +270,7 @@
                     <!-- Compact Label/Input group -->
                     <Textarea
                       value={supportingCharacterVisualDescriptors[char.name] || ''}
-                      oninput={(e) =>
-                        onSupportingDescriptorsChange(char.name, e.currentTarget.value)}
+                      oninput={(e) => onSupportingDescriptorsChange(char.name, e.currentTarget.value)}
                       placeholder="Appearance (e.g., short dark hair, green eyes)..."
                       class="min-h-[50px] resize-none text-xs"
                       rows={2}
@@ -293,8 +283,7 @@
                         variant="outline"
                         size="sm"
                         class="h-6 gap-1.5 px-2 text-xs"
-                        disabled={uploadingCharacterName === char.name ||
-                          generatingPortraitName !== null}
+                        disabled={uploadingCharacterName === char.name || generatingPortraitName !== null}
                       >
                         {#if uploadingCharacterName === char.name}
                           <Loader2 class="h-2.5 w-2.5 animate-spin" />
@@ -309,8 +298,7 @@
                         accept="image/*"
                         class="absolute inset-0 cursor-pointer opacity-0"
                         onchange={(e) => onSupportingPortraitUpload(e, char.name)}
-                        disabled={uploadingCharacterName !== null ||
-                          generatingPortraitName !== null}
+                        disabled={uploadingCharacterName !== null || generatingPortraitName !== null}
                       />
                     </div>
 
@@ -348,9 +336,7 @@
 
   {#if !protagonist && supportingCharacters.length === 0}
     <Card.Root class="bg-muted/30 border-dashed">
-      <Card.Content
-        class="text-muted-foreground flex flex-col items-center justify-center p-8 text-center"
-      >
+      <Card.Content class="text-muted-foreground flex flex-col items-center justify-center p-8 text-center">
         <User class="mb-3 h-10 w-10 opacity-50" />
         <p>No characters created yet.</p>
         <p class="mt-1 text-xs">Go back to step 5 to create characters.</p>

@@ -18,14 +18,8 @@
     onVariableChange: (variableName: string, value: string) => void
   }
 
-  let {
-    availablePacks,
-    selectedPackId,
-    packVariables,
-    variableValues,
-    onSelectPack,
-    onVariableChange,
-  }: Props = $props()
+  let { availablePacks, selectedPackId, packVariables, variableValues, onSelectPack, onVariableChange }: Props =
+    $props()
 
   const selectedPack = $derived(availablePacks.find((p) => p.id === selectedPackId))
   const hasMultiplePacks = $derived(availablePacks.length > 1)
@@ -40,9 +34,7 @@
     </div>
     <div>
       <h3 class="text-lg font-semibold">Prompt Pack</h3>
-      <p class="text-muted-foreground text-sm">
-        Choose which prompt templates to use for this story.
-      </p>
+      <p class="text-muted-foreground text-sm">Choose which prompt templates to use for this story.</p>
     </div>
   </div>
 
@@ -89,8 +81,8 @@
       </div>
       <h4 class="mb-1 text-sm font-medium">Default Pack Selected</h4>
       <p class="text-muted-foreground max-w-sm text-sm">
-        Using the built-in prompt templates. You can create custom packs with configurable variables
-        in the Vault's Prompt Editor.
+        Using the built-in prompt templates. You can create custom packs with configurable variables in the Vault's
+        Prompt Editor.
       </p>
     </div>
   {/if}
@@ -122,8 +114,7 @@
               <Switch
                 id="var-{variable.variableName}"
                 checked={variableValues[variable.variableName] === 'true'}
-                onCheckedChange={(v) =>
-                  onVariableChange(variable.variableName, v ? 'true' : 'false')}
+                onCheckedChange={(v) => onVariableChange(variable.variableName, v ? 'true' : 'false')}
               />
             </div>
           {:else}
@@ -165,9 +156,8 @@
                 }}
               >
                 <Select.Trigger class="w-full">
-                  {variable.enumOptions.find(
-                    (o) => o.value === variableValues[variable.variableName],
-                  )?.label ?? 'Select...'}
+                  {variable.enumOptions.find((o) => o.value === variableValues[variable.variableName])?.label ??
+                    'Select...'}
                 </Select.Trigger>
                 <Select.Content>
                   {#each variable.enumOptions as opt (opt.value)}

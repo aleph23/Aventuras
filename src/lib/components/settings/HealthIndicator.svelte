@@ -35,9 +35,7 @@
       case 'slow':
         return 'Connection latency (initial ping). Does not reflect the model writing/generation speed.'
       case 'down':
-        return code
-          ? `Model unreachable (HTTP ${code}). Sending is blocked.`
-          : 'Model unreachable. Sending is blocked.'
+        return code ? `Model unreachable (HTTP ${code}). Sending is blocked.` : 'Model unreachable. Sending is blocked.'
       case 'auth':
         return 'Invalid API key or insufficient permissions'
       case 'rate_limited':
@@ -65,9 +63,7 @@
       <X class="h-3 w-3 text-red-500" />
     {/if}
     {#if showLatency}
-      <span class="text-muted-foreground text-[0.65rem] tabular-nums"
-        >{formatLatency(health.latencyMs)}</span
-      >
+      <span class="text-muted-foreground text-[0.65rem] tabular-nums">{formatLatency(health.latencyMs)}</span>
     {/if}
   </span>
 {/if}

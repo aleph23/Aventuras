@@ -8,8 +8,7 @@
   type InputType = Exclude<HTMLInputTypeAttribute, 'file'>
 
   type Props = WithElementRef<
-    Omit<HTMLInputAttributes, 'type'> &
-      ({ type: 'file'; files?: FileList } | { type?: InputType; files?: undefined })
+    Omit<HTMLInputAttributes, 'type'> & ({ type: 'file'; files?: FileList } | { type?: InputType; files?: undefined })
   > & {
     leftIcon?: typeof import('lucide-svelte').Search
     rightIcon?: typeof import('lucide-svelte').Search
@@ -52,9 +51,7 @@
     {:else if type === 'password'}
       <div class={cn('relative flex', fullWidth && 'w-full')}>
         {#if LeftIcon}
-          <div
-            class="text-muted-foreground absolute top-1/2 left-3 flex -translate-y-1/2 items-center"
-          >
+          <div class="text-muted-foreground absolute top-1/2 left-3 flex -translate-y-1/2 items-center">
             <LeftIcon class="h-4 w-4" />
           </div>
         {/if}
@@ -71,9 +68,7 @@
           bind:value
           {...restProps}
         />
-        <div
-          class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center"
-        >
+        <div class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center">
           <button
             type="button"
             class="hover:text-foreground transition-colors"
@@ -90,9 +85,7 @@
     {:else}
       <div class={cn('relative flex', fullWidth && 'w-full')}>
         {#if LeftIcon}
-          <div
-            class="text-muted-foreground absolute top-1/2 left-3 flex -translate-y-1/2 items-center"
-          >
+          <div class="text-muted-foreground absolute top-1/2 left-3 flex -translate-y-1/2 items-center">
             <LeftIcon class="h-4 w-4" />
           </div>
         {/if}
@@ -111,9 +104,7 @@
           {...restProps}
         />
         {#if RightIcon}
-          <div
-            class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center"
-          >
+          <div class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center">
             <RightIcon class="h-4 w-4" />
           </div>
         {/if}
@@ -189,9 +180,7 @@
       {...restProps}
     />
     {#if RightIcon}
-      <div
-        class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center"
-      >
+      <div class="text-muted-foreground absolute top-1/2 right-3 flex -translate-y-1/2 items-center">
         <RightIcon class="h-4 w-4" />
       </div>
     {/if}

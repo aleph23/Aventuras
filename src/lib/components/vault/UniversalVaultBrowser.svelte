@@ -87,9 +87,7 @@
       item.tags.some((t: string) => t.toLowerCase().includes(query))
 
     if (type === 'character') {
-      return (
-        commonMatch || (item as VaultCharacter).traits.some((t) => t.toLowerCase().includes(query))
-      )
+      return commonMatch || (item as VaultCharacter).traits.some((t) => t.toLowerCase().includes(query))
     }
 
     return commonMatch
@@ -126,11 +124,7 @@
       >
         {#snippet icon()}
           <Avatar.Root class="h-10 w-10 border shadow-sm">
-            <Avatar.Image
-              src={normalizeImageDataUrl(char.portrait) ?? ''}
-              alt={char.name}
-              class="object-cover"
-            />
+            <Avatar.Image src={normalizeImageDataUrl(char.portrait) ?? ''} alt={char.name} class="object-cover" />
             <Avatar.Fallback class="bg-muted text-muted-foreground">
               <User class="h-5 w-5" />
             </Avatar.Fallback>

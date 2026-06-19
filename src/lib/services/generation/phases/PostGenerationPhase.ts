@@ -10,22 +10,8 @@
  * not as part of the standard post-generation flow.
  */
 
-import type {
-  GenerationEvent,
-  PhaseStartEvent,
-  PhaseCompleteEvent,
-  AbortedEvent,
-  ErrorEvent,
-} from '../types'
-import type {
-  StoryEntry,
-  Entry,
-  TranslationSettings,
-  Character,
-  Location,
-  Item,
-  StoryBeat,
-} from '$lib/types'
+import type { GenerationEvent, PhaseStartEvent, PhaseCompleteEvent, AbortedEvent, ErrorEvent } from '../types'
+import type { StoryEntry, Entry, TranslationSettings, Character, Location, Item, StoryBeat } from '$lib/types'
 import type { Suggestion, ActionChoice } from '$lib/services/ai/sdk/schemas'
 import { TranslationService } from '$lib/services/ai/utils/TranslationService'
 
@@ -67,10 +53,7 @@ export interface PostGenerationDependencies {
     promptContext: PromptContext,
     pov: 'first' | 'second' | 'third',
   ) => Promise<{ choices: ActionChoice[] }>
-  translateActionChoices: (
-    choices: ActionChoice[],
-    targetLanguage: string,
-  ) => Promise<ActionChoice[]>
+  translateActionChoices: (choices: ActionChoice[], targetLanguage: string) => Promise<ActionChoice[]>
 }
 
 /** Input for the post-generation phase */
@@ -102,9 +85,7 @@ export interface PostGenerationResult {
 export class PostGenerationPhase {
   constructor(private deps: PostGenerationDependencies) {}
 
-  async *execute(
-    input: PostGenerationInput,
-  ): AsyncGenerator<GenerationEvent, PostGenerationResult> {
+  async *execute(input: PostGenerationInput): AsyncGenerator<GenerationEvent, PostGenerationResult> {
     yield { type: 'phase_start', phase: 'post' } satisfies PhaseStartEvent
 
     const { isCreativeMode, disableSuggestions, abortSignal } = input
@@ -137,14 +118,7 @@ export class PostGenerationPhase {
   }
 
   private async generateSuggestions(input: PostGenerationInput): Promise<Suggestion[]> {
-    const {
-      entries,
-      activeThreads,
-      lorebookEntries,
-      promptContext,
-      narrativeResponse,
-      translationSettings,
-    } = input
+    const { entries, activeThreads, lorebookEntries, promptContext, narrativeResponse, translationSettings } = input
     const { suggestions } = await this.deps.generateSuggestions(
       entries,
       activeThreads,
@@ -164,15 +138,7 @@ export class PostGenerationPhase {
   }
 
   private async generateActionChoices(input: PostGenerationInput): Promise<ActionChoice[]> {
-    const {
-      entries,
-      lorebookEntries,
-      promptContext,
-      worldState,
-      narrativeResponse,
-      pov,
-      translationSettings,
-    } = input
+    const { entries, lorebookEntries, promptContext, worldState, narrativeResponse, pov, translationSettings } = input
     const { choices } = await this.deps.generateActionChoices(
       entries,
       worldState,

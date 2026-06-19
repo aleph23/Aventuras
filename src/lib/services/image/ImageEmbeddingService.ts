@@ -54,9 +54,7 @@ function buildAgenticMarkers(content: string, images: EmbeddedImage[]): ImageMar
 
       const overlaps = markers.some(
         (m) =>
-          (start >= m.start && start < m.end) ||
-          (end > m.start && end <= m.end) ||
-          (start <= m.start && end >= m.end),
+          (start >= m.start && start < m.end) || (end > m.start && end <= m.end) || (start <= m.start && end >= m.end),
       )
 
       if (!overlaps) {

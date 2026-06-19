@@ -20,18 +20,7 @@
   import { Label } from '$lib/components/ui/label'
   import { renderDescription } from '$lib/utils/markdown'
   import TestVariablesModal from './TestVariablesModal.svelte'
-  import {
-    ChevronLeft,
-    Menu,
-    Save,
-    Undo2,
-    RotateCcw,
-    Pencil,
-    Eye,
-    Check,
-    X,
-    Settings,
-  } from 'lucide-svelte'
+  import { ChevronLeft, Menu, Save, Undo2, RotateCcw, Pencil, Eye, Check, X, Settings } from 'lucide-svelte'
 
   interface Props {
     packId: string
@@ -278,9 +267,7 @@
       {:else if fullPack}
         <h2 class="min-w-0 shrink truncate font-semibold">{fullPack.pack.name}</h2>
         {#if isEditorDirty}
-          <Badge variant="outline" class="shrink-0 border-yellow-500/50 text-xs text-yellow-500"
-            >Unsaved</Badge
-          >
+          <Badge variant="outline" class="shrink-0 border-yellow-500/50 text-xs text-yellow-500">Unsaved</Badge>
         {/if}
       {/if}
 
@@ -298,12 +285,8 @@
               size="sm"
               class="mr-1 gap-0"
             >
-              <ToggleGroup.Item value="system" class="h-7 rounded-r-none px-2.5 text-xs"
-                >System</ToggleGroup.Item
-              >
-              <ToggleGroup.Item value="user" class="h-7 rounded-l-none px-2.5 text-xs"
-                >User</ToggleGroup.Item
-              >
+              <ToggleGroup.Item value="system" class="h-7 rounded-r-none px-2.5 text-xs">System</ToggleGroup.Item>
+              <ToggleGroup.Item value="user" class="h-7 rounded-l-none px-2.5 text-xs">User</ToggleGroup.Item>
             </ToggleGroup.Root>
           {/if}
 
@@ -350,12 +333,7 @@
       {/if}
 
       {#if isMobile.current}
-        <Button
-          variant="outline"
-          size="icon"
-          class="ml-auto h-8 w-8 shrink-0"
-          onclick={() => (drawerOpen = true)}
-        >
+        <Button variant="outline" size="icon" class="ml-auto h-8 w-8 shrink-0" onclick={() => (drawerOpen = true)}>
           <Menu class="h-4 w-4" />
         </Button>
       {/if}
@@ -395,12 +373,8 @@
             size="sm"
             class="gap-0"
           >
-            <ToggleGroup.Item value="system" class="h-7 rounded-r-none px-2.5 text-xs"
-              >System</ToggleGroup.Item
-            >
-            <ToggleGroup.Item value="user" class="h-7 rounded-l-none px-2.5 text-xs"
-              >User</ToggleGroup.Item
-            >
+            <ToggleGroup.Item value="system" class="h-7 rounded-r-none px-2.5 text-xs">System</ToggleGroup.Item>
+            <ToggleGroup.Item value="user" class="h-7 rounded-l-none px-2.5 text-xs">User</ToggleGroup.Item>
           </ToggleGroup.Root>
         {/if}
 
@@ -476,11 +450,7 @@
       <div class="flex flex-1 overflow-hidden">
         {#if showVariables}
           <div class="flex-1 overflow-hidden">
-            <VariableManager
-              {packId}
-              variables={fullPack?.variables ?? []}
-              onVariablesChanged={refreshPack}
-            />
+            <VariableManager {packId} variables={fullPack?.variables ?? []} onVariablesChanged={refreshPack} />
           </div>
         {:else if showRuntimeVars}
           <div class="flex-1 overflow-hidden">
@@ -518,12 +488,7 @@
                   <h3 class="text-sm font-medium">Pack Settings</h3>
                 </div>
                 {#if !editingSettings && !fullPack.pack.isDefault}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-7 gap-1.5 text-xs"
-                    onclick={startEditSettings}
-                  >
+                  <Button variant="ghost" size="sm" class="h-7 gap-1.5 text-xs" onclick={startEditSettings}>
                     <Pencil class="h-3.5 w-3.5" />
                     Edit
                   </Button>
@@ -540,11 +505,7 @@
 
                   <div class="space-y-1.5">
                     <Label for="pack-author">Author</Label>
-                    <Input
-                      id="pack-author"
-                      bind:value={settingsDraft.author}
-                      placeholder="Author name"
-                    />
+                    <Input id="pack-author" bind:value={settingsDraft.author} placeholder="Author name" />
                   </div>
 
                   <div class="space-y-1.5">

@@ -14,10 +14,7 @@ export class MlpchagProvider implements DiscoveryProvider {
   icon = GENERIC_ICON
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }
@@ -61,10 +58,7 @@ export class MlpchagProvider implements DiscoveryProvider {
 
     // Sort (client-side)
     if (options.sort === 'new') {
-      filtered.sort(
-        (a, b) =>
-          new Date(b.raw.datecreate || 0).getTime() - new Date(a.raw.datecreate || 0).getTime(),
-      )
+      filtered.sort((a, b) => new Date(b.raw.datecreate || 0).getTime() - new Date(a.raw.datecreate || 0).getTime())
     } else if (options.sort === 'name') {
       filtered.sort((a, b) => a.name.localeCompare(b.name))
     }

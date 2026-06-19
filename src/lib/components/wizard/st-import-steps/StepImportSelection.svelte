@@ -70,9 +70,7 @@
         <Loader2 class="text-primary h-5 w-5 animate-spin" />
         <div>
           <p class="text-sm font-medium">Processing character card...</p>
-          <p class="text-muted-foreground text-xs">
-            Using AI to extract characters, setting, and scenario data.
-          </p>
+          <p class="text-muted-foreground text-xs">Using AI to extract characters, setting, and scenario data.</p>
         </div>
       </Card.Content>
     </Card.Root>
@@ -80,11 +78,7 @@
     <!-- Import Toggles with Previews -->
     <div class="space-y-3">
       <!-- Characters -->
-      <Card.Root
-        class="transition-colors {importCharacters
-          ? 'border-primary/30 bg-primary/5'
-          : 'opacity-60'}"
-      >
+      <Card.Root class="transition-colors {importCharacters ? 'border-primary/30 bg-primary/5' : 'opacity-60'}">
         <Card.Content class="p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -93,9 +87,7 @@
                   ? 'bg-primary/20'
                   : 'bg-muted'}"
               >
-                <Users
-                  class="h-4 w-4 {importCharacters ? 'text-primary' : 'text-muted-foreground'}"
-                />
+                <Users class="h-4 w-4 {importCharacters ? 'text-primary' : 'text-muted-foreground'}" />
               </div>
               <div>
                 <p class="text-sm font-medium">Characters (as Supporting Cast)</p>
@@ -111,10 +103,7 @@
                 </p>
               </div>
             </div>
-            <Switch
-              checked={importCharacters}
-              onCheckedChange={(v) => onImportCharactersChange(v)}
-            />
+            <Switch checked={importCharacters} onCheckedChange={(v) => onImportCharactersChange(v)} />
           </div>
 
           <!-- Character Preview -->
@@ -137,8 +126,7 @@
                   <p class="text-sm font-medium">{cardImportResult.primaryCharacterName}</p>
                   <p class="text-muted-foreground text-xs">
                     {sanitizedDescription
-                      ? sanitizedDescription.slice(0, 100) +
-                        (sanitizedDescription.length > 100 ? '...' : '')
+                      ? sanitizedDescription.slice(0, 100) + (sanitizedDescription.length > 100 ? '...' : '')
                       : 'Primary card character'}
                   </p>
                 </div>
@@ -160,9 +148,7 @@
       </Card.Root>
 
       <!-- Scenario -->
-      <Card.Root
-        class="transition-colors {importScenario ? 'border-primary/30 bg-primary/5' : 'opacity-60'}"
-      >
+      <Card.Root class="transition-colors {importScenario ? 'border-primary/30 bg-primary/5' : 'opacity-60'}">
         <Card.Content class="p-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -185,10 +171,7 @@
           {#if importScenario && cardImportResult?.settingSeed}
             <div class="border-border mt-3 border-t pt-3">
               <p class="text-muted-foreground text-xs">
-                {cardImportResult.settingSeed.slice(0, 200)}{cardImportResult.settingSeed.length >
-                200
-                  ? '...'
-                  : ''}
+                {cardImportResult.settingSeed.slice(0, 200)}{cardImportResult.settingSeed.length > 200 ? '...' : ''}
               </p>
             </div>
           {/if}
@@ -205,15 +188,12 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-8 w-8 items-center justify-center rounded-lg {importLorebook &&
-                hasEmbeddedLorebook
+                class="flex h-8 w-8 items-center justify-center rounded-lg {importLorebook && hasEmbeddedLorebook
                   ? 'bg-primary/20'
                   : 'bg-muted'}"
               >
                 <BookOpen
-                  class="h-4 w-4 {importLorebook && hasEmbeddedLorebook
-                    ? 'text-primary'
-                    : 'text-muted-foreground'}"
+                  class="h-4 w-4 {importLorebook && hasEmbeddedLorebook ? 'text-primary' : 'text-muted-foreground'}"
                 />
               </div>
               <div>
@@ -225,9 +205,8 @@
                 </p>
                 <p class="text-muted-foreground text-xs">
                   {#if hasEmbeddedLorebook}
-                    {embeddedLorebookEntryCount} lore {embeddedLorebookEntryCount === 1
-                      ? 'entry'
-                      : 'entries'} embedded in character book
+                    {embeddedLorebookEntryCount} lore {embeddedLorebookEntryCount === 1 ? 'entry' : 'entries'} embedded in
+                    character book
                   {:else}
                     This card doesn't contain an embedded lorebook
                   {/if}

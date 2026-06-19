@@ -33,10 +33,7 @@
       const entries = LorebookImportExport.convertToEntries(importedEntries, 'import')
       const count = await story.addLorebookEntries(entries)
 
-      ui.showToast(
-        `Imported ${count} entr${count === 1 ? 'y' : 'ies'} from "${lorebook.name}"`,
-        'info',
-      )
+      ui.showToast(`Imported ${count} entr${count === 1 ? 'y' : 'ies'} from "${lorebook.name}"`, 'info')
       onClose()
     } catch (error) {
       ui.showToast(error instanceof Error ? error.message : 'Failed to import lorebook', 'error')

@@ -118,10 +118,7 @@ export class ImageStore {
     }
   }
 
-  async generateSupportingCharacterPortrait(
-    charName: string,
-    supportingCharacters: GeneratedCharacter[],
-  ) {
+  async generateSupportingCharacterPortrait(charName: string, supportingCharacters: GeneratedCharacter[]) {
     const char = supportingCharacters.find((c) => c.name === charName)
     if (!char || this.generatingPortraitName !== null) return
 

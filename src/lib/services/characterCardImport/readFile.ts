@@ -10,9 +10,7 @@ export async function readFile(file: File): Promise<string> {
     const jsonString = readFromPng(arrayBuffer)
 
     if (!jsonString) {
-      throw new Error(
-        'No character data found in PNG file. The image may not be a valid SillyTavern character card.',
-      )
+      throw new Error('No character data found in PNG file. The image may not be a valid SillyTavern character card.')
     }
 
     return jsonString

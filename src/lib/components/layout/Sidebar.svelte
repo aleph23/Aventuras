@@ -1,17 +1,7 @@
 <script lang="ts">
   import { ui } from '$lib/stores/ui.svelte'
   import { settings } from '$lib/stores/settings.svelte'
-  import {
-    Users,
-    MapPin,
-    Backpack,
-    Scroll,
-    Clock,
-    GitBranch,
-    BookOpen,
-    BookMarked,
-    Brain,
-  } from 'lucide-svelte'
+  import { Users, MapPin, Backpack, Scroll, Clock, GitBranch, BookOpen, BookMarked, Brain } from 'lucide-svelte'
   import CharacterPanel from '$lib/components/world/CharacterPanel.svelte'
 
   import LocationPanel from '$lib/components/world/LocationPanel.svelte'
@@ -115,9 +105,7 @@
   </Tabs.Root>
 
   <!-- Bottom Context Navigation -->
-  <div
-    class="bottom-context-nav border-border bg-muted flex flex-shrink-0 items-center gap-1 border-t p-2"
-  >
+  <div class="bottom-context-nav border-border bg-muted flex flex-shrink-0 items-center gap-1 border-t p-2">
     <Button
       variant="ghost"
       class="text-muted-foreground hover:bg-muted/40 hover:text-foreground h-auto min-h-12 flex-1 flex-col gap-1 py-2 text-xs {ui.activePanel ===

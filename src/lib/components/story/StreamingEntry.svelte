@@ -54,20 +54,14 @@
   <!-- Header row -->
   <div class="mb-2 flex items-center gap-2">
     <BookOpen
-      class="text-muted-foreground h-4 w-4 shrink-0 translate-y-px {isContentPhase ||
-      !isReasoningEnabled
+      class="text-muted-foreground h-4 w-4 shrink-0 translate-y-px {isContentPhase || !isReasoningEnabled
         ? 'animate-pulse'
         : ''}"
     />
 
     <!-- Reasoning toggle (inline icon) - only show if reasoning is enabled -->
     {#if isReasoningEnabled && (reasoning || isThinking)}
-      <ReasoningBlock
-        content={reasoning}
-        isStreaming={true}
-        {isReasoningPhase}
-        showToggleOnly={true}
-      />
+      <ReasoningBlock content={reasoning} isStreaming={true} {isReasoningPhase} showToggleOnly={true} />
     {/if}
 
     <!-- Live token counts with phase-based highlighting -->
@@ -93,13 +87,9 @@
 
     <!-- Placeholder for action buttons (invisible, reserves space to match StoryEntry) -->
     <div class="invisible flex items-center gap-0.5">
-      <span class="inline-flex h-7 w-7 items-center justify-center"
-        ><Volume2 class="h-4 w-4" /></span
-      >
-      <span class="inline-flex h-7 w-7 items-center justify-center"><Pencil class="h-4 w-4" /></span
-      >
-      <span class="inline-flex h-7 w-7 items-center justify-center"><Trash2 class="h-4 w-4" /></span
-      >
+      <span class="inline-flex h-7 w-7 items-center justify-center"><Volume2 class="h-4 w-4" /></span>
+      <span class="inline-flex h-7 w-7 items-center justify-center"><Pencil class="h-4 w-4" /></span>
+      <span class="inline-flex h-7 w-7 items-center justify-center"><Trash2 class="h-4 w-4" /></span>
     </div>
   </div>
 
@@ -107,12 +97,7 @@
   <div class="min-w-0">
     <!-- Reasoning content panel -->
     {#if reasoning || isThinking}
-      <ReasoningBlock
-        content={reasoning}
-        isStreaming={true}
-        {isReasoningPhase}
-        showToggleOnly={false}
-      />
+      <ReasoningBlock content={reasoning} isStreaming={true} {isReasoningPhase} showToggleOnly={false} />
     {/if}
 
     <!-- Story Content -->

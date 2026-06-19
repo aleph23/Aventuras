@@ -80,9 +80,7 @@ function simplifyError(rawError: string): string {
   // Extract line/column info if present
   const lineMatch = rawError.match(/line (\d+)/i)
   const colMatch = rawError.match(/col(?:umn)? (\d+)/i)
-  const lineInfo = lineMatch
-    ? ` near line ${lineMatch[1]}${colMatch ? `, column ${colMatch[1]}` : ''}`
-    : ''
+  const lineInfo = lineMatch ? ` near line ${lineMatch[1]}${colMatch ? `, column ${colMatch[1]}` : ''}` : ''
 
   // Pattern matching for common LiquidJS errors
   if (errorLower.includes('not closed') || errorLower.includes('not found')) {
@@ -162,11 +160,7 @@ function levenshtein(a: string, b: string): number {
  * @param maxDistance - Maximum edit distance to consider (default: 2)
  * @returns Closest match or undefined if none found within maxDistance
  */
-function findSimilar(
-  name: string,
-  validNames: string[],
-  maxDistance: number = 2,
-): string | undefined {
+function findSimilar(name: string, validNames: string[], maxDistance: number = 2): string | undefined {
   let closest: string | undefined
   let closestDistance = Infinity
 
@@ -210,10 +204,7 @@ function extractFilterNames(template: string): string[] {
  * @param additionalVariables - Optional array of extra valid variable names (e.g., from preset packs)
  * @returns ValidationResult with valid flag and array of errors
  */
-export function validateTemplate(
-  template: string,
-  additionalVariables?: string[],
-): ValidationResult {
+export function validateTemplate(template: string, additionalVariables?: string[]): ValidationResult {
   const errors: ValidationError[] = []
 
   // Step 1: Syntax validation
@@ -238,10 +229,7 @@ export function validateTemplate(
 
   // Step 2: Variable reference validation
   const variableNames = templateEngine.extractVariableNames(template)
-  const validVariables = new Set([
-    ...variableRegistry.getAllNames(),
-    ...(additionalVariables || []),
-  ])
+  const validVariables = new Set([...variableRegistry.getAllNames(), ...(additionalVariables || [])])
 
   for (const varName of variableNames) {
     if (!validVariables.has(varName)) {

@@ -17,10 +17,7 @@ import type {
 import type { ActionChoice } from '$lib/services/ai/sdk/schemas/actionchoices'
 import type { Suggestion } from '$lib/services/ai/sdk/schemas/suggestions'
 import type { StyleReviewResult } from '$lib/services/ai/generation/StyleReviewerService'
-import type {
-  EntryRetrievalResult,
-  ActivationTracker,
-} from '$lib/services/ai/retrieval/EntryRetrievalService'
+import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService'
 import type { RetrievalResult } from '$lib/services/generation/types'
 import type { SyncMode } from '$lib/types/sync'
 import { SimpleActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService'
@@ -393,9 +390,7 @@ class UIStore {
   }
 
   private updateStreamingTokenCount() {
-    const contentToCount = this.htmlRenderer
-      ? this.htmlRenderer.getRawContent()
-      : this.streamingContent
+    const contentToCount = this.htmlRenderer ? this.htmlRenderer.getRawContent() : this.streamingContent
     this.streamingReasoningTokens = countTokens(this.streamingReasoning)
     this.streamingContentTokens = countTokens(contentToCount)
   }
@@ -493,8 +488,7 @@ class UIStore {
     timeTracker: TimeTracker | null,
   ) {
     const timestamp = Date.now()
-    const nextEntryPosition =
-      entries.reduce((max, entry) => Math.max(max, entry.position ?? -1), -1) + 1
+    const nextEntryPosition = entries.reduce((max, entry) => Math.max(max, entry.position ?? -1), -1) + 1
 
     // Extract entity IDs for persistent restore
     const characterIds = characters.map((c) => c.id)
@@ -587,8 +581,7 @@ class UIStore {
     console.log('[UI] BACKUP DEBUG - Character descriptors at creation:', {
       charDescriptorsAtBackup,
       charDescriptorsInBackup,
-      areIdentical:
-        JSON.stringify(charDescriptorsAtBackup) === JSON.stringify(charDescriptorsInBackup),
+      areIdentical: JSON.stringify(charDescriptorsAtBackup) === JSON.stringify(charDescriptorsInBackup),
     })
 
     this.retryBackups.set(storyId, backup)
@@ -603,8 +596,7 @@ class UIStore {
       }))
       console.log('[UI] BACKUP DEBUG - Verification after store:', {
         storedCharDescriptors,
-        matchesOriginal:
-          JSON.stringify(storedCharDescriptors) === JSON.stringify(charDescriptorsInBackup),
+        matchesOriginal: JSON.stringify(storedCharDescriptors) === JSON.stringify(charDescriptorsInBackup),
       })
     }
 
@@ -1029,11 +1021,9 @@ class UIStore {
         this.actionChoices = parsed as ActionChoice[]
         // Also persist to settings so they survive app restart
         const data: PersistedActionChoices = { storyId, choices: parsed as ActionChoice[] }
-        database
-          .setSetting(this.getActionChoicesKey(storyId), JSON.stringify(data))
-          .catch((err) => {
-            console.warn('[UI] Failed to persist restored action choices:', err)
-          })
+        database.setSetting(this.getActionChoicesKey(storyId), JSON.stringify(data)).catch((err) => {
+          console.warn('[UI] Failed to persist restored action choices:', err)
+        })
       } else {
         this.suggestions = parsed as Suggestion[]
         const data: PersistedSuggestions = { storyId, suggestions: parsed as Suggestion[] }

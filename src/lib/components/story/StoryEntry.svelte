@@ -23,11 +23,7 @@
   import { aiTTSService } from '$lib/services/ai/utils/TTSService'
   import { parseMarkdown } from '$lib/utils/markdown'
   import { sanitizeTextForTTS } from '$lib/utils/htmlSanitize'
-  import {
-    processStoryContent,
-    processVisualProseStoryContent,
-    getPlacedImageIds,
-  } from '$lib/services/image'
+  import { processStoryContent, processVisualProseStoryContent, getPlacedImageIds } from '$lib/services/image'
   import {
     eventBus,
     type ImageReadyEvent,
@@ -44,10 +40,7 @@
   import { Textarea } from '$lib/components/ui/textarea'
   import { Input } from '$lib/components/ui/input'
   import * as ResponsiveModal from '$lib/components/ui/responsive-modal'
-  import {
-    IMAGE_STUCK_THRESHOLD_MS,
-    DEFAULT_FALLBACK_STYLE_PROMPT,
-  } from '$lib/services/ai/image/constants'
+  import { IMAGE_STUCK_THRESHOLD_MS, DEFAULT_FALLBACK_STYLE_PROMPT } from '$lib/services/ai/image/constants'
   import { SvelteSet } from 'svelte/reactivity'
   import { escapeRegex, extractSentenceAt, expandRangeBidirectional } from '$lib/utils/text'
 
@@ -206,9 +199,7 @@
   // Only show checkpoints that belong to the current branch to prevent incorrect branch lineage
   const currentBranchId = $derived(story.currentStory?.currentBranchId ?? null)
   const entryCheckpoint = $derived(
-    story.checkpoints.find(
-      (cp) => cp.lastEntryId === entry.id && getCheckpointBranchId(cp) === currentBranchId,
-    ),
+    story.checkpoints.find((cp) => cp.lastEntryId === entry.id && getCheckpointBranchId(cp) === currentBranchId),
   )
   const canBranch = $derived(!!entryCheckpoint)
 
@@ -239,24 +230,17 @@
   let checkpointName = $state('')
 
   // Check if this is the latest entry (checkpoints can only be created at the latest entry)
-  const isLatestEntry = $derived(
-    story.entries.length > 0 && story.entries[story.entries.length - 1].id === entry.id,
-  )
+  const isLatestEntry = $derived(story.entries.length > 0 && story.entries[story.entries.length - 1].id === entry.id)
 
   // Can create checkpoint: latest entry, not a system entry, and no checkpoint exists yet
   const canCreateCheckpoint = $derived(isLatestEntry && entry.type !== 'system' && !entryCheckpoint)
 
   // Is this the last user_action in the story? (used for the regeneration hint)
-  const isLastUserAction = $derived(
-    entry.type === 'user_action' && story.lastUserActionId === entry.id,
-  )
+  const isLastUserAction = $derived(entry.type === 'user_action' && story.lastUserActionId === entry.id)
 
   // Show regeneration hint when editing the last user_action and retry is available
   const canSaveAndRegenerate = $derived(
-    isLastUserAction &&
-      !!ui.retryBackup &&
-      !!story.currentStory &&
-      ui.retryBackup.storyId === story.currentStory.id,
+    isLastUserAction && !!ui.retryBackup && !!story.currentStory && ui.retryBackup.storyId === story.currentStory.id,
   )
 
   async function handleCreateCheckpoint() {
@@ -349,12 +333,7 @@
   /**
    * Link an orphaned image to a specific piece of text or paragraph.
    */
-  async function linkImageToText(
-    imageId: string,
-    targetElement: HTMLElement,
-    clientX?: number,
-    clientY?: number,
-  ) {
+  async function linkImageToText(imageId: string, targetElement: HTMLElement, clientX?: number, clientY?: number) {
     // Try sentence-level extraction if we have coordinates
     let newSourceText =
       clientX !== undefined && clientY !== undefined
@@ -414,11 +393,7 @@
   /**
    * Helper to get the character offset of a point within an HTMLElement's text content.
    */
-  function getCharOffsetInElement(
-    container: HTMLElement,
-    targetNode: Node,
-    offsetInNode: number,
-  ): number {
+  function getCharOffsetInElement(container: HTMLElement, targetNode: Node, offsetInNode: number): number {
     let offset = 0
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
 
@@ -545,12 +520,7 @@
 
   function handleDragLeave(e: DragEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    if (
-      e.clientX <= rect.left ||
-      e.clientX >= rect.right ||
-      e.clientY <= rect.top ||
-      e.clientY >= rect.bottom
-    ) {
+    if (e.clientX <= rect.left || e.clientX >= rect.right || e.clientY <= rect.top || e.clientY >= rect.bottom) {
       clearDropTarget()
       cancelDragHighlight()
     }
@@ -609,11 +579,7 @@
       await regenerateInlineImage(imageId, viewingImage.prompt)
     } else {
       const stylePrompt = await fetchCurrentStylePrompt()
-      await regenerateInlineImage(
-        imageId,
-        `${viewingImagePrompt.trim().replace(/\.+$/, '')}. ${stylePrompt}`,
-        true,
-      )
+      await regenerateInlineImage(imageId, `${viewingImagePrompt.trim().replace(/\.+$/, '')}. ${stylePrompt}`, true)
     }
   }
 
@@ -701,11 +667,7 @@
   // Regenerate an inline image with a new or existing prompt.
   // Pass usePassedPromptAsIs=true when the caller has already built the final prompt
   // (e.g. a user-edited custom prompt) and the sourceText reconstruction should be skipped.
-  async function regenerateInlineImage(
-    imageId: string,
-    prompt: string,
-    usePassedPromptAsIs = false,
-  ) {
+  async function regenerateInlineImage(imageId: string, prompt: string, usePassedPromptAsIs = false) {
     const image = embeddedImages.find((img) => img.id === imageId)
     if (!image) return
 
@@ -853,9 +815,7 @@
   })
 
   // Get the currently expanded image
-  const expandedImage = $derived(
-    expandedImageId ? embeddedImages.find((img) => img.id === expandedImageId) : null,
-  )
+  const expandedImage = $derived(expandedImageId ? embeddedImages.find((img) => img.id === expandedImageId) : null)
 
   // Subscribe to ImageReady, ImageQueued, and TTS events
   onMount(() => {
@@ -874,14 +834,11 @@
     })
 
     // Subscribe to ImageAnalysisFailed events to show error toast
-    const unsubImageAnalysisFailed = eventBus.subscribe<ImageAnalysisFailedEvent>(
-      'ImageAnalysisFailed',
-      (event) => {
-        if (event.entryId === entry.id) {
-          ui.showToast(`Image generation failed: ${event.error}`, 'error', 10000)
-        }
-      },
-    )
+    const unsubImageAnalysisFailed = eventBus.subscribe<ImageAnalysisFailedEvent>('ImageAnalysisFailed', (event) => {
+      if (event.entryId === entry.id) {
+        ui.showToast(`Image generation failed: ${event.error}`, 'error', 10000)
+      }
+    })
 
     // Subscribe to TTSQueued events to auto-play TTS when triggered from ActionInput
     const unsubTTSQueued = eventBus.subscribe<TTSQueuedEvent>('TTSQueued', (event) => {
@@ -992,10 +949,7 @@
       const excludedCharArray = ttsSettings.excludedCharacters.replace(/\s+/g, '').split(',')
       const hasExcludedChars = excludedCharArray.some(Boolean)
       const finalNarrationText = hasExcludedChars
-        ? textToNarrate.replace(
-            new RegExp(`[${excludedCharArray.filter(Boolean).map(escapeRegex).join('')}]`, 'g'),
-            '',
-          )
+        ? textToNarrate.replace(new RegExp(`[${excludedCharArray.filter(Boolean).map(escapeRegex).join('')}]`, 'g'), '')
         : textToNarrate
 
       isPlayingTTS = true
@@ -1073,11 +1027,7 @@
   })
 </script>
 
-<div
-  class="group border-border rounded-lg border border-l-4 px-4 pt-3 pb-4 shadow-sm {styles[
-    entry.type
-  ]}"
->
+<div class="group border-border rounded-lg border border-l-4 px-4 pt-3 pb-4 shadow-sm {styles[entry.type]}">
   <!-- Header row: Label + metadata on left, action buttons on right -->
   <div class="mb-2 flex items-center gap-2">
     <!-- Left side: Entry type indicator + reasoning toggle -->
@@ -1094,12 +1044,7 @@
 
     <!-- Reasoning toggle (inline icon in header) - only show if reasoning is enabled -->
     {#if isReasoningEnabled && entry.reasoning}
-      <ReasoningBlock
-        content={entry.reasoning}
-        isStreaming={false}
-        entryId={entry.id}
-        showToggleOnly={true}
-      />
+      <ReasoningBlock content={entry.reasoning} isStreaming={false} entryId={entry.id} showToggleOnly={true} />
     {/if}
 
     <!-- Token count badge (shows 0 if no tokens) -->
@@ -1227,9 +1172,7 @@
             Cancel
           </Button>
         </div>
-        <p class="text-muted-foreground hidden text-xs sm:block">
-          Ctrl+Enter to save, Esc to cancel
-        </p>
+        <p class="text-muted-foreground hidden text-xs sm:block">Ctrl+Enter to save, Esc to cancel</p>
         {#if canSaveAndRegenerate}
           <p class="hidden items-center gap-1 text-xs text-amber-500/80 sm:flex">
             Regenerate narration after significant changes
@@ -1245,12 +1188,7 @@
             <Trash2 class="mr-1.5 h-4 w-4" />
             Delete
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onclick={() => (isDeleting = false)}
-            class="h-9 px-3"
-          >
+          <Button variant="secondary" size="sm" onclick={() => (isDeleting = false)} class="h-9 px-3">
             <X class="mr-1.5 h-4 w-4" />
             Cancel
           </Button>
@@ -1284,9 +1222,7 @@
             Cancel
           </Button>
         </div>
-        <p class="text-muted-foreground text-xs">
-          This will create a new timeline from this checkpoint.
-        </p>
+        <p class="text-muted-foreground text-xs">This will create a new timeline from this checkpoint.</p>
       </div>
     {:else if isCreatingCheckpoint}
       <div class="space-y-2">
@@ -1323,12 +1259,7 @@
     {:else}
       <!-- Reasoning content panel (between header and story text) -->
       {#if entry.reasoning}
-        <ReasoningBlock
-          content={entry.reasoning}
-          isStreaming={false}
-          entryId={entry.id}
-          showToggleOnly={false}
-        />
+        <ReasoningBlock content={entry.reasoning} isStreaming={false} entryId={entry.id} showToggleOnly={false} />
       {/if}
 
       <div
@@ -1365,12 +1296,7 @@
           {@const displayContent = entry.translatedContent ?? entry.content}
           {#if visualProseMode}
             <!-- Visual Prose mode (handles both agentic and inline images) -->
-            {@html processVisualProseStoryContent(
-              displayContent,
-              embeddedImages,
-              entry.id,
-              regeneratingImageIds,
-            )}
+            {@html processVisualProseStoryContent(displayContent, embeddedImages, entry.id, regeneratingImageIds)}
           {:else}
             <!-- Standard mode (handles both agentic and inline images) -->
             {@html processStoryContent(displayContent, embeddedImages, regeneratingImageIds)}
@@ -1383,12 +1309,8 @@
         {/if}
 
         {#if selectedOrphanId}
-          <div
-            class="bg-primary/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
-          >
-            <div
-              class="bg-primary/90 animate-bounce rounded-full px-3 py-1.5 text-xs font-medium text-white"
-            >
+          <div class="bg-primary/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <div class="bg-primary/90 animate-bounce rounded-full px-3 py-1.5 text-xs font-medium text-white">
               Tap a paragraph to link image
             </div>
           </div>
@@ -1403,9 +1325,7 @@
             <span class="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
               Unplaced Illustrations
             </span>
-            <span class="text-muted-foreground/60 text-[10px] italic">
-              (Drag to a paragraph to link)
-            </span>
+            <span class="text-muted-foreground/60 text-[10px] italic"> (Drag to a paragraph to link) </span>
           </div>
           <div
             class="scrollbar-hide flex gap-3 overflow-x-auto pb-2"
@@ -1557,17 +1477,8 @@
     </div>
 
     <!-- Footer toolbar -->
-    <div
-      class="bg-surface-900 border-surface-800 flex items-center justify-end gap-2 border-t px-4 py-3"
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={() => (isViewingImage = false)}
-        class="h-8 text-xs"
-      >
-        Close
-      </Button>
+    <div class="bg-surface-900 border-surface-800 flex items-center justify-end gap-2 border-t px-4 py-3">
+      <Button variant="outline" size="sm" onclick={() => (isViewingImage = false)} class="h-8 text-xs">Close</Button>
       <Button
         size="sm"
         onclick={handleViewModalRegenerate}
@@ -1790,12 +1701,7 @@
   :global(.placeholder-shimmer) {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.03) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 2s ease-in-out infinite;
   }

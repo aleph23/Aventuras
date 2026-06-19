@@ -2,9 +2,7 @@ import { z } from 'zod'
 
 export const expandedSettingSchema = z.object({
   name: z.string().describe('memorable name for the setting'),
-  description: z
-    .string()
-    .describe('2-3 paragraphs describing the world, its rules, and atmosphere'),
+  description: z.string().describe('2-3 paragraphs describing the world, its rules, and atmosphere'),
   keyLocations: z
     .array(
       z.object({
@@ -22,21 +20,14 @@ export const generatedProtagonistSchema = z.object({
   name: z.string().describe('fitting name for this character (leave generic for 2nd person POV)'),
   description: z.string().describe('1-2 sentences about who they are'),
   background: z.string().describe('2-3 sentences about their history'),
-  motivation: z
-    .string()
-    .describe('1-2 sentences about what drives the protagonist, what they want'),
+  motivation: z.string().describe('1-2 sentences about what drives the protagonist, what they want'),
   traits: z.array(z.string()).describe('3-5 personality traits'),
-  appearance: z
-    .string()
-    .optional()
-    .describe('brief physical description (optional for 2nd person POV)'),
+  appearance: z.string().optional().describe('brief physical description (optional for 2nd person POV)'),
 })
 
 export const generatedCharacterSchema = z.object({
   name: z.string().describe('fitting name for this character'),
-  role: z
-    .string()
-    .describe("character's role in the story (ally, antagonist, mentor, love interest, etc.)"),
+  role: z.string().describe("character's role in the story (ally, antagonist, mentor, love interest, etc.)"),
   description: z.string().describe('1-2 sentences about who they are'),
   relationship: z.string().describe("character's relationship to the protagonist"),
   traits: z.array(z.string()).describe('2-4 personality traits'),

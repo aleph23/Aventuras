@@ -91,9 +91,7 @@ class ImageExportService {
         console.warn('[ImageExport] Completed with errors:', errors)
       }
 
-      console.log(
-        `[ImageExport] Exported ${imagesToExport.length - errors.length}/${imagesToExport.length} images`,
-      )
+      console.log(`[ImageExport] Exported ${imagesToExport.length - errors.length}/${imagesToExport.length} images`)
       return true
     } catch (error) {
       console.error('[ImageExport] ZIP export failed:', error)
@@ -101,11 +99,7 @@ class ImageExportService {
     }
   }
 
-  async exportImages(
-    storyTitle: string,
-    images: EmbeddedImage[],
-    selectedImageIds?: Set<string>,
-  ): Promise<boolean> {
+  async exportImages(storyTitle: string, images: EmbeddedImage[], selectedImageIds?: Set<string>): Promise<boolean> {
     const imagesToExport = this.filterImages(images, selectedImageIds)
 
     if (imagesToExport.length === 0) {
@@ -167,9 +161,7 @@ class ImageExportService {
         console.warn('[ImageExport] Completed with errors:', errors)
       }
 
-      console.log(
-        `[ImageExport] Exported ${imagesToExport.length - errors.length}/${imagesToExport.length} images`,
-      )
+      console.log(`[ImageExport] Exported ${imagesToExport.length - errors.length}/${imagesToExport.length} images`)
       return true
     } catch (error) {
       console.error('[ImageExport] Export failed:', error)

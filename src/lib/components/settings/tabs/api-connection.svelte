@@ -102,8 +102,7 @@
       pingEnabled: formPingEnabled,
       createdAt: isNewProfile
         ? Date.now()
-        : settings.apiSettings.profiles.find((p) => p.id === editingProfileId)?.createdAt ||
-          Date.now(),
+        : settings.apiSettings.profiles.find((p) => p.id === editingProfileId)?.createdAt || Date.now(),
     }
 
     if (isNewProfile) {
@@ -351,8 +350,7 @@
               <Button variant="outline" onclick={cancelEdit} class="flex-1">Cancel</Button>
               <Button
                 onclick={handleSave}
-                disabled={!formName.trim() ||
-                  (formProviderType === 'openai-compatible' && !formBaseUrl.trim())}
+                disabled={!formName.trim() || (formProviderType === 'openai-compatible' && !formBaseUrl.trim())}
                 class="flex-1"
               >
                 <Check class="h-4 w-4" />
@@ -369,10 +367,7 @@
   <div class="space-y-3">
     {#each settings.apiSettings.profiles as profile (profile.id)}
       <div class="bg-card text-card-foreground group rounded-lg border shadow-sm">
-        <Collapsible.Root
-          open={isProfileOpen(profile.id)}
-          onOpenChange={(open) => handleOpenChange(open, profile)}
-        >
+        <Collapsible.Root open={isProfileOpen(profile.id)} onOpenChange={(open) => handleOpenChange(open, profile)}>
           <div class="flex items-center gap-3 p-3 pl-4">
             <Collapsible.Trigger class="group/trigger flex flex-1 items-center gap-2 text-left">
               <div
@@ -477,15 +472,11 @@
     {#if settings.apiSettings.profiles.length === 0}
       <Card class="border-dashed">
         <CardContent class="p-8 text-center">
-          <div
-            class="bg-muted mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-          >
+          <div class="bg-muted mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
             <KeyIcon class="text-muted-foreground h-6 w-6" />
           </div>
           <h4 class="mb-2 font-medium">No API profiles yet</h4>
-          <p class="text-muted-foreground mb-4 text-sm">
-            Add an API profile to connect to your LLM provider
-          </p>
+          <p class="text-muted-foreground mb-4 text-sm">Add an API profile to connect to your LLM provider</p>
           <Button onclick={startNewProfile}>
             <Plus class=" h-4 w-4" />
             Add Your First Profile

@@ -76,12 +76,7 @@ export class MemoryService extends BaseAIService {
     })
     const { system, user: prompt } = await ctx.render('chapter-summarization')
 
-    const result = await this.generate(
-      chapterSummaryResultSchema,
-      system,
-      prompt,
-      'chapter-summarization',
-    )
+    const result = await this.generate(chapterSummaryResultSchema, system, prompt, 'chapter-summarization')
 
     log('summarizeChapter complete', {
       hasSummary: !!result.summary,
@@ -148,9 +143,7 @@ export class MemoryService extends BaseAIService {
       return { shouldRetrieve: false, relevantChapterIds: [] }
     }
 
-    const chapterSummaries = context.availableChapters
-      .map((c) => `Chapter ${c.number}: ${c.summary}`)
-      .join('\n\n')
+    const chapterSummaries = context.availableChapters.map((c) => `Chapter ${c.number}: ${c.summary}`).join('\n\n')
 
     const ctx = new ContextBuilder()
     ctx.add({
@@ -164,12 +157,7 @@ export class MemoryService extends BaseAIService {
     })
     const { system, user: prompt } = await ctx.render('retrieval-decision')
 
-    const result = await this.generate(
-      retrievalDecisionSchema,
-      system,
-      prompt,
-      'retrieval-decision',
-    )
+    const result = await this.generate(retrievalDecisionSchema, system, prompt, 'retrieval-decision')
 
     log('decideRetrieval complete', {
       shouldRetrieve: result.shouldRetrieve,

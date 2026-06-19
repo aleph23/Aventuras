@@ -109,19 +109,14 @@ export function buildVariableSchema(def: RuntimeVariable): z.ZodTypeAny {
  * @param allOptional - true for update schemas (only include changed fields),
  *                      false for new entity schemas (required fields stay required)
  */
-export function buildEntityVarsShape(
-  variables: RuntimeVariable[],
-  allOptional: boolean,
-): z.ZodRawShape | null {
+export function buildEntityVarsShape(variables: RuntimeVariable[], allOptional: boolean): z.ZodRawShape | null {
   if (variables.length === 0) return null
 
   const shape: z.ZodRawShape = {}
   for (const def of variables) {
     // For updates: all vars optional (only send what changed)
     // For new entities: respect defaultValue-based optionality
-    shape[def.variableName] = allOptional
-      ? buildVariableBaseSchema(def).optional()
-      : buildVariableSchema(def)
+    shape[def.variableName] = allOptional ? buildVariableBaseSchema(def).optional() : buildVariableSchema(def)
   }
 
   return shape

@@ -105,10 +105,7 @@ function createDefaultState(type: EntryType): Entry['state'] {
 /**
  * Export a vault lorebook to a file.
  */
-export async function exportVaultLorebook(
-  lorebook: VaultLorebook,
-  format: ExportFormat,
-): Promise<boolean> {
+export async function exportVaultLorebook(lorebook: VaultLorebook, format: ExportFormat): Promise<boolean> {
   if (lorebook.entries.length === 0) {
     throw new Error('No entries to export')
   }

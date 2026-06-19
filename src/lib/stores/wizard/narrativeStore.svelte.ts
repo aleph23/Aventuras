@@ -1,9 +1,4 @@
-import {
-  type Genre,
-  type Tense,
-  type WizardData,
-  scenarioService,
-} from '$lib/services/ai/wizard/ScenarioService'
+import { type Genre, type Tense, type WizardData, scenarioService } from '$lib/services/ai/wizard/ScenarioService'
 import { aiService } from '$lib/services/ai'
 import { TranslationService } from '$lib/services/ai/utils/TranslationService'
 import { settings } from '$lib/stores/settings.svelte'
@@ -131,9 +126,7 @@ export class NarrativeStore {
   }
 
   toggleLorebookExpanded(id: string) {
-    this.importedLorebooks = this.importedLorebooks.map((lb) =>
-      lb.id === id ? { ...lb, expanded: !lb.expanded } : lb,
-    )
+    this.importedLorebooks = this.importedLorebooks.map((lb) => (lb.id === id ? { ...lb, expanded: !lb.expanded } : lb))
   }
 
   clearAllLorebooks() {
@@ -228,10 +221,7 @@ export class NarrativeStore {
           fields.locDesc = this.generatedOpening.initialLocation.description
         }
 
-        const translated = await aiService.translateWizardBatch(
-          fields,
-          translationSettings.targetLanguage,
-        )
+        const translated = await aiService.translateWizardBatch(fields, translationSettings.targetLanguage)
 
         this.generatedOpeningTranslated = {
           ...this.generatedOpening,
@@ -240,8 +230,7 @@ export class NarrativeStore {
           initialLocation: this.generatedOpening.initialLocation
             ? {
                 name: translated.locName || this.generatedOpening.initialLocation.name,
-                description:
-                  translated.locDesc || this.generatedOpening.initialLocation.description,
+                description: translated.locDesc || this.generatedOpening.initialLocation.description,
               }
             : this.generatedOpening.initialLocation,
         }

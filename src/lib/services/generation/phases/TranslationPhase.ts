@@ -10,24 +10,14 @@
  * errors so the pipeline continues even when translation fails.
  */
 
-import type {
-  GenerationEvent,
-  PhaseStartEvent,
-  PhaseCompleteEvent,
-  AbortedEvent,
-  ErrorEvent,
-} from '../types'
+import type { GenerationEvent, PhaseStartEvent, PhaseCompleteEvent, AbortedEvent, ErrorEvent } from '../types'
 import type { TranslationSettings } from '$lib/types'
 import type { TranslationResult } from '$lib/services/ai/utils/TranslationService'
 import { TranslationService } from '$lib/services/ai/utils/TranslationService'
 
 /** Dependencies for translation phase - injected to avoid tight coupling */
 export interface TranslationDependencies {
-  translateNarration: (
-    content: string,
-    targetLanguage: string,
-    isVisualProse: boolean,
-  ) => Promise<TranslationResult>
+  translateNarration: (content: string, targetLanguage: string, isVisualProse: boolean) => Promise<TranslationResult>
 }
 
 /** Input for the translation phase */
@@ -89,11 +79,7 @@ export class TranslationPhase {
     const targetLanguage = translationSettings.targetLanguage
 
     try {
-      const translationResult = await this.deps.translateNarration(
-        narrativeContent,
-        targetLanguage,
-        isVisualProse,
-      )
+      const translationResult = await this.deps.translateNarration(narrativeContent, targetLanguage, isVisualProse)
 
       if (abortSignal?.aborted) {
         yield { type: 'aborted', phase: 'translation' } satisfies AbortedEvent

@@ -4,10 +4,7 @@
   import { Button } from '$lib/components/ui/button'
   import { RefreshCw, Loader2, Check, ImagePlus } from 'lucide-svelte'
   import { cn } from '$lib/utils/cn'
-  import {
-    DEFAULT_AVG_PROMPT_TOKENS,
-    DEFAULT_AVG_IMAGE_TOKENS,
-  } from '$lib/services/ai/image/constants'
+  import { DEFAULT_AVG_PROMPT_TOKENS, DEFAULT_AVG_IMAGE_TOKENS } from '$lib/services/ai/image/constants'
 
   interface Props {
     models: ImageModelInfo[]
@@ -64,9 +61,7 @@
     const costPerImageToken = model.costPerImageToken ?? 0
 
     const totalCost =
-      model.costPerImage +
-      costPerTextToken * DEFAULT_AVG_PROMPT_TOKENS +
-      costPerImageToken * DEFAULT_AVG_IMAGE_TOKENS
+      model.costPerImage + costPerTextToken * DEFAULT_AVG_PROMPT_TOKENS + costPerImageToken * DEFAULT_AVG_IMAGE_TOKENS
 
     // Format cost with appropriate decimal places
     if (totalCost < 0.001) {
@@ -137,12 +132,7 @@
             <div class="flex w-full flex-col items-start gap-1">
               <div class="flex w-full items-center justify-between gap-2">
                 <div class="flex items-center gap-2 truncate">
-                  <Check
-                    class={cn(
-                      'h-4 w-4',
-                      selectedModelId === model.id ? 'opacity-100' : 'opacity-0',
-                    )}
-                  />
+                  <Check class={cn('h-4 w-4', selectedModelId === model.id ? 'opacity-100' : 'opacity-0')} />
                   <span class="truncate">{getModelLabel(model)}</span>
                 </div>
                 {#if showImg2ImgIndicator && model.supportsImg2Img}

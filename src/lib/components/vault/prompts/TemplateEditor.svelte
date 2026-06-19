@@ -99,8 +99,7 @@
       height: '100%',
     },
     '.cm-content': {
-      fontFamily:
-        'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
       padding: '12px 0',
     },
     '.cm-gutters': {
@@ -351,9 +350,7 @@
       >
         {#if !isMobile.current}
           <div class="border-b px-4 py-2">
-            <h4 class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Editor
-            </h4>
+            <h4 class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Editor</h4>
           </div>
         {/if}
 
@@ -382,12 +379,7 @@
         class="min-h-0 overflow-hidden {isMobile.current ? 'flex-1' : 'w-[45%] border-l'}"
         class:hidden={isMobile.current && mobileView === 'editor'}
       >
-        <TemplatePreview
-          content={currentContent}
-          {customVariables}
-          hideHeader={isMobile.current}
-          {testValues}
-        />
+        <TemplatePreview content={currentContent} {customVariables} hideHeader={isMobile.current} {testValues} />
       </div>
     </div>
 
@@ -417,12 +409,7 @@
       </div>
 
       {#if hasCustomVariables && onTestVarsOpen}
-        <Button
-          variant="ghost"
-          size="sm"
-          class="ml-2 h-7 shrink-0 gap-1.5 text-xs"
-          onclick={onTestVarsOpen}
-        >
+        <Button variant="ghost" size="sm" class="ml-2 h-7 shrink-0 gap-1.5 text-xs" onclick={onTestVarsOpen}>
           <FlaskConical class="h-3.5 w-3.5" />
           Test Variables
         </Button>

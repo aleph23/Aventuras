@@ -12,17 +12,12 @@ const log = createLogger('BackgroundImageService')
 export class BackgroundImageService extends BaseAIService {
   private imageSettings: typeof settings.systemServicesSettings.imageGeneration
 
-  constructor(
-    serviceId: string,
-    imageSettings: typeof settings.systemServicesSettings.imageGeneration,
-  ) {
+  constructor(serviceId: string, imageSettings: typeof settings.systemServicesSettings.imageGeneration) {
     super(serviceId)
     this.imageSettings = imageSettings
   }
 
-  async analyzeResponsesForBackgroundImage(
-    visibleEntries: StoryEntry[],
-  ): Promise<BackgroundImageAnalysisResult> {
+  async analyzeResponsesForBackgroundImage(visibleEntries: StoryEntry[]): Promise<BackgroundImageAnalysisResult> {
     log('analyzeResponsesForBackgroundImage called', {
       visibleEntriesCount: visibleEntries.length,
     })

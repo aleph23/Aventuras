@@ -44,11 +44,7 @@ const unetModelNames = new Map<string, Promise<Set<string>>>()
 const autoClipCache = new Map<string, string>()
 const autoVaeCache = new Map<string, string>()
 
-export async function fetchModelList(
-  baseUrl: string,
-  type: string,
-  timeoutMs?: number,
-): Promise<string[]> {
+export async function fetchModelList(baseUrl: string, type: string, timeoutMs?: number): Promise<string[]> {
   const controller = new AbortController()
   const timerId = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : null
   try {
@@ -160,10 +156,7 @@ export function detectWorkflowFields(workflow: ComfyCustomWorkflow['workflow']):
   saveImageCount: number
 } {
   // ── Pass 1: collect everything ──────────────────────────────────────────
-  const clipNodes = new Map<
-    string,
-    { nodeId: string; title: string; path: string; textPreview: string }
-  >()
+  const clipNodes = new Map<string, { nodeId: string; title: string; path: string; textPreview: string }>()
   const kSamplerNodes = new Map<string, WorkflowNode>()
   let kSamplerNodeId: string | null = null
   let kSamplerNode: WorkflowNode | null = null
@@ -267,12 +260,7 @@ export function detectWorkflowFields(workflow: ComfyCustomWorkflow['workflow']):
   }> = []
   let negativeNode: { nodeId: string; title: string; path: string } | null = null
 
-  const withSlot = (node: {
-    nodeId: string
-    title: string
-    path: string
-    textPreview: string
-  }) => ({
+  const withSlot = (node: { nodeId: string; title: string; path: string; textPreview: string }) => ({
     ...node,
     kSamplerSlot: kSamplerSlotMap.get(node.nodeId) ?? null,
   })
@@ -296,8 +284,7 @@ export function detectWorkflowFields(workflow: ComfyCustomWorkflow['workflow']):
     // No KSampler links resolved — fall back fully to title heuristics
     for (const node of clipNodes.values()) {
       if (node.title.toLowerCase().includes('negative')) {
-        if (!negativeNode)
-          negativeNode = { nodeId: node.nodeId, title: node.title, path: node.path }
+        if (!negativeNode) negativeNode = { nodeId: node.nodeId, title: node.title, path: node.path }
       } else {
         positiveNodes.push(withSlot(node))
       }
@@ -316,10 +303,7 @@ export function detectWorkflowFields(workflow: ComfyCustomWorkflow['workflow']):
  * Parses node-level validation errors from the cause object and rejects
  * the promise with a human-readable message.
  */
-function buildOnFailedHandler(
-  reject: (reason: Error) => void,
-  label = 'ComfyUI',
-): (error: Error) => void {
+function buildOnFailedHandler(reject: (reason: Error) => void, label = 'ComfyUI'): (error: Error) => void {
   return (error: Error) => {
     const cause = (error as any).cause
     console.error(`${label} generation failed:`, error.message, cause)
@@ -367,9 +351,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       const negativeTags = (providerOptions?.negativePrompt as string) || ''
       const finalPositivePrompt = positiveTags ? `${prompt}, ${positiveTags}` : prompt
       const finalNegativePrompt = negativeTags
-      const seed = Number(
-        crypto.getRandomValues(new BigUint64Array(1))[0] % BigInt(Number.MAX_SAFE_INTEGER),
-      )
+      const seed = Number(crypto.getRandomValues(new BigUint64Array(1))[0] % BigInt(Number.MAX_SAFE_INTEGER))
 
       const explicitMode = providerOptions?.mode as ComfyMode | undefined
 
@@ -436,8 +418,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
 
       // Explicit mode always wins. Auto-detection only runs when no mode is set.
       const hasExplicitOverride = !!explicitMode
-      const isLoraMode =
-        explicitMode === ComfyMode.LoraTxt2Img || (!hasExplicitOverride && !!loraOptions)
+      const isLoraMode = explicitMode === ComfyMode.LoraTxt2Img || (!hasExplicitOverride && !!loraOptions)
 
       // Only fetch diffusion_models when auto-detection is needed; explicit basic/lora
       // overrides skip it entirely to avoid an unnecessary network round-trip.
@@ -457,8 +438,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       }
 
       const isUnetMode =
-        explicitMode === ComfyMode.UnetTxt2Img ||
-        (!hasExplicitOverride && !isLoraMode && unetNames.has(model))
+        explicitMode === ComfyMode.UnetTxt2Img || (!hasExplicitOverride && !isLoraMode && unetNames.has(model))
 
       let workflow: any
 
@@ -505,9 +485,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
           'height',
         ]
 
-        workflow = new PromptBuilder(JSON.parse(JSON.stringify(UnetTxt2ImgWorkflow)), inputKeys, [
-          'images',
-        ])
+        workflow = new PromptBuilder(JSON.parse(JSON.stringify(UnetTxt2ImgWorkflow)), inputKeys, ['images'])
           .setInputNode('unet_name', '1.inputs.unet_name')
           .setInputNode('weight_dtype', '1.inputs.weight_dtype')
           .setInputNode('clip_name', '3.inputs.clip_name')
@@ -565,9 +543,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
         // JSON round-trip ensures PromptBuilder receives a plain, unshared object.
         // The imported JSON modules are singletons — if the SDK mutates the object
         // before or after cloning, it would corrupt all subsequent calls.
-        const workflowBase = JSON.parse(
-          JSON.stringify(isLoraMode ? LoraTxt2ImgWorkflow : BasicTxt2ImgWorkflow),
-        )
+        const workflowBase = JSON.parse(JSON.stringify(isLoraMode ? LoraTxt2ImgWorkflow : BasicTxt2ImgWorkflow))
 
         let builder = new PromptBuilder(workflowBase, inputKeys, ['images'])
           .setInputNode('checkpoint', '4.inputs.ckpt_name')
@@ -680,11 +656,7 @@ export function createComfyProvider(config: ImageProviderConfig): ImageProvider 
       const schedulerList = sampler.scheduler?.[0]
 
       return {
-        samplers: Array.isArray(samplerList)
-          ? samplerList
-          : typeof samplerList === 'string'
-            ? [samplerList]
-            : [],
+        samplers: Array.isArray(samplerList) ? samplerList : typeof samplerList === 'string' ? [samplerList] : [],
         schedulers: Array.isArray(schedulerList)
           ? schedulerList
           : typeof schedulerList === 'string'

@@ -5,16 +5,7 @@
   import { imageExportService } from '$lib/services/imageExport'
   import { retryImageGeneration } from '$lib/services/ai/image'
   import type { EmbeddedImage } from '$lib/types'
-  import {
-    Download,
-    ImageIcon,
-    AlertCircle,
-    X,
-    RefreshCw,
-    ChevronLeft,
-    ChevronRight,
-    RotateCcw,
-  } from 'lucide-svelte'
+  import { Download, ImageIcon, AlertCircle, X, RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-svelte'
   import { Button } from '$lib/components/ui/button'
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Textarea } from '$lib/components/ui/textarea'
@@ -120,17 +111,13 @@
       )
 
       if (success) {
-        const message =
-          imagesToSave === 1 ? 'Saved 1 image as PNG' : `Saved ${imagesToSave} images as ZIP`
+        const message = imagesToSave === 1 ? 'Saved 1 image as PNG' : `Saved ${imagesToSave} images as ZIP`
         ui.showToast(message, 'info')
         resetSelection()
       }
     } catch (error) {
       console.error('[Gallery] Save failed:', error)
-      ui.showToast(
-        `Failed to save images: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'error',
-      )
+      ui.showToast(`Failed to save images: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
     } finally {
       isSaving = false
     }
@@ -208,9 +195,7 @@
   let editingImagePrompt = $state('')
 
   // Get the current lightbox image
-  const lightboxImage = $derived(
-    lightboxOpen && images.length > 0 ? images[lightboxImageIndex] : null,
-  )
+  const lightboxImage = $derived(lightboxOpen && images.length > 0 ? images[lightboxImageIndex] : null)
 
   // Update prompt when navigating between images in lightbox
   $effect(() => {
@@ -295,11 +280,7 @@
           >
             <Download class="h-3.5 w-3.5" />
             <span class="hidden sm:inline">
-              {isSaving
-                ? 'Saving...'
-                : selectedImageIds.size > 0
-                  ? `Save ${selectedImageIds.size}`
-                  : 'Save All'}
+              {isSaving ? 'Saving...' : selectedImageIds.size > 0 ? `Save ${selectedImageIds.size}` : 'Save All'}
             </span>
             <span class="sm:hidden">
               {isSaving ? '...' : selectedImageIds.size > 0 ? selectedImageIds.size : 'All'}
@@ -324,14 +305,8 @@
 
   <!-- Selection toolbar (shown when images exist) -->
   {#if images.length > 0 && !isLoading}
-    <div
-      class="border-surface-700 bg-surface-800 flex items-center gap-3 border-b px-4 py-2.5 sm:px-6"
-    >
-      <Checkbox
-        checked={selectAllChecked}
-        onCheckedChange={toggleSelectAll}
-        aria-label="Select all images"
-      />
+    <div class="border-surface-700 bg-surface-800 flex items-center gap-3 border-b px-4 py-2.5 sm:px-6">
+      <Checkbox checked={selectAllChecked} onCheckedChange={toggleSelectAll} aria-label="Select all images" />
       <span class="text-surface-400 text-xs sm:text-sm">
         {selectedImageIds.size === 0
           ? 'Select images to download'
@@ -348,9 +323,7 @@
       <!-- Loading state -->
       <div class="flex items-center justify-center py-12">
         <div class="flex flex-col items-center gap-3">
-          <div
-            class="border-surface-600 border-t-accent-400 h-8 w-8 animate-spin rounded-full border-2"
-          ></div>
+          <div class="border-surface-600 border-t-accent-400 h-8 w-8 animate-spin rounded-full border-2"></div>
           <p class="text-surface-400 text-sm">Loading images...</p>
         </div>
       </div>
@@ -359,9 +332,7 @@
       <div class="flex flex-col items-center justify-center py-12 text-center">
         <ImageIcon class="text-surface-700 mb-3 h-12 w-12" />
         <p class="text-surface-300 font-medium">No generated images yet</p>
-        <p class="text-surface-500 mt-1 text-sm">
-          Generate images using the image generation feature in your story
-        </p>
+        <p class="text-surface-500 mt-1 text-sm">Generate images using the image generation feature in your story</p>
       </div>
     {:else}
       <!-- Images grid -->
@@ -386,10 +357,7 @@
             <!-- Image container - click opens lightbox -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="bg-surface-700 relative aspect-video cursor-pointer"
-              onclick={() => openLightbox(index)}
-            >
+            <div class="bg-surface-700 relative aspect-video cursor-pointer" onclick={() => openLightbox(index)}>
               <img
                 src={getImagePreview(image.imageData)}
                 alt={`Generated image ${index + 1}`}
@@ -487,9 +455,7 @@
           {#if isRegenerating}
             <div class="absolute inset-0 flex items-center justify-center">
               <div class="bg-surface-900/80 flex flex-col items-center gap-2 rounded-lg px-4 py-3">
-                <div
-                  class="border-surface-400 border-t-accent-400 h-6 w-6 animate-spin rounded-full border-2"
-                ></div>
+                <div class="border-surface-400 border-t-accent-400 h-6 w-6 animate-spin rounded-full border-2"></div>
                 <span class="text-surface-300 text-sm">Regenerating...</span>
               </div>
             </div>
@@ -523,9 +489,7 @@
     </div>
 
     <!-- Footer toolbar -->
-    <div
-      class="bg-surface-900 border-surface-800 flex items-center justify-between gap-3 border-t px-4 py-3"
-    >
+    <div class="bg-surface-900 border-surface-800 flex items-center justify-between gap-3 border-t px-4 py-3">
       <!-- Counter -->
       <div class="text-surface-400 text-sm tabular-nums">
         {#if images.length > 1}
@@ -537,9 +501,7 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" onclick={closeLightbox} class="h-8 text-xs">
-          Close
-        </Button>
+        <Button variant="outline" size="sm" onclick={closeLightbox} class="h-8 text-xs">Close</Button>
         {#if lightboxImage}
           <Button
             size="sm"
@@ -555,9 +517,7 @@
             class="h-8 gap-1.5 text-xs"
           >
             {#if isRegenerating}
-              <div
-                class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
-              ></div>
+              <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
             {:else}
               <RotateCcw class="h-3.5 w-3.5" />
             {/if}

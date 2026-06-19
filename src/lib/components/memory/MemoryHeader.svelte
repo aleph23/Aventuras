@@ -21,9 +21,7 @@
   const messagesSinceLastChapter = $derived(story.messagesSinceLastChapter)
   const bufferSize = $derived(story.memoryConfig.chapterBuffer)
 
-  const percentage = $derived(
-    threshold > 0 ? Math.min(100, Math.round((tokensOutsideBuffer / threshold) * 100)) : 0,
-  )
+  const percentage = $derived(threshold > 0 ? Math.min(100, Math.round((tokensOutsideBuffer / threshold) * 100)) : 0)
   const isNearThreshold = $derived(percentage >= 80)
   const isOverThreshold = $derived(percentage >= 100)
 
@@ -53,17 +51,11 @@
         <div class="flex items-center gap-2">
           <Label
             for="auto-summarize"
-            class="cursor-pointer text-xs {autoSummarize
-              ? 'text-primary'
-              : 'text-muted-foreground'}"
+            class="cursor-pointer text-xs {autoSummarize ? 'text-primary' : 'text-muted-foreground'}"
           >
             Auto-summarize
           </Label>
-          <Switch
-            id="auto-summarize"
-            checked={autoSummarize}
-            onCheckedChange={toggleAutoSummarize}
-          />
+          <Switch id="auto-summarize" checked={autoSummarize} onCheckedChange={toggleAutoSummarize} />
         </div>
       </div>
 
@@ -80,9 +72,7 @@
       />
 
       <!-- Token Count -->
-      <div
-        class="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-0"
-      >
+      <div class="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-0">
         <span class="text-muted-foreground">
           <span class="text-foreground font-medium">{formatNumber(tokensOutsideBuffer)}</span>
           <span class="text-muted-foreground/70"> / {formatNumber(threshold)}</span>

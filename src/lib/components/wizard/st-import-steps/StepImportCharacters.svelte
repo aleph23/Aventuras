@@ -192,9 +192,7 @@
 </script>
 
 <div class="space-y-5">
-  <p class="text-muted-foreground">
-    Define your protagonist and review the supporting cast from the character card.
-  </p>
+  <p class="text-muted-foreground">Define your protagonist and review the supporting cast from the character card.</p>
 
   <!-- Protagonist Section -->
   <div class="space-y-3">
@@ -242,9 +240,7 @@
         <Card.Content class="p-4">
           <div class="mb-3 flex items-center justify-between">
             <p class="text-sm font-medium">Choose from Vault</p>
-            <Button variant="ghost" size="sm" onclick={() => onToggleVaultPicker(false)}>
-              Back to manual
-            </Button>
+            <Button variant="ghost" size="sm" onclick={() => onToggleVaultPicker(false)}>Back to manual</Button>
           </div>
           <UniversalVaultBrowser type="character" onSelect={(c) => onSelectFromVault(c)} />
         </Card.Content>
@@ -254,15 +250,8 @@
       <Card.Root>
         <Card.Content class="space-y-3 p-4">
           <div class="flex items-center justify-between">
-            <p class="text-muted-foreground text-xs">
-              Enter your protagonist's details or pick one from the vault.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              class="gap-1"
-              onclick={() => onToggleVaultPicker(true)}
-            >
+            <p class="text-muted-foreground text-xs">Enter your protagonist's details or pick one from the vault.</p>
+            <Button variant="outline" size="sm" class="gap-1" onclick={() => onToggleVaultPicker(true)}>
               <Archive class="h-3 w-3" />
               From Vault
             </Button>
@@ -315,12 +304,7 @@
               oninput={(e) => onManualTraitsChange(e.currentTarget.value)}
             />
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            onclick={onUseManualCharacter}
-            disabled={!manualCharacterName.trim()}
-          >
+          <Button variant="default" size="sm" onclick={onUseManualCharacter} disabled={!manualCharacterName.trim()}>
             Confirm Protagonist
           </Button>
         </Card.Content>
@@ -370,9 +354,7 @@
                     {/if}
                   </div>
                 </div>
-                <div
-                  class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                >
+                <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -481,20 +463,12 @@
               </div>
             </div>
           {/if}
-          <VaultCharacterFormFields
-            data={editFormData}
-            onUpdate={(newData) => (editFormData = newData)}
-          />
+          <VaultCharacterFormFields data={editFormData} onUpdate={(newData) => (editFormData = newData)} />
         </form>
       </div>
 
       <ResponsiveModal.Footer>
-        <Button
-          type="submit"
-          form="edit-char-form"
-          disabled={!editFormData.name.trim()}
-          class="w-full"
-        >
+        <Button type="submit" form="edit-char-form" disabled={!editFormData.name.trim()} class="w-full">
           Save Changes
         </Button>
       </ResponsiveModal.Footer>

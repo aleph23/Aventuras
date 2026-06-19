@@ -119,9 +119,7 @@
         {#if conflictPack}
           <Button variant="ghost" onclick={onCancel}>Cancel</Button>
           <Button variant="outline" onclick={() => onConfirm('rename')}>Import as Copy</Button>
-          <Button variant="destructive" onclick={() => onConfirm('replace')}
-            >Replace Existing</Button
-          >
+          <Button variant="destructive" onclick={() => onConfirm('replace')}>Replace Existing</Button>
         {:else}
           <Button variant="outline" onclick={onCancel}>Cancel</Button>
           <Button onclick={() => onConfirm('rename')}>Import</Button>

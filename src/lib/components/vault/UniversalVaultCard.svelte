@@ -2,18 +2,7 @@
   import type { VaultCharacter, VaultLorebook, VaultScenario } from '$lib/types'
   import { normalizeImageDataUrl } from '$lib/utils/image'
   import { Badge } from '$lib/components/ui/badge'
-  import {
-    User,
-    Users,
-    Book,
-    MapPin,
-    MessageSquare,
-    Box,
-    Flag,
-    Brain,
-    Calendar,
-    Link,
-  } from 'lucide-svelte'
+  import { User, Users, Book, MapPin, MessageSquare, Box, Flag, Brain, Calendar, Link } from 'lucide-svelte'
   import TagBadge from '$lib/components/tags/TagBadge.svelte'
   import { tagStore } from '$lib/stores/tags.svelte'
   import { lorebookVault } from '$lib/stores/lorebookVault.svelte'
@@ -54,17 +43,13 @@
   let isImporting = $derived(item.metadata?.importing === true)
 
   // Linked lorebook detection
-  const hasLinkedLorebook = $derived(
-    (type === 'character' || type === 'scenario') && !!item.metadata?.linkedLorebookId,
-  )
+  const hasLinkedLorebook = $derived((type === 'character' || type === 'scenario') && !!item.metadata?.linkedLorebookId)
   const linkedLorebookName = $derived.by(() => {
     if (!hasLinkedLorebook) return null
     const id = item.metadata?.linkedLorebookId as string
     return lorebookVault.getById(id)?.name ?? null
   })
-  const isLinkedFromCard = $derived(
-    type === 'lorebook' && !!(item.metadata as Record<string, unknown>)?.linkedFromName,
-  )
+  const isLinkedFromCard = $derived(type === 'lorebook' && !!(item.metadata as Record<string, unknown>)?.linkedFromName)
   const linkedFromName = $derived(
     isLinkedFromCard ? ((item.metadata as Record<string, unknown>).linkedFromName as string) : null,
   )
@@ -81,9 +66,7 @@
   }
 
   // Scenario tags with "imported" filtered out (source badge handles that)
-  const scenarioTags = $derived(
-    asScenario ? asScenario.tags.filter((t) => t.toLowerCase() !== 'imported') : [],
-  )
+  const scenarioTags = $derived(asScenario ? asScenario.tags.filter((t) => t.toLowerCase() !== 'imported') : [])
 
   // Helper for Lorebook Entry Counts
   const lorebookEntryCounts = $derived.by(() => {
@@ -125,15 +108,11 @@
         </div>
       {/if}
     {:else if asLorebook}
-      <div
-        class="bg-muted ring-border/50 flex h-24 w-24 items-center justify-center rounded-md ring-1"
-      >
+      <div class="bg-muted ring-border/50 flex h-24 w-24 items-center justify-center rounded-md ring-1">
         <Book class="text-muted-foreground/50 h-10 w-10" />
       </div>
     {:else if asScenario}
-      <div
-        class="bg-muted ring-border/50 flex h-24 w-24 items-center justify-center rounded-md ring-1"
-      >
+      <div class="bg-muted ring-border/50 flex h-24 w-24 items-center justify-center rounded-md ring-1">
         <MapPin class="text-muted-foreground/50 h-10 w-10" />
       </div>
     {/if}

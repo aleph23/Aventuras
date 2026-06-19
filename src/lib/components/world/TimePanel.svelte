@@ -116,39 +116,29 @@
           <div class="text-foreground text-lg font-medium">
             {story.timeTracker.years}
           </div>
-          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
-            Years
-          </div>
+          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">Years</div>
         </div>
         <div class="bg-muted/50 border-border/50 rounded border p-2">
           <div class="text-foreground text-lg font-medium">
             {story.timeTracker.days}
           </div>
-          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
-            Days
-          </div>
+          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">Days</div>
         </div>
         <div class="bg-muted/50 border-border/50 rounded border p-2">
           <div class="text-foreground text-lg font-medium">
             {pad(story.timeTracker.hours)}
           </div>
-          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
-            Hours
-          </div>
+          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">Hours</div>
         </div>
         <div class="bg-muted/50 border-border/50 rounded border p-2">
           <div class="text-foreground text-lg font-medium">
             {pad(story.timeTracker.minutes)}
           </div>
-          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
-            Min
-          </div>
+          <div class="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">Min</div>
         </div>
       </div>
     </div>
 
-    <p class="text-muted-foreground mt-2 px-1 text-xs">
-      Time is tracked automatically as the story progresses.
-    </p>
+    <p class="text-muted-foreground mt-2 px-1 text-xs">Time is tracked automatically as the story progresses.</p>
   {/if}
 </div>

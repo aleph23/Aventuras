@@ -14,16 +14,7 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import * as Dialog from '$lib/components/ui/dialog'
   import { isPingEligibleProvider } from '$lib/constants/modelHealth'
-  import {
-    AlertCircle,
-    Box,
-    ChevronRight,
-    Plus,
-    RefreshCw,
-    RotateCcw,
-    Search,
-    Star,
-  } from 'lucide-svelte'
+  import { AlertCircle, Box, ChevronRight, Plus, RefreshCw, RotateCcw, Search, Star } from 'lucide-svelte'
   import X from '@lucide/svelte/icons/x'
 
   interface Props {
@@ -112,12 +103,7 @@
     try {
       const u = new URL(url)
       const host = u.hostname
-      return (
-        host === 'localhost' ||
-        host === '127.0.0.1' ||
-        host === '0.0.0.0' ||
-        host.startsWith('192.168.')
-      )
+      return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.startsWith('192.168.')
     } catch {
       return false
     }
@@ -133,9 +119,7 @@
   function filterModels(models: TextModel[], shownOnly: boolean = false): TextModel[] {
     if (!modelFilterInput.trim()) return models
     const search = modelFilterInput.toLowerCase()
-    return models.filter(
-      (m) => m.id.toLowerCase().includes(search) && (!shownOnly || !hiddenModels.includes(m.id)),
-    )
+    return models.filter((m) => m.id.toLowerCase().includes(search) && (!shownOnly || !hiddenModels.includes(m.id)))
   }
 
   function handleAddCustomModelFromDialog() {
@@ -175,8 +159,8 @@
     <Alert class="border-yellow-500/50 bg-yellow-500/10">
       <AlertCircle class="h-4 w-4 text-yellow-500" />
       <AlertDescription class="text-xs">
-        This provider requires manual model configuration. Go to the <strong>Generation</strong> tab to
-        set models for each service.
+        This provider requires manual model configuration. Go to the <strong>Generation</strong> tab to set models for each
+        service.
       </AlertDescription>
     </Alert>
   {/if}
@@ -187,11 +171,7 @@
       <Label>
         Base URL <span class="text-muted-foreground">(required)</span>
       </Label>
-      <Input
-        placeholder="https://api.example.com/v1"
-        bind:value={baseUrl}
-        class="font-mono text-xs"
-      />
+      <Input placeholder="https://api.example.com/v1" bind:value={baseUrl} class="font-mono text-xs" />
     </div>
   {:else}
     <div class="space-y-1">
@@ -199,11 +179,7 @@
         class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium transition-colors"
         onclick={() => (showBaseUrlCollapsible = !showBaseUrlCollapsible)}
       >
-        <ChevronRight
-          class="h-3 w-3 transition-transform {showBaseUrlCollapsible || baseUrl
-            ? 'rotate-90'
-            : ''}"
-        />
+        <ChevronRight class="h-3 w-3 transition-transform {showBaseUrlCollapsible || baseUrl ? 'rotate-90' : ''}" />
         Custom Base URL
         <span class="text-muted-foreground">(optional)</span>
       </button>
@@ -273,8 +249,7 @@
         >
           <span class="font-medium">Test model availability</span>
           <span class="text-muted-foreground block">
-            Pings{providerType === 'openrouter' ? ' :free' : ''} models for latency and status. 1 request/model
-            per 30 min.
+            Pings{providerType === 'openrouter' ? ' :free' : ''} models for latency and status. 1 request/model per 30 min.
           </span>
         </Label>
       </div>
@@ -289,12 +264,7 @@
 
     <!-- Model filter (shown when there are enough models) -->
     {#if visibleFetchedModels.length + visibleCustomModels.length > 10}
-      <Input
-        placeholder="Filter models..."
-        bind:value={modelFilterInput}
-        leftIcon={Search}
-        class="text-xs"
-      />
+      <Input placeholder="Filter models..." bind:value={modelFilterInput} leftIcon={Search} class="text-xs" />
     {/if}
 
     <!-- Fetched Models -->
@@ -378,9 +348,7 @@
           class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium transition-colors"
           onclick={() => (showHiddenModels = !showHiddenModels)}
         >
-          <ChevronRight
-            class="h-3 w-3 transition-transform {showHiddenModels ? 'rotate-90' : ''}"
-          />
+          <ChevronRight class="h-3 w-3 transition-transform {showHiddenModels ? 'rotate-90' : ''}" />
           Hidden Models ({hiddenModels.length})
         </button>
         {#if showHiddenModels}
@@ -425,8 +393,7 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Add Custom Model</Dialog.Title>
-      <Dialog.Description>Enter the model identifier (e.g., provider/model-name)</Dialog.Description
-      >
+      <Dialog.Description>Enter the model identifier (e.g., provider/model-name)</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2 py-4">
       <div class="flex gap-2">
@@ -448,9 +415,7 @@
     </div>
     <Dialog.Footer>
       <Button variant="outline" onclick={() => (showCustomModelDialog = false)}>Cancel</Button>
-      <Button onclick={handleAddCustomModelFromDialog} disabled={!customModelDialogInput.trim()}>
-        Add
-      </Button>
+      <Button onclick={handleAddCustomModelFromDialog} disabled={!customModelDialogInput.trim()}>Add</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

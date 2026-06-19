@@ -11,15 +11,7 @@ import { settings } from '$lib/stores/settings.svelte'
  */
 
 import { escapeRegex } from '$lib/utils/text'
-import type {
-  Entry,
-  EntryType,
-  StoryEntry,
-  Character,
-  Location,
-  Item,
-  GenerationPreset,
-} from '$lib/types'
+import type { Entry, EntryType, StoryEntry, Character, Location, Item, GenerationPreset } from '$lib/types'
 import { BaseAIService } from '../BaseAIService'
 import { buildExtraBody } from '../core/requestOverrides'
 import { createLogger } from '$lib/log'
@@ -138,9 +130,7 @@ export class EntryRetrievalService extends BaseAIService {
   constructor(config: Partial<EntryRetrievalConfig> = {}, serviceId: string = 'entryRetrieval') {
     super(serviceId)
     this.config = { ...DEFAULT_ENTRY_RETRIEVAL_CONFIG, ...config }
-    const maxWords = Number.isFinite(this.config.maxWordsPerEntry)
-      ? this.config.maxWordsPerEntry
-      : 0
+    const maxWords = Number.isFinite(this.config.maxWordsPerEntry) ? this.config.maxWordsPerEntry : 0
     this.config.maxWordsPerEntry = Math.min(Math.max(0, Math.floor(maxWords)), 500)
   }
 
@@ -207,9 +197,7 @@ export class EntryRetrievalService extends BaseAIService {
     const tier1Ids = new Set(tier1.map((e) => e.entry.id))
 
     // Filter to entries that could be in tier 2 or 3 (not tier 1, not 'never' mode)
-    const candidateEntries = entries.filter(
-      (e) => !tier1Ids.has(e.id) && e.injection.mode !== 'never',
-    )
+    const candidateEntries = entries.filter((e) => !tier1Ids.has(e.id) && e.injection.mode !== 'never')
 
     // Tier 2: Keyword matching - check name, aliases, keywords against search content
     const tier2 = this.getTier2Entries(candidateEntries, searchContent)
@@ -233,12 +221,7 @@ export class EntryRetrievalService extends BaseAIService {
       log('Tier 3 LLM selection triggered', {
         remainingEntries: remainingEntries.length,
       })
-      tier3 = await this.getLLMSelectedEntries(
-        remainingEntries,
-        userInput,
-        recentStoryEntries,
-        signal,
-      )
+      tier3 = await this.getLLMSelectedEntries(remainingEntries, userInput, recentStoryEntries, signal)
       log(
         'Tier 3 entries:',
         tier3.length,
@@ -420,10 +403,7 @@ export class EntryRetrievalService extends BaseAIService {
             }
             break
           case 'faction':
-            if (
-              'status' in entry.state &&
-              (entry.state.status === 'allied' || entry.state.status === 'hostile')
-            ) {
+            if ('status' in entry.state && (entry.state.status === 'allied' || entry.state.status === 'hostile')) {
               shouldInclude = true
               priority = Math.max(priority, 70)
               reason = `lorebook: faction ${entry.state.status}`
@@ -683,11 +663,7 @@ export class EntryRetrievalService extends BaseAIService {
   /**
    * Build context block for prompt injection.
    */
-  private buildContextBlock(
-    tier1: RetrievedEntry[],
-    tier2: RetrievedEntry[],
-    tier3: RetrievedEntry[],
-  ): string {
+  private buildContextBlock(tier1: RetrievedEntry[], tier2: RetrievedEntry[], tier3: RetrievedEntry[]): string {
     const all = [...tier1, ...tier2, ...tier3]
     if (all.length === 0) return ''
 
@@ -795,13 +771,7 @@ export async function getRelevantEntries(
 ): Promise<EntryRetrievalResult> {
   const config = getEntryRetrievalConfigFromSettings()
   const service = new EntryRetrievalService(config, 'entryRetrieval')
-  return service.getRelevantEntries(
-    entries,
-    userInput,
-    recentStoryEntries,
-    liveState,
-    activationTracker,
-  )
+  return service.getRelevantEntries(entries, userInput, recentStoryEntries, liveState, activationTracker)
 }
 
 /**

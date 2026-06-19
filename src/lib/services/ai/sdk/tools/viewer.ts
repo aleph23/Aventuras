@@ -40,9 +40,7 @@ export function createViewerTools(context: ViewerToolContext) {
       description:
         'Open a vault entity (character, scenario, or lorebook) in the editor panel so the user can view and manually edit it. Use this when the user asks to see, show, open, or view an entity.',
       inputSchema: z.object({
-        entityType: z
-          .enum(['character', 'scenario', 'lorebook'])
-          .describe('Type of entity to show'),
+        entityType: z.enum(['character', 'scenario', 'lorebook']).describe('Type of entity to show'),
         entityId: z.string().describe('ID of the entity to show'),
       }),
       execute: async ({

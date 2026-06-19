@@ -9,10 +9,7 @@ export class WyvernProvider implements DiscoveryProvider {
   icon = GENERIC_ICON // Favicon is rate-limited/protected
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'lorebook', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     const endpoint = type === 'lorebook' ? 'lorebooks' : 'characters'
     const params = new URLSearchParams()
 

@@ -36,15 +36,7 @@ export function createOpenAIProvider(config: ImageProviderConfig): ImageProvider
       const { model, prompt, size, referenceImages, signal } = options
 
       if (referenceImages?.length) {
-        return generateWithEdits(
-          baseUrl,
-          config.apiKey,
-          model,
-          prompt,
-          size,
-          referenceImages,
-          signal,
-        )
+        return generateWithEdits(baseUrl, config.apiKey, model, prompt, size, referenceImages, signal)
       }
 
       const body = {

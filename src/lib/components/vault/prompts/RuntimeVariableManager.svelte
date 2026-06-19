@@ -1,9 +1,5 @@
 <script lang="ts">
-  import type {
-    RuntimeVariable,
-    RuntimeVariableType,
-    RuntimeEntityType,
-  } from '$lib/services/packs/types'
+  import type { RuntimeVariable, RuntimeVariableType, RuntimeEntityType } from '$lib/services/packs/types'
   import { database } from '$lib/services/database'
   import RuntimeVariableCard from './RuntimeVariableCard.svelte'
   import { Button } from '$lib/components/ui/button'
@@ -131,11 +127,7 @@
     }
   }
 
-  async function handleRenameVariable(
-    variableId: string,
-    oldVariableName: string,
-    newVariableName: string,
-  ) {
+  async function handleRenameVariable(variableId: string, oldVariableName: string, newVariableName: string) {
     try {
       await database.withTransaction(async () => {
         await database.updateRuntimeVariable(variableId, { variableName: newVariableName })
@@ -176,11 +168,7 @@
     }
   }
 
-  async function moveVariable(
-    entityType: RuntimeEntityType,
-    index: number,
-    direction: 'up' | 'down',
-  ) {
+  async function moveVariable(entityType: RuntimeEntityType, index: number, direction: 'up' | 'down') {
     const group = grouped[entityType]
     const newIndex = direction === 'up' ? index - 1 : index + 1
     if (newIndex < 0 || newIndex >= group.length) return
@@ -224,8 +212,8 @@
         <Activity class="text-muted-foreground mb-3 h-10 w-10 opacity-50" />
         <p class="text-muted-foreground text-sm font-medium">No runtime variables defined</p>
         <p class="text-muted-foreground mt-1 max-w-sm text-xs">
-          Define variables that the LLM will populate on characters, locations, items, and story
-          beats. For example, a "mood" variable for characters or "danger_level" for locations.
+          Define variables that the LLM will populate on characters, locations, items, and story beats. For example, a
+          "mood" variable for characters or "danger_level" for locations.
         </p>
         <Button variant="outline" size="sm" class="mt-4 gap-1" onclick={handleAddVariable}>
           <Plus class="h-3.5 w-3.5" />
@@ -248,13 +236,11 @@
 
             <!-- Soft warning for 10+ variables -->
             {#if entityTypeCounts[entityType] >= 10}
-              <div
-                class="text-muted-foreground mb-2 flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs"
-              >
+              <div class="text-muted-foreground mb-2 flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs">
                 <AlertTriangle class="h-3 w-3 shrink-0" />
                 <span>
-                  10+ variables for {ENTITY_TYPE_LABELS[entityType].toLowerCase()} may increase extraction
-                  cost and reduce accuracy.
+                  10+ variables for {ENTITY_TYPE_LABELS[entityType].toLowerCase()} may increase extraction cost and reduce
+                  accuracy.
                 </span>
               </div>
             {/if}
@@ -265,8 +251,7 @@
                   {variable}
                   onUpdate={handleUpdateVariable}
                   onDelete={() => handleDeleteVariable(variable)}
-                  onRename={(oldName, newName) =>
-                    handleRenameVariable(variable.id, oldName, newName)}
+                  onRename={(oldName, newName) => handleRenameVariable(variable.id, oldName, newName)}
                   onTypeChange={handleTypeChange}
                   initialExpanded={variable.id === newlyCreatedId}
                   entityTypeWarningCount={entityCounts[variable.id] ?? 0}

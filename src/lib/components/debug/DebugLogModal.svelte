@@ -74,9 +74,7 @@
         <div class="flex flex-1 items-center gap-4">
           <div class="flex items-center gap-2">
             <ResponsiveModal.Title>API Debug Logs</ResponsiveModal.Title>
-            <span
-              class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 font-mono text-xs"
-            >
+            <span class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 font-mono text-xs">
               {countRequests(throttledLogs)}
             </span>
           </div>
@@ -94,9 +92,7 @@
           {/if}
         </div>
       </div>
-      <ResponsiveModal.Description class="sr-only">
-        Logs of API requests and responses
-      </ResponsiveModal.Description>
+      <ResponsiveModal.Description class="sr-only">Logs of API requests and responses</ResponsiveModal.Description>
     </ResponsiveModal.Header>
 
     <div class="flex flex-1 flex-col overflow-hidden">
@@ -108,8 +104,7 @@
           <div class="space-y-2">
             <h3 class="text-lg font-medium">Logs are in an external window</h3>
             <p class="text-muted-foreground max-w-sm text-sm">
-              The debug logs are currently being displayed in a separate window for your
-              convenience.
+              The debug logs are currently being displayed in a separate window for your convenience.
             </p>
           </div>
           <Button variant="outline" class="gap-2" onclick={handlePopIn}>
@@ -132,9 +127,7 @@
     </div>
 
     <ResponsiveModal.Footer class="border-border bg-muted/10 mt-auto border-t px-6 py-3">
-      <p class="text-muted-foreground w-full text-center text-xs md:text-left">
-        Logs are stored in memory only.
-      </p>
+      <p class="text-muted-foreground w-full text-center text-xs md:text-left">Logs are stored in memory only.</p>
     </ResponsiveModal.Footer>
   </ResponsiveModal.Content>
 </ResponsiveModal.Root>

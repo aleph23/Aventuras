@@ -38,11 +38,7 @@
 
       // Navigate back: sub-panels → story, story/vault → library
       if (ui.activePanel !== 'library') {
-        if (
-          ui.activePanel === 'lorebook' ||
-          ui.activePanel === 'memory' ||
-          ui.activePanel === 'gallery'
-        ) {
+        if (ui.activePanel === 'lorebook' || ui.activePanel === 'memory' || ui.activePanel === 'gallery') {
           ui.setActivePanel('story')
         } else {
           if (story.currentStory) story.closeStory()

@@ -73,9 +73,7 @@ export interface ProviderConfig {
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
-export const GOOGLE_SAFETY_SETTINGS: NonNullable<
-  GoogleGenerativeAIProviderOptions['safetySettings']
-> = [
+export const GOOGLE_SAFETY_SETTINGS: NonNullable<GoogleGenerativeAIProviderOptions['safetySettings']> = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
   { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
@@ -239,10 +237,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       referenceModel: 'qwen-image-edit-2511',
       supportedSizes: ['576x576', '1024x1024', '2048x2048'],
     },
-    fallbackModels: [
-      'deepseek-ai/DeepSeek-V3-0324',
-      'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
-    ],
+    fallbackModels: ['deepseek-ai/DeepSeek-V3-0324', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
     // No service defaults - user must configure models in Generation Settings
   },
 
@@ -393,15 +388,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       referenceModel: 'dall-e-2',
       supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
     },
-    fallbackModels: [
-      'gpt-4o',
-      'gpt-4o-mini',
-      'gpt-4-turbo',
-      'gpt-4',
-      'gpt-3.5-turbo',
-      'o1',
-      'o1-mini',
-    ],
+    fallbackModels: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
     // No service defaults - user must configure models in Generation Settings
   },
 
@@ -480,12 +467,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       structuredOutput: false,
       reasoning: true,
     },
-    fallbackModels: [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'mixtral-8x7b-32768',
-      'gemma2-9b-it',
-    ],
+    fallbackModels: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
     // No service defaults - user must configure models in Generation Settings
   },
 
@@ -506,14 +488,7 @@ export const PROVIDERS: Record<ProviderType, ProviderConfig> = {
       referenceModel: 'cogview-3',
       supportedSizes: ['512x512', '1024x1024'],
     },
-    fallbackModels: [
-      'glm-4-plus',
-      'glm-4-flash',
-      'glm-4-air',
-      'glm-4v',
-      'glm-4v-plus',
-      'cogview-3-plus',
-    ],
+    fallbackModels: ['glm-4-plus', 'glm-4-flash', 'glm-4-air', 'glm-4v', 'glm-4v-plus', 'cogview-3-plus'],
     // No service defaults - user must configure models in Generation Settings
   },
 
@@ -600,8 +575,6 @@ export function supportsCapabilityFetch(providerType: ProviderType): boolean {
 }
 
 /** Get the reasoning extraction method for a provider */
-export function getReasoningExtraction(
-  providerType: ProviderType,
-): ProviderCapabilities['reasoningExtraction'] {
+export function getReasoningExtraction(providerType: ProviderType): ProviderCapabilities['reasoningExtraction'] {
   return PROVIDERS[providerType].capabilities.reasoningExtraction
 }

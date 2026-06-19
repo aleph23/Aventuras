@@ -132,11 +132,7 @@
   </div>
 {/if}
 
-<CreatePackDialog
-  open={showCreateDialog}
-  onOpenChange={(v) => (showCreateDialog = v)}
-  onCreated={handlePackCreated}
-/>
+<CreatePackDialog open={showCreateDialog} onOpenChange={(v) => (showCreateDialog = v)} onCreated={handlePackCreated} />
 
 <!-- Delete confirmation -->
 <ResponsiveModal.Root

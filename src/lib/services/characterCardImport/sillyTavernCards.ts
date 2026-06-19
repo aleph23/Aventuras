@@ -8,11 +8,5 @@ export function isV2OrV3Card(data: unknown): data is SillyTavernCardV2 {
 }
 
 export function isV1Card(data: unknown): data is SillyTavernCardV1 {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'name' in data &&
-    'description' in data &&
-    !('spec' in data)
-  )
+  return typeof data === 'object' && data !== null && 'name' in data && 'description' in data && !('spec' in data)
 }

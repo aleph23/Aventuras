@@ -118,10 +118,7 @@ class BackupService {
           // Get background image for the story's current branch
           let currentBgImage: string | null = null
           try {
-            currentBgImage = await database.getBackgroundForBranch(
-              story.id,
-              story.currentBranchId ?? null,
-            )
+            currentBgImage = await database.getBackgroundForBranch(story.id, story.currentBranchId ?? null)
           } catch {
             // Non-critical
           }

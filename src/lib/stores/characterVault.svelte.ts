@@ -48,9 +48,7 @@ class CharacterVaultStore {
   /**
    * Add a new character to the vault.
    */
-  async add(
-    input: Omit<VaultCharacter, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<VaultCharacter> {
+  async add(input: Omit<VaultCharacter, 'id' | 'createdAt' | 'updatedAt'>): Promise<VaultCharacter> {
     const now = Date.now()
     const character: VaultCharacter = {
       ...input,
@@ -70,9 +68,7 @@ class CharacterVaultStore {
    */
   async update(id: string, updates: Partial<VaultCharacter>): Promise<void> {
     await database.updateVaultCharacter(id, updates)
-    this.characters = this.characters.map((c) =>
-      c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c,
-    )
+    this.characters = this.characters.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c))
     log('Updated vault character:', id)
   }
 
@@ -118,11 +114,7 @@ class CharacterVaultStore {
    * Copy a vault character to a story.
    * Returns the data needed to create a story Character.
    */
-  copyToStory(
-    vaultCharacter: VaultCharacter,
-    storyId: string,
-    branchId: string | null,
-  ): Omit<Character, 'id'> {
+  copyToStory(vaultCharacter: VaultCharacter, storyId: string, branchId: string | null): Omit<Character, 'id'> {
     return {
       storyId,
       name: vaultCharacter.name,
@@ -326,11 +318,7 @@ class CharacterVaultStore {
     })
   }
 
-  private async _processFileImport(
-    tempId: string,
-    file: File,
-    extraMetadata: Record<string, any>,
-  ): Promise<void> {
+  private async _processFileImport(tempId: string, file: File, extraMetadata: Record<string, any>): Promise<void> {
     try {
       // Parse
       const jsonString = await CharacterCardImport.readFile(file)
@@ -394,10 +382,7 @@ class CharacterVaultStore {
 
       // Extract embedded lorebook if present
       if (parsed.characterBook) {
-        const extracted = LorebookImportExport.extractEmbeddedLorebook(
-          parsed.characterBook,
-          parsed.name,
-        )
+        const extracted = LorebookImportExport.extractEmbeddedLorebook(parsed.characterBook, parsed.name)
         if (extracted) {
           try {
             if (!lorebookVault.isLoaded) await lorebookVault.load()

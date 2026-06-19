@@ -239,9 +239,7 @@ async function fetchAnthropicModels(baseUrl?: string, apiKey?: string): Promise<
     const response = await fetchFn(modelsUrl, { method: 'GET', headers })
 
     if (!response.ok) {
-      console.warn(
-        `[ModelFetcher] Anthropic API returned ${response.status}, using fallback models`,
-      )
+      console.warn(`[ModelFetcher] Anthropic API returned ${response.status}, using fallback models`)
       return PROVIDERS.anthropic.fallbackModels
     }
 
@@ -289,11 +287,7 @@ async function fetchGoogleModels(baseUrl?: string, apiKey?: string): Promise<Tex
     return getGoogleFallback()
   }
 
-  const modelsUrl =
-    effectiveBaseUrl.replace(/\/$/, '') +
-    '/models?key=' +
-    encodeURIComponent(apiKey) +
-    '&pageSize=200'
+  const modelsUrl = effectiveBaseUrl.replace(/\/$/, '') + '/models?key=' + encodeURIComponent(apiKey) + '&pageSize=200'
 
   try {
     const fetchFn = createTimeoutFetch(30000, 'model-fetch')
@@ -378,9 +372,7 @@ async function fetchOllamaModels(baseUrl?: string): Promise<string[]> {
 
     const data = await response.json()
     if (data.models && Array.isArray(data.models)) {
-      const models = data.models
-        .map((m: { name?: string; model?: string }) => m.name || m.model || '')
-        .filter(Boolean)
+      const models = data.models.map((m: { name?: string; model?: string }) => m.name || m.model || '').filter(Boolean)
       if (models.length > 0) return models
     }
 

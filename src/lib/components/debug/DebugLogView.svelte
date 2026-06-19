@@ -102,9 +102,7 @@
       json = json.replace(/\\n/g, '\n')
     }
     if (json.length > MAX_DISPLAY_CHARS) {
-      json =
-        json.slice(0, MAX_DISPLAY_CHARS) +
-        `\n\n... [truncated — ${json.length.toLocaleString()} total chars] ...`
+      json = json.slice(0, MAX_DISPLAY_CHARS) + `\n\n... [truncated — ${json.length.toLocaleString()} total chars] ...`
     }
     if (jsonCache.size > 200) {
       const firstKey = jsonCache.keys().next().value
@@ -269,9 +267,7 @@
         <Button
           variant="ghost"
           size="icon"
-          class={renderNewlines
-            ? 'text-blue-400 hover:text-blue-500'
-            : 'text-muted-foreground hover:text-foreground'}
+          class={renderNewlines ? 'text-blue-400 hover:text-blue-500' : 'text-muted-foreground hover:text-foreground'}
           onclick={onToggleRenderNewlines}
           title={renderNewlines ? 'Show escaped newlines (\\n)' : 'Render newlines as line breaks'}
         >
@@ -294,11 +290,7 @@
   </div>
 
   <!-- Logs Area -->
-  <div
-    class="relative flex-1 overflow-y-auto px-6 py-4"
-    bind:this={scrollContainer}
-    onscroll={handleScroll}
-  >
+  <div class="relative flex-1 overflow-y-auto px-6 py-4" bind:this={scrollContainer} onscroll={handleScroll}>
     {#if pagedLogs.length === 0}
       <div class="text-muted-foreground flex h-48 flex-col items-center justify-center text-sm">
         <p>No API requests matching the current filter.</p>
@@ -350,17 +342,11 @@
                     <span class={group.response.error ? 'text-red-400' : 'text-green-400'}>
                       <ArrowDownCircle class="h-4 w-4" />
                     </span>
-                    <span
-                      class="text-sm font-medium {group.response.error
-                        ? 'text-red-400'
-                        : 'text-green-400'}"
-                    >
+                    <span class="text-sm font-medium {group.response.error ? 'text-red-400' : 'text-green-400'}">
                       {group.response.error ? 'Error' : 'Response'}
                     </span>
                     {#if group.response.duration}
-                      <span
-                        class="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 font-mono text-xs"
-                      >
+                      <span class="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 font-mono text-xs">
                         {formatDuration(group.response.duration)}
                       </span>
                     {/if}
@@ -417,19 +403,14 @@
     <div class="flex items-center gap-4">
       <div class="text-muted-foreground text-xs whitespace-nowrap">
         {#if groupedLogs.length > 0}
-          Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
-            currentPage * pageSize,
-            groupedLogs.length,
-          )} of {groupedLogs.length}
+          Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, groupedLogs.length)} of {groupedLogs.length}
         {:else}
           No entries
         {/if}
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase"
-          >Size</span
-        >
+        <span class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">Size</span>
         <Select.Root
           type="single"
           value={String(pageSize)}

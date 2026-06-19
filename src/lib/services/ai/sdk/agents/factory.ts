@@ -5,13 +5,7 @@
  * Integrates with the existing settings and provider system.
  */
 
-import {
-  ToolLoopAgent,
-  wrapLanguageModel,
-  type StopCondition,
-  type ToolSet,
-  type StepResult,
-} from 'ai'
+import { ToolLoopAgent, wrapLanguageModel, type StopCondition, type ToolSet, type StepResult } from 'ai'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import type { ProviderOptions } from '@ai-sdk/provider-utils'
 import { settings } from '$lib/stores/settings.svelte'
@@ -40,11 +34,7 @@ export interface ResolvedAgentConfig {
  *
  * @param presetId - The preset ID (e.g., 'agentic', 'loreManagement')
  */
-export function resolveAgentConfig(
-  presetId: string,
-  serviceId: string,
-  debugId?: string,
-): ResolvedAgentConfig {
+export function resolveAgentConfig(presetId: string, serviceId: string, debugId?: string): ResolvedAgentConfig {
   const preset = settings.getPresetConfig(presetId)
   const profileId = preset.profileId ?? settings.apiSettings.mainNarrativeProfileId
   const profile = settings.getProfile(profileId)
@@ -210,9 +200,7 @@ export function createStreamingAgenticAssistant<TTools extends ToolSet>(
  * Agent result type helper.
  * Extracts the result type from a ToolLoopAgent.
  */
-export type AgentResult<TTools extends ToolSet> = Awaited<
-  ReturnType<ToolLoopAgent<never, TTools>['generate']>
->
+export type AgentResult<TTools extends ToolSet> = Awaited<ReturnType<ToolLoopAgent<never, TTools>['generate']>>
 
 /**
  * Extract tool call results from agent steps.

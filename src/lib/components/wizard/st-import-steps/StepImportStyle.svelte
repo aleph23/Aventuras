@@ -78,11 +78,7 @@
             : 'border-border hover:border-primary/40'}"
         >
           <Card.Content class="flex items-center gap-3 p-3">
-            <Sword
-              class="h-5 w-5 {selectedMode === 'adventure'
-                ? 'text-primary'
-                : 'text-muted-foreground'}"
-            />
+            <Sword class="h-5 w-5 {selectedMode === 'adventure' ? 'text-primary' : 'text-muted-foreground'}" />
             <div>
               <p class="text-sm font-medium">Adventure</p>
               <p class="text-muted-foreground text-xs">You are the protagonist</p>
@@ -90,21 +86,14 @@
           </Card.Content>
         </Card.Root>
       </button>
-      <button
-        class="w-full text-left focus:outline-none"
-        onclick={() => onModeChange('creative-writing')}
-      >
+      <button class="w-full text-left focus:outline-none" onclick={() => onModeChange('creative-writing')}>
         <Card.Root
           class="h-full transition-all {selectedMode === 'creative-writing'
             ? 'ring-primary border-primary ring-2'
             : 'border-border hover:border-primary/40'}"
         >
           <Card.Content class="flex items-center gap-3 p-3">
-            <Feather
-              class="h-5 w-5 {selectedMode === 'creative-writing'
-                ? 'text-primary'
-                : 'text-muted-foreground'}"
-            />
+            <Feather class="h-5 w-5 {selectedMode === 'creative-writing' ? 'text-primary' : 'text-muted-foreground'}" />
             <div>
               <p class="text-sm font-medium">Creative Writing</p>
               <p class="text-muted-foreground text-xs">You are the author</p>
@@ -127,14 +116,10 @@
         <Card.Root
           class="h-full transition-all {importChatAsEntries
             ? 'ring-primary border-primary ring-2'
-            : 'border-border hover:border-primary/40'} {!hasChatFile
-            ? 'cursor-not-allowed opacity-50'
-            : ''}"
+            : 'border-border hover:border-primary/40'} {!hasChatFile ? 'cursor-not-allowed opacity-50' : ''}"
         >
           <Card.Content class="flex items-center gap-3 p-3">
-            <MessageSquare
-              class="h-5 w-5 {importChatAsEntries ? 'text-primary' : 'text-muted-foreground'}"
-            />
+            <MessageSquare class="h-5 w-5 {importChatAsEntries ? 'text-primary' : 'text-muted-foreground'}" />
             <div>
               <p class="text-sm font-medium">Import Chat</p>
               <p class="text-muted-foreground text-xs">
@@ -159,9 +144,7 @@
             : 'border-border hover:border-primary/40'} {!hasCardOpening ? 'opacity-50' : ''}"
         >
           <Card.Content class="flex items-center gap-3 p-3">
-            <FileText
-              class="h-5 w-5 {!importChatAsEntries ? 'text-primary' : 'text-muted-foreground'}"
-            />
+            <FileText class="h-5 w-5 {!importChatAsEntries ? 'text-primary' : 'text-muted-foreground'}" />
             <div>
               <p class="text-sm font-medium">Fresh Start</p>
               <p class="text-muted-foreground text-xs">

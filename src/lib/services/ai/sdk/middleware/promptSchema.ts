@@ -20,9 +20,7 @@ function jsonSchemaToTypeScript(schema: JSONSchema7, indent = 0): string {
   const padInner = '  '.repeat(indent + 1)
 
   const nullable = Array.isArray(schema.type) && schema.type.includes('null')
-  const primaryType = Array.isArray(schema.type)
-    ? schema.type.find((t: string) => t !== 'null')
-    : schema.type
+  const primaryType = Array.isArray(schema.type) ? schema.type.find((t: string) => t !== 'null') : schema.type
 
   function withNullable(type: string): string {
     return nullable ? `${type} | null` : type
@@ -91,13 +89,9 @@ const SCHEMA_INSTRUCTION_TEMPLATE = `Respond strictly with JSON. The JSON should
 
 Output ONLY the JSON object, no other text or markdown.`
 
-const SIMPLE_JSON_INSTRUCTION =
-  'Respond strictly with valid JSON. Output ONLY the JSON, no other text.'
+const SIMPLE_JSON_INSTRUCTION = 'Respond strictly with valid JSON. Output ONLY the JSON, no other text.'
 
-function injectSchemaIntoPrompt(
-  prompt: LanguageModelV3Prompt,
-  instruction: string,
-): LanguageModelV3Prompt {
+function injectSchemaIntoPrompt(prompt: LanguageModelV3Prompt, instruction: string): LanguageModelV3Prompt {
   const newPrompt = [...prompt]
   const lastUserIdx = newPrompt.findLastIndex((msg) => msg.role === 'user')
 
@@ -132,9 +126,7 @@ export interface PromptSchemaMiddlewareOptions {
   typeName?: string
 }
 
-export function promptSchemaMiddleware(
-  options: PromptSchemaMiddlewareOptions = {},
-): LanguageModelV3Middleware {
+export function promptSchemaMiddleware(options: PromptSchemaMiddlewareOptions = {}): LanguageModelV3Middleware {
   const instructionTemplate = options.instruction ?? SCHEMA_INSTRUCTION_TEMPLATE
   const typeName = options.typeName ?? 'Response'
 

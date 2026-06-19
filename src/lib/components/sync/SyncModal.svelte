@@ -4,16 +4,7 @@
   import { syncService } from '$lib/services/sync'
   import { exportService } from '$lib/services/export'
   import { getVersion } from '@tauri-apps/api/app'
-  import {
-    QrCode,
-    Camera,
-    Upload,
-    Download,
-    Loader2,
-    AlertTriangle,
-    RefreshCw,
-    Check,
-  } from 'lucide-svelte'
+  import { QrCode, Camera, Upload, Download, Loader2, AlertTriangle, RefreshCw, Check } from 'lucide-svelte'
   import { Html5Qrcode } from 'html5-qrcode'
   import type { SyncServerInfo, SyncStoryPreview, SyncConnectionData } from '$lib/types/sync'
   import { onDestroy } from 'svelte'
@@ -242,9 +233,7 @@
 
       // Apply zoom after camera starts (more reliable on mobile)
       try {
-        const videoElement = document.querySelector(
-          `#${scannerElementId} video`,
-        ) as HTMLVideoElement
+        const videoElement = document.querySelector(`#${scannerElementId} video`) as HTMLVideoElement
         if (videoElement && videoElement.srcObject) {
           const track = (videoElement.srcObject as MediaStream).getVideoTracks()[0]
           const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
@@ -469,9 +458,7 @@
 
     <div class="py-4">
       {#if error}
-        <div
-          class="bg-destructive/15 text-destructive mb-4 flex items-center gap-2 rounded-lg p-3 text-sm"
-        >
+        <div class="bg-destructive/15 text-destructive mb-4 flex items-center gap-2 rounded-lg p-3 text-sm">
           <AlertTriangle class="h-4 w-4 shrink-0" />
           {error}
         </div>
@@ -490,10 +477,7 @@
       {:else if ui.syncMode === 'select'}
         <!-- Mode Selection -->
         <div class="grid grid-cols-1 gap-4">
-          <Card
-            class="hover:bg-muted/50 cursor-pointer transition-colors"
-            onclick={startGenerateMode}
-          >
+          <Card class="hover:bg-muted/50 cursor-pointer transition-colors" onclick={startGenerateMode}>
             <CardHeader class="flex flex-row items-center gap-4 space-y-0 p-4">
               <div class="bg-primary/10 rounded-lg p-3">
                 <QrCode class="text-primary h-6 w-6" />
@@ -522,15 +506,13 @@
         {#if showReceivedConflict && receivedStoryPreview}
           <!-- Conflict warning for received push -->
           <div class="flex flex-col items-center py-4 text-center">
-            <div
-              class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20"
-            >
+            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20">
               <AlertTriangle class="h-8 w-8 text-amber-500" />
             </div>
             <h3 class="mb-2 text-lg font-semibold">Story Already Exists</h3>
             <p class="text-muted-foreground mb-4">
-              A story named "{receivedStoryPreview.title}" already exists on this device. Replacing
-              it will create a "Pre-sync backup" checkpoint first. Continue?
+              A story named "{receivedStoryPreview.title}" already exists on this device. Replacing it will create a
+              "Pre-sync backup" checkpoint first. Continue?
             </p>
             <div class="flex gap-3">
               <Button variant="outline" onclick={cancelReceivedImport}>Cancel</Button>
@@ -545,15 +527,9 @@
         {:else if serverInfo}
           <div class="flex flex-col items-center text-center">
             <div class="mb-4 inline-block rounded-lg bg-white p-4">
-              <img
-                src="data:image/png;base64,{serverInfo.qrCodeBase64}"
-                alt="QR Code"
-                class="h-64 w-64"
-              />
+              <img src="data:image/png;base64,{serverInfo.qrCodeBase64}" alt="QR Code" class="h-64 w-64" />
             </div>
-            <p class="text-muted-foreground text-sm">
-              Scan this QR code with another device running Aventuras
-            </p>
+            <p class="text-muted-foreground text-sm">Scan this QR code with another device running Aventuras</p>
             <p class="text-muted-foreground/60 mt-2 text-xs">
               Server: {serverInfo.ip}:{serverInfo.port}
             </p>
@@ -563,15 +539,11 @@
         <!-- Version Mismatch Warning -->
         {#if showVersionWarning}
           <div class="flex flex-col items-center py-4 text-center">
-            <div
-              class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20"
-            >
+            <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20">
               <AlertTriangle class="h-8 w-8 text-amber-500" />
             </div>
             <h3 class="mb-2 text-lg font-semibold">Version Mismatch</h3>
-            <p class="text-muted-foreground mb-2">
-              The remote device is running a different version of Aventuras.
-            </p>
+            <p class="text-muted-foreground mb-2">The remote device is running a different version of Aventuras.</p>
             <div class="text-muted-foreground/80 mb-4 text-sm">
               <p>Local: v{localVersion}</p>
               <p>Remote: {remoteVersion ? `v${remoteVersion}` : 'unknown'}</p>
@@ -611,8 +583,8 @@
                 <span class="font-semibold">Story Already Exists</span>
               </div>
               <p class="text-sm">
-                A story named "{conflictStoryTitle}" already exists on this device. Pulling will
-                replace it after creating a "Pre-sync backup" checkpoint.
+                A story named "{conflictStoryTitle}" already exists on this device. Pulling will replace it after
+                creating a "Pre-sync backup" checkpoint.
               </p>
               <div class="mt-3 flex gap-2">
                 <Button variant="secondary" size="sm" onclick={cancelConflict}>Cancel</Button>
@@ -644,23 +616,17 @@
                       <div class="flex w-full items-center justify-between">
                         <span class="truncate font-medium">{remoteStory.title}</span>
                         {#if remoteStory.genre}
-                          <Badge variant="secondary" class="h-5 text-[10px]"
-                            >{remoteStory.genre}</Badge
-                          >
+                          <Badge variant="secondary" class="h-5 text-[10px]">{remoteStory.genre}</Badge>
                         {/if}
                       </div>
                       <div class="text-muted-foreground text-xs">
-                        {remoteStory.entryCount} entries • Updated {formatDate(
-                          remoteStory.updatedAt,
-                        )}
+                        {remoteStory.entryCount} entries • Updated {formatDate(remoteStory.updatedAt)}
                       </div>
                     </button>
                   {/each}
                 </ScrollArea>
               {:else}
-                <div class="text-muted-foreground py-4 text-center text-sm">
-                  No stories available on remote device
-                </div>
+                <div class="text-muted-foreground py-4 text-center text-sm">No stories available on remote device</div>
               {/if}
             </div>
 
@@ -686,9 +652,7 @@
                       <div class="flex w-full items-center justify-between">
                         <span class="truncate font-medium">{localStory.title}</span>
                         {#if localStory.genre}
-                          <Badge variant="secondary" class="h-5 text-[10px]"
-                            >{localStory.genre}</Badge
-                          >
+                          <Badge variant="secondary" class="h-5 text-[10px]">{localStory.genre}</Badge>
                         {/if}
                       </div>
                       <div class="text-muted-foreground text-xs">
@@ -698,9 +662,7 @@
                   {/each}
                 </ScrollArea>
               {:else}
-                <div class="text-muted-foreground py-4 text-center text-sm">
-                  No local stories to push
-                </div>
+                <div class="text-muted-foreground py-4 text-center text-sm">No local stories to push</div>
               {/if}
             </div>
           </div>

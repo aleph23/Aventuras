@@ -1,17 +1,7 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte'
   import { ui } from '$lib/stores/ui.svelte'
-  import {
-    Plus,
-    Target,
-    CheckCircle,
-    XCircle,
-    Circle,
-    Pencil,
-    ChevronDown,
-    Save,
-    X,
-  } from 'lucide-svelte'
+  import { Plus, Target, CheckCircle, XCircle, Circle, Pencil, ChevronDown, Save, X } from 'lucide-svelte'
   import type { StoryBeat } from '$lib/types'
   import type { RuntimeVariable, RuntimeVarsMap } from '$lib/services/packs/types'
   import { Button } from '$lib/components/ui/button'
@@ -59,11 +49,7 @@
     }
   }
 
-  function updateEditRuntimeVar(
-    defId: string,
-    variableName: string,
-    value: string | number | null,
-  ) {
+  function updateEditRuntimeVar(defId: string, variableName: string, value: string | number | null) {
     editRuntimeVars = {
       ...editRuntimeVars,
       [defId]: { variableName, v: value },
@@ -137,10 +123,7 @@
 
   type LucideIcon = typeof Circle
 
-  const STATUS_CONFIG: Record<
-    StoryBeat['status'],
-    { icon: LucideIcon; color: string; bgColor: string }
-  > = {
+  const STATUS_CONFIG: Record<StoryBeat['status'], { icon: LucideIcon; color: string; bgColor: string }> = {
     pending: {
       icon: Circle,
       color: 'text-muted-foreground',
@@ -229,9 +212,7 @@
         />
       </div>
       <div class="mt-3 flex justify-end gap-2">
-        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>
-          Cancel
-        </Button>
+        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>Cancel</Button>
         <Button size="sm" class="h-7" onclick={addBeat} disabled={!newTitle.trim()}>Add</Button>
       </div>
     </div>
@@ -240,9 +221,7 @@
   <!-- Active Quests -->
   {#if story.pendingQuests.length > 0}
     <div class="mb-4 flex flex-col gap-2">
-      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">
-        Active
-      </h4>
+      <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">Active</h4>
       {#each story.pendingQuests as beat (beat.id)}
         {@const statusConfig = getStatusConfig(beat.status)}
         {@const isCollapsed = ui.isEntityCollapsed(beat.id)}
@@ -261,9 +240,7 @@
             <!-- EDIT MODE -->
             <div class="space-y-3">
               <div class="mb-2 flex items-center justify-between">
-                <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                  Editing Beat
-                </h4>
+                <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Editing Beat</h4>
                 <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}>
                   <X class="h-4 w-4" />
                 </Button>
@@ -272,12 +249,7 @@
               <div class="space-y-2">
                 <div class="space-y-1">
                   <Label class="text-xs">Title</Label>
-                  <Input
-                    type="text"
-                    bind:value={editTitle}
-                    placeholder="Title"
-                    class="h-8 text-sm"
-                  />
+                  <Input type="text" bind:value={editTitle} placeholder="Title" class="h-8 text-sm" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -340,15 +312,8 @@
               </div>
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  class="h-7 px-4 text-xs"
-                  onclick={() => saveEdit(beat)}
-                  disabled={!editTitle.trim()}
-                >
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
+                <Button size="sm" class="h-7 px-4 text-xs" onclick={() => saveEdit(beat)} disabled={!editTitle.trim()}>
                   <Save class="mr-1.5 h-3.5 w-3.5" />
                   Save
                 </Button>
@@ -372,10 +337,7 @@
                 <span class="text-foreground text-sm leading-tight font-medium">
                   {beat.translatedTitle ?? beat.title}
                 </span>
-                <Badge
-                  variant="secondary"
-                  class="text-muted-foreground h-4 w-fit px-1.5 py-0 text-[10px] font-normal"
-                >
+                <Badge variant="secondary" class="text-muted-foreground h-4 w-fit px-1.5 py-0 text-[10px] font-normal">
                   {getTypeLabel(beat.type)}
                 </Badge>
               </div>
@@ -420,10 +382,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}
@@ -467,15 +426,11 @@
       </Button>
     </div>
   {:else}
-    {@const completedBeats = story.storyBeats.filter(
-      (b) => b.status === 'completed' || b.status === 'failed',
-    )}
+    {@const completedBeats = story.storyBeats.filter((b) => b.status === 'completed' || b.status === 'failed')}
 
     {#if completedBeats.length > 0}
       <div class="flex flex-col gap-2">
-        <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">
-          History
-        </h4>
+        <h4 class="text-muted-foreground pl-1 text-xs font-semibold tracking-wider uppercase">History</h4>
         {#each completedBeats as beat (beat.id)}
           {@const statusConfig = getStatusConfig(beat.status)}
           {@const isCollapsed = ui.isEntityCollapsed(beat.id)}
@@ -495,9 +450,7 @@
               <!-- EDIT MODE -->
               <div class="space-y-3">
                 <div class="mb-2 flex items-center justify-between">
-                  <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                    Editing Beat
-                  </h4>
+                  <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Editing Beat</h4>
                   <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}>
                     <X class="h-4 w-4" />
                   </Button>
@@ -506,12 +459,7 @@
                 <div class="space-y-2">
                   <div class="space-y-1">
                     <Label class="text-xs">Title</Label>
-                    <Input
-                      type="text"
-                      bind:value={editTitle}
-                      placeholder="Title"
-                      class="h-8 text-sm"
-                    />
+                    <Input type="text" bind:value={editTitle} placeholder="Title" class="h-8 text-sm" />
                   </div>
 
                   <div class="grid grid-cols-2 gap-2">
@@ -574,9 +522,7 @@
                 </div>
 
                 <div class="border-border flex justify-end gap-2 border-t pt-2">
-                  <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                    Cancel
-                  </Button>
+                  <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
                   <Button
                     size="sm"
                     class="h-7 px-4 text-xs"
@@ -660,10 +606,7 @@
                       title={isCollapsed ? 'Show details' : 'Hide details'}
                     >
                       <ChevronDown
-                        class={cn(
-                          'h-4 w-4 transition-transform duration-200',
-                          !isCollapsed ? 'rotate-180' : '',
-                        )}
+                        class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                       />
                     </Button>
                   {/if}

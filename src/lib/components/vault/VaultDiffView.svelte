@@ -1,11 +1,6 @@
 <script lang="ts">
   import type { VaultPendingChange } from '$lib/services/ai/sdk/schemas/vault'
-  import type {
-    VaultCharacter,
-    VaultLorebookEntry,
-    VaultScenarioNpc,
-    VisualDescriptors,
-  } from '$lib/types'
+  import type { VaultCharacter, VaultLorebookEntry, VaultScenarioNpc, VisualDescriptors } from '$lib/types'
   import {
     Check,
     X,
@@ -36,9 +31,7 @@
 
   const isApproved = $derived(change.status === 'approved')
   const isRejected = $derived(change.status === 'rejected')
-  const isAutoApproved = $derived(
-    isApproved && change.entityType === 'lorebook' && change.action === 'create',
-  )
+  const isAutoApproved = $derived(isApproved && change.entityType === 'lorebook' && change.action === 'create')
 
   // --- Entity type display config ---
 
@@ -133,8 +126,7 @@
       const vd = formatVisualDescriptors(data.visualDescriptors as VisualDescriptors)
       if (vd && vd !== '(none)') lines.push(`Appearance:\n${vd}`)
     }
-    if ('tags' in data && (data.tags as string[])?.length)
-      lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
+    if ('tags' in data && (data.tags as string[])?.length) lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
     return lines.join('\n')
   }
 
@@ -144,10 +136,8 @@
     if ('name' in entry) lines.push(`Name: ${entry.name}`)
     if ('type' in entry) lines.push(`Type: ${entry.type}`)
     if ('description' in entry) lines.push(`Description: ${entry.description}`)
-    if ('keywords' in entry && entry.keywords?.length > 0)
-      lines.push(`Keywords: ${entry.keywords.join(', ')}`)
-    if ('aliases' in entry && entry.aliases?.length > 0)
-      lines.push(`Aliases: ${entry.aliases.join(', ')}`)
+    if ('keywords' in entry && entry.keywords?.length > 0) lines.push(`Keywords: ${entry.keywords.join(', ')}`)
+    if ('aliases' in entry && entry.aliases?.length > 0) lines.push(`Aliases: ${entry.aliases.join(', ')}`)
     if ('injectionMode' in entry) lines.push(`Injection: ${entry.injectionMode}`)
     if ('priority' in entry) lines.push(`Priority: ${entry.priority}`)
     return lines.join('\n')
@@ -184,8 +174,7 @@
       const msg = String(data.firstMessage)
       lines.push(`First Message: ${msg.length > 150 ? msg.slice(0, 150) + '...' : msg}`)
     }
-    if ('tags' in data && (data.tags as string[])?.length)
-      lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
+    if ('tags' in data && (data.tags as string[])?.length) lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
     return lines.join('\n')
   }
 
@@ -194,8 +183,7 @@
     const lines: string[] = []
     if ('name' in data) lines.push(`Name: ${data.name}`)
     if ('description' in data) lines.push(`Description: ${data.description}`)
-    if ('tags' in data && (data.tags as string[])?.length)
-      lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
+    if ('tags' in data && (data.tags as string[])?.length) lines.push(`Tags: ${(data.tags as string[]).join(', ')}`)
     return lines.join('\n')
   }
 
@@ -245,9 +233,7 @@
     change.entityType === 'lorebook-entry' && change.action === 'merge' ? change.data : undefined,
   )
   const previousEntries = $derived(
-    change.entityType === 'lorebook-entry' && change.action === 'merge'
-      ? change.previousEntries
-      : undefined,
+    change.entityType === 'lorebook-entry' && change.action === 'merge' ? change.previousEntries : undefined,
   )
 
   // --- Single-change preview for update entities (character / scenario) ---
@@ -283,9 +269,7 @@
   in:fade={{ duration: 150 }}
 >
   <!-- Header -->
-  <div
-    class="border-surface-700 bg-surface-800 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2"
-  >
+  <div class="border-surface-700 bg-surface-800 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-3 py-2">
     <div class="flex flex-auto items-center gap-2">
       <!-- Entity type badge -->
       <div
@@ -359,9 +343,7 @@
         <div class="mb-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
           New {entityConfig.label}
         </div>
-        <div
-          class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-        >
+        <div class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
           {formatChangeData()}
         </div>
       </div>
@@ -369,22 +351,14 @@
       <!-- Update: Before / After -->
       <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
         <div class="rounded-lg border border-red-500/20 bg-red-500/8 p-2.5">
-          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-red-400 uppercase">
-            Before
-          </div>
-          <div
-            class="text-surface-400 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-          >
+          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-red-400 uppercase">Before</div>
+          <div class="text-surface-400 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
             {formatPrevious()}
           </div>
         </div>
         <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-2.5">
-          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
-            After
-          </div>
-          <div
-            class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-          >
+          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">After</div>
+          <div class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
             {#if afterData}
               {formatEntityData(afterData)}
             {:else}
@@ -418,9 +392,7 @@
                 <div class="text-surface-400 mb-1 text-[10px] font-semibold">
                   Entry {i + 1}: {entry.name}
                 </div>
-                <div
-                  class="text-surface-300 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-                >
+                <div class="text-surface-300 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
                   {formatEntry(entry)}
                 </div>
               </div>
@@ -433,12 +405,8 @@
         </div>
 
         <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-2.5">
-          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
-            Merged Entry
-          </div>
-          <div
-            class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-          >
+          <div class="mb-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">Merged Entry</div>
+          <div class="text-surface-200 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
             {formatEntry(mergeData as VaultLorebookEntry | undefined)}
           </div>
         </div>

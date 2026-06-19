@@ -164,13 +164,7 @@
   <!-- Editor -->
   <div class="min-w-0 flex-1">
     {#if definition.variableType === 'text'}
-      <Input
-        type="text"
-        value={textValue}
-        oninput={handleTextChange}
-        placeholder="Not set"
-        class="h-7 text-xs"
-      />
+      <Input type="text" value={textValue} oninput={handleTextChange} placeholder="Not set" class="h-7 text-xs" />
     {:else if definition.variableType === 'number'}
       <Input
         type="number"

@@ -22,9 +22,7 @@
   let modelError = $state<string | null>(null)
 
   // Debounced save for sliders
-  const { trigger: debouncedSave, flush: flushSave } = createDebouncedSave(() =>
-    settings.saveApiSettings(),
-  )
+  const { trigger: debouncedSave, flush: flushSave } = createDebouncedSave(() => settings.saveApiSettings())
 
   onDestroy(() => flushSave())
 
@@ -49,11 +47,7 @@
     modelError = null
 
     try {
-      const result = await fetchModelsFromProvider(
-        profile.providerType,
-        profile.baseUrl,
-        profile.apiKey,
-      )
+      const result = await fetchModelsFromProvider(profile.providerType, profile.baseUrl, profile.apiKey)
       await settings.updateProfile(profile.id, {
         ...profile,
         fetchedModels: result,

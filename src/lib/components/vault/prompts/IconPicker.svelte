@@ -108,14 +108,10 @@
     { name: 'Gauge', component: Gauge },
   ]
 
-  const ICON_MAP: globalThis.Map<string, IconEntry> = new globalThis.Map(
-    ICONS.map((i) => [i.name, i]),
-  )
+  const ICON_MAP: globalThis.Map<string, IconEntry> = new globalThis.Map(ICONS.map((i) => [i.name, i]))
 
   let filtered = $derived(
-    search.trim()
-      ? ICONS.filter((i) => i.name.toLowerCase().includes(search.trim().toLowerCase()))
-      : ICONS,
+    search.trim() ? ICONS.filter((i) => i.name.toLowerCase().includes(search.trim().toLowerCase())) : ICONS,
   )
 
   let selectedIcon = $derived(value ? ICON_MAP.get(value) : undefined)

@@ -30,9 +30,7 @@
     entityType === 'lorebook' ? 'Lorebook' : entityType === 'character' ? 'Character' : 'Scenario',
   )
 
-  const entryCount = $derived(
-    entityType === 'lorebook' ? (entity as VaultLorebook).entries.length : 0,
-  )
+  const entryCount = $derived(entityType === 'lorebook' ? (entity as VaultLorebook).entries.length : 0)
 
   async function handleExport() {
     exporting = true
@@ -41,10 +39,7 @@
       let success = false
 
       if (entityType === 'lorebook') {
-        success = await LorebookImportExport.exportVaultLorebook(
-          entity as VaultLorebook,
-          selectedFormat,
-        )
+        success = await LorebookImportExport.exportVaultLorebook(entity as VaultLorebook, selectedFormat)
       } else if (entityType === 'character') {
         success = await LorebookImportExport.exportVaultCharacter(entity as VaultCharacter)
       } else {
@@ -85,10 +80,7 @@
       {#if entityType === 'lorebook'}
         <div class="space-y-3">
           <Label>Export format</Label>
-          <RadioGroup
-            value={selectedFormat}
-            onValueChange={(v) => (selectedFormat = v as ExportFormat)}
-          >
+          <RadioGroup value={selectedFormat} onValueChange={(v) => (selectedFormat = v as ExportFormat)}>
             {#each formats as format (format)}
               {@const info = LorebookImportExport.getFormatInfo(format)}
               <div
@@ -99,14 +91,9 @@
               >
                 <RadioGroupItem value={format} id={`format-${format}`} class="mt-1" />
                 <div class="flex-1 space-y-1">
-                  <Label
-                    for={`format-${format}`}
-                    class="flex cursor-pointer items-center gap-2 font-medium"
-                  >
+                  <Label for={`format-${format}`} class="flex cursor-pointer items-center gap-2 font-medium">
                     {info.label}
-                    <span class="text-muted-foreground ml-auto text-xs font-normal"
-                      >{info.extension}</span
-                    >
+                    <span class="text-muted-foreground ml-auto text-xs font-normal">{info.extension}</span>
                   </Label>
                   <p class="text-muted-foreground text-xs">{info.description}</p>
                 </div>

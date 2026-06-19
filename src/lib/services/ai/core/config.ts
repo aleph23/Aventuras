@@ -70,18 +70,14 @@ export const AI_CONFIG = {
 export function getContextConfig() {
   const ctx = settings.serviceSpecificSettings?.contextWindow
   return {
-    recentEntriesForNarrative:
-      ctx?.recentEntriesForNarrative ?? AI_CONFIG.context.recentEntriesForNarrative,
+    recentEntriesForNarrative: ctx?.recentEntriesForNarrative ?? AI_CONFIG.context.recentEntriesForNarrative,
     recentEntriesForTiered: ctx?.recentEntriesForTiered ?? AI_CONFIG.context.recentEntriesForTiered,
-    recentEntriesForRetrieval:
-      ctx?.recentEntriesForRetrieval ?? AI_CONFIG.context.recentEntriesForRetrieval,
-    recentEntriesForChoices:
-      ctx?.recentEntriesForChoices ?? AI_CONFIG.context.recentEntriesForChoices,
+    recentEntriesForRetrieval: ctx?.recentEntriesForRetrieval ?? AI_CONFIG.context.recentEntriesForRetrieval,
+    recentEntriesForChoices: ctx?.recentEntriesForChoices ?? AI_CONFIG.context.recentEntriesForChoices,
     userActionsForStyle: ctx?.userActionsForStyle ?? AI_CONFIG.context.userActionsForStyle,
     recentEntriesForLoreManagement:
       ctx?.recentEntriesForLoreManagement ?? AI_CONFIG.context.recentEntriesForLoreManagement,
-    recentEntriesForNameMatching:
-      ctx?.recentEntriesForNameMatching ?? AI_CONFIG.context.recentEntriesForNameMatching,
+    recentEntriesForNameMatching: ctx?.recentEntriesForNameMatching ?? AI_CONFIG.context.recentEntriesForNameMatching,
   }
 }
 

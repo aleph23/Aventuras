@@ -20,11 +20,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select'
   import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group'
-  import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-  } from '$lib/components/ui/collapsible'
+  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '$lib/components/ui/collapsible'
   import { cn } from '$lib/utils/cn'
 
   interface Props {
@@ -253,9 +249,7 @@
   <div class="space-y-2">
     <Label>
       Aliases
-      <span class="text-muted-foreground ml-1 text-xs font-normal">
-        Alternative names for matching
-      </span>
+      <span class="text-muted-foreground ml-1 text-xs font-normal"> Alternative names for matching </span>
     </Label>
     <div class="mb-2 flex flex-wrap gap-2">
       {#each aliases as alias (alias)}
@@ -285,21 +279,13 @@
   <div class="space-y-2">
     <Label>
       Keywords
-      <span class="text-muted-foreground ml-1 text-xs font-normal">
-        Trigger words for injection
-      </span>
+      <span class="text-muted-foreground ml-1 text-xs font-normal"> Trigger words for injection </span>
     </Label>
     <div class="mb-2 flex flex-wrap gap-2">
       {#each keywords as keyword (keyword)}
-        <Badge
-          variant="default"
-          class="bg-primary/20 text-primary hover:bg-primary/30 gap-1 border-transparent pr-1"
-        >
+        <Badge variant="default" class="bg-primary/20 text-primary hover:bg-primary/30 gap-1 border-transparent pr-1">
           {keyword}
-          <button
-            class="hover:bg-primary/20 text-primary rounded-full p-0.5"
-            onclick={() => removeKeyword(keyword)}
-          >
+          <button class="hover:bg-primary/20 text-primary rounded-full p-0.5" onclick={() => removeKeyword(keyword)}>
             <X class="h-3 w-3" />
           </button>
         </Badge>
@@ -334,10 +320,7 @@
             injectionMode === mode.value && 'border-primary bg-primary/5',
           )}
         >
-          <Label
-            for={`mode-${mode.value}`}
-            class="flex w-full cursor-pointer flex-col gap-1 font-normal"
-          >
+          <Label for={`mode-${mode.value}`} class="flex w-full cursor-pointer flex-col gap-1 font-normal">
             <div class="flex flex-row items-center gap-3 p-3">
               <RadioGroupItem value={mode.value} id={`mode-${mode.value}`} class="mt-1" />
               <div class="flex flex-col">
@@ -352,8 +335,8 @@
 
     {#if injectionMode === 'keyword'}
       <p class="text-muted-foreground mt-2 text-xs">
-        Entry will be included when keywords/aliases match the story, or when the AI determines it's
-        contextually relevant.
+        Entry will be included when keywords/aliases match the story, or when the AI determines it's contextually
+        relevant.
       </p>
     {/if}
   </div>
@@ -363,20 +346,11 @@
     <div class="flex items-center justify-between">
       <Label>
         Priority
-        <span class="text-muted-foreground ml-1 text-xs font-normal">
-          Higher priority entries are injected first
-        </span>
+        <span class="text-muted-foreground ml-1 text-xs font-normal"> Higher priority entries are injected first </span>
       </Label>
       <span class="w-8 text-right text-sm font-medium">{priority}</span>
     </div>
-    <Slider
-      value={priority}
-      min={0}
-      max={100}
-      step={1}
-      type="single"
-      onValueChange={(val) => (priority = val)}
-    />
+    <Slider value={priority} min={0} max={100} step={1} type="single" onValueChange={(val) => (priority = val)} />
   </div>
 
   <!-- Lore Management Blacklist -->
@@ -394,16 +368,10 @@
   <Collapsible bind:open={showHiddenInfo}>
     <CollapsibleTrigger>
       {#snippet child({ props })}
-        <Button
-          {...props}
-          variant="ghost"
-          class="flex w-full justify-between px-0 hover:bg-transparent"
-        >
+        <Button {...props} variant="ghost" class="flex w-full justify-between px-0 hover:bg-transparent">
           <span class="flex items-center gap-2 text-sm font-medium">
             Hidden Info
-            <span class="text-muted-foreground text-xs font-normal"
-              >(secrets the protagonist doesn't know)</span
-            >
+            <span class="text-muted-foreground text-xs font-normal">(secrets the protagonist doesn't know)</span>
           </span>
           {#if showHiddenInfo}
             <ChevronUp class="text-muted-foreground h-4 w-4" />

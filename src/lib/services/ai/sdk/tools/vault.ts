@@ -151,8 +151,7 @@ export function createVaultLinkingTools(context: VaultLinkingContext) {
 
         // Use provided values or fall back to character data
         const entryName = name ?? character.name
-        const entryDescription =
-          description ?? character.description ?? `Character: ${character.name}`
+        const entryDescription = description ?? character.description ?? `Character: ${character.name}`
         const entryKeywords = keywords ?? [character.name, ...character.traits.slice(0, 5)]
 
         const changeId = generateId()

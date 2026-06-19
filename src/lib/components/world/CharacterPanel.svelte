@@ -92,11 +92,7 @@
     }
   }
 
-  function updateEditRuntimeVar(
-    defId: string,
-    variableName: string,
-    value: string | number | null,
-  ) {
+  function updateEditRuntimeVar(defId: string, variableName: string, value: string | number | null) {
     editRuntimeVars = {
       ...editRuntimeVars,
       [defId]: { variableName, v: value },
@@ -178,11 +174,7 @@
 
   async function addCharacter() {
     if (!newName.trim()) return
-    await story.addCharacter(
-      newName.trim(),
-      newDescription.trim() || undefined,
-      newRelationship.trim() || undefined,
-    )
+    await story.addCharacter(newName.trim(), newDescription.trim() || undefined, newRelationship.trim() || undefined)
     newName = ''
     newDescription = ''
     newRelationship = ''
@@ -302,10 +294,7 @@
 
   type LucideIcon = typeof User
 
-  const STATUS_CONFIG: Record<
-    Character['status'],
-    { icon: LucideIcon; color: string; bgColor: string }
-  > = {
+  const STATUS_CONFIG: Record<Character['status'], { icon: LucideIcon; color: string; bgColor: string }> = {
     active: {
       icon: User,
       color: 'text-green-500',
@@ -465,11 +454,7 @@
   }
 
   function hasDetails(character: Character): boolean {
-    return (
-      character.traits.length > 0 ||
-      hasVisualDescriptors(character.visualDescriptors) ||
-      !!character.description
-    )
+    return character.traits.length > 0 || hasVisualDescriptors(character.visualDescriptors) || !!character.description
   }
 </script>
 
@@ -507,9 +492,7 @@
         />
       </div>
       <div class="mt-3 flex justify-end gap-2">
-        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>
-          Cancel
-        </Button>
+        <Button variant="text" size="sm" class="h-7" onclick={() => (showAddForm = false)}>Cancel</Button>
         <Button size="sm" class="h-7" onclick={addCharacter} disabled={!newName.trim()}>Add</Button>
       </div>
     </div>
@@ -524,11 +507,7 @@
         <UserPlus class="text-muted-foreground h-6 w-6" />
       </div>
       <p class="text-muted-foreground text-sm">No characters yet</p>
-      <Button
-        variant="link"
-        class="text-primary mt-1 h-auto p-0 text-xs"
-        onclick={() => (showAddForm = true)}
-      >
+      <Button variant="link" class="text-primary mt-1 h-auto p-0 text-xs" onclick={() => (showAddForm = true)}>
         <Plus class="mr-1.5 h-3.5 w-3.5" />
         Add your first character
       </Button>
@@ -558,9 +537,7 @@
                 <h4 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Editing {character.name}
                 </h4>
-                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}
-                  ><X class="h-4 w-4" /></Button
-                >
+                <Button variant="text" size="icon" class="h-6 w-6" onclick={cancelEdit}><X class="h-4 w-4" /></Button>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
@@ -654,17 +631,10 @@
 
               <!-- Portrait Section -->
               <div class="border-border bg-muted/20 rounded-md border p-2">
-                <div
-                  class="text-muted-foreground mb-2 flex items-center justify-between text-xs font-medium"
-                >
+                <div class="text-muted-foreground mb-2 flex items-center justify-between text-xs font-medium">
                   <span>Portrait</span>
                   {#if editPortrait}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      class="h-5 px-1.5 text-xs"
-                      onclick={removePortrait}
-                    >
+                    <Button variant="destructive" size="sm" class="h-5 px-1.5 text-xs" onclick={removePortrait}>
                       Remove
                     </Button>
                   {/if}
@@ -713,9 +683,7 @@
                       disabled={generatingPortraitId !== null ||
                         uploadingPortraitId !== null ||
                         !editVisualDescriptors.trim()}
-                      title={!editVisualDescriptors.trim()
-                        ? 'Add appearance first'
-                        : 'Generate from appearance'}
+                      title={!editVisualDescriptors.trim() ? 'Add appearance first' : 'Generate from appearance'}
                     >
                       {#if generatingPortraitId === character.id}
                         <Loader2 class="h-3.5 w-3.5 animate-spin" />
@@ -733,9 +701,7 @@
               </div>
 
               <div class="border-border flex justify-end gap-2 border-t pt-2">
-                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>
-                  Cancel
-                </Button>
+                <Button variant="text" size="sm" class="h-7 text-xs" onclick={cancelEdit}>Cancel</Button>
                 <Button
                   size="sm"
                   class="h-7 px-4 text-xs"
@@ -784,9 +750,7 @@
                     </Avatar.Fallback>
                   </Avatar.Root>
                   {#if character.status === 'deceased'}
-                    <div
-                      class="bg-destructive/20 absolute inset-0 flex items-center justify-center rounded-full"
-                    >
+                    <div class="bg-destructive/20 absolute inset-0 flex items-center justify-center rounded-full">
                       <Skull class="text-destructive h-4 w-4" />
                     </div>
                   {/if}
@@ -815,18 +779,12 @@
                   {character.translatedName ?? character.name}
                 </span>
                 {#if isProtagonist}
-                  <Badge
-                    variant="default"
-                    class="h-4 w-fit px-1.5 py-0 text-[10px] tracking-wide uppercase"
-                  >
+                  <Badge variant="default" class="h-4 w-fit px-1.5 py-0 text-[10px] tracking-wide uppercase">
                     <Star class="mr-0.5 h-2.5 w-2.5" />
                     You
                   </Badge>
                 {:else if character.relationship || character.translatedRelationship}
-                  <Badge
-                    variant="secondary"
-                    class="text-muted-foreground w-fit px-2 py-0.5 text-[10px] font-normal"
-                  >
+                  <Badge variant="secondary" class="text-muted-foreground w-fit px-2 py-0.5 text-[10px] font-normal">
                     {character.translatedRelationship ?? character.relationship}
                   </Badge>
                 {/if}
@@ -837,9 +795,7 @@
             {#if pendingProtagonistId === character.id}
               <div class="border-border bg-muted/40 mt-2 rounded-md border p-2.5">
                 <p class="text-muted-foreground mb-1.5 text-xs">
-                  New role for <span class="text-foreground font-medium"
-                    >{currentProtagonistName}</span
-                  >:
+                  New role for <span class="text-foreground font-medium">{currentProtagonistName}</span>:
                 </p>
                 <div class="flex gap-2">
                   <Input
@@ -869,10 +825,8 @@
             <!-- Expanded Details -->
             {#if !isCollapsed && hasDetails(character)}
               {@const hasTraits =
-                character.traits.length > 0 ||
-                (character.translatedTraits && character.translatedTraits.length > 0)}
-              {@const displayDescriptors =
-                character.translatedVisualDescriptors ?? character.visualDescriptors}
+                character.traits.length > 0 || (character.translatedTraits && character.translatedTraits.length > 0)}
+              {@const displayDescriptors = character.translatedVisualDescriptors ?? character.visualDescriptors}
               {@const descriptorsList = hasVisualDescriptors(displayDescriptors)
                 ? getVisualDescriptorsList(displayDescriptors)
                 : []}
@@ -896,12 +850,7 @@
                       class="text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1"
                       onclick={() => toggleDescriptorExpand(character.id)}
                     >
-                      <ChevronDown
-                        class={cn(
-                          'h-3 w-3 transition-transform',
-                          descriptorsExpanded && 'rotate-180',
-                        )}
-                      />
+                      <ChevronDown class={cn('h-3 w-3 transition-transform', descriptorsExpanded && 'rotate-180')} />
                       <span class="font-medium">Appearance</span>
                     </button>
                     {#if descriptorsExpanded}
@@ -962,10 +911,7 @@
                     title={isCollapsed ? 'Show details' : 'Hide details'}
                   >
                     <ChevronDown
-                      class={cn(
-                        'h-4 w-4 transition-transform duration-200',
-                        !isCollapsed ? 'rotate-180' : '',
-                      )}
+                      class={cn('h-4 w-4 transition-transform duration-200', !isCollapsed ? 'rotate-180' : '')}
                     />
                   </Button>
                 {/if}
@@ -1001,9 +947,7 @@
                   size="icon"
                   class={cn(
                     'h-6 w-6',
-                    savedToVaultId === character.id
-                      ? 'text-green-500'
-                      : 'text-muted-foreground hover:text-primary',
+                    savedToVaultId === character.id ? 'text-green-500' : 'text-muted-foreground hover:text-primary',
                   )}
                   onclick={() => saveCharacterToVault(character)}
                   title="Save to vault"

@@ -2,17 +2,7 @@
   import type { Entry, EntryType } from '$lib/types'
   import { ui } from '$lib/stores/ui.svelte'
   import { story } from '$lib/stores/story.svelte'
-  import {
-    Search,
-    Plus,
-    Download,
-    Upload,
-    Trash2,
-    X,
-    Filter,
-    ArrowUpDown,
-    Archive,
-  } from 'lucide-svelte'
+  import { Search, Plus, Download, Upload, Trash2, X, Filter, ArrowUpDown, Archive } from 'lucide-svelte'
   import LorebookEntryCard from './LorebookEntryCard.svelte'
 
   import { Input } from '$lib/components/ui/input'
@@ -44,15 +34,7 @@
   let deleteAllDialogOpen = $state(false)
   let isDeleting = $state(false)
 
-  const entryTypes: Array<EntryType | 'all'> = [
-    'all',
-    'character',
-    'location',
-    'item',
-    'faction',
-    'concept',
-    'event',
-  ]
+  const entryTypes: Array<EntryType | 'all'> = ['all', 'character', 'location', 'item', 'faction', 'concept', 'event']
   const sortOptions: Array<{
     value: 'name' | 'type' | 'updated'
     label: string
@@ -270,13 +252,7 @@
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props })}
-          <Button
-            {...props}
-            variant="outline"
-            size="icon"
-            disabled={isLoreManagementActive}
-            title="Vault"
-          >
+          <Button {...props} variant="outline" size="icon" disabled={isLoreManagementActive} title="Vault">
             <Archive class="h-4 w-4" />
           </Button>
         {/snippet}
@@ -327,8 +303,7 @@
             <Dialog.Header>
               <Dialog.Title>Delete all lorebook entries?</Dialog.Title>
               <Dialog.Description>
-                This will permanently delete all {story.lorebookEntries.length} entr{story
-                  .lorebookEntries.length === 1
+                This will permanently delete all {story.lorebookEntries.length} entr{story.lorebookEntries.length === 1
                   ? 'y'
                   : 'ies'} from this story's lorebook. This action cannot be undone.
               </Dialog.Description>
@@ -391,9 +366,7 @@
             <Trash2 class="h-3.5 w-3.5" />
             <span class="xs:inline hidden">Delete</span>
           </Button>
-          <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" onclick={handleClearSelection}>
-            Cancel
-          </Button>
+          <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" onclick={handleClearSelection}>Cancel</Button>
         {/if}
       </div>
     </div>

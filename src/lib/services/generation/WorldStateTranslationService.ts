@@ -42,10 +42,7 @@ export interface WorldStateTranslationCallbacks {
 }
 
 export interface WorldStateTranslationDependencies {
-  translateUIElements: (
-    items: UITranslationItem[],
-    targetLanguage: string,
-  ) => Promise<UITranslationItem[]>
+  translateUIElements: (items: UITranslationItem[], targetLanguage: string) => Promise<UITranslationItem[]>
 }
 
 export interface WorldStateTranslationInput {
@@ -213,8 +210,7 @@ export class WorldStateTranslationService {
       if (orig.entityType === 'character') await callbacks.updateCharacter(entityId, data)
       else if (orig.entityType === 'location')
         await callbacks.updateLocation(entityId, data as Record<string, string | null>)
-      else if (orig.entityType === 'item')
-        await callbacks.updateItem(entityId, data as Record<string, string | null>)
+      else if (orig.entityType === 'item') await callbacks.updateItem(entityId, data as Record<string, string | null>)
       else if (orig.entityType === 'storyBeat')
         await callbacks.updateStoryBeat(entityId, data as Record<string, string | null>)
     }

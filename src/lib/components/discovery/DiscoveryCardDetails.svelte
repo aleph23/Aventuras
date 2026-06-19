@@ -2,14 +2,7 @@
   import type { DiscoveryCard } from '$lib/services/discovery'
   import { Button } from '$lib/components/ui/button'
   import { Badge } from '$lib/components/ui/badge'
-  import {
-    Download,
-    ArrowLeft,
-    Eye,
-    Download as DownloadIcon,
-    AlertTriangle,
-    ChevronsUpDown,
-  } from 'lucide-svelte'
+  import { Download, ArrowLeft, Eye, Download as DownloadIcon, AlertTriangle, ChevronsUpDown } from 'lucide-svelte'
   import * as Alert from '$lib/components/ui/alert'
   import { slide } from 'svelte/transition'
   import { discoveryService } from '$lib/services/discovery'
@@ -62,12 +55,7 @@
   <div
     class="bg-background sticky top-0 z-10 -mt-2.5 flex shrink-0 items-center gap-2 border-b p-3 pt-1.5 sm:mt-0 sm:p-4 sm:pt-4"
   >
-    <Button
-      variant="ghost"
-      size="icon"
-      onclick={onBack}
-      class="order-2 h-8 w-8 shrink-0 sm:order-1 sm:-ml-2"
-    >
+    <Button variant="ghost" size="icon" onclick={onBack} class="order-2 h-8 w-8 shrink-0 sm:order-1 sm:-ml-2">
       <ArrowLeft class="h-5 w-5" />
       <span class="sr-only">Back</span>
     </Button>
@@ -89,9 +77,7 @@
     <div class="mx-auto flex max-w-5xl flex-col gap-6 md:flex-row">
       <!-- Image Section -->
       <div class="w-full shrink-0 space-y-4 md:w-1/3">
-        <div
-          class="bg-muted relative aspect-square w-full overflow-hidden rounded-lg border shadow-sm"
-        >
+        <div class="bg-muted relative aspect-square w-full overflow-hidden rounded-lg border shadow-sm">
           <div class="absolute inset-0 h-full w-full" class:blur-xl={shouldBlur}>
             {#if !imageError && (card.imageUrl || card.avatarUrl)}
               <img
@@ -117,9 +103,7 @@
         </div>
 
         <!-- Mobile Import Button -->
-        <div
-          class="bg-background/95 supports-backdrop-filter:bg-background/60 sticky bottom-0 backdrop-blur md:hidden"
-        >
+        <div class="bg-background/95 supports-backdrop-filter:bg-background/60 sticky bottom-0 backdrop-blur md:hidden">
           <Button
             size="lg"
             variant={isImported ? 'secondary' : 'default'}
@@ -180,9 +164,7 @@
 
         <!-- Description -->
         <div class="space-y-2">
-          <h3 class="text-foreground/80 text-sm font-semibold tracking-wider uppercase">
-            Description
-          </h3>
+          <h3 class="text-foreground/80 text-sm font-semibold tracking-wider uppercase">Description</h3>
           <div
             class="bg-muted/50 text-muted-foreground rounded-lg border p-4 text-sm leading-relaxed whitespace-pre-wrap"
           >
@@ -215,9 +197,8 @@
                 <AlertTriangle class="h-4 w-4" />
                 <Alert.Title>Import Context Warning</Alert.Title>
                 <Alert.Description>
-                  This is the raw data associated with the card. During import, some fields might be
-                  remapped or formatted to fit the local schema. This data serves as the source of
-                  truth for the import process.
+                  This is the raw data associated with the card. During import, some fields might be remapped or
+                  formatted to fit the local schema. This data serves as the source of truth for the import process.
                 </Alert.Description>
               </Alert.Root>
 
@@ -228,8 +209,7 @@
                     <span>Fetching full details...</span>
                   </div>
                 {:else}
-                  <pre
-                    class="text-muted-foreground font-mono text-xs break-words whitespace-pre-wrap">{JSON.stringify(
+                  <pre class="text-muted-foreground font-mono text-xs break-words whitespace-pre-wrap">{JSON.stringify(
                       detailedCard,
                       null,
                       2,

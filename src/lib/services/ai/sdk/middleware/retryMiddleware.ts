@@ -74,9 +74,7 @@ async function withRetry<T>(fn: () => PromiseLike<T>, signal?: AbortSignal): Pro
     } catch (error) {
       if (!is429(error)) throw error
       if (attempt >= RETRY_DELAYS_MS.length) {
-        console.warn(
-          `[retryMiddleware] gave up after ${RETRY_DELAYS_MS.length} retries on 429, propagating error`,
-        )
+        console.warn(`[retryMiddleware] gave up after ${RETRY_DELAYS_MS.length} retries on 429, propagating error`)
         throw error
       }
 

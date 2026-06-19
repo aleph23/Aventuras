@@ -82,13 +82,9 @@ export class ImageAnalysisService extends BaseAIService {
 
     // Format portrait lists
     const charactersWithPortraitsStr =
-      context.charactersWithPortraits.length > 0
-        ? context.charactersWithPortraits.join(', ')
-        : 'None'
+      context.charactersWithPortraits.length > 0 ? context.charactersWithPortraits.join(', ') : 'None'
     const charactersWithoutPortraitsStr =
-      context.charactersWithoutPortraits.length > 0
-        ? context.charactersWithoutPortraits.join(', ')
-        : 'None'
+      context.charactersWithoutPortraits.length > 0 ? context.charactersWithoutPortraits.join(', ') : 'None'
 
     // Build translated narrative block if available
     let translatedNarrativeBlock = ''
@@ -98,9 +94,7 @@ ${context.translatedNarrative}`
     }
 
     // Select template based on portrait mode
-    const templateId = context.referenceMode
-      ? 'image-prompt-analysis-reference'
-      : 'image-prompt-analysis'
+    const templateId = context.referenceMode ? 'image-prompt-analysis-reference' : 'image-prompt-analysis'
 
     // Build context and render
     const ctx = new ContextBuilder()

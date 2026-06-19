@@ -69,9 +69,7 @@
         <button
           class={cn(
             'rounded-sm px-2 py-0.5 text-[10px] font-bold transition-all',
-            logic === 'AND'
-              ? 'bg-background text-primary shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
+            logic === 'AND' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
           )}
           onclick={toggleLogic}
         >
@@ -80,9 +78,7 @@
         <button
           class={cn(
             'rounded-sm px-2 py-0.5 text-[10px] font-bold transition-all',
-            logic === 'OR'
-              ? 'bg-background text-primary shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
+            logic === 'OR' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
           )}
           onclick={toggleLogic}
         >
@@ -98,11 +94,7 @@
         <Command.Empty>No tags found.</Command.Empty>
         <Command.Group>
           {#each availableTags as tag, i (i)}
-            <Command.Item
-              value={tag.name}
-              onSelect={() => toggleTag(tag.name)}
-              class="cursor-pointer"
-            >
+            <Command.Item value={tag.name} onSelect={() => toggleTag(tag.name)} class="cursor-pointer">
               <div
                 class={cn(
                   'border-primary mr-2 flex h-4 w-4 items-center justify-center rounded-sm border',
@@ -123,12 +115,7 @@
     <!-- Clear Footer -->
     {#if selectedTags.length > 0}
       <div class="border-t p-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-8 w-full justify-center text-xs"
-          onclick={clearTags}
-        >
+        <Button variant="ghost" size="sm" class="h-8 w-full justify-center text-xs" onclick={clearTags}>
           <X class="mr-2 h-3 w-3" />
           Clear Filters
         </Button>

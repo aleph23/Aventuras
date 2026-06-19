@@ -278,12 +278,9 @@ class DebugStore {
       })
 
       // Listen for toggle render newlines requests
-      this.unlistenToggleRenderNewlines = await listen(
-        'request-toggle-debug-render-newlines',
-        () => {
-          this.toggleDebugRenderNewlines()
-        },
-      )
+      this.unlistenToggleRenderNewlines = await listen('request-toggle-debug-render-newlines', () => {
+        this.toggleDebugRenderNewlines()
+      })
 
       this.debugWindowActive = true
     } catch (err) {

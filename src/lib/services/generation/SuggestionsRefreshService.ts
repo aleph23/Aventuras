@@ -3,15 +3,7 @@
  * Coordinates suggestion generation and optional translation for creative writing mode.
  */
 
-import type {
-  StoryEntry,
-  StoryBeat,
-  Entry,
-  StoryMode,
-  POV,
-  Tense,
-  TranslationSettings,
-} from '$lib/types'
+import type { StoryEntry, StoryBeat, Entry, StoryMode, POV, Tense, TranslationSettings } from '$lib/types'
 import type { Suggestion, SuggestionsResult } from '$lib/services/ai/sdk/schemas/suggestions'
 import type { PromptContext } from '$lib/services/generation/phases/PostGenerationPhase'
 import type { RetrievedEntry } from '$lib/services/ai/retrieval/EntryRetrievalService'
@@ -87,12 +79,16 @@ export class SuggestionsRefreshService {
     // Extract Entry objects from RetrievedEntry wrappers
     const activeLorebookEntries = (lastLorebookRetrieval ?? []).map((r) => r.entry)
 
-    const result = await this.deps.generateSuggestions(
-      entries,
-      pendingQuests,
-      activeLorebookEntries,
-      { mode: storyMode, pov, tense, protagonistName, genre, settingDescription, tone, themes },
-    )
+    const result = await this.deps.generateSuggestions(entries, pendingQuests, activeLorebookEntries, {
+      mode: storyMode,
+      pov,
+      tense,
+      protagonistName,
+      genre,
+      settingDescription,
+      tone,
+      themes,
+    })
 
     // Translate if enabled
     let finalSuggestions = result.suggestions
@@ -100,10 +96,7 @@ export class SuggestionsRefreshService {
 
     if (TranslationService.shouldTranslate(translationSettings)) {
       try {
-        finalSuggestions = await this.deps.translateSuggestions(
-          result.suggestions,
-          translationSettings.targetLanguage,
-        )
+        finalSuggestions = await this.deps.translateSuggestions(result.suggestions, translationSettings.targetLanguage)
         translated = true
         log('Suggestions translated')
       } catch (error) {

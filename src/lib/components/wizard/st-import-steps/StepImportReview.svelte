@@ -1,15 +1,5 @@
 <script lang="ts">
-  import {
-    User,
-    Users,
-    MapPin,
-    BookOpen,
-    MessageSquare,
-    FileText,
-    Loader2,
-    AlertCircle,
-    Save,
-  } from 'lucide-svelte'
+  import { User, Users, MapPin, BookOpen, MessageSquare, FileText, Loader2, AlertCircle, Save } from 'lucide-svelte'
   import * as Card from '$lib/components/ui/card'
   import * as Alert from '$lib/components/ui/alert'
   import { Input } from '$lib/components/ui/input'
@@ -131,11 +121,7 @@
       <Card.Root>
         <Card.Content class="flex items-center gap-3 p-3">
           {#if protagonistPortrait}
-            <img
-              src={protagonistPortrait}
-              alt={protagonist.name}
-              class="h-10 w-10 rounded-lg object-cover"
-            />
+            <img src={protagonistPortrait} alt={protagonist.name} class="h-10 w-10 rounded-lg object-cover" />
           {/if}
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">

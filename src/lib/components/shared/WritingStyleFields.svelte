@@ -56,11 +56,7 @@
   <!-- Narrative Config -->
   <section class="grid gap-4 sm:gap-8 md:grid-cols-2">
     <!-- Perspective -->
-    <div
-      class="space-y-1"
-      class:opacity-50={disabledFields?.pov}
-      class:pointer-events-none={disabledFields?.pov}
-    >
+    <div class="space-y-1" class:opacity-50={disabledFields?.pov} class:pointer-events-none={disabledFields?.pov}>
       <Label class="flex items-center gap-2 text-base font-semibold">
         <User class="h-4 w-4" />
         Perspective
@@ -76,12 +72,7 @@
             for={`pov-${pov}`}
             class="border-muted bg-popover hover:bg-accent hover:text-accent-foreground has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 flex cursor-pointer flex-col items-center justify-center rounded-md border-2 p-3 text-center"
           >
-            <RadioGroup.Item
-              value={pov}
-              id={`pov-${pov}`}
-              class="sr-only"
-              disabled={disabledFields?.pov}
-            />
+            <RadioGroup.Item value={pov} id={`pov-${pov}`} class="sr-only" disabled={disabledFields?.pov} />
             <span class="font-medium capitalize">{pov}</span>
           </Label>
         {/each}
@@ -101,11 +92,7 @@
     </div>
 
     <!-- Tense -->
-    <div
-      class="space-y-1"
-      class:opacity-50={disabledFields?.tense}
-      class:pointer-events-none={disabledFields?.tense}
-    >
+    <div class="space-y-1" class:opacity-50={disabledFields?.tense} class:pointer-events-none={disabledFields?.tense}>
       <Label class="flex items-center gap-2 text-base font-semibold">
         <BookOpen class="h-4 w-4" />
         Tense
@@ -121,12 +108,7 @@
             for={`tense-${tense}`}
             class="border-muted bg-popover hover:bg-accent hover:text-accent-foreground has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 flex cursor-pointer flex-col items-center justify-center rounded-md border-2 p-3 text-center"
           >
-            <RadioGroup.Item
-              value={tense}
-              id={`tense-${tense}`}
-              class="sr-only"
-              disabled={disabledFields?.tense}
-            />
+            <RadioGroup.Item value={tense} id={`tense-${tense}`} class="sr-only" disabled={disabledFields?.tense} />
             <span class="font-medium capitalize">{tense}</span>
           </Label>
         {/each}
@@ -219,9 +201,7 @@
               <span class="font-semibold">Inline Mode</span>
               <RadioGroup.Item value="inline" id="img-inline" class="sr-only" />
             </div>
-            <div class="text-muted-foreground text-xs font-normal">
-              Images are embedded directly in the text flow.
-            </div>
+            <div class="text-muted-foreground text-xs font-normal">Images are embedded directly in the text flow.</div>
           </Label>
         </div>
       </RadioGroup.Root>
@@ -229,30 +209,18 @@
       <!-- Extra Image Toggles -->
       <div class="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
         <div class="flex items-center space-x-2">
-          <Switch
-            id="bg-images"
-            checked={backgroundImagesEnabled}
-            onCheckedChange={onBackgroundImagesEnabledChange}
-          />
+          <Switch id="bg-images" checked={backgroundImagesEnabled} onCheckedChange={onBackgroundImagesEnabledChange} />
           <div class="grid gap-1.5 leading-none">
             <Label for="bg-images">Background Images</Label>
-            <p class="text-muted-foreground text-xs">
-              Generate immersive background images for scenes.
-            </p>
+            <p class="text-muted-foreground text-xs">Generate immersive background images for scenes.</p>
           </div>
         </div>
 
         <div class="flex items-center space-x-2">
-          <Switch
-            id="reference-mode"
-            checked={referenceMode}
-            onCheckedChange={onReferenceModeChange}
-          />
+          <Switch id="reference-mode" checked={referenceMode} onCheckedChange={onReferenceModeChange} />
           <div class="grid gap-1.5 leading-none">
             <Label for="reference-mode">Portrait Reference Mode</Label>
-            <p class="text-muted-foreground text-xs">
-              Use character portraits as visual references.
-            </p>
+            <p class="text-muted-foreground text-xs">Use character portraits as visual references.</p>
           </div>
         </div>
       </div>

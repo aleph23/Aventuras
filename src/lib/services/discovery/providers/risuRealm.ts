@@ -11,10 +11,7 @@ export class RisuRealmProvider implements DiscoveryProvider {
   icon = 'https://realm.risuai.net/icon.png'
   supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario']
 
-  async search(
-    options: SearchOptions,
-    type: 'character' | 'lorebook' | 'scenario',
-  ): Promise<SearchResult> {
+  async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
     if (type === 'lorebook') {
       return { cards: [], hasMore: false }
     }
@@ -22,8 +19,7 @@ export class RisuRealmProvider implements DiscoveryProvider {
     const params = new URLSearchParams()
 
     // Sort
-    const sort =
-      options.sort === 'new' ? 'date' : options.sort === 'popular' ? 'download' : 'recommended'
+    const sort = options.sort === 'new' ? 'date' : options.sort === 'popular' ? 'download' : 'recommended'
     if (sort !== 'recommended') {
       params.set('sort', sort)
     } else {

@@ -205,11 +205,7 @@
     {#if sortedChapters.length > 0}
       <div class="space-y-3">
         {#each sortedChapters as chapter (chapter.id)}
-          <ChapterCard
-            {chapter}
-            entries={getChapterEntries(chapter)}
-            onResummarize={handleResummarize}
-          />
+          <ChapterCard {chapter} entries={getChapterEntries(chapter)} onResummarize={handleResummarize} />
         {/each}
       </div>
     {:else}
@@ -226,10 +222,7 @@
 
   <!-- Modals -->
   {#if ui.manualChapterModalOpen}
-    <ManualChapterModal
-      onConfirm={handleCreateManualChapter}
-      onClose={() => ui.closeManualChapterModal()}
-    />
+    <ManualChapterModal onConfirm={handleCreateManualChapter} onClose={() => ui.closeManualChapterModal()} />
   {/if}
 
   {#if ui.resummarizeModalOpen}

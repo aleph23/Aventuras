@@ -100,11 +100,6 @@
 
   <!-- Content -->
   <div class="flex-1 overflow-hidden">
-    <DebugLogView
-      {logs}
-      onClear={handleClear}
-      {renderNewlines}
-      onToggleRenderNewlines={handleToggleRenderNewlines}
-    />
+    <DebugLogView {logs} onClear={handleClear} {renderNewlines} onToggleRenderNewlines={handleToggleRenderNewlines} />
   </div>
 </div>

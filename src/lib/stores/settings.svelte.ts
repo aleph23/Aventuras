@@ -25,11 +25,7 @@ import { dedupeTextModels } from '$lib/utils/dedupeTextModels'
 import type { ImageGenerationServiceSettings, TimelineFillSettings } from '$lib/services/ai'
 import { debug } from './debug.svelte'
 import { modelHealth } from './modelHealth.svelte'
-import {
-  isPingEligible,
-  pingProfileModels,
-  clearProfileHealth,
-} from '$lib/services/modelHealthOrchestrator'
+import { isPingEligible, pingProfileModels, clearProfileHealth } from '$lib/services/modelHealthOrchestrator'
 
 // Provider preset type (used by WelcomeScreen)
 export type ProviderPreset = 'openrouter' | 'nanogpt' | 'openai-compatible'
@@ -85,9 +81,7 @@ function getDefaultAdvancedWizardSettings(): AdvancedWizardSettings {
   return getDefaultAdvancedSettingsForProvider('openrouter')
 }
 
-export function getDefaultAdvancedSettingsForProvider(
-  provider: ProviderType,
-): AdvancedWizardSettings {
+export function getDefaultAdvancedSettingsForProvider(provider: ProviderType): AdvancedWizardSettings {
   const preset = getPresetDefaults(provider, 'wizard')
 
   return {
@@ -200,9 +194,7 @@ export function getDefaultClassifierSettings(): ClassifierSettings {
   return getDefaultClassifierSettingsForProvider('openrouter')
 }
 
-export function getDefaultClassifierSettingsForProvider(
-  provider: ProviderType,
-): ClassifierSettings {
+export function getDefaultClassifierSettingsForProvider(provider: ProviderType): ClassifierSettings {
   const preset = getPresetDefaults(provider, 'classification')
   return {
     presetId: 'classification',
@@ -233,9 +225,7 @@ export function getDefaultLorebookClassifierSettings(): LorebookClassifierSettin
   return getDefaultLorebookClassifierSettingsForProvider('openrouter')
 }
 
-export function getDefaultLorebookClassifierSettingsForProvider(
-  provider: ProviderType,
-): LorebookClassifierSettings {
+export function getDefaultLorebookClassifierSettingsForProvider(provider: ProviderType): LorebookClassifierSettings {
   const preset = getPresetDefaults(provider, 'classification')
   return {
     presetId: 'classification',
@@ -291,9 +281,7 @@ export function getDefaultSuggestionsSettings(): SuggestionsSettings {
   return getDefaultSuggestionsSettingsForProvider('openrouter')
 }
 
-export function getDefaultSuggestionsSettingsForProvider(
-  provider: ProviderType,
-): SuggestionsSettings {
+export function getDefaultSuggestionsSettingsForProvider(provider: ProviderType): SuggestionsSettings {
   const preset = getPresetDefaults(provider, 'suggestions')
   return {
     presetId: 'suggestions',
@@ -321,9 +309,7 @@ export function getDefaultActionChoicesSettings(): ActionChoicesSettings {
   return getDefaultActionChoicesSettingsForProvider('openrouter')
 }
 
-export function getDefaultActionChoicesSettingsForProvider(
-  provider: ProviderType,
-): ActionChoicesSettings {
+export function getDefaultActionChoicesSettingsForProvider(provider: ProviderType): ActionChoicesSettings {
   const preset = getPresetDefaults(provider, 'suggestions')
   return {
     presetId: 'suggestions',
@@ -353,9 +339,7 @@ export function getDefaultStyleReviewerSettings(): StyleReviewerSettings {
   return getDefaultStyleReviewerSettingsForProvider('openrouter')
 }
 
-export function getDefaultStyleReviewerSettingsForProvider(
-  provider: ProviderType,
-): StyleReviewerSettings {
+export function getDefaultStyleReviewerSettingsForProvider(provider: ProviderType): StyleReviewerSettings {
   const preset = getPresetDefaults(provider, 'suggestions')
   return {
     presetId: 'suggestions',
@@ -385,9 +369,7 @@ export function getDefaultLoreManagementSettings(): LoreManagementSettings {
   return getDefaultLoreManagementSettingsForProvider('openrouter')
 }
 
-export function getDefaultLoreManagementSettingsForProvider(
-  provider: ProviderType,
-): LoreManagementSettings {
+export function getDefaultLoreManagementSettingsForProvider(provider: ProviderType): LoreManagementSettings {
   const preset = getPresetDefaults(provider, 'agentic')
   return {
     presetId: 'agentic',
@@ -415,9 +397,7 @@ export function getDefaultInteractiveVaultSettings(): InteractiveVaultSettings {
   return getDefaultInteractiveVaultSettingsForProvider('openrouter')
 }
 
-export function getDefaultInteractiveVaultSettingsForProvider(
-  provider: ProviderType,
-): InteractiveVaultSettings {
+export function getDefaultInteractiveVaultSettingsForProvider(provider: ProviderType): InteractiveVaultSettings {
   const preset = getPresetDefaults(provider, 'agentic')
   return {
     presetId: 'agentic',
@@ -446,9 +426,7 @@ export function getDefaultAgenticRetrievalSettings(): AgenticRetrievalSettings {
   return getDefaultAgenticRetrievalSettingsForProvider('openrouter')
 }
 
-export function getDefaultAgenticRetrievalSettingsForProvider(
-  provider: ProviderType,
-): AgenticRetrievalSettings {
+export function getDefaultAgenticRetrievalSettingsForProvider(provider: ProviderType): AgenticRetrievalSettings {
   const preset = getPresetDefaults(provider, 'agentic')
   return {
     presetId: 'agentic',
@@ -467,9 +445,7 @@ export function getDefaultTimelineFillSettings(): TimelineFillSettings {
   return getDefaultTimelineFillSettingsForProvider('openrouter')
 }
 
-export function getDefaultTimelineFillSettingsForProvider(
-  provider: ProviderType,
-): TimelineFillSettings {
+export function getDefaultTimelineFillSettingsForProvider(provider: ProviderType): TimelineFillSettings {
   const preset = getPresetDefaults(provider, 'memory')
   return {
     presetId: 'memory',
@@ -498,9 +474,7 @@ export function getDefaultChapterQuerySettings(): ChapterQuerySettings {
   return getDefaultChapterQuerySettingsForProvider('openrouter')
 }
 
-export function getDefaultChapterQuerySettingsForProvider(
-  provider: ProviderType,
-): ChapterQuerySettings {
+export function getDefaultChapterQuerySettingsForProvider(provider: ProviderType): ChapterQuerySettings {
   const preset = getPresetDefaults(provider, 'memory')
   return {
     presetId: 'memory',
@@ -529,9 +503,7 @@ export function getDefaultEntryRetrievalSettings(): EntryRetrievalSettings {
   return getDefaultEntryRetrievalSettingsForProvider('openrouter')
 }
 
-export function getDefaultEntryRetrievalSettingsForProvider(
-  provider: ProviderType,
-): EntryRetrievalSettings {
+export function getDefaultEntryRetrievalSettingsForProvider(provider: ProviderType): EntryRetrievalSettings {
   const preset = getPresetDefaults(provider, 'classification')
   return {
     presetId: 'classification',
@@ -579,9 +551,7 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
   }
 }
 
-export function getDefaultImageGenerationSettingsForProvider(
-  _provider: ProviderType,
-): ImageGenerationServiceSettings {
+export function getDefaultImageGenerationSettingsForProvider(_provider: ProviderType): ImageGenerationServiceSettings {
   // Profile selection determines available models, so use generic defaults here
   // The UI will show appropriate models based on the selected profile's provider
   return getDefaultImageGenerationSettings()
@@ -673,9 +643,7 @@ export function getDefaultCharacterCardImportSettings(): CharacterCardImportSett
   return getDefaultCharacterCardImportSettingsForProvider('openrouter')
 }
 
-export function getDefaultCharacterCardImportSettingsForProvider(
-  provider: ProviderType,
-): CharacterCardImportSettings {
+export function getDefaultCharacterCardImportSettingsForProvider(provider: ProviderType): CharacterCardImportSettings {
   const preset = getPresetDefaults(provider, 'classification')
   return {
     presetId: 'classification',
@@ -979,9 +947,7 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
   }
 }
 
-export function getDefaultSystemServicesSettingsForProvider(
-  provider: ProviderType,
-): SystemServicesSettings {
+export function getDefaultSystemServicesSettingsForProvider(provider: ProviderType): SystemServicesSettings {
   return {
     classifier: getDefaultClassifierSettingsForProvider(provider),
     lorebookClassifier: getDefaultLorebookClassifierSettingsForProvider(provider),
@@ -1027,8 +993,7 @@ export function getDefaultGenerationPresetsForProvider(provider: ProviderType): 
       model: services?.classification.model ?? emptyServiceDefault.model,
       temperature: services?.classification.temperature ?? 0.3,
       maxTokens: services?.classification.maxTokens ?? emptyServiceDefault.maxTokens,
-      reasoningEffort:
-        services?.classification.reasoningEffort ?? emptyServiceDefault.reasoningEffort,
+      reasoningEffort: services?.classification.reasoningEffort ?? emptyServiceDefault.reasoningEffort,
       manualBody: '',
     },
     {
@@ -1408,8 +1373,7 @@ class SettingsStore {
       } else {
         // Migration: Check if this is an existing user (has API key or profiles)
         // If so, mark first run as complete and default to OpenRouter
-        const hasExistingSetup =
-          apiKey || (this.apiSettings.profiles && this.apiSettings.profiles.length > 0)
+        const hasExistingSetup = apiKey || (this.apiSettings.profiles && this.apiSettings.profiles.length > 0)
         if (hasExistingSetup) {
           this.firstRunComplete = true
           this.providerPreset = 'openrouter' // Default existing users to OpenRouter
@@ -1459,16 +1423,13 @@ class SettingsStore {
 
       if (showWordCount) this.uiSettings.showWordCount = showWordCount === 'true'
       if (autoSave) this.uiSettings.autoSave = autoSave === 'true'
-      if (spellcheckEnabled !== null)
-        this.uiSettings.spellcheckEnabled = spellcheckEnabled === 'true'
+      if (spellcheckEnabled !== null) this.uiSettings.spellcheckEnabled = spellcheckEnabled === 'true'
 
       const disableSuggestions = await database.getSetting('disable_suggestions')
-      if (disableSuggestions !== null)
-        this.uiSettings.disableSuggestions = disableSuggestions === 'true'
+      if (disableSuggestions !== null) this.uiSettings.disableSuggestions = disableSuggestions === 'true'
 
       const disableActionPrefixes = await database.getSetting('disable_action_prefixes')
-      if (disableActionPrefixes !== null)
-        this.uiSettings.disableActionPrefixes = disableActionPrefixes === 'true'
+      if (disableActionPrefixes !== null) this.uiSettings.disableActionPrefixes = disableActionPrefixes === 'true'
 
       const showReasoning = await database.getSetting('show_reasoning')
       if (showReasoning !== null) this.uiSettings.showReasoning = showReasoning === 'true'
@@ -1480,8 +1441,7 @@ class SettingsStore {
       if (showScrollToTop !== null) this.uiSettings.showScrollToTop = showScrollToTop === 'true'
 
       const showScrollToBottom = await database.getSetting('show_scroll_to_bottom')
-      if (showScrollToBottom !== null)
-        this.uiSettings.showScrollToBottom = showScrollToBottom === 'true'
+      if (showScrollToBottom !== null) this.uiSettings.showScrollToBottom = showScrollToBottom === 'true'
 
       const storyMaxWidth = await database.getSetting('story_max_width')
       if (storyMaxWidth && VALID_STORY_WIDTH_KEYS.includes(storyMaxWidth))
@@ -1628,9 +1588,7 @@ class SettingsStore {
       if (systemServicesJson) {
         try {
           const loaded = JSON.parse(systemServicesJson)
-          const defaults = getDefaultSystemServicesSettingsForProvider(
-            this.getDefaultProviderType(),
-          )
+          const defaults = getDefaultSystemServicesSettingsForProvider(this.getDefaultProviderType())
           this.systemServicesSettings = {
             classifier: { ...defaults.classifier, ...loaded.classifier },
             lorebookClassifier: { ...defaults.lorebookClassifier, ...loaded.lorebookClassifier },
@@ -1658,10 +1616,7 @@ class SettingsStore {
           const suggestionsSettings = loaded?.suggestions ?? this.systemServicesSettings.suggestions
           const suggestionProfileId =
             suggestionsSettings?.profileId ?? this.systemServicesSettings.suggestions.profileId
-          if (
-            isMissingProfileId(this.systemServicesSettings.actionChoices.profileId) &&
-            suggestionProfileId
-          ) {
+          if (isMissingProfileId(this.systemServicesSettings.actionChoices.profileId) && suggestionProfileId) {
             this.systemServicesSettings.actionChoices.profileId = suggestionProfileId
           }
           if (!this.systemServicesSettings.actionChoices.model && suggestionsSettings?.model) {
@@ -1693,14 +1648,10 @@ class SettingsStore {
             }
           }
         } catch {
-          this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(
-            this.getDefaultProviderType(),
-          )
+          this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getDefaultProviderType())
         }
       } else {
-        this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(
-          this.getDefaultProviderType(),
-        )
+        this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getDefaultProviderType())
       }
 
       // Load update settings
@@ -1720,8 +1671,7 @@ class SettingsStore {
       if (this.firstRunComplete) {
         const isOpenRouterUrl = apiURL === PROVIDERS.openrouter.baseUrl
         const isOpenRouterKey = !!apiKey && apiKey.startsWith('sk-or-')
-        const shouldEnsureOpenRouterProfile =
-          this.providerPreset === 'openrouter' || isOpenRouterUrl || isOpenRouterKey
+        const shouldEnsureOpenRouterProfile = this.providerPreset === 'openrouter' || isOpenRouterUrl || isOpenRouterKey
         const openRouterApiKey = isOpenRouterUrl || isOpenRouterKey ? apiKey : null
 
         // Ensure default OpenRouter profile exists (migration for existing OpenRouter users)
@@ -1851,15 +1801,11 @@ class SettingsStore {
     // entries would survive undetected otherwise. evictForeign only prunes
     // in-memory; this deletes the SQLite rows.
     const pingDisabled = oldProfile.pingEnabled && updates.pingEnabled === false
-    const apiKeyChanged =
-      updates.apiKey !== undefined && updates.apiKey !== oldProfile.apiKey && !!oldProfile.apiKey
-    const providerChanged =
-      updates.providerType !== undefined && updates.providerType !== oldProfile.providerType
+    const apiKeyChanged = updates.apiKey !== undefined && updates.apiKey !== oldProfile.apiKey && !!oldProfile.apiKey
+    const providerChanged = updates.providerType !== undefined && updates.providerType !== oldProfile.providerType
     const baseUrlChanged = updates.baseUrl !== undefined && updates.baseUrl !== oldProfile.baseUrl
     if (pingDisabled || apiKeyChanged || providerChanged || baseUrlChanged) {
-      await clearProfileHealth(oldProfile).catch((err) =>
-        console.warn('[Settings] Failed to clear health cache:', err),
-      )
+      await clearProfileHealth(oldProfile).catch((err) => console.warn('[Settings] Failed to clear health cache:', err))
     }
 
     this.apiSettings.profiles[index] = newProfile
@@ -1868,9 +1814,7 @@ class SettingsStore {
 
     // If models were updated and ping is enabled, trigger a ping batch
     if (updates.fetchedModels && newProfile.pingEnabled && isPingEligible(newProfile)) {
-      void pingProfileModels(newProfile).catch((err) =>
-        console.warn('[Settings] Auto-ping failed:', err),
-      )
+      void pingProfileModels(newProfile).catch((err) => console.warn('[Settings] Auto-ping failed:', err))
     }
   }
 
@@ -2117,9 +2061,7 @@ class SettingsStore {
    */
   async ensureDefaultOpenRouterProfile(existingApiKey: string | null) {
     // Check if default OpenRouter profile already exists
-    const existingDefault = this.apiSettings.profiles.find(
-      (p) => p.id === DEFAULT_OPENROUTER_PROFILE_ID,
-    )
+    const existingDefault = this.apiSettings.profiles.find((p) => p.id === DEFAULT_OPENROUTER_PROFILE_ID)
 
     // Collect all models currently in use for migration
     const modelsInUse = this.collectModelsInUse()
@@ -2178,21 +2120,12 @@ class SettingsStore {
       }
 
       // Add any models in use that aren't already in the profile
-      const existingModels = new Set(
-        this.getProfileModels(existingDefault.id).map((model) => model.id),
-      )
+      const existingModels = new Set(this.getProfileModels(existingDefault.id).map((model) => model.id))
       const missingModels = modelsInUse.filter((m) => !existingModels.has(m))
       if (missingModels.length > 0) {
-        existingDefault.customModels = dedupeModelIds([
-          ...existingDefault.customModels,
-          ...missingModels,
-        ])
+        existingDefault.customModels = dedupeModelIds([...existingDefault.customModels, ...missingModels])
         needsSave = true
-        console.log(
-          '[Settings] Added',
-          missingModels.length,
-          'missing models to OpenRouter profile',
-        )
+        console.log('[Settings] Added', missingModels.length, 'missing models to OpenRouter profile')
       }
 
       if (needsSave) {
@@ -2270,9 +2203,7 @@ class SettingsStore {
 
     if (wizardNeedsSave) {
       await this.saveWizardSettings()
-      console.log(
-        '[Settings] Migrated wizard null/undefined profileIds to default OpenRouter profile',
-      )
+      console.log('[Settings] Migrated wizard null/undefined profileIds to default OpenRouter profile')
     }
   }
 
@@ -2300,19 +2231,14 @@ class SettingsStore {
     let changed = false
 
     for (const [profileField, modelField] of Object.entries(profileFieldMap)) {
-      const apiProfileId = (imgSettings as unknown as Record<string, unknown>)[profileField] as
-        | string
-        | undefined
-      const model = (imgSettings as unknown as Record<string, unknown>)[modelField] as
-        | string
-        | undefined
+      const apiProfileId = (imgSettings as unknown as Record<string, unknown>)[profileField] as string | undefined
+      const model = (imgSettings as unknown as Record<string, unknown>)[modelField] as string | undefined
 
       if (!apiProfileId || !model) continue
 
       const uniqueKey = `${apiProfileId}:${model}`
       if (newProfileIds.has(uniqueKey)) {
-        ;(imgSettings as unknown as Record<string, unknown>)[profileField] =
-          newProfileIds.get(uniqueKey)!
+        ;(imgSettings as unknown as Record<string, unknown>)[profileField] = newProfileIds.get(uniqueKey)!
         changed = true
         continue
       }
@@ -2341,9 +2267,7 @@ class SettingsStore {
 
     if (changed) {
       await this.saveSystemServicesSettings()
-      console.log(
-        '[Settings] Auto-migrated image generation profiles from API Profiles to Image Profiles',
-      )
+      console.log('[Settings] Auto-migrated image generation profiles from API Profiles to Image Profiles')
     }
 
     // Ensure all existing image profiles have a model field
@@ -2459,8 +2383,7 @@ class SettingsStore {
       }
     } else {
       // Set custom font
-      const fontStack =
-        source === 'google' ? `'${fontFamily}', Georgia, serif` : `'${fontFamily}', Georgia, serif`
+      const fontStack = source === 'google' ? `'${fontFamily}', Georgia, serif` : `'${fontFamily}', Georgia, serif`
       document.documentElement.style.setProperty('--font-story-custom', fontStack)
       document.documentElement.setAttribute('data-custom-font', 'true')
     }
@@ -2575,22 +2498,17 @@ class SettingsStore {
   }
 
   async saveServicePresetAssignments() {
-    await database.setSetting(
-      'service_preset_assignments',
-      JSON.stringify(this.servicePresetAssignments),
-    )
+    await database.setSetting('service_preset_assignments', JSON.stringify(this.servicePresetAssignments))
   }
 
   async resetGenerationPresets() {
     const effectiveProvider = this.getDefaultProviderType()
     const defaultProfileId = this.getDefaultProfileIdForProvider()
     // Populate profileIds with the default profile ID (presets come with null by default)
-    this.generationPresets = getDefaultGenerationPresetsForProvider(effectiveProvider).map(
-      (preset) => ({
-        ...preset,
-        profileId: preset.profileId || defaultProfileId,
-      }),
-    )
+    this.generationPresets = getDefaultGenerationPresetsForProvider(effectiveProvider).map((preset) => ({
+      ...preset,
+      profileId: preset.profileId || defaultProfileId,
+    }))
     await this.saveGenerationPresets()
   }
 
@@ -2600,17 +2518,11 @@ class SettingsStore {
   }
 
   async saveSystemServicesSettings() {
-    await database.setSetting(
-      'system_services_settings',
-      JSON.stringify(this.systemServicesSettings),
-    )
+    await database.setSetting('system_services_settings', JSON.stringify(this.systemServicesSettings))
   }
 
   async saveServiceSpecificSettings() {
-    await database.setSetting(
-      'service_specific_settings',
-      JSON.stringify(this.serviceSpecificSettings),
-    )
+    await database.setSetting('service_specific_settings', JSON.stringify(this.serviceSpecificSettings))
   }
 
   async resetServiceSpecificSettings() {
@@ -2625,19 +2537,11 @@ class SettingsStore {
 
   async updateExperimentalFeatures(updates: Partial<ExperimentalFeatures>) {
     // Enforce dependencies: rollbackOnDelete requires stateTracking
-    if (
-      updates.rollbackOnDelete &&
-      !this.experimentalFeatures.stateTracking &&
-      !updates.stateTracking
-    ) {
+    if (updates.rollbackOnDelete && !this.experimentalFeatures.stateTracking && !updates.stateTracking) {
       updates.rollbackOnDelete = false
     }
     // lightweightBranches requires stateTracking
-    if (
-      updates.lightweightBranches &&
-      !this.experimentalFeatures.stateTracking &&
-      !updates.stateTracking
-    ) {
+    if (updates.lightweightBranches && !this.experimentalFeatures.stateTracking && !updates.stateTracking) {
       updates.lightweightBranches = false
     }
     // Disabling stateTracking cascades
@@ -2720,15 +2624,14 @@ class SettingsStore {
   }
 
   async resetClassifierSettings() {
-    this.systemServicesSettings.classifier = getDefaultClassifierSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.classifier = getDefaultClassifierSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetLorebookClassifierSettings() {
-    this.systemServicesSettings.lorebookClassifier =
-      getDefaultLorebookClassifierSettingsForProvider(this.providerPreset)
+    this.systemServicesSettings.lorebookClassifier = getDefaultLorebookClassifierSettingsForProvider(
+      this.providerPreset,
+    )
     await this.saveSystemServicesSettings()
   }
 
@@ -2738,72 +2641,52 @@ class SettingsStore {
   }
 
   async resetSuggestionsSettings() {
-    this.systemServicesSettings.suggestions = getDefaultSuggestionsSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.suggestions = getDefaultSuggestionsSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetActionChoicesSettings() {
-    this.systemServicesSettings.actionChoices = getDefaultActionChoicesSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.actionChoices = getDefaultActionChoicesSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetStyleReviewerSettings() {
-    this.systemServicesSettings.styleReviewer = getDefaultStyleReviewerSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.styleReviewer = getDefaultStyleReviewerSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetLoreManagementSettings() {
-    this.systemServicesSettings.loreManagement = getDefaultLoreManagementSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.loreManagement = getDefaultLoreManagementSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetInteractiveVaultSettings() {
-    this.systemServicesSettings.interactiveVault = getDefaultInteractiveVaultSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.interactiveVault = getDefaultInteractiveVaultSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetAgenticRetrievalSettings() {
-    this.systemServicesSettings.agenticRetrieval = getDefaultAgenticRetrievalSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.agenticRetrieval = getDefaultAgenticRetrievalSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetTimelineFillSettings() {
-    this.systemServicesSettings.timelineFill = getDefaultTimelineFillSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.timelineFill = getDefaultTimelineFillSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetChapterQuerySettings() {
-    this.systemServicesSettings.chapterQuery = getDefaultChapterQuerySettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.chapterQuery = getDefaultChapterQuerySettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetEntryRetrievalSettings() {
-    this.systemServicesSettings.entryRetrieval = getDefaultEntryRetrievalSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.entryRetrieval = getDefaultEntryRetrievalSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
   async resetImageGenerationSettings() {
-    this.systemServicesSettings.imageGeneration = getDefaultImageGenerationSettingsForProvider(
-      this.providerPreset,
-    )
+    this.systemServicesSettings.imageGeneration = getDefaultImageGenerationSettingsForProvider(this.providerPreset)
     await this.saveSystemServicesSettings()
   }
 
@@ -2813,8 +2696,9 @@ class SettingsStore {
   }
 
   async resetCharacterCardImportSettings() {
-    this.systemServicesSettings.characterCardImport =
-      getDefaultCharacterCardImportSettingsForProvider(this.providerPreset)
+    this.systemServicesSettings.characterCardImport = getDefaultCharacterCardImportSettingsForProvider(
+      this.providerPreset,
+    )
     await this.saveSystemServicesSettings()
   }
 
@@ -2882,9 +2766,7 @@ class SettingsStore {
       : defaults.baseUrl || PROVIDERS.openrouter.baseUrl
     const profiles = preserveApiSettings ? this.apiSettings.profiles : []
     const activeProfileId = preserveApiSettings ? this.apiSettings.activeProfileId : null
-    const mainNarrativeProfileId = preserveApiSettings
-      ? this.apiSettings.mainNarrativeProfileId
-      : ''
+    const mainNarrativeProfileId = preserveApiSettings ? this.apiSettings.mainNarrativeProfileId : ''
 
     // For providers without service defaults, use empty model (requires manual configuration)
     const defaultNarrativeModel = defaults.services?.narrative.model ?? ''
@@ -2938,20 +2820,11 @@ class SettingsStore {
     await database.setSetting('spellcheck_enabled', this.uiSettings.spellcheckEnabled.toString())
     await database.setSetting('debug_mode', this.uiSettings.debugMode.toString())
     await database.setSetting('disable_suggestions', this.uiSettings.disableSuggestions.toString())
-    await database.setSetting(
-      'disable_action_prefixes',
-      this.uiSettings.disableActionPrefixes.toString(),
-    )
+    await database.setSetting('disable_action_prefixes', this.uiSettings.disableActionPrefixes.toString())
     await database.setSetting('auto_scroll', this.uiSettings.autoScroll.toString())
     await database.setSetting('show_scroll_to_top', this.uiSettings.showScrollToTop.toString())
-    await database.setSetting(
-      'show_scroll_to_bottom',
-      this.uiSettings.showScrollToBottom.toString(),
-    )
-    await database.setSetting(
-      'advanced_manual_mode',
-      this.advancedRequestSettings.manualMode.toString(),
-    )
+    await database.setSetting('show_scroll_to_bottom', this.uiSettings.showScrollToBottom.toString())
+    await database.setSetting('advanced_manual_mode', this.advancedRequestSettings.manualMode.toString())
     await this.saveWizardSettings()
     await this.saveSystemServicesSettings()
     await this.saveUpdateSettings()
@@ -3011,9 +2884,7 @@ class SettingsStore {
     }
 
     // Check if profile already exists
-    const existingProfileIndex = this.apiSettings.profiles.findIndex(
-      (p) => p.id === defaultProfileId,
-    )
+    const existingProfileIndex = this.apiSettings.profiles.findIndex((p) => p.id === defaultProfileId)
     if (existingProfileIndex >= 0) {
       this.apiSettings.profiles[existingProfileIndex] = defaultProfile
     } else {
@@ -3143,10 +3014,7 @@ class SettingsStore {
    */
   async setServicePresetId(serviceId: string, presetId: string) {
     this.servicePresetAssignments[serviceId] = presetId
-    await database.setSetting(
-      'service_preset_assignments',
-      JSON.stringify(this.servicePresetAssignments),
-    )
+    await database.setSetting('service_preset_assignments', JSON.stringify(this.servicePresetAssignments))
   }
 
   /**
@@ -3226,9 +3094,7 @@ class SettingsStore {
     // Check and update system services
     if (this.systemServicesMatchDefaults()) {
       console.log('[Settings] System services match defaults, auto-applying new defaults')
-      this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(
-        this.getDefaultProviderType(),
-      )
+      this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getDefaultProviderType())
       await this.saveSystemServicesSettings()
       needsSave = true
     }

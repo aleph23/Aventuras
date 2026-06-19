@@ -1,15 +1,6 @@
 <script lang="ts">
   import type { Entry, EntryType } from '$lib/types'
-  import {
-    Users,
-    MapPin,
-    Package,
-    Shield,
-    Lightbulb,
-    Calendar,
-    BookOpen,
-    ChevronRight,
-  } from 'lucide-svelte'
+  import { Users, MapPin, Package, Shield, Lightbulb, Calendar, BookOpen, ChevronRight } from 'lucide-svelte'
   import { ui } from '$lib/stores/ui.svelte'
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { cn } from '$lib/utils/cn'

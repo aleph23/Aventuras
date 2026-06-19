@@ -20,9 +20,7 @@
 
   function handleKeyDown(e: KeyboardEvent) {
     const isTouch = isTouchDevice()
-    const shouldSubmit = isTouch
-      ? e.key === 'Enter' && e.shiftKey
-      : e.key === 'Enter' && !e.shiftKey
+    const shouldSubmit = isTouch ? e.key === 'Enter' && e.shiftKey : e.key === 'Enter' && !e.shiftKey
     if (shouldSubmit) {
       e.preventDefault()
       handleSend()
@@ -42,10 +40,7 @@
   }
 </script>
 
-<div
-  class="border-surface-700 bg-surface-900 border-t p-3"
-  style="padding-bottom: calc(0.75rem + var(--safe-bottom));"
->
+<div class="border-surface-700 bg-surface-900 border-t p-3" style="padding-bottom: calc(0.75rem + var(--safe-bottom));">
   <div class="flex items-end gap-2">
     <Textarea
       bind:value={inputValue}
@@ -58,10 +53,7 @@
     />
     <Button
       size="icon"
-      class={cn(
-        'h-10 w-10 shrink-0 rounded-xl',
-        isGenerating ? 'opacity-70' : 'bg-accent-600 hover:bg-accent-500',
-      )}
+      class={cn('h-10 w-10 shrink-0 rounded-xl', isGenerating ? 'opacity-70' : 'bg-accent-600 hover:bg-accent-500')}
       onclick={handleSend}
       disabled={!inputValue.trim() || disabled || isGenerating}
       title="Send message"
@@ -74,8 +66,6 @@
     </Button>
   </div>
   <div class="text-surface-500 mt-1.5 hidden text-center text-[10px] md:block">
-    {isTouchDevice()
-      ? 'Shift+Enter to send, Enter for new line'
-      : 'Enter to send, Shift+Enter for new line'}
+    {isTouchDevice() ? 'Shift+Enter to send, Enter for new line' : 'Enter to send, Shift+Enter for new line'}
   </div>
 </div>

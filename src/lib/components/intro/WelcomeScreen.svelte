@@ -60,8 +60,7 @@
       keyPrefix: 'sk-nano-',
       requiresKey: true,
       note: 'Reasoning models are auto-detected',
-      color:
-        'border-yellow-500/20 hover:border-yellow-500/50 bg-yellow-500/5 hover:bg-yellow-500/10',
+      color: 'border-yellow-500/20 hover:border-yellow-500/50 bg-yellow-500/5 hover:bg-yellow-500/10',
       iconColor: 'text-yellow-500',
     },
     {
@@ -73,8 +72,7 @@
       keyPrefix: '',
       requiresKey: false,
       note: 'Configure endpoint in settings later.',
-      color:
-        'border-purple-500/20 hover:border-purple-500/50 bg-purple-500/5 hover:bg-purple-500/10',
+      color: 'border-purple-500/20 hover:border-purple-500/50 bg-purple-500/5 hover:bg-purple-500/10',
       iconColor: 'text-purple-500',
     },
   ]
@@ -166,14 +164,9 @@
                 <Palette size={18} class="text-primary" />
                 Theme
               </Label>
-              <Select.Root
-                type="single"
-                value={settings.uiSettings.theme}
-                onValueChange={(v) => settings.setTheme(v)}
-              >
+              <Select.Root type="single" value={settings.uiSettings.theme} onValueChange={(v) => settings.setTheme(v)}>
                 <Select.Trigger class="w-full">
-                  {THEMES.find((t) => t.id === settings.uiSettings.theme)?.label ??
-                    'Select a theme'}
+                  {THEMES.find((t) => t.id === settings.uiSettings.theme)?.label ?? 'Select a theme'}
                 </Select.Trigger>
                 <Select.Content>
                   {#each THEMES as theme (theme.id)}
@@ -216,10 +209,7 @@
               </div>
 
               {#if settings.translationSettings.enabled}
-                <div
-                  class="bg-muted/50 space-y-4 rounded-xl p-4"
-                  transition:slide={{ duration: 200, axis: 'y' }}
-                >
+                <div class="bg-muted/50 space-y-4 rounded-xl p-4" transition:slide={{ duration: 200, axis: 'y' }}>
                   <div class="space-y-2">
                     <Label for="lang-select" class="text-sm">Target Language</Label>
                     <Select.Root
@@ -231,9 +221,8 @@
                         })}
                     >
                       <Select.Trigger id="lang-select" class="w-full">
-                        {getSupportedLanguages().find(
-                          (l) => l.code === settings.translationSettings.targetLanguage,
-                        )?.name ?? 'Select language'}
+                        {getSupportedLanguages().find((l) => l.code === settings.translationSettings.targetLanguage)
+                          ?.name ?? 'Select language'}
                       </Select.Trigger>
                       <Select.Content class="max-h-[200px] overflow-y-auto">
                         {#each getSupportedLanguages() as lang (lang.code)}
@@ -244,9 +233,7 @@
                   </div>
 
                   <div class="flex items-center justify-between pt-2">
-                    <Label class="text-muted-foreground text-sm font-normal"
-                      >Translate my input</Label
-                    >
+                    <Label class="text-muted-foreground text-sm font-normal">Translate my input</Label>
                     <Switch
                       checked={settings.translationSettings.translateUserInput}
                       onCheckedChange={(v) =>
@@ -257,9 +244,7 @@
                   </div>
 
                   <div class="flex items-center justify-between">
-                    <Label class="text-muted-foreground text-sm font-normal"
-                      >Translate World State</Label
-                    >
+                    <Label class="text-muted-foreground text-sm font-normal">Translate World State</Label>
                     <Switch
                       checked={settings.translationSettings.translateWorldState}
                       onCheckedChange={(v) =>
@@ -291,9 +276,7 @@
               onclick={() => selectProvider(provider.id)}
               class="group flex flex-col items-center gap-4 rounded-xl border p-6 text-center transition-all duration-200 hover:-translate-y-1 hover:shadow-lg {provider.color} bg-card text-card-foreground"
             >
-              <div
-                class="bg-muted ring-background group-hover:bg-background rounded-full p-4 ring-1 transition-colors"
-              >
+              <div class="bg-muted ring-background group-hover:bg-background rounded-full p-4 ring-1 transition-colors">
                 <provider.icon size={32} class={provider.iconColor} />
               </div>
               <div class="space-y-1">
@@ -357,9 +340,7 @@
                     <Input
                       id="api-key"
                       type={showApiKey ? 'text' : 'password'}
-                      placeholder={provider.keyPrefix
-                        ? `${provider.keyPrefix}...`
-                        : 'Enter your API key'}
+                      placeholder={provider.keyPrefix ? `${provider.keyPrefix}...` : 'Enter your API key'}
                       bind:value={apiKey}
                       onkeydown={handleKeyDown}
                       autofocus
@@ -380,9 +361,7 @@
               {/if}
 
               {#if error}
-                <div
-                  class="bg-destructive/10 text-destructive border-destructive/20 rounded-lg border p-3 text-sm"
-                >
+                <div class="bg-destructive/10 text-destructive border-destructive/20 rounded-lg border p-3 text-sm">
                   {error}
                 </div>
               {/if}

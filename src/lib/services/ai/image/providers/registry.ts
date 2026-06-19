@@ -8,12 +8,7 @@
 
 import { settings } from '$lib/stores/settings.svelte'
 import type { ImageProviderType } from '$lib/types'
-import type {
-  ImageProvider,
-  ImageProviderConfig,
-  ImageGenerateResult,
-  ImageModelInfo,
-} from './types'
+import type { ImageProvider, ImageProviderConfig, ImageGenerateResult, ImageModelInfo } from './types'
 import { createLogger } from '$lib/log'
 
 // Provider factory imports (lazy)
@@ -210,8 +205,7 @@ export async function getProviderSamplerInfo(
       baseUrl,
       timeoutMs: settings.apiSettings.llmTimeoutMs,
     }
-    const provider =
-      providerType === 'a1111' ? createA1111Provider(config) : createComfyProvider(config)
+    const provider = providerType === 'a1111' ? createA1111Provider(config) : createComfyProvider(config)
     if (provider.getSamplerInfo) {
       return await provider.getSamplerInfo()
     }

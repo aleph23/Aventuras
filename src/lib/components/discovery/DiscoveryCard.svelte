@@ -77,10 +77,7 @@
         <div
           class="bg-background/60 absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]"
         >
-          <Badge
-            variant="outline"
-            class="gap-1.5 border-green-500/50 bg-green-500/10 text-green-500"
-          >
+          <Badge variant="outline" class="gap-1.5 border-green-500/50 bg-green-500/10 text-green-500">
             <Check class="h-3.5 w-3.5" />
             Imported
           </Badge>

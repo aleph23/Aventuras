@@ -63,8 +63,7 @@
             <CardContent class="p-4">
               <div class="mb-4 flex items-center justify-between text-sm">
                 <span class="text-muted-foreground font-medium">Total Active Entries</span>
-                <span
-                  class="text-foreground bg-background rounded border px-2.5 py-0.5 font-mono font-bold"
+                <span class="text-foreground bg-background rounded border px-2.5 py-0.5 font-mono font-bold"
                   >{totalCount}</span
                 >
               </div>
@@ -97,22 +96,14 @@
           {:else}
             <!-- Tier Sections -->
             {#each [1, 2, 3] as tier (tier)}
-              {@const tierEntries =
-                tier === 1 ? result.tier1 : tier === 2 ? result.tier2 : result.tier3}
+              {@const tierEntries = tier === 1 ? result.tier1 : tier === 2 ? result.tier2 : result.tier3}
               {#if tierEntries.length > 0}
                 <div class="space-y-3">
                   <div class="flex items-center gap-2">
-                    <div
-                      class={cn(
-                        'h-2.5 w-2.5 rounded-full shadow-sm',
-                        tierIndicatorColors[tier as 1 | 2 | 3],
-                      )}
-                    ></div>
+                    <div class={cn('h-2.5 w-2.5 rounded-full shadow-sm', tierIndicatorColors[tier as 1 | 2 | 3])}></div>
                     <h3 class="text-sm font-semibold">
                       Tier {tier}: {tierLabels[tier as 1 | 2 | 3]}
-                      <span class="text-muted-foreground ml-1 font-normal"
-                        >({tierEntries.length})</span
-                      >
+                      <span class="text-muted-foreground ml-1 font-normal">({tierEntries.length})</span>
                     </h3>
                   </div>
                   <p class="text-muted-foreground pl-5 text-xs">
@@ -122,12 +113,7 @@
                   <div class="grid gap-3">
                     {#each tierEntries as retrieved (retrieved.entry.id)}
                       {@const Icon = getIcon(retrieved.entry.type)}
-                      <Card
-                        class={cn(
-                          'overflow-hidden transition-all hover:shadow-md',
-                          tierColors[tier as 1 | 2 | 3],
-                        )}
-                      >
+                      <Card class={cn('overflow-hidden transition-all hover:shadow-md', tierColors[tier as 1 | 2 | 3])}>
                         <CardContent class="flex items-start gap-3.5 p-3.5">
                           <div
                             class="bg-background/60 mt-0.5 shrink-0 rounded-md border border-transparent p-1.5 shadow-sm backdrop-blur-sm"
@@ -136,9 +122,7 @@
                           </div>
                           <div class="min-w-0 flex-1 space-y-1.5">
                             <div class="flex items-center justify-between gap-2">
-                              <span class="truncate text-sm font-semibold"
-                                >{retrieved.entry.name}</span
-                              >
+                              <span class="truncate text-sm font-semibold">{retrieved.entry.name}</span>
                               <Badge
                                 variant="secondary"
                                 class="bg-background/60 hover:bg-background/90 h-5 px-1.5 text-[10px] font-medium tracking-wide uppercase"

@@ -13,18 +13,10 @@ export { NarrativePhase } from './NarrativePhase'
 export type { NarrativeDependencies, NarrativeInput, NarrativeResult } from './NarrativePhase'
 
 export { ClassificationPhase } from './ClassificationPhase'
-export type {
-  ClassificationDependencies,
-  ClassificationInput,
-  ClassificationPhaseResult,
-} from './ClassificationPhase'
+export type { ClassificationDependencies, ClassificationInput, ClassificationPhaseResult } from './ClassificationPhase'
 
 export { TranslationPhase } from './TranslationPhase'
-export type {
-  TranslationDependencies,
-  TranslationInput,
-  TranslationResult2,
-} from './TranslationPhase'
+export type { TranslationDependencies, TranslationInput, TranslationResult2 } from './TranslationPhase'
 
 export { ImagePhase } from './ImagePhase'
 export type { ImageDependencies, ImageSettings, ImageInput, ImageResult } from './ImagePhase'

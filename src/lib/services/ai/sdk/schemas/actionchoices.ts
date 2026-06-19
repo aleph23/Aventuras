@@ -14,9 +14,7 @@ export const actionChoiceSchema = z.object({
   /** The action text for the player */
   text: z.string().describe('The action text for the player'),
   /** Type: action, dialogue, examine, or move */
-  type: z
-    .enum(['action', 'dialogue', 'examine', 'move'])
-    .describe('Type: action, dialogue, examine, or move'),
+  type: z.enum(['action', 'dialogue', 'examine', 'move']).describe('Type: action, dialogue, examine, or move'),
 })
 
 /**

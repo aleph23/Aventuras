@@ -9,14 +9,7 @@ import { z } from 'zod'
 /**
  * Entry type classification for lorebook entries.
  */
-export const entryTypeSchema = z.enum([
-  'character',
-  'location',
-  'item',
-  'faction',
-  'concept',
-  'event',
-])
+export const entryTypeSchema = z.enum(['character', 'location', 'item', 'faction', 'concept', 'event'])
 
 export type EntryTypeSchema = z.infer<typeof entryTypeSchema>
 
@@ -67,15 +60,9 @@ export const lorebookEntryPendingChangeSchema = z.object({
   entry: vaultLorebookEntrySchema.optional().describe('New entry for create/merge operations'),
   index: z.number().optional().describe('Target entry index for update/delete operations'),
   indices: z.array(z.number()).optional().describe('Entry indices for merge operations'),
-  updates: vaultLorebookEntrySchema
-    .partial()
-    .optional()
-    .describe('Partial updates for update operations'),
+  updates: vaultLorebookEntrySchema.partial().optional().describe('Partial updates for update operations'),
   previous: vaultLorebookEntrySchema.optional().describe('Previous entry state (for undo)'),
-  previousEntries: z
-    .array(vaultLorebookEntrySchema)
-    .optional()
-    .describe('Previous entries for merge (for undo)'),
+  previousEntries: z.array(vaultLorebookEntrySchema).optional().describe('Previous entries for merge (for undo)'),
   status: z.enum(['pending', 'approved', 'rejected']).describe('Approval status'),
 })
 

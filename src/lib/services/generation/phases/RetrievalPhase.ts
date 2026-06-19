@@ -14,10 +14,7 @@ import type {
 import type { StoryMode, POV, Tense } from '$lib/types'
 import type { TimelineFillResult } from '$lib/services/ai/retrieval/TimelineFillService'
 import type { AgenticRetrievalResult } from '$lib/services/ai/retrieval/AgenticRetrievalService'
-import type {
-  EntryRetrievalResult,
-  ActivationTracker,
-} from '$lib/services/ai/retrieval/EntryRetrievalService'
+import type { EntryRetrievalResult, ActivationTracker } from '$lib/services/ai/retrieval/EntryRetrievalService'
 
 /** Dependencies injected from AIService - phase calls these methods rather than duplicating logic */
 export interface RetrievalDependencies {
@@ -28,11 +25,7 @@ export interface RetrievalDependencies {
     chapters: GenerationContext['worldState']['chapters'],
     entries: GenerationContext['worldState']['lorebookEntries'],
     onQueryChapter: (chapterNumber: number, question: string) => Promise<string>,
-    onQueryChapters: (
-      startChapter: number,
-      endChapter: number,
-      question: string,
-    ) => Promise<string>,
+    onQueryChapters: (startChapter: number, endChapter: number, question: string) => Promise<string>,
     signal?: AbortSignal,
     mode?: StoryMode,
     pov?: POV,
@@ -111,10 +104,7 @@ export class RetrievalPhase {
     // Task 2: Lorebook entry retrieval (skip if agentic retrieval handles it)
     const useAgenticRetrieval = dependencies.shouldUseAgenticRetrieval(chapters.length)
     const hasLoreContent =
-      lorebookEntries.length > 0 ||
-      characters.length > 0 ||
-      locations.length > 0 ||
-      items.length > 0
+      lorebookEntries.length > 0 || characters.length > 0 || locations.length > 0 || items.length > 0
     if (hasLoreContent && !useAgenticRetrieval) {
       tasks.push(
         dependencies
@@ -185,9 +175,7 @@ export class RetrievalPhase {
         tense,
       )
       return {
-        chapterContext: result.context
-          ? dependencies.formatAgenticRetrievalForPrompt(result)
-          : null,
+        chapterContext: result.context ? dependencies.formatAgenticRetrievalForPrompt(result) : null,
         timelineFillResult: null,
       }
     }

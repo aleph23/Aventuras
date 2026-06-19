@@ -51,9 +51,7 @@
   <div class="flex items-center justify-between">
     <div>
       <h3 class="text-lg font-bold tracking-tight">Writing Style</h3>
-      <p class="text-muted-foreground">
-        Choose a narrative voice and configure the AI's writing style.
-      </p>
+      <p class="text-muted-foreground">Choose a narrative voice and configure the AI's writing style.</p>
     </div>
   </div>
 

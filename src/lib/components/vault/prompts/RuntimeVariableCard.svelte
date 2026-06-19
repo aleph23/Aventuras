@@ -1,10 +1,5 @@
 <script lang="ts">
-  import type {
-    RuntimeVariable,
-    RuntimeVariableType,
-    RuntimeEntityType,
-    EnumOption,
-  } from '$lib/services/packs/types'
+  import type { RuntimeVariable, RuntimeVariableType, RuntimeEntityType, EnumOption } from '$lib/services/packs/types'
   import { Button } from '$lib/components/ui/button'
   import { Badge } from '$lib/components/ui/badge'
   import { Input } from '$lib/components/ui/input'
@@ -186,9 +181,7 @@
     editMaxValue = variable.maxValue !== undefined ? String(variable.maxValue) : ''
     editColor = variable.color
     editIcon = variable.icon
-    editEnumOptions = variable.enumOptions
-      ? structuredClone($state.snapshot(variable.enumOptions))
-      : []
+    editEnumOptions = variable.enumOptions ? structuredClone($state.snapshot(variable.enumOptions)) : []
     editPinned = variable.pinned ?? false
   }
 
@@ -356,9 +349,7 @@
   }
 
   function updateEnumOption(index: number, field: 'label' | 'value', val: string) {
-    editEnumOptions = editEnumOptions.map((opt, i) =>
-      i === index ? { ...opt, [field]: val } : opt,
-    )
+    editEnumOptions = editEnumOptions.map((opt, i) => (i === index ? { ...opt, [field]: val } : opt))
   }
 
   function handleEnumBlur() {
@@ -376,13 +367,7 @@
         <Button variant="ghost" size="icon" class="h-5 w-5" disabled={!onMoveUp} onclick={onMoveUp}>
           <ArrowUp class="h-3 w-3" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-5 w-5"
-          disabled={!onMoveDown}
-          onclick={onMoveDown}
-        >
+        <Button variant="ghost" size="icon" class="h-5 w-5" disabled={!onMoveDown} onclick={onMoveDown}>
           <ArrowDown class="h-3 w-3" />
         </Button>
       </div>
@@ -396,14 +381,10 @@
         {#if IconComponent}
           <IconComponent class="h-4 w-4 shrink-0" style="color: {variable.color}" />
         {:else}
-          <span class="shrink-0 text-sm font-medium" style="color: {variable.color}"
-            >{variable.displayName}</span
-          >
+          <span class="shrink-0 text-sm font-medium" style="color: {variable.color}">{variable.displayName}</span>
         {/if}
 
-        <code
-          class="text-muted-foreground bg-muted shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px]"
-        >
+        <code class="text-muted-foreground bg-muted shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px]">
           {variable.variableName}
         </code>
 
@@ -413,9 +394,7 @@
 
         {#if variable.description}
           <span class="text-muted-foreground min-w-0 truncate text-xs italic">
-            {variable.description.length > 40
-              ? variable.description.slice(0, 40) + '...'
-              : variable.description}
+            {variable.description.length > 40 ? variable.description.slice(0, 40) + '...' : variable.description}
           </span>
         {/if}
       </div>
@@ -483,31 +462,17 @@
         </Select.Root>
 
         {#if showTypeChangeConfirm}
-          <div
-            class="bg-destructive/10 border-destructive/30 flex items-start gap-2 rounded-md border p-2"
-          >
+          <div class="bg-destructive/10 border-destructive/30 flex items-start gap-2 rounded-md border p-2">
             <AlertTriangle class="text-destructive mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div class="flex-1 space-y-1.5">
               <p class="text-destructive text-xs">
                 Changing type will clear all existing values for this variable. Continue?
               </p>
               <div class="flex gap-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  class="h-6 px-2 text-xs"
-                  onclick={confirmTypeChange}
-                >
+                <Button variant="destructive" size="sm" class="h-6 px-2 text-xs" onclick={confirmTypeChange}>
                   Confirm
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="h-6 px-2 text-xs"
-                  onclick={cancelTypeChange}
-                >
-                  Cancel
-                </Button>
+                <Button variant="ghost" size="sm" class="h-6 px-2 text-xs" onclick={cancelTypeChange}>Cancel</Button>
               </div>
             </div>
           </div>
@@ -561,11 +526,7 @@
           </div>
         {:else}
           <div class="mt-1.5">
-            <Input
-              bind:value={editDisplayName}
-              onblur={handleFieldBlur}
-              placeholder="My Variable"
-            />
+            <Input bind:value={editDisplayName} onblur={handleFieldBlur} placeholder="My Variable" />
           </div>
         {/if}
 
@@ -580,22 +541,11 @@
       <!-- Default Value -->
       <div class="space-y-1.5">
         <Label>Default Value</Label>
-        <p class="text-muted-foreground text-xs">
-          If set, the variable is optional for the LLM to fill
-        </p>
+        <p class="text-muted-foreground text-xs">If set, the variable is optional for the LLM to fill</p>
         {#if editType === 'text'}
-          <Input
-            bind:value={editDefault}
-            onblur={handleFieldBlur}
-            placeholder="Default text value"
-          />
+          <Input bind:value={editDefault} onblur={handleFieldBlur} placeholder="Default text value" />
         {:else if editType === 'number'}
-          <Input
-            type="number"
-            bind:value={editDefault}
-            onblur={handleFieldBlur}
-            placeholder="Default number"
-          />
+          <Input type="number" bind:value={editDefault} onblur={handleFieldBlur} placeholder="Default number" />
         {:else if editType === 'enum'}
           {#if editEnumOptions.length > 0}
             <Select.Root
@@ -630,21 +580,11 @@
         <div class="flex gap-4">
           <div class="flex-1 space-y-1.5">
             <Label>Min Value</Label>
-            <Input
-              type="number"
-              bind:value={editMinValue}
-              onblur={handleFieldBlur}
-              placeholder="No minimum"
-            />
+            <Input type="number" bind:value={editMinValue} onblur={handleFieldBlur} placeholder="No minimum" />
           </div>
           <div class="flex-1 space-y-1.5">
             <Label>Max Value</Label>
-            <Input
-              type="number"
-              bind:value={editMaxValue}
-              onblur={handleFieldBlur}
-              placeholder="No maximum"
-            />
+            <Input type="number" bind:value={editMaxValue} onblur={handleFieldBlur} placeholder="No maximum" />
           </div>
         </div>
       {/if}
@@ -712,9 +652,7 @@
       <div class="flex items-center justify-between">
         <div class="space-y-0.5">
           <Label>Pinned</Label>
-          <p class="text-muted-foreground text-xs">
-            Always visible on entity panels, even when collapsed
-          </p>
+          <p class="text-muted-foreground text-xs">Always visible on entity panels, even when collapsed</p>
         </div>
         <Button
           variant={editPinned ? 'default' : 'outline'}
@@ -744,15 +682,8 @@
                   {entityTypeWarningCount === 1 ? 'entity has' : 'entities have'} values)
                 {/if}
               </span>
-              <Button variant="destructive" size="sm" class="h-7 text-xs" onclick={onDelete}>
-                Confirm
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="h-7 text-xs"
-                onclick={() => (showDeleteConfirm = false)}
-              >
+              <Button variant="destructive" size="sm" class="h-7 text-xs" onclick={onDelete}>Confirm</Button>
+              <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={() => (showDeleteConfirm = false)}>
                 Cancel
               </Button>
             </div>
@@ -775,12 +706,7 @@
             Saved
           </span>
         {:else}
-          <Button
-            variant={isDirty ? 'default' : 'outline'}
-            size="sm"
-            class="h-7 gap-1 text-xs"
-            onclick={handleSave}
-          >
+          <Button variant={isDirty ? 'default' : 'outline'} size="sm" class="h-7 gap-1 text-xs" onclick={handleSave}>
             <Save class="h-3 w-3" />
             Save
           </Button>

@@ -85,9 +85,7 @@
   let tagSuggestions = $derived(
     tagInput.trim()
       ? availableTags
-          .filter(
-            (t) => t.toLowerCase().includes(tagInput.toLowerCase()) && !selectedTags.includes(t),
-          )
+          .filter((t) => t.toLowerCase().includes(tagInput.toLowerCase()) && !selectedTags.includes(t))
           .slice(0, 30)
       : [],
   )
@@ -261,20 +259,13 @@
         card={selectedCard}
         onBack={() => (selectedCard = null)}
         onImport={handleImport}
-        isImported={selectedCard &&
-          importedUrls.has(selectedCard.imageUrl || selectedCard.avatarUrl)}
+        isImported={selectedCard && importedUrls.has(selectedCard.imageUrl || selectedCard.avatarUrl)}
         {nsfwMode}
       />
     {:else}
       <ResponsiveModal.Header class="shrink-0 border-b px-4 py-3 text-center sm:text-left">
-        <ResponsiveModal.Title
-          class="mt-2 flex items-center justify-center gap-2 sm:mt-0 sm:justify-start"
-        >
-          Browse {mode === 'character'
-            ? 'Characters'
-            : mode === 'lorebook'
-              ? 'Lorebooks'
-              : 'Scenarios'}
+        <ResponsiveModal.Title class="mt-2 flex items-center justify-center gap-2 sm:mt-0 sm:justify-start">
+          Browse {mode === 'character' ? 'Characters' : mode === 'lorebook' ? 'Lorebooks' : 'Scenarios'}
         </ResponsiveModal.Title>
         <ResponsiveModal.Description class="sr-only">
           Find and import new {mode}s from online sources.
@@ -334,10 +325,7 @@
                         variant="outline"
                         size="sm"
                         {...props}
-                        class={cn(
-                          'h-9 px-3',
-                          selectedTags.length > 0 && 'border-primary text-primary bg-primary/5',
-                        )}
+                        class={cn('h-9 px-3', selectedTags.length > 0 && 'border-primary text-primary bg-primary/5')}
                       >
                         <Filter class="h-4 w-4" />
                         {#if selectedTags.length > 0}
@@ -368,10 +356,7 @@
                       <Command.List>
                         <Command.Empty>
                           {#if tagInput}
-                            <button
-                              class="w-full px-4 py-2 text-left text-sm"
-                              onclick={addCustomTag}
-                            >
+                            <button class="w-full px-4 py-2 text-left text-sm" onclick={addCustomTag}>
                               Add "{tagInput}"
                             </button>
                           {:else}
@@ -521,12 +506,7 @@
                   </Button>
                 </Badge>
               {/each}
-              <Button
-                variant="ghost"
-                size="sm"
-                class="hover:text-destructive h-7 px-2 text-xs"
-                onclick={clearTags}
-              >
+              <Button variant="ghost" size="sm" class="hover:text-destructive h-7 px-2 text-xs" onclick={clearTags}>
                 Clear all
               </Button>
             </div>
@@ -550,9 +530,7 @@
             <p class="text-sm opacity-70">Try adjusting your search terms or filters.</p>
           </div>
         {:else}
-          <div
-            class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-          >
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {#each results as card (card.id)}
               <DiscoveryCardComponent
                 {card}
@@ -566,12 +544,7 @@
 
           {#if hasMore}
             <div class="mt-8 flex justify-center pb-4">
-              <Button
-                variant="outline"
-                onclick={loadMore}
-                disabled={isLoading}
-                class="min-w-[150px]"
-              >
+              <Button variant="outline" onclick={loadMore} disabled={isLoading} class="min-w-[150px]">
                 {#if isLoading}
                   <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                 {/if}

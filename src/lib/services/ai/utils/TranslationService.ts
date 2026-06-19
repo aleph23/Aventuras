@@ -167,10 +167,7 @@ export class TranslationService extends BaseAIService {
   /**
    * Batch translate UI elements.
    */
-  async translateUIElements(
-    items: UITranslationItem[],
-    targetLanguage: string,
-  ): Promise<UITranslationItem[]> {
+  async translateUIElements(items: UITranslationItem[], targetLanguage: string): Promise<UITranslationItem[]> {
     if (items.length === 0) return []
     if (targetLanguage === 'en') return items
 
@@ -222,12 +219,7 @@ export class TranslationService extends BaseAIService {
       ctx.add({ targetLanguage: this.getLanguageName(targetLanguage), suggestionsJson })
       const { system, user: prompt } = await ctx.render('translate-suggestions')
 
-      const result = await this.generate(
-        translatedSuggestionsResultSchema,
-        system,
-        prompt,
-        'translate-suggestions',
-      )
+      const result = await this.generate(translatedSuggestionsResultSchema, system, prompt, 'translate-suggestions')
 
       // Merge translated text back into original objects (preserves extra fields)
       log('Translated', result.suggestions.length, 'suggestions to', targetLanguage)
@@ -285,10 +277,7 @@ export class TranslationService extends BaseAIService {
   /**
    * Translate wizard content.
    */
-  async translateWizardContent(
-    content: string,
-    targetLanguage: string,
-  ): Promise<TranslationResult> {
+  async translateWizardContent(content: string, targetLanguage: string): Promise<TranslationResult> {
     if (targetLanguage === 'en' || !content.trim()) {
       return { translatedContent: content }
     }
@@ -318,10 +307,7 @@ export class TranslationService extends BaseAIService {
   /**
    * Batch translate wizard content fields.
    */
-  async translateWizardBatch(
-    fields: Record<string, string>,
-    targetLanguage: string,
-  ): Promise<Record<string, string>> {
+  async translateWizardBatch(fields: Record<string, string>, targetLanguage: string): Promise<Record<string, string>> {
     if (targetLanguage === 'en') {
       return fields
     }
@@ -342,12 +328,7 @@ export class TranslationService extends BaseAIService {
 
 ${fieldsJson}`
 
-      const result = await this.generate(
-        translatedWizardBatchResultSchema,
-        system,
-        prompt,
-        'translate-wizard-content',
-      )
+      const result = await this.generate(translatedWizardBatchResultSchema, system, prompt, 'translate-wizard-content')
 
       // Merge results with fallback to original values
       log('Translated', Object.keys(result.translations).length, 'wizard fields to', targetLanguage)

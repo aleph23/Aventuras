@@ -37,12 +37,8 @@
   let chatFileInput = $state<HTMLInputElement>()
   let cardFileInput = $state<HTMLInputElement>()
 
-  const userCount = $derived(
-    chatParseResult?.messages.filter((m) => m.type === 'user_action').length ?? 0,
-  )
-  const narrationCount = $derived(
-    chatParseResult?.messages.filter((m) => m.type === 'narration').length ?? 0,
-  )
+  const userCount = $derived(chatParseResult?.messages.filter((m) => m.type === 'user_action').length ?? 0)
+  const narrationCount = $derived(chatParseResult?.messages.filter((m) => m.type === 'narration').length ?? 0)
 
   function handleChatDrop(e: DragEvent) {
     e.preventDefault()
@@ -79,9 +75,7 @@
 </script>
 
 <div class="space-y-5">
-  <p class="text-muted-foreground">
-    Upload your SillyTavern character card and optionally a chat export.
-  </p>
+  <p class="text-muted-foreground">Upload your SillyTavern character card and optionally a chat export.</p>
 
   <!-- Character Card Upload -->
   <div class="space-y-2">
@@ -96,11 +90,7 @@
         <Card.Content class="flex items-center justify-between p-4">
           <div class="flex items-center gap-3">
             {#if cardPortrait}
-              <img
-                src={cardPortrait}
-                alt={cardParsedData.name}
-                class="h-10 w-10 rounded-lg object-cover"
-              />
+              <img src={cardPortrait} alt={cardParsedData.name} class="h-10 w-10 rounded-lg object-cover" />
             {:else}
               <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/20">
                 <Check class="h-4 w-4 text-green-400" />
@@ -148,13 +138,7 @@
         <p class="text-sm font-medium">Drop character card here or click to browse</p>
         <p class="text-muted-foreground mt-1 text-xs">PNG or JSON character card file</p>
       </div>
-      <input
-        type="file"
-        accept=".png,.json"
-        class="hidden"
-        bind:this={cardFileInput}
-        onchange={handleCardFileSelect}
-      />
+      <input type="file" accept=".png,.json" class="hidden" bind:this={cardFileInput} onchange={handleCardFileSelect} />
     {/if}
 
     {#if cardFileError}
@@ -216,13 +200,7 @@
         <p class="text-sm font-medium">Drop .jsonl file here or click to browse</p>
         <p class="text-muted-foreground mt-1 text-xs">SillyTavern chat file (.jsonl)</p>
       </div>
-      <input
-        type="file"
-        accept=".jsonl"
-        class="hidden"
-        bind:this={chatFileInput}
-        onchange={handleChatFileSelect}
-      />
+      <input type="file" accept=".jsonl" class="hidden" bind:this={chatFileInput} onchange={handleChatFileSelect} />
     {/if}
 
     {#if chatFileError}

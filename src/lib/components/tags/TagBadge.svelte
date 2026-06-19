@@ -12,14 +12,10 @@
 
   // Map of color names to Tailwind classes if needed, or assume 'color' is a tailwind color suffix like 'red-500'
   // If the color prop is just 'red-500', we need to construct the full class
-  const bgClass = $derived(
-    color.startsWith('bg-') ? color : `bg-${color}/20 text-${color} border-${color}/30`,
-  )
+  const bgClass = $derived(color.startsWith('bg-') ? color : `bg-${color}/20 text-${color} border-${color}/30`)
 </script>
 
-<span
-  class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium {bgClass} {className}"
->
+<span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium {bgClass} {className}">
   {name}
   {#if onRemove}
     <button

@@ -56,20 +56,11 @@ export class ClassificationPhase {
   constructor(private deps: ClassificationDependencies) {}
 
   /** Execute the classification phase - yields events and returns result */
-  async *execute(
-    input: ClassificationInput,
-  ): AsyncGenerator<GenerationEvent, ClassificationPhaseResult | null> {
+  async *execute(input: ClassificationInput): AsyncGenerator<GenerationEvent, ClassificationPhaseResult | null> {
     yield { type: 'phase_start', phase: 'classification' } satisfies PhaseStartEvent
 
-    const {
-      narrativeContent,
-      narrativeEntryId,
-      userActionContent,
-      worldState,
-      story,
-      visibleEntries,
-      abortSignal,
-    } = input
+    const { narrativeContent, narrativeEntryId, userActionContent, worldState, story, visibleEntries, abortSignal } =
+      input
 
     if (abortSignal?.aborted) {
       yield { type: 'aborted', phase: 'classification' } satisfies AbortedEvent

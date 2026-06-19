@@ -15,22 +15,10 @@ import type { RuntimeVariable } from '$lib/services/packs/types'
 export const visualDescriptorsSchema = z
   .object({
     face: z.string().describe('Skin tone, facial features, expression, age indicators').optional(),
-    hair: z
-      .string()
-      .describe('Color, length, style, texture (e.g., "wavy auburn hair to shoulders")')
-      .optional(),
-    eyes: z
-      .string()
-      .describe('Color, shape, notable features (e.g., "sharp green eyes")')
-      .optional(),
-    build: z
-      .string()
-      .describe('Height, body type, posture (e.g., "tall and lean", "broad-shouldered")')
-      .optional(),
-    clothing: z
-      .string()
-      .describe('Full outfit description (e.g., "worn leather armor over gray tunic")')
-      .optional(),
+    hair: z.string().describe('Color, length, style, texture (e.g., "wavy auburn hair to shoulders")').optional(),
+    eyes: z.string().describe('Color, shape, notable features (e.g., "sharp green eyes")').optional(),
+    build: z.string().describe('Height, body type, posture (e.g., "tall and lean", "broad-shouldered")').optional(),
+    clothing: z.string().describe('Full outfit description (e.g., "worn leather armor over gray tunic")').optional(),
     accessories: z
       .string()
       .describe('Jewelry, weapons, bags, distinctive items (e.g., "silver pendant, sword at hip")')
@@ -40,9 +28,7 @@ export const visualDescriptorsSchema = z
       .describe('Scars, tattoos, birthmarks if any (e.g., "scar across left cheek")')
       .optional(),
   })
-  .describe(
-    'Visual appearance details for image generation - invent plausible details if not explicitly described',
-  )
+  .describe('Visual appearance details for image generation - invent plausible details if not explicitly described')
 
 export type VisualDescriptors = z.infer<typeof visualDescriptorsSchema>
 
@@ -74,10 +60,7 @@ export const newCharacterSchema = z.object({
   visualDescriptors: visualDescriptorsSchema
     .describe('Complete visual appearance - ALL categories should be filled')
     .optional(),
-  status: z
-    .enum(['active', 'inactive', 'deceased'])
-    .describe('active if present in scene')
-    .optional(),
+  status: z.enum(['active', 'inactive', 'deceased']).describe('active if present in scene').optional(),
 })
 
 // ============================================================================
@@ -170,15 +153,8 @@ export const entryUpdatesSchema = z.object({
 // ============================================================================
 
 export const sceneSchema = z.object({
-  currentLocationName: z
-    .string()
-    .nullable()
-    .describe('Name of current scene location, or null')
-    .optional(),
-  presentCharacterNames: z
-    .array(z.string())
-    .describe('Names of characters physically present')
-    .default([]),
+  currentLocationName: z.string().nullable().describe('Name of current scene location, or null').optional(),
+  presentCharacterNames: z.array(z.string()).describe('Names of characters physically present').default([]),
   timeProgression: z
     .enum(['none', 'minutes', 'hours', 'days'])
     .describe('none=instant, minutes=conversations, hours=travel, days=sleep')

@@ -98,9 +98,7 @@
   ] as const
 
   // Tab state
-  let activeTab = $state<'profiles' | 'general' | 'characters' | 'backgrounds' | 'testing'>(
-    'profiles',
-  )
+  let activeTab = $state<'profiles' | 'general' | 'characters' | 'backgrounds' | 'testing'>('profiles')
 
   // Maps profile type to the corresponding settings key
   const profileIdKey = {
@@ -111,10 +109,7 @@
   } as const satisfies Record<string, keyof typeof settings.systemServicesSettings.imageGeneration>
 
   // Handle profile change
-  function onProfileChange(
-    profileId: string,
-    type: 'standard' | 'portrait' | 'reference' | 'background',
-  ) {
+  function onProfileChange(profileId: string, type: 'standard' | 'portrait' | 'reference' | 'background') {
     settings.systemServicesSettings.imageGeneration[profileIdKey[type]] = profileId
     settings.saveSystemServicesSettings()
   }
@@ -256,9 +251,7 @@
   /**
    * Get supported sizes for a specific profile type/ID
    */
-  function getSupportedSizes(
-    type: 'standard' | 'portrait' | 'reference' | 'background' | 'testing',
-  ) {
+  function getSupportedSizes(type: 'standard' | 'portrait' | 'reference' | 'background' | 'testing') {
     let profileId: string | null = null
     switch (type) {
       case 'standard':
@@ -348,12 +341,7 @@
     isLoadingProfileModels = true
     profileModelsError = null
     try {
-      const models = await listImageModelsByProvider(
-        providerType,
-        apiKey,
-        forceReload,
-        effectiveBaseUrl,
-      )
+      const models = await listImageModelsByProvider(providerType, apiKey, forceReload, effectiveBaseUrl)
       // Discard stale results if a newer request has already started.
       if (reqId !== profileModelsReqId) return
       profileModels = models
@@ -696,8 +684,7 @@
     }
 
     const workflow = json as ComfyCustomWorkflow['workflow']
-    const { positiveNodes, negativeNode, seedPath, outputNodeId, saveImageCount } =
-      detectWorkflowFields(workflow)
+    const { positiveNodes, negativeNode, seedPath, outputNodeId, saveImageCount } = detectWorkflowFields(workflow)
 
     if (positiveNodes.length === 0) {
       workflowError = 'No CLIPTextEncode (positive) node found in workflow.'
@@ -869,9 +856,7 @@
             <CardContent>
               {@render profileForm()}
               {#if needsWorkflow}
-                <p class="text-destructive pt-2 text-xs">
-                  Upload and confirm a workflow before saving.
-                </p>
+                <p class="text-destructive pt-2 text-xs">Upload and confirm a workflow before saving.</p>
               {/if}
               <div class="flex gap-2 pt-2">
                 <Button variant="outline" onclick={resetEditState} class="flex-1">Cancel</Button>
@@ -889,8 +874,8 @@
             <Info class="h-4 w-4" />
             <Alert.Title>No Image Profiles</Alert.Title>
             <Alert.Description class="text-xs">
-              Create an image profile to start generating images. You can have multiple profiles for
-              different providers or use cases (e.g., portraits vs backgrounds).
+              Create an image profile to start generating images. You can have multiple profiles for different providers
+              or use cases (e.g., portraits vs backgrounds).
             </Alert.Description>
           </Alert.Root>
         {:else}
@@ -902,17 +887,14 @@
                   onOpenChange={(open) => handleProfileOpenChange(open, profile)}
                 >
                   <div class="flex items-center gap-3 p-3 pl-4">
-                    <Collapsible.Trigger
-                      class="group/trigger flex flex-1 items-center gap-2 text-left"
-                    >
+                    <Collapsible.Trigger class="group/trigger flex flex-1 items-center gap-2 text-left">
                       <ChevronRight
                         class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/trigger:rotate-90"
                       />
                       <div class="min-w-0 flex-1">
                         <span class="text-sm font-medium">{profile.name}</span>
                         <p class="text-muted-foreground text-xs">
-                          {providerTypes.find((p) => p.value === profile.providerType)?.label ||
-                            profile.providerType}
+                          {providerTypes.find((p) => p.value === profile.providerType)?.label || profile.providerType}
                           {profile.model ? ` · ${profile.model}` : ''}
                           {profile.apiKey ? ' · Key configured' : ' · No API key'}
                         </p>
@@ -948,12 +930,12 @@
                 <Alert.Description class="text-xs">
                   <ul class="mt-2 list-inside list-disc space-y-1">
                     <li>
-                      <strong>Reference Profile</strong>: Used when "Portrait Mode" is enabled in
-                      your current story. Generates images based on the character portraits.
+                      <strong>Reference Profile</strong>: Used when "Portrait Mode" is enabled in your current story.
+                      Generates images based on the character portraits.
                     </li>
                     <li>
-                      <strong>Regular Image Profile</strong>: Used when "Portrait Mode" is disabled
-                      in your current story.
+                      <strong>Regular Image Profile</strong>: Used when "Portrait Mode" is disabled in your current
+                      story.
                     </li>
                   </ul>
                   <p class="mt-2">Models are configured in each profile on the Profiles tab.</p>
@@ -992,9 +974,7 @@
                             }
                           : undefined)}
                       onSelect={(v) => {
-                        settings.systemServicesSettings.imageGeneration.size = (
-                          v as { value: string }
-                        ).value
+                        settings.systemServicesSettings.imageGeneration.size = (v as { value: string }).value
                         settings.saveSystemServicesSettings()
                       }}
                       allowCustom={true}
@@ -1031,8 +1011,7 @@
                     <Autocomplete
                       items={referenceSizes}
                       selected={referenceSizes.find(
-                        (s) =>
-                          s.value === settings.systemServicesSettings.imageGeneration.referenceSize,
+                        (s) => s.value === settings.systemServicesSettings.imageGeneration.referenceSize,
                       ) ||
                         (settings.systemServicesSettings.imageGeneration.referenceSize
                           ? {
@@ -1041,9 +1020,7 @@
                             }
                           : undefined)}
                       onSelect={(v) => {
-                        settings.systemServicesSettings.imageGeneration.referenceSize = (
-                          v as { value: string }
-                        ).value
+                        settings.systemServicesSettings.imageGeneration.referenceSize = (v as { value: string }).value
                         settings.saveSystemServicesSettings()
                       }}
                       allowCustom={true}
@@ -1066,13 +1043,9 @@
             <Label>Story Image Style</Label>
             <Autocomplete
               items={imageStyles}
-              selected={imageStyles.find(
-                (s) => s.value === settings.systemServicesSettings.imageGeneration.styleId,
-              )}
+              selected={imageStyles.find((s) => s.value === settings.systemServicesSettings.imageGeneration.styleId)}
               onSelect={(v) => {
-                settings.systemServicesSettings.imageGeneration.styleId = (
-                  v as { value: string }
-                ).value
+                settings.systemServicesSettings.imageGeneration.styleId = (v as { value: string }).value
                 settings.saveSystemServicesSettings()
               }}
               itemLabel={(s: { label: string }) => s.label}
@@ -1087,8 +1060,7 @@
           <!-- Max Images Per Message -->
           <div class="space-y-2">
             <Label>
-              Max Images Per Message: {settings.systemServicesSettings.imageGeneration
-                .maxImagesPerMessage === 0
+              Max Images Per Message: {settings.systemServicesSettings.imageGeneration.maxImagesPerMessage === 0
                 ? 'Unlimited'
                 : settings.systemServicesSettings.imageGeneration.maxImagesPerMessage}
             </Label>
@@ -1141,9 +1113,7 @@
                       }
                     : undefined)}
                 onSelect={(v) => {
-                  settings.systemServicesSettings.imageGeneration.portraitSize = (
-                    v as { value: string }
-                  ).value
+                  settings.systemServicesSettings.imageGeneration.portraitSize = (v as { value: string }).value
                   settings.saveSystemServicesSettings()
                 }}
                 allowCustom={true}
@@ -1166,9 +1136,7 @@
                 (s) => s.value === settings.systemServicesSettings.imageGeneration.portraitStyleId,
               )}
               onSelect={(v) => {
-                settings.systemServicesSettings.imageGeneration.portraitStyleId = (
-                  v as { value: string }
-                ).value
+                settings.systemServicesSettings.imageGeneration.portraitStyleId = (v as { value: string }).value
                 settings.saveSystemServicesSettings()
               }}
               itemLabel={(s: { label: string }) => s.label}
@@ -1215,9 +1183,7 @@
                     }
                   : undefined)}
               onSelect={(v) => {
-                settings.systemServicesSettings.imageGeneration.backgroundSize = (
-                  v as { value: string }
-                ).value
+                settings.systemServicesSettings.imageGeneration.backgroundSize = (v as { value: string }).value
                 settings.saveSystemServicesSettings()
               }}
               allowCustom={true}
@@ -1355,11 +1321,7 @@
         <Label>API Key</Label>
         <div class="flex gap-2">
           <div class="relative flex-1">
-            <Input
-              type={showApiKey ? 'text' : 'password'}
-              bind:value={profileApiKey}
-              placeholder="Enter API key"
-            />
+            <Input type={showApiKey ? 'text' : 'password'} bind:value={profileApiKey} placeholder="Enter API key" />
             <button
               type="button"
               class="absolute inset-y-0 right-0 flex items-center pr-3"
@@ -1376,11 +1338,7 @@
 
         {#if settings.apiSettings.profiles.length > 0}
           <div class="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onclick={() => (showCopyDropdown = !showCopyDropdown)}
-            >
+            <Button variant="outline" size="sm" onclick={() => (showCopyDropdown = !showCopyDropdown)}>
               <Copy class="mr-1 h-3 w-3" />
               Copy from API Profile
             </Button>
@@ -1425,18 +1383,15 @@
         isLoading={isLoadingProfileModels}
         errorMessage={profileModelsError}
         showRefreshButton={true}
-        onRefresh={() =>
-          loadProfileFormModels(profileProviderType, profileApiKey, profileBaseUrl, true)}
+        onRefresh={() => loadProfileFormModels(profileProviderType, profileApiKey, profileBaseUrl, true)}
       />
       {#if referenceProfileImg2ImgWarning}
         <p class="text-warning mt-1 text-xs">
-          This profile is used for reference image generation (img2img), but the selected model does
-          not support img2img.
+          This profile is used for reference image generation (img2img), but the selected model does not support
+          img2img.
         </p>
       {:else}
-        <p class="text-muted-foreground mt-1 text-xs">
-          The image model this profile will use for generation.
-        </p>
+        <p class="text-muted-foreground mt-1 text-xs">The image model this profile will use for generation.</p>
       {/if}
     {/snippet}
 
@@ -1574,9 +1529,7 @@
               <!-- State B: workflow loaded and confirmed -->
               <div class="bg-muted/40 space-y-1 rounded-md border px-3 py-2 text-xs">
                 <p class="text-foreground font-medium">
-                  ✓ {workflowFileName ?? 'Workflow loaded'} ({Object.keys(
-                    profileCustomWorkflow.workflow,
-                  ).length} nodes)
+                  ✓ {workflowFileName ?? 'Workflow loaded'} ({Object.keys(profileCustomWorkflow.workflow).length} nodes)
                 </p>
                 <p class="text-muted-foreground">
                   Prompt → <code class="text-xs">{profileCustomWorkflow.positivePromptPath}</code>
@@ -1586,14 +1539,10 @@
                 </p>
                 {#if profileCustomWorkflow.negativePromptPath}
                   <p class="text-muted-foreground">
-                    Negative → <code class="text-xs"
-                      >{profileCustomWorkflow.negativePromptPath}</code
-                    >
+                    Negative → <code class="text-xs">{profileCustomWorkflow.negativePromptPath}</code>
                   </p>
                 {:else}
-                  <p class="text-muted-foreground italic">
-                    No negative prompt node detected (ignored).
-                  </p>
+                  <p class="text-muted-foreground italic">No negative prompt node detected (ignored).</p>
                 {/if}
               </div>
             {:else if workflowAmbiguousNodes.length > 0}
@@ -1628,23 +1577,17 @@
                     </span>
                   </label>
                 {/each}
-                <Button size="sm" class="w-full" onclick={confirmWorkflowPicker}
-                  >Confirm selection</Button
-                >
+                <Button size="sm" class="w-full" onclick={confirmWorkflowPicker}>Confirm selection</Button>
               </div>
             {:else}
               <!-- State A: no workflow loaded -->
               <details class="group text-xs">
-                <summary
-                  class="text-muted-foreground hover:text-foreground mb-2 cursor-pointer list-none select-none"
-                >
+                <summary class="text-muted-foreground hover:text-foreground mb-2 cursor-pointer list-none select-none">
                   <span class="underline underline-offset-2">How to get the workflow file ›</span>
                 </summary>
                 <ol class="text-muted-foreground mt-1 space-y-1.5 pl-1">
                   <li>
-                    <span class="text-foreground font-medium"
-                      >1. Start ComfyUI with CORS enabled:</span
-                    >
+                    <span class="text-foreground font-medium">1. Start ComfyUI with CORS enabled:</span>
                     <br />
                     <code class="bg-muted mt-0.5 inline-block rounded px-1.5 py-0.5 text-[11px]">
                       python main.py --enable-cors-header
@@ -1668,20 +1611,15 @@
                   <li>
                     <span class="text-foreground font-medium">4. Upload it below.</span>
                     <br />
-                    The app will automatically detect your prompt and seed nodes. If multiple prompt nodes
-                    are found, you will be asked to pick one.
+                    The app will automatically detect your prompt and seed nodes. If multiple prompt nodes are found, you
+                    will be asked to pick one.
                   </li>
                 </ol>
               </details>
               <label
                 class="border-input hover:border-primary flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed px-4 py-3 text-sm transition-colors"
               >
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  class="hidden"
-                  onchange={handleWorkflowFileInput}
-                />
+                <input type="file" accept=".json,application/json" class="hidden" onchange={handleWorkflowFileInput} />
                 <span class="text-muted-foreground">Upload workflow JSON (API format)</span>
               </label>
             {/if}
@@ -1708,29 +1646,17 @@
               itemValue={(s: { value: string }) => s.value}
               placeholder="Select LoRA..."
             />
-            <p class="text-muted-foreground text-xs">
-              Select a LoRA to apply style or character details.
-            </p>
+            <p class="text-muted-foreground text-xs">Select a LoRA to apply style or character details.</p>
           </div>
 
           {#if profileLoraName}
             <div class="space-y-2">
               <Label>Model Strength</Label>
-              <Input
-                type="number"
-                bind:value={profileLoraStrengthModel}
-                placeholder="Model Strength"
-                step="0.05"
-              />
+              <Input type="number" bind:value={profileLoraStrengthModel} placeholder="Model Strength" step="0.05" />
             </div>
             <div class="space-y-2">
               <Label>CLIP Strength</Label>
-              <Input
-                type="number"
-                bind:value={profileLoraStrengthClip}
-                placeholder="CLIP Strength"
-                step="0.05"
-              />
+              <Input type="number" bind:value={profileLoraStrengthClip} placeholder="CLIP Strength" step="0.05" />
             </div>
           {/if}
         </div>
@@ -1792,9 +1718,7 @@
               itemValue={(s: { value: string }) => s.value}
               placeholder="Auto-detect first available"
             />
-            <p class="text-muted-foreground text-xs">
-              Leave empty to auto-detect the first VAE found in ComfyUI.
-            </p>
+            <p class="text-muted-foreground text-xs">Leave empty to auto-detect the first VAE found in ComfyUI.</p>
           </div>
 
           <div class="space-y-2">

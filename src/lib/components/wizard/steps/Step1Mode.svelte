@@ -15,10 +15,7 @@
   <p class="text-muted-foreground">How do you want to experience your story?</p>
   <div class="grid gap-4 sm:grid-cols-2">
     <!-- Adventure Mode -->
-    <button
-      class="group w-full text-left focus:outline-none"
-      onclick={() => onModeChange('adventure')}
-    >
+    <button class="group w-full text-left focus:outline-none" onclick={() => onModeChange('adventure')}>
       <Card.Root
         class="border-border hover:border-primary hover:shadow-primary/5 h-full transition-all duration-200 hover:shadow-md {selectedMode ===
         'adventure'
@@ -35,18 +32,15 @@
         </Card.Header>
         <Card.Content>
           <p class="text-muted-foreground text-sm">
-            <strong>You are the protagonist.</strong> Explore the world, interact with characters, and
-            make choices that shape your story. The AI narrates the consequences of your actions.
+            <strong>You are the protagonist.</strong> Explore the world, interact with characters, and make choices that shape
+            your story. The AI narrates the consequences of your actions.
           </p>
         </Card.Content>
       </Card.Root>
     </button>
 
     <!-- Creative Writing Mode -->
-    <button
-      class="group w-full text-left focus:outline-none"
-      onclick={() => onModeChange('creative-writing')}
-    >
+    <button class="group w-full text-left focus:outline-none" onclick={() => onModeChange('creative-writing')}>
       <Card.Root
         class="border-border hover:border-primary hover:shadow-primary/5 h-full transition-all duration-200 hover:shadow-md {selectedMode ===
         'creative-writing'
@@ -63,8 +57,8 @@
         </Card.Header>
         <Card.Content>
           <p class="text-muted-foreground text-sm">
-            <strong>You are the author.</strong> Direct the story and craft the narrative. The AI collaborates
-            with you to write prose following your creative vision.
+            <strong>You are the author.</strong> Direct the story and craft the narrative. The AI collaborates with you to
+            write prose following your creative vision.
           </p>
         </Card.Content>
       </Card.Root>

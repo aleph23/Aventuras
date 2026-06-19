@@ -26,9 +26,7 @@ export function buildReasoningConfig(effort: ReasoningEffort | undefined): Recor
   return { effort }
 }
 
-export function buildProviderConfig(
-  baseProvider?: Record<string, unknown>,
-): Record<string, unknown> | undefined {
+export function buildProviderConfig(baseProvider?: Record<string, unknown>): Record<string, unknown> | undefined {
   const provider: Record<string, unknown> = {
     ...(baseProvider ?? {}),
   }

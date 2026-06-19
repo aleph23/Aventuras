@@ -18,17 +18,7 @@ import { templateEngine } from '$lib/services/templates/engine'
 import { createLogger } from '$lib/log'
 import { stripPicTags } from '$lib/utils/inlineImageParser'
 import type { StreamChunk } from '../core/types'
-import type {
-  Story,
-  StoryEntry,
-  Entry,
-  Character,
-  Location,
-  Item,
-  StoryBeat,
-  Chapter,
-  TimeTracker,
-} from '$lib/types'
+import type { Story, StoryEntry, Entry, Character, Location, Item, StoryBeat, Chapter, TimeTracker } from '$lib/types'
 import type { StyleReviewResult } from './StyleReviewerService'
 import type { TimelineFillResult } from '../retrieval/TimelineFillService'
 
@@ -170,8 +160,7 @@ export function buildChapterSummariesBlock(
 
   let block = '\n\n<story_history>\n'
   block += '## Previous Chapters\n'
-  block +=
-    'The following chapters have occurred earlier in the story. Use them for continuity and context.\n\n'
+  block += 'The following chapters have occurred earlier in the story. Use them for continuity and context.\n\n'
 
   for (const chapter of chapters) {
     block += `### Chapter ${chapter.number}`
@@ -209,8 +198,7 @@ export function buildChapterSummariesBlock(
 
   if (timelineFillResult && timelineFillResult.responses.length > 0) {
     block += '## Retrieved Context\n'
-    block +=
-      'The following information was retrieved from past chapters and is relevant to the current scene:\n\n'
+    block += 'The following information was retrieved from past chapters and is relevant to the current scene:\n\n'
 
     for (const response of timelineFillResult.responses) {
       const chapterLabel =
@@ -274,8 +262,7 @@ export class NarrativeService {
     story?: Story | null,
     options: NarrativeOptions = {},
   ): AsyncIterable<StreamChunk> {
-    const { tieredContextBlock, styleReview, retrievedChapterContext, signal, timelineFillResult } =
-      options
+    const { tieredContextBlock, styleReview, retrievedChapterContext, signal, timelineFillResult } = options
 
     log('stream', {
       entriesCount: entries.length,
@@ -443,9 +430,7 @@ export class NarrativeService {
     if (customPrompt) {
       const rendered = templateEngine.render(customPrompt, ctx.getContext())
       if (rendered === null) {
-        throw new Error(
-          'Custom system prompt contains a Liquid syntax error. Edit it in Story Settings.',
-        )
+        throw new Error('Custom system prompt contains a Liquid syntax error. Edit it in Story Settings.')
       }
       systemPrompt = rendered
     } else {
@@ -530,12 +515,7 @@ export class NarrativeService {
    * Build a priming user message to establish the narrator role.
    * This helps models that expect user-first conversation format.
    */
-  private buildPrimingMessage(
-    mode: string,
-    pov: string,
-    tense: string,
-    protagonistName: string,
-  ): string {
+  private buildPrimingMessage(mode: string, pov: string, tense: string, protagonistName: string): string {
     if (mode === 'creative-writing') {
       return this.buildCreativeWritingPriming(pov, tense, protagonistName)
     }
@@ -544,12 +524,9 @@ export class NarrativeService {
 
   private buildAdventurePriming(pov: string, tense: string, protagonistName: string): string {
     const tenseWord = tense === 'past' ? 'past' : 'present'
-    const actionExample =
-      tense === 'past' ? 'pushed open the heavy door' : 'pushes open the heavy door'
+    const actionExample = tense === 'past' ? 'pushed open the heavy door' : 'pushes open the heavy door'
     const descWords =
-      tense === 'past'
-        ? 'saw, heard, and experienced as I explored'
-        : 'see, hear, and experience as I explore'
+      tense === 'past' ? 'saw, heard, and experienced as I explored' : 'see, hear, and experience as I explore'
 
     if (pov === 'third') {
       return `You are the narrator of this interactive adventure. Write in ${tenseWord} tense, third person (they/the character name).

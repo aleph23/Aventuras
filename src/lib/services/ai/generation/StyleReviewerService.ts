@@ -86,9 +86,7 @@ export class StyleReviewerService extends BaseAIService {
     }
 
     // Format passages for analysis
-    const passages = narrationEntries
-      .map((e, i) => `--- Passage ${i + 1} ---\n${e.content}`)
-      .join('\n\n')
+    const passages = narrationEntries.map((e, i) => `--- Passage ${i + 1} ---\n${e.content}`).join('\n\n')
 
     const ctx = new ContextBuilder()
     ctx.add({

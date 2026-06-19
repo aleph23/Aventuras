@@ -42,9 +42,7 @@
         const { checkInterval, lastChecked, autoDownload } = settings.updateSettings
         const now = Date.now()
         const shouldCheck =
-          checkInterval <= 0
-            ? true
-            : !lastChecked || now - lastChecked >= checkInterval * 60 * 60 * 1000
+          checkInterval <= 0 ? true : !lastChecked || now - lastChecked >= checkInterval * 60 * 60 * 1000
 
         if (shouldCheck) {
           updaterService
@@ -95,9 +93,7 @@
 {:else if !initialized}
   <div class="bg-surface-900 flex h-screen w-screen items-center justify-center">
     <div class="flex flex-col items-center gap-4">
-      <div
-        class="border-accent-500 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
-      ></div>
+      <div class="border-accent-500 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"></div>
       <p class="text-surface-400">Loading Aventuras...</p>
     </div>
   </div>

@@ -33,9 +33,7 @@
 
   // Auto-link embedded lorebook when selecting a vault character
   function autoLinkCharacterLorebook(char: VaultCharacter, isProtagonist = false) {
-    const linkedId = (char.metadata as Record<string, unknown>)?.linkedLorebookId as
-      | string
-      | undefined
+    const linkedId = (char.metadata as Record<string, unknown>)?.linkedLorebookId as string | undefined
     if (!linkedId) return
     if (isProtagonist) wizard.setProtagonistLinkedLorebook(linkedId)
     const lorebook = lorebookVault.getById(linkedId)
@@ -80,9 +78,7 @@
 </script>
 
 <ResponsiveModal.Root open={true} onOpenChange={(open) => !open && onClose()}>
-  <ResponsiveModal.Content
-    class="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl"
-  >
+  <ResponsiveModal.Content class="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl">
     <!-- Header -->
     <div class="flex flex-col border-b p-4 pb-4">
       <div class="mb-4 flex items-center justify-between">
@@ -98,11 +94,10 @@
       <div class="flex gap-1">
         {#each Array(wizard.totalSteps) as _, i (i)}
           <div
-            class="h-1.5 flex-1 rounded-full transition-colors {i === wizard.currentStep - 1
-              ? 'bg-primary'
-              : ''} {i < wizard.currentStep - 1 ? 'bg-primary/40' : ''} {i > wizard.currentStep - 1
-              ? 'bg-muted'
-              : ''}"
+            class="h-1.5 flex-1 rounded-full transition-colors {i === wizard.currentStep - 1 ? 'bg-primary' : ''} {i <
+            wizard.currentStep - 1
+              ? 'bg-primary/40'
+              : ''} {i > wizard.currentStep - 1 ? 'bg-muted' : ''}"
           ></div>
         {/each}
       </div>
@@ -263,10 +258,8 @@
           isElaboratingSupportingCharacter={wizard.character.isElaboratingSupportingCharacter}
           onSupportingNameChange={(v) => (wizard.character.supportingCharacterName = v)}
           onSupportingRoleChange={(v) => (wizard.character.supportingCharacterRole = v)}
-          onSupportingDescriptionChange={(v) =>
-            (wizard.character.supportingCharacterDescription = v)}
-          onSupportingRelationshipChange={(v) =>
-            (wizard.character.supportingCharacterRelationship = v)}
+          onSupportingDescriptionChange={(v) => (wizard.character.supportingCharacterDescription = v)}
+          onSupportingRelationshipChange={(v) => (wizard.character.supportingCharacterRelationship = v)}
           onSupportingTraitsChange={(v) => (wizard.character.supportingCharacterTraits = v)}
           onSupportingGuidanceChange={(v) => (wizard.character.supportingCharacterGuidance = v)}
           onOpenSupportingForm={() => wizard.character.openSupportingCharacterForm()}
@@ -336,8 +329,7 @@
           uploadingCharacterName={wizard.image.uploadingCharacterName}
           portraitError={wizard.image.portraitError}
           onProtagonistDescriptorsChange={(v) => (wizard.image.protagonistVisualDescriptors = v)}
-          onGenerateProtagonistPortrait={() =>
-            wizard.image.generateProtagonistPortrait(wizard.character.protagonist)}
+          onGenerateProtagonistPortrait={() => wizard.image.generateProtagonistPortrait(wizard.character.protagonist)}
           onRemoveProtagonistPortrait={() => wizard.image.removeProtagonistPortrait()}
           onProtagonistPortraitUpload={(e) => wizard.image.handleProtagonistPortraitUpload(e)}
           onSupportingDescriptorsChange={(name, v) => {
@@ -348,14 +340,9 @@
             }
           }}
           onGenerateSupportingPortrait={(name) =>
-            wizard.image.generateSupportingCharacterPortrait(
-              name,
-              wizard.character.supportingCharacters,
-            )}
-          onRemoveSupportingPortrait={(name) =>
-            wizard.image.removeSupportingCharacterPortrait(name)}
-          onSupportingPortraitUpload={(e, name) =>
-            wizard.image.handleSupportingCharacterPortraitUpload(e, name)}
+            wizard.image.generateSupportingCharacterPortrait(name, wizard.character.supportingCharacters)}
+          onRemoveSupportingPortrait={(name) => wizard.image.removeSupportingCharacterPortrait(name)}
+          onSupportingPortraitUpload={(e, name) => wizard.image.handleSupportingCharacterPortraitUpload(e, name)}
         />
       {:else if wizard.currentStep === 8}
         <Step7WritingStyle

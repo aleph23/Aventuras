@@ -6,9 +6,4 @@
  */
 
 export { FandomService } from './FandomService'
-export type {
-  FandomSearchResult,
-  FandomSection,
-  FandomArticleInfo,
-  FandomSectionContent,
-} from './FandomService'
+export type { FandomSearchResult, FandomSection, FandomArticleInfo, FandomSectionContent } from './FandomService'

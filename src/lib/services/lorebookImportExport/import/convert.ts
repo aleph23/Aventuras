@@ -25,8 +25,7 @@ export function convertToEntries(
 
   return importedEntries.map((imported) => {
     const original = imported.originalData as unknown as Partial<Entry>
-    const isAventuraEntry =
-      original && 'state' in original && 'injection' in original && original.injection?.mode
+    const isAventuraEntry = original && 'state' in original && 'injection' in original && original.injection?.mode
 
     if (isAventuraEntry && original.state) {
       return {
