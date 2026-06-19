@@ -1261,7 +1261,7 @@ class SettingsStore {
     try {
       const allSettings = await database.getAllSettings()
       // Load API settings
-      const apiURL = allSettings['openai_api_url'] ?? null ?? PROVIDERS.openrouter.baseUrl //Default to OpenRouter.
+      const apiURL = allSettings['openai_api_url'] ?? PROVIDERS.openrouter.baseUrl //Default to OpenRouter.
 
       // Load API key - check multiple locations for migration
       // Must handle empty strings explicitly since ?? only checks for null/undefined
