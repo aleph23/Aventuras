@@ -1259,20 +1259,21 @@ class SettingsStore {
     if (this.initialized) return
 
     try {
+      const allSettings = await database.getAllSettings()
       // Load API settings
-      const apiURL = (await database.getSetting('openai_api_url')) ?? PROVIDERS.openrouter.baseUrl //Default to OpenRouter.
+      const apiURL = allSettings['openai_api_url'] ?? PROVIDERS.openrouter.baseUrl //Default to OpenRouter.
 
       // Load API key - check multiple locations for migration
       // Must handle empty strings explicitly since ?? only checks for null/undefined
-      let apiKey = await database.getSetting('openai_api_key')
+      let apiKey = allSettings['openai_api_key'] ?? null
       if (!apiKey || apiKey.length === 0) {
         // Fall back to legacy openrouter_api_key location
-        apiKey = await database.getSetting('openrouter_api_key')
+        apiKey = allSettings['openrouter_api_key'] ?? null
       }
 
-      const defaultModel = await database.getSetting('default_model')
-      const temperature = await database.getSetting('temperature')
-      const maxTokens = await database.getSetting('max_tokens')
+      const defaultModel = allSettings['default_model'] ?? null
+      const temperature = allSettings['temperature'] ?? null
+      const maxTokens = allSettings['max_tokens'] ?? null
 
       if (apiURL) this.apiSettings.openaiApiURL = apiURL
       if (apiKey) this.apiSettings.openaiApiKey = apiKey
@@ -1281,23 +1282,23 @@ class SettingsStore {
       if (maxTokens) this.apiSettings.maxTokens = parseInt(maxTokens)
 
       // Load thinking toggle
-      const enableThinking = await database.getSetting('enable_thinking')
+      const enableThinking = allSettings['enable_thinking'] ?? null
       if (enableThinking) this.apiSettings.enableThinking = enableThinking === 'true'
 
-      const reasoningEffort = await database.getSetting('main_reasoning_effort')
+      const reasoningEffort = allSettings['main_reasoning_effort'] ?? null
       if (reasoningEffort && ['off', 'low', 'medium', 'high'].includes(reasoningEffort)) {
         this.apiSettings.reasoningEffort = reasoningEffort as ReasoningEffort
       } else if (this.apiSettings.enableThinking) {
         this.apiSettings.reasoningEffort = 'high'
       }
 
-      const manualBody = await database.getSetting('main_manual_body')
+      const manualBody = allSettings['main_manual_body'] ?? null
       if (manualBody !== null) {
         this.apiSettings.manualBody = manualBody
       }
 
       // Load profiles
-      const profilesJson = await database.getSetting('api_profiles')
+      const profilesJson = allSettings['api_profiles'] ?? null
       if (profilesJson) {
         try {
           const parsed = JSON.parse(profilesJson) as (APIProfile & {
@@ -1333,11 +1334,11 @@ class SettingsStore {
         }
       }
 
-      const activeProfileId = await database.getSetting('active_profile_id')
+      const activeProfileId = allSettings['active_profile_id'] ?? null
       if (activeProfileId) this.apiSettings.activeProfileId = activeProfileId
 
       // Load main narrative profile (defaults to OpenRouter if not set)
-      const mainNarrativeProfileId = await database.getSetting('main_narrative_profile_id')
+      const mainNarrativeProfileId = allSettings['main_narrative_profile_id'] ?? null
       if (mainNarrativeProfileId) {
         this.apiSettings.mainNarrativeProfileId = mainNarrativeProfileId
       } else {
@@ -1346,13 +1347,13 @@ class SettingsStore {
       }
 
       // Load global default profile ID
-      const defaultProfileId = await database.getSetting('default_profile_id')
+      const defaultProfileId = allSettings['default_profile_id'] ?? null
       if (defaultProfileId) {
         this.apiSettings.defaultProfileId = defaultProfileId
       }
 
       // Load LLM timeout
-      const llmTimeoutMs = await database.getSetting('llm_timeout_ms')
+      const llmTimeoutMs = allSettings['llm_timeout_ms'] ?? null
       if (llmTimeoutMs) {
         const parsed = parseInt(llmTimeoutMs, 10)
         if (!isNaN(parsed) && parsed >= LLM_TIMEOUT_MIN && parsed <= LLM_TIMEOUT_MAX) {
@@ -1361,13 +1362,13 @@ class SettingsStore {
       }
 
       // Load provider preset (which provider's defaults to use)
-      const providerPreset = await database.getSetting('provider_preset')
+      const providerPreset = allSettings['provider_preset'] ?? null
       if (providerPreset) {
         this.providerPreset = providerPreset as ProviderType
       }
 
       // Load first-run status
-      const firstRunComplete = await database.getSetting('first_run_complete')
+      const firstRunComplete = allSettings['first_run_complete'] ?? null
       if (firstRunComplete === 'true') {
         this.firstRunComplete = true
       } else {
@@ -1384,11 +1385,11 @@ class SettingsStore {
       }
 
       // Load UI settings
-      const theme = await database.getSetting('theme')
-      const fontSize = await database.getSetting('font_size')
-      const showWordCount = await database.getSetting('show_word_count')
-      const autoSave = await database.getSetting('auto_save')
-      const spellcheckEnabled = await database.getSetting('spellcheck_enabled')
+      const theme = allSettings['theme'] ?? null
+      const fontSize = allSettings['font_size'] ?? null
+      const showWordCount = allSettings['show_word_count'] ?? null
+      const autoSave = allSettings['auto_save'] ?? null
+      const spellcheckEnabled = allSettings['spellcheck_enabled'] ?? null
 
       if (theme) {
         this.uiSettings.theme = theme as ThemeId
@@ -1400,7 +1401,7 @@ class SettingsStore {
       this.applyFontSize(this.uiSettings.fontSize)
 
       // Load font family settings
-      const fontFamilySetting = await database.getSetting('font_family')
+      const fontFamilySetting = allSettings['font_family'] ?? null
       if (fontFamilySetting) {
         try {
           const { fontFamily, fontSource } = JSON.parse(fontFamilySetting)
@@ -1425,44 +1426,44 @@ class SettingsStore {
       if (autoSave) this.uiSettings.autoSave = autoSave === 'true'
       if (spellcheckEnabled !== null) this.uiSettings.spellcheckEnabled = spellcheckEnabled === 'true'
 
-      const disableSuggestions = await database.getSetting('disable_suggestions')
+      const disableSuggestions = allSettings['disable_suggestions'] ?? null
       if (disableSuggestions !== null) this.uiSettings.disableSuggestions = disableSuggestions === 'true'
 
-      const disableActionPrefixes = await database.getSetting('disable_action_prefixes')
+      const disableActionPrefixes = allSettings['disable_action_prefixes'] ?? null
       if (disableActionPrefixes !== null) this.uiSettings.disableActionPrefixes = disableActionPrefixes === 'true'
 
-      const showReasoning = await database.getSetting('show_reasoning')
+      const showReasoning = allSettings['show_reasoning'] ?? null
       if (showReasoning !== null) this.uiSettings.showReasoning = showReasoning === 'true'
 
-      const autoScroll = await database.getSetting('auto_scroll')
+      const autoScroll = allSettings['auto_scroll'] ?? null
       if (autoScroll !== null) this.uiSettings.autoScroll = autoScroll === 'true'
 
-      const showScrollToTop = await database.getSetting('show_scroll_to_top')
+      const showScrollToTop = allSettings['show_scroll_to_top'] ?? null
       if (showScrollToTop !== null) this.uiSettings.showScrollToTop = showScrollToTop === 'true'
 
-      const showScrollToBottom = await database.getSetting('show_scroll_to_bottom')
+      const showScrollToBottom = allSettings['show_scroll_to_bottom'] ?? null
       if (showScrollToBottom !== null) this.uiSettings.showScrollToBottom = showScrollToBottom === 'true'
 
-      const storyMaxWidth = await database.getSetting('story_max_width')
+      const storyMaxWidth = allSettings['story_max_width'] ?? null
       if (storyMaxWidth && VALID_STORY_WIDTH_KEYS.includes(storyMaxWidth))
         this.uiSettings.storyMaxWidth = storyMaxWidth as UISettings['storyMaxWidth']
 
-      const debugMode = await database.getSetting('debug_mode')
+      const debugMode = allSettings['debug_mode'] ?? null
       if (debugMode !== null) debug.isActive = this.uiSettings.debugMode = debugMode === 'true'
 
-      const sidebarWidth = await database.getSetting('sidebar_width')
+      const sidebarWidth = allSettings['sidebar_width'] ?? null
       if (sidebarWidth) this.uiSettings.sidebarWidth = parseInt(sidebarWidth, 10)
 
-      const sidebarOpen = await database.getSetting('sidebar_open')
+      const sidebarOpen = allSettings['sidebar_open'] ?? null
       if (sidebarOpen !== null) ui.sidebarOpen = sidebarOpen === 'true'
 
-      const manualMode = await database.getSetting('advanced_manual_mode')
+      const manualMode = allSettings['advanced_manual_mode'] ?? null
       if (manualMode !== null) {
         this.advancedRequestSettings.manualMode = manualMode === 'true'
       }
 
       // Load wizard settings
-      const wizardSettingsJson = await database.getSetting('wizard_settings')
+      const wizardSettingsJson = allSettings['wizard_settings'] ?? null
       if (wizardSettingsJson) {
         try {
           const loaded = JSON.parse(wizardSettingsJson)
@@ -1494,7 +1495,7 @@ class SettingsStore {
       }
 
       // Load Generation Presets
-      const presetsJson = await database.getSetting('generation_presets')
+      const presetsJson = allSettings['generation_presets'] ?? null
       if (presetsJson) {
         try {
           const loadedPresets = JSON.parse(presetsJson)
@@ -1519,7 +1520,7 @@ class SettingsStore {
       }
 
       // Load service preset assignments
-      const assignmentsJson = await database.getSetting('service_preset_assignments')
+      const assignmentsJson = allSettings['service_preset_assignments'] ?? null
       if (assignmentsJson) {
         try {
           const loaded = JSON.parse(assignmentsJson)
@@ -1530,7 +1531,7 @@ class SettingsStore {
       }
 
       // Load service-specific settings
-      const serviceSpecificJson = await database.getSetting('service_specific_settings')
+      const serviceSpecificJson = allSettings['service_specific_settings'] ?? null
       if (serviceSpecificJson) {
         try {
           const loaded = JSON.parse(serviceSpecificJson)
@@ -1570,7 +1571,7 @@ class SettingsStore {
       }
 
       // Load experimental features
-      const experimentalJson = await database.getSetting('experimental_features')
+      const experimentalJson = allSettings['experimental_features'] ?? null
       if (experimentalJson) {
         try {
           const loaded = JSON.parse(experimentalJson)
@@ -1584,7 +1585,7 @@ class SettingsStore {
       }
 
       // Load system services settings
-      const systemServicesJson = await database.getSetting('system_services_settings')
+      const systemServicesJson = allSettings['system_services_settings'] ?? null
       if (systemServicesJson) {
         try {
           const loaded = JSON.parse(systemServicesJson)
@@ -1655,7 +1656,7 @@ class SettingsStore {
       }
 
       // Load update settings
-      const updateSettingsJson = await database.getSetting('update_settings')
+      const updateSettingsJson = allSettings['update_settings'] ?? null
       if (updateSettingsJson) {
         try {
           const loaded = JSON.parse(updateSettingsJson)
@@ -1684,7 +1685,7 @@ class SettingsStore {
       }
 
       // Load translation settings
-      const translationSettingsJson = await database.getSetting('translation_settings')
+      const translationSettingsJson = allSettings['translation_settings'] ?? null
       if (translationSettingsJson) {
         try {
           const loaded = JSON.parse(translationSettingsJson)
