@@ -898,9 +898,9 @@ class DatabaseService {
 
   async deleteCharacter(id: string): Promise<void> {
     const db = await this.getDb()
-    const results = await db.select<{portrait: string}[]>('SELECT portrait FROM characters WHERE id = ?', [id])
+    const results = await db.select<{ portrait: string }[]>('SELECT portrait FROM characters WHERE id = ?', [id])
     if (results.length > 0 && results[0].portrait) {
-        await imageStorageService.deleteImage(results[0].portrait)
+      await imageStorageService.deleteImage(results[0].portrait)
     }
     await db.execute('DELETE FROM characters WHERE id = ?', [id])
   }
@@ -2216,16 +2216,7 @@ class DatabaseService {
     const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE entry_id = ? ORDER BY created_at ASC', [
       entryId,
     ])
-    const images = results.map(this.mapEmbeddedImage)
-    for (const img of images) {
-      if (img.imageData) {
-        const base64 = await imageStorageService.loadImage(img.imageData)
-        if (base64) {
-          img.imageData = base64
-        }
-      }
-    }
-    return images
+    return this.hydrateEmbeddedImages(results)
   }
 
   async getEmbeddedImagesForStory(storyId: string): Promise<EmbeddedImage[]> {
@@ -2233,16 +2224,7 @@ class DatabaseService {
     const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE story_id = ? ORDER BY created_at ASC', [
       storyId,
     ])
-    const images = results.map(this.mapEmbeddedImage)
-    for (const img of images) {
-      if (img.imageData) {
-        const base64 = await imageStorageService.loadImage(img.imageData)
-        if (base64) {
-          img.imageData = base64
-        }
-      }
-    }
-    return images
+    return this.hydrateEmbeddedImages(results)
   }
 
   async createEmbeddedImage(image: Omit<EmbeddedImage, 'createdAt'>): Promise<EmbeddedImage> {
@@ -2250,7 +2232,7 @@ class DatabaseService {
     const now = Date.now()
 
     // Save image to storage service instead of base64 in db
-    const savedFilename = await imageStorageService.saveImage(image.id, image.imageData)
+    const imageFilename = await imageStorageService.saveImage(image.id, image.imageData)
 
     await db.execute(
       `INSERT INTO embedded_images (
@@ -2265,7 +2247,7 @@ class DatabaseService {
         image.prompt,
         image.styleId,
         image.model,
-        savedFilename,
+        imageFilename,
         image.width ?? null,
         image.height ?? null,
         image.status,
@@ -2273,7 +2255,7 @@ class DatabaseService {
         now,
       ],
     )
-    return { ...image, imageData: savedFilename, createdAt: now }
+    return { ...image, imageData: imageFilename, createdAt: now }
   }
 
   async getEmbeddedImage(id: string): Promise<EmbeddedImage | null> {
@@ -2288,9 +2270,9 @@ class DatabaseService {
     const values: any[] = []
 
     if (updates.imageData !== undefined) {
-      const savedFilename = await imageStorageService.saveImage(id, updates.imageData)
+      const imageFilename = await imageStorageService.saveImage(id, updates.imageData)
       setClauses.push('image_data = ?')
-      values.push(savedFilename)
+      values.push(imageFilename)
     }
     if (updates.width !== undefined) {
       setClauses.push('width = ?')
@@ -2328,6 +2310,23 @@ class DatabaseService {
     if (setClauses.length === 0) return
     values.push(id)
     await db.execute(`UPDATE embedded_images SET ${setClauses.join(', ')} WHERE id = ?`, values)
+  }
+
+  private async hydrateEmbeddedImages(results: any[]): Promise<EmbeddedImage[]> {
+    const images = results.map((row) => this.mapEmbeddedImage(row))
+
+    await Promise.all(
+      images.map(async (img) => {
+        if (img.imageData) {
+          const base64 = await imageStorageService.loadImage(img.imageData)
+          if (base64) {
+            img.imageData = base64
+          }
+        }
+      }),
+    )
+
+    return images
   }
 
   async deleteEmbeddedImage(id: string): Promise<void> {
@@ -2427,9 +2426,12 @@ class DatabaseService {
 
     if (checkpointId) {
       // Attempt to delete existing file to prevent disk leak
-      const oldCheck = await db.select<{image_data: string}[]>('SELECT image_data FROM background_images WHERE story_id = ? AND checkpoint_id = ?', [storyId, checkpointId])
+      const oldCheck = await db.select<{ image_data: string }[]>(
+        'SELECT image_data FROM background_images WHERE story_id = ? AND checkpoint_id = ?',
+        [storyId, checkpointId],
+      )
       if (oldCheck.length > 0 && oldCheck[0].image_data) {
-          await imageStorageService.deleteImage(oldCheck[0].image_data)
+        await imageStorageService.deleteImage(oldCheck[0].image_data)
       }
       // Checkpoints always get a new entry or replace existing for that checkpoint
       await db.execute(
@@ -2441,9 +2443,12 @@ class DatabaseService {
       const existing = await this.getBackgroundForBranch(storyId, branchId)
       if (existing) {
         // Find existing image_data to delete it, to avoid disk leak
-        const results = await db.select<{image_data: string}[]>('SELECT image_data FROM background_images WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL', [storyId, branchId])
+        const results = await db.select<{ image_data: string }[]>(
+          'SELECT image_data FROM background_images WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL',
+          [storyId, branchId],
+        )
         if (results.length > 0 && results[0].image_data) {
-            await imageStorageService.deleteImage(results[0].image_data)
+          await imageStorageService.deleteImage(results[0].image_data)
         }
         await db.execute(
           'UPDATE background_images SET image_data = ?, created_at = ? WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL',
@@ -2783,9 +2788,11 @@ class DatabaseService {
 
     // delete old portrait if it is being updated
     if (updates.portrait !== undefined) {
-      const results = await db.select<{portrait: string}[]>('SELECT portrait FROM vault_characters WHERE id = ?', [id])
+      const results = await db.select<{ portrait: string }[]>('SELECT portrait FROM vault_characters WHERE id = ?', [
+        id,
+      ])
       if (results.length > 0 && results[0].portrait) {
-          await imageStorageService.deleteImage(results[0].portrait)
+        await imageStorageService.deleteImage(results[0].portrait)
       }
     }
 
