@@ -14,3 +14,5 @@ export {
   processVisualProseWithInlineImages,
   getPlacedImageIds,
 } from './ImageEmbeddingService'
+
+export { imageStorageService, ImageStorageService } from './ImageStorageService'
