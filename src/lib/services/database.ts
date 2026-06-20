@@ -2430,7 +2430,7 @@ class DatabaseService {
     // Insert or update
     const id = crypto.randomUUID()
     const now = Date.now()
-    const savedFilename = await imageStorageService.saveImage(`bg_${id}`, imageData!)
+    const imageFilename = await imageStorageService.saveImage(`bg_${id}`, imageData!)
 
     if (checkpointId) {
       // Attempt to delete existing file to prevent disk leak
@@ -2444,7 +2444,7 @@ class DatabaseService {
       // Checkpoints always get a new entry or replace existing for that checkpoint
       await db.execute(
         'INSERT OR REPLACE INTO background_images (id, story_id, branch_id, checkpoint_id, image_data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, storyId, branchId, checkpointId, savedFilename, now],
+        [id, storyId, branchId, checkpointId, imageFilename, now],
       )
     } else {
       // For branches (including main), we update the single "current" record for that branch
@@ -2460,12 +2460,12 @@ class DatabaseService {
         }
         await db.execute(
           'UPDATE background_images SET image_data = ?, created_at = ? WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL',
-          [savedFilename, now, storyId, branchId],
+          [imageFilename, now, storyId, branchId],
         )
       } else {
         await db.execute(
           'INSERT INTO background_images (id, story_id, branch_id, checkpoint_id, image_data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-          [id, storyId, branchId, null, savedFilename, now],
+          [id, storyId, branchId, null, imageFilename, now],
         )
       }
     }
