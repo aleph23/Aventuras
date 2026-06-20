@@ -18,10 +18,6 @@
       // Initialize database connection
       await database.init()
 
-      // Run image migration from DB to file system
-      const { imageMigrationService } = await import('$lib/services/image/ImageMigrationService')
-      await imageMigrationService.migrateImages()
-
       // Seed prompt templates into the database (idempotent)
       await packService.initialize()
 

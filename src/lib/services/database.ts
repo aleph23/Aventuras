@@ -36,7 +36,6 @@ import type {
   EnumOption,
 } from '$lib/services/packs/types'
 import { hashContent } from '$lib/services/packs/hash'
-import { imageStorageService } from '$lib/services/image'
 
 /**
  * Migrate visual descriptors from old string array format to new structured object format.
@@ -898,10 +897,6 @@ class DatabaseService {
 
   async deleteCharacter(id: string): Promise<void> {
     const db = await this.getDb()
-    const results = await db.select<{ portrait: string }[]>('SELECT portrait FROM characters WHERE id = ?', [id])
-    if (results.length > 0 && results[0].portrait) {
-      await imageStorageService.deleteImage(results[0].portrait)
-    }
     await db.execute('DELETE FROM characters WHERE id = ?', [id])
   }
 
@@ -2216,7 +2211,7 @@ class DatabaseService {
     const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE entry_id = ? ORDER BY created_at ASC', [
       entryId,
     ])
-    return this.hydrateEmbeddedImages(results)
+    return results.map(this.mapEmbeddedImage)
   }
 
   async getEmbeddedImagesForStory(storyId: string): Promise<EmbeddedImage[]> {
@@ -2224,16 +2219,12 @@ class DatabaseService {
     const results = await db.select<any[]>('SELECT * FROM embedded_images WHERE story_id = ? ORDER BY created_at ASC', [
       storyId,
     ])
-    return this.hydrateEmbeddedImages(results)
+    return results.map(this.mapEmbeddedImage)
   }
 
   async createEmbeddedImage(image: Omit<EmbeddedImage, 'createdAt'>): Promise<EmbeddedImage> {
     const db = await this.getDb()
     const now = Date.now()
-
-    // Save image to storage service instead of base64 in db
-    const imageFilename = await imageStorageService.saveImage(image.id, image.imageData)
-
     await db.execute(
       `INSERT INTO embedded_images (
         id, story_id, entry_id, source_text, prompt, style_id, model,
@@ -2247,7 +2238,7 @@ class DatabaseService {
         image.prompt,
         image.styleId,
         image.model,
-        imageFilename,
+        image.imageData,
         image.width ?? null,
         image.height ?? null,
         image.status,
@@ -2255,7 +2246,7 @@ class DatabaseService {
         now,
       ],
     )
-    return { ...image, imageData: imageFilename, createdAt: now }
+    return { ...image, createdAt: now }
   }
 
   async getEmbeddedImage(id: string): Promise<EmbeddedImage | null> {
@@ -2270,9 +2261,8 @@ class DatabaseService {
     const values: any[] = []
 
     if (updates.imageData !== undefined) {
-      const imageFilename = await imageStorageService.saveImage(id, updates.imageData)
       setClauses.push('image_data = ?')
-      values.push(imageFilename)
+      values.push(updates.imageData)
     }
     if (updates.width !== undefined) {
       setClauses.push('width = ?')
@@ -2312,51 +2302,13 @@ class DatabaseService {
     await db.execute(`UPDATE embedded_images SET ${setClauses.join(', ')} WHERE id = ?`, values)
   }
 
-  private async hydrateEmbeddedImages(results: any[]): Promise<EmbeddedImage[]> {
-    const images = results.map((row) => this.mapEmbeddedImage(row))
-
-    await Promise.all(
-      images.map(async (img) => {
-        if (img.imageData) {
-          const base64 = await imageStorageService.loadImage(img.imageData)
-          if (base64) {
-            img.imageData = base64
-          }
-        }
-      }),
-    )
-
-    return images
-  }
-
   async deleteEmbeddedImage(id: string): Promise<void> {
     const db = await this.getDb()
-
-    // Attempt to delete file
-    const results = await db.select<{ image_data: string }[]>('SELECT image_data FROM embedded_images WHERE id = ?', [
-      id,
-    ])
-    if (results.length > 0 && results[0].image_data) {
-      await imageStorageService.deleteImage(results[0].image_data)
-    }
-
     await db.execute('DELETE FROM embedded_images WHERE id = ?', [id])
   }
 
   async deleteEmbeddedImagesForEntry(entryId: string): Promise<void> {
     const db = await this.getDb()
-
-    // Attempt to delete files
-    const results = await db.select<{ image_data: string }[]>(
-      'SELECT image_data FROM embedded_images WHERE entry_id = ?',
-      [entryId],
-    )
-    for (const row of results) {
-      if (row.image_data) {
-        await imageStorageService.deleteImage(row.image_data)
-      }
-    }
-
     await db.execute('DELETE FROM embedded_images WHERE entry_id = ?', [entryId])
   }
 
@@ -2369,15 +2321,7 @@ class DatabaseService {
       'SELECT image_data FROM background_images WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL ORDER BY created_at DESC LIMIT 1',
       [storyId, branchId],
     )
-    if (results.length > 0 && results[0].image_data) {
-      const base64 = await imageStorageService.loadImage(results[0].image_data)
-      if (base64) return base64
-      // Fallback only if it still looks like legacy data URL
-      if (results[0].image_data.startsWith('data:') || results[0].image_data.length > 1000) {
-        return results[0].image_data
-      }
-    }
-    return null
+    return results.length > 0 ? results[0].image_data : null
   }
 
   /**
@@ -2389,15 +2333,7 @@ class DatabaseService {
       'SELECT image_data FROM background_images WHERE story_id = ? AND checkpoint_id = ? LIMIT 1',
       [storyId, checkpointId],
     )
-    if (results.length > 0 && results[0].image_data) {
-      const base64 = await imageStorageService.loadImage(results[0].image_data)
-      if (base64) return base64
-      // Fallback only if it still looks like legacy data URL
-      if (results[0].image_data.startsWith('data:') || results[0].image_data.length > 1000) {
-        return results[0].image_data
-      }
-    }
-    return null
+    return results.length > 0 ? results[0].image_data : null
   }
 
   /**
@@ -2430,42 +2366,25 @@ class DatabaseService {
     // Insert or update
     const id = crypto.randomUUID()
     const now = Date.now()
-    const imageFilename = await imageStorageService.saveImage(`bg_${id}`, imageData!)
 
     if (checkpointId) {
-      // Attempt to delete existing file to prevent disk leak
-      const oldCheck = await db.select<{ image_data: string }[]>(
-        'SELECT image_data FROM background_images WHERE story_id = ? AND checkpoint_id = ?',
-        [storyId, checkpointId],
-      )
-      if (oldCheck.length > 0 && oldCheck[0].image_data) {
-        await imageStorageService.deleteImage(oldCheck[0].image_data)
-      }
       // Checkpoints always get a new entry or replace existing for that checkpoint
       await db.execute(
         'INSERT OR REPLACE INTO background_images (id, story_id, branch_id, checkpoint_id, image_data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, storyId, branchId, checkpointId, imageFilename, now],
+        [id, storyId, branchId, checkpointId, imageData, now],
       )
     } else {
       // For branches (including main), we update the single "current" record for that branch
       const existing = await this.getBackgroundForBranch(storyId, branchId)
       if (existing) {
-        // Find existing image_data to delete it, to avoid disk leak
-        const results = await db.select<{ image_data: string }[]>(
-          'SELECT image_data FROM background_images WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL',
-          [storyId, branchId],
-        )
-        if (results.length > 0 && results[0].image_data) {
-          await imageStorageService.deleteImage(results[0].image_data)
-        }
         await db.execute(
           'UPDATE background_images SET image_data = ?, created_at = ? WHERE story_id = ? AND branch_id IS ? AND checkpoint_id IS NULL',
-          [imageFilename, now, storyId, branchId],
+          [imageData, now, storyId, branchId],
         )
       } else {
         await db.execute(
           'INSERT INTO background_images (id, story_id, branch_id, checkpoint_id, image_data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-          [id, storyId, branchId, null, imageFilename, now],
+          [id, storyId, branchId, null, imageData, now],
         )
       }
     }
@@ -2793,16 +2712,6 @@ class DatabaseService {
     const db = await this.getDb()
     const setClauses: string[] = ['updated_at = ?']
     const values: any[] = [Date.now()]
-
-    // delete old portrait if it is being updated
-    if (updates.portrait !== undefined) {
-      const results = await db.select<{ portrait: string }[]>('SELECT portrait FROM vault_characters WHERE id = ?', [
-        id,
-      ])
-      if (results.length > 0 && results[0].portrait) {
-        await imageStorageService.deleteImage(results[0].portrait)
-      }
-    }
 
     if (updates.name !== undefined) {
       setClauses.push('name = ?')
