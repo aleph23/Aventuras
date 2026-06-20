@@ -1,4 +1,4 @@
-# Aventuras
+# Aventuras   [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aleph23/Aventuras)
 
 ## Overview
 
