@@ -29,7 +29,7 @@ export class ImageMigrationService {
       // 1. Migrate embedded images
       log('Migrating embedded images...')
       const embeddedResults = await db.select<{ id: string; image_data: string }[]>(
-        "SELECT id, image_data FROM embedded_images WHERE image_data != '' AND image_data NOT LIKE '%.png'",
+        "SELECT id, image_data FROM embedded_images WHERE image_data != '' AND image_data NOT LIKE '%.png' AND portrait NOT LIKE '%.jpg' AND portrait NOT LIKE '%.webp' AND portrait NOT LIKE '%.gif' AND portrait NOT LIKE '%.jpg' AND portrait NOT LIKE '%.webp' AND portrait NOT LIKE '%.gif' AND image_data NOT LIKE '%.jpg' AND image_data NOT LIKE '%.webp' AND image_data NOT LIKE '%.gif' AND image_data NOT LIKE '%.jpg' AND image_data NOT LIKE '%.webp' AND image_data NOT LIKE '%.gif'",
       )
 
       let embeddedCount = 0

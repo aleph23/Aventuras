@@ -56,7 +56,17 @@ export class ImageStorageService {
       return ''
     }
 
-    const filename = `${id}.png`
+    // Infer extension from base64 data URL if present, otherwise default to png
+    let ext = 'png'
+    if (base64Data.startsWith('data:image/')) {
+      const match = base64Data.match(/data:image\/([a-zA-Z0-9]+);/)
+      if (match && match[1]) {
+        ext = match[1]
+        // Standardize some extensions
+        if (ext === 'jpeg') ext = 'jpg'
+      }
+    }
+    const filename = `${id}.${ext}`
     const filePath = await this.getFilePath(filename)
 
     const bytes = this.base64ToBytes(base64Data)
@@ -82,7 +92,9 @@ export class ImageStorageService {
         return null
       }
       const bytes = await readFile(filePath)
-      return `data:image/png;base64,${this.bytesToBase64(bytes)}`
+      const ext = filename.split('.').pop()?.toLowerCase() || 'png'
+      const mimeType = ext === 'jpg' ? 'jpeg' : ext
+      return `data:image/${mimeType};base64,${this.bytesToBase64(bytes)}`
     } catch (e) {
       console.error('Failed to load image', e)
       return null
@@ -93,7 +105,12 @@ export class ImageStorageService {
    * Deletes an image by filename
    */
   async deleteImage(filename: string): Promise<void> {
-    if (!filename || filename.length > 1000 || filename.startsWith('data:') || !filename.endsWith('.png')) {
+    if (
+      !filename ||
+      filename.length > 1000 ||
+      filename.startsWith('data:') ||
+      !filename.match(/\.(png|jpg|jpeg|webp|gif)$/i)
+    ) {
       return // Can't delete if it's not a valid filename
     }
     try {

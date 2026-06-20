@@ -2371,7 +2371,11 @@ class DatabaseService {
     )
     if (results.length > 0 && results[0].image_data) {
       const base64 = await imageStorageService.loadImage(results[0].image_data)
-      return base64 || results[0].image_data
+      if (base64) return base64
+      // Fallback only if it still looks like legacy data URL
+      if (results[0].image_data.startsWith('data:') || results[0].image_data.length > 1000) {
+        return results[0].image_data
+      }
     }
     return null
   }
@@ -2387,7 +2391,11 @@ class DatabaseService {
     )
     if (results.length > 0 && results[0].image_data) {
       const base64 = await imageStorageService.loadImage(results[0].image_data)
-      return base64 || results[0].image_data
+      if (base64) return base64
+      // Fallback only if it still looks like legacy data URL
+      if (results[0].image_data.startsWith('data:') || results[0].image_data.length > 1000) {
+        return results[0].image_data
+      }
     }
     return null
   }
